@@ -19,6 +19,9 @@ yarn.lock
 *~
 .DS_Store
 
+# Database
+*.db
+
 # Build outputs
 dist/
 build/
