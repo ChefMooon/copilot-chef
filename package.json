@@ -1,0 +1,28 @@
+{
+  "name": "copilot-chef",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "src/core",
+    "src/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @copilot-chef/web",
+    "build": "npm run build --workspace @copilot-chef/core && npm run build --workspace @copilot-chef/web",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "db:generate": "npm run db:generate --workspace @copilot-chef/core",
+    "db:push": "npm run db:push --workspace @copilot-chef/core",
+    "db:seed": "npm run db:seed --workspace @copilot-chef/core"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.24.0",
+    "@types/node": "^22.14.0",
+    "eslint": "^9.24.0",
+    "eslint-config-next": "^15.2.4",
+    "eslint-config-prettier": "^10.1.1",
+    "globals": "^16.0.0",
+    "prettier": "^3.5.3",
+    "typescript-eslint": "^8.29.0"
+  }
+}
