@@ -2,7 +2,7 @@ import { useEffect, useState, type MouseEvent } from "react";
 
 import { isSameDay, MEAL_TYPES, mealsForDay, MONTHS, type EditableMeal, TYPE_CONFIG } from "@/lib/calendar";
 
-import styles from "../calendar.module.css";
+import styles from "../meal-plan.module.css";
 
 type MonthViewProps = {
   date: Date;

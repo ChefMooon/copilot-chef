@@ -7,7 +7,7 @@ import {
   TYPE_CONFIG
 } from "@/lib/calendar";
 
-import styles from "../calendar.module.css";
+import styles from "../meal-plan.module.css";
 
 type DayViewProps = {
   date: Date;

@@ -1,6 +1,6 @@
 import { DAYS, getMonday, isSameDay, mealsForDay, type EditableMeal, TYPE_CONFIG } from "@/lib/calendar";
 
-import styles from "../calendar.module.css";
+import styles from "../meal-plan.module.css";
 
 type WeekViewProps = {
   date: Date;

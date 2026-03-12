@@ -410,8 +410,7 @@ Remap shadcn's default tokens in `globals.css` to the Copilot Chef palette:
 | Page | Status | Notes |
 |---|---|---|
 | Home | ✅ Designed | Dashboard with chat, heatmap, grocery summary |
-| Calendar | 🔲 Pending | Calendar view of planned meals |
-| Meal Plan | 🔲 Pending | Create and edit meal plans |
+| Meal Plan | ✅ Implemented | Interactive calendar (day/week/month) with meal editing and AI suggestions |
 | Grocery List | 🔲 Pending | Create and edit grocery lists |
 | Settings | 🔲 Pending | Accessible via ⚙️ icon, dietary prefs, household size |
 | Stats | 🔲 Pending | Full-year heatmap + meal stats and insights |

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 
-const NAV_ITEMS = ["Home", "Calendar", "Meal Plan", "Grocery List"];
+const NAV_ITEMS = ["Home", "Meal Plan", "Grocery List"];
 
 const QUICK_PROMPTS = [
   { label: "Plan this week", icon: "📅" },

@@ -1,6 +1,6 @@
-# Calendar Page — Migration Plan
+# Meal Plan Page — Implementation Complete
 
-> This document instructs an agent on how to convert the existing basic calendar page into the fully designed prototype. The reference JSX file (`copilot-chef-calendar.jsx`) contains the complete, approved design and should be treated as the source of truth for all UI decisions.
+> This document records the migration of the Calendar page into the Meal Plan route. The Calendar page has been consolidated into /meal-plan, providing day/week/month views, meal editing, and AI resuggest functionality within a single unified interface.
 
 ---
 

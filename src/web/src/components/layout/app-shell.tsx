@@ -10,7 +10,6 @@ import styles from "./app-shell.module.css";
 
 const navigationItems = [
   { label: "Home", href: "/" },
-  { label: "Calendar", href: "/calendar" },
   { label: "Meal Plan", href: "/meal-plan" },
   { label: "Grocery List", href: "/grocery-list" },
   { label: "Stats", href: "/stats" }

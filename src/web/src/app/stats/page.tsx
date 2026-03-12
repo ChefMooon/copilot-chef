@@ -16,7 +16,7 @@ export default async function StatsPage() {
     <PlaceholderPage
       description="The full-year heatmap page is only partially styled for now, but the summary metrics are already coming from the same meal-log pipeline as the home dashboard."
       eyebrow="Stats"
-      primaryAction={{ href: "/calendar", label: "See Calendar" }}
+      primaryAction={{ href: "/meal-plan", label: "See Meal Plan" }}
       secondaryAction={{ href: "/", label: "Back Home" }}
       title="Meal Activity Snapshot"
     >

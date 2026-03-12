@@ -89,8 +89,7 @@ A daily log of meals that were actually cooked/eaten. Used to power the home das
 | Page | Description |
 |---|---|
 | **Home** | Dashboard overview: AI chat panel with quick prompts, meal activity heatmap (last 3 months), grocery list progress summary, and quick action shortcuts |
-| **Calendar** | Calendar view showing an overview of planned meals by day |
-| **Meal Plan** | Primary interface for creating and editing meal plans |
+| **Meal Plan** | Interactive calendar interface for planning and editing meals with day/week/month views, AI-powered meal suggestions, and ingredient tracking |
 | **Grocery List** | Primary interface for creating, editing, and checking off grocery lists |
 | **Settings** | Accessible via ⚙️ icon in the header. Dietary restrictions, household size, cuisine preferences |
 | **Stats** | Full-year meal activity heatmap, meal frequency stats, cuisine breakdowns, and planning streaks |
@@ -172,8 +171,7 @@ A daily log of meals that were actually cooked/eaten. Used to power the home das
   - **Section dividers** — uppercase Nunito label with extending rule line
 - Build pages and their components:
   - **Home** — greeting, AI chat panel (3-col desktop layout with quick prompts), meal activity heatmap (13-week CSS grid), grocery list summary card
-  - **Calendar** — monthly calendar grid showing planned meals per day
-  - **Meal Plan** — weekly meal plan editor with AI integration
+  - **Meal Plan** — interactive calendar (day/week/month views) for planning meals, editing meal details, viewing ingredient lists, and AI-powered resuggest functionality
   - **Grocery List** — categorized checklist with progress bar, add/remove items, export
   - **Settings** — dietary preferences form, household size, cuisine preferences
   - **Stats** — full 52-week meal activity heatmap, summary statistics

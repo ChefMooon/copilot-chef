@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { MEAL_TYPES, toDateInputValue, type EditableMeal, TYPE_CONFIG } from "@/lib/calendar";
 
-import styles from "../calendar.module.css";
+import styles from "../meal-plan.module.css";
 
 type EditModalProps = {
   meal: EditableMeal;
