@@ -32,32 +32,58 @@ src/
 
 - Node.js 18+
 - npm
+- GitHub Copilot CLI (for authentication; run `copilot login` before starting the dev server)
 
-### Setup
+### Initial Setup
 
 ```bash
+# Install dependencies across all workspaces
 npm install
+
+# Generate Prisma client
 npm run db:generate
+
+# Create and initialize the SQLite database with schema
 npm run db:push
+
+# Seed the database with sample meal plans, preferences, and grocery lists
 npm run db:seed
 ```
 
-### Run The Web App
+### Run The Development Server
 
 ```bash
 npm run dev
 ```
 
-This starts the Next.js app from `src/web`.
+This starts the Next.js dev server from `src/web` on `http://localhost:3000`.
 
-### Build
+**Note:** Ensure you have run `copilot login` before starting the dev server to authenticate with the GitHub Copilot SDK.
+
+### Build for Production
 
 ```bash
 npm run build
 ```
 
-## Notes
+Compiles both `src/core` (TypeScript) and `src/web` (Next.js) into optimized dist/build directories.
 
-- The tracked environment example is in `.env.example`.
-- The Prisma CLI uses `src/core/.env` locally for workspace commands.
-- The web app uses the shared core package and the local SQLite database seeded during setup.
+## Configuration
+
+### Environment Variables
+
+- **Root `.env.example`**: Documents global app configuration (DATABASE_URL, NEXT_PUBLIC_APP_NAME, COPILOT_MODEL)
+- **`src/core/.env`**: Used by Prisma CLI for database operations
+- **`src/web/.env.local`** (create if needed): Override `COPILOT_MODEL` for the web app; Next.js reads this automatically
+
+For testing with a different Copilot model, set `COPILOT_MODEL` in `src/web/.env.local` (e.g., `COPILOT_MODEL=gpt-4-turbo`).
+
+### Database
+
+The SQLite database is created at `src/core/prisma/copilot-chef.db` after running `npm run db:push` and `npm run db:seed`.
+
+Seed data includes:
+- Sample meal plans with meals organized by day and meal type
+- User preferences (dietary restrictions, household size, cuisine preferences)
+- Sample grocery lists and items
+- Indexed lookups for efficient queries

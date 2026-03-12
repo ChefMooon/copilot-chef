@@ -8,6 +8,9 @@ yarn.lock
 .env.local
 .env.*.local
 
+# Copilot files
+.copilot-sessions/
+
 # IDE
 .vscode/
 .idea/
