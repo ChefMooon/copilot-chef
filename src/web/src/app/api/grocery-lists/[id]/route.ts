@@ -17,10 +17,38 @@ export async function GET(
   return NextResponse.json({ data });
 }
 
-export async function PATCH(request: Request) {
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const body = (await request.json()) as { itemId: string; checked: boolean };
-    const data = await groceryService.toggleItem(body.itemId, body.checked);
+    const { id } = await params;
+    const body = (await request.json()) as {
+      name?: string;
+      date?: string;
+      favourite?: boolean;
+      mealPlanId?: string | null;
+    };
+
+    const data = await groceryService.updateGroceryList(id, body);
+    return NextResponse.json({ data });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Unable to update grocery list"
+      },
+      { status: 400 }
+    );
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const data = await groceryService.deleteGroceryList(id);
     return NextResponse.json({ data });
   } catch (error) {
     return NextResponse.json(

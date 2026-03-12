@@ -89,14 +89,14 @@ const sampleMeals: Array<{
 ];
 
 const sampleGroceries = [
-  { name: "Whole chicken", category: "meat", checked: false },
-  { name: "Butternut squash", category: "produce", checked: true },
-  { name: "Arborio rice", category: "pantry", checked: false },
-  { name: "Fresh thyme & rosemary", category: "produce", checked: false },
-  { name: "Coconut milk", category: "pantry", checked: true },
-  { name: "Sourdough starter", category: "bakery", checked: false },
-  { name: "Parmesan block", category: "dairy", checked: true },
-  { name: "Fish fillets", category: "seafood", checked: false }
+  { name: "Whole chicken", category: "Meat & Fish", checked: false, qty: "1", notes: "Free-range if available" },
+  { name: "Butternut squash", category: "Produce", checked: true, qty: "2", unit: "pcs" },
+  { name: "Arborio rice", category: "Pantry", checked: false, qty: "500", unit: "g" },
+  { name: "Fresh thyme & rosemary", category: "Produce", checked: false, qty: "1", unit: "bunches" },
+  { name: "Coconut milk", category: "Pantry", checked: true, qty: "2", unit: "cans" },
+  { name: "Sourdough starter", category: "Bakery", checked: false },
+  { name: "Parmesan block", category: "Dairy & Eggs", checked: true, qty: "150", unit: "g" },
+  { name: "Fish fillets", category: "Meat & Fish", checked: false, qty: "2", unit: "pcs" }
 ];
 
 const breakfastPool = [
@@ -206,6 +206,8 @@ export async function seedDatabase() {
     data: {
       mealPlanId: mealPlan.id,
       name: "This Week's Shop",
+      date: weekStart,
+      favourite: true,
       items: {
         create: sampleGroceries.map((item, index) => ({
           ...item,

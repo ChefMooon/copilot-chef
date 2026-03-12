@@ -1,77 +1,357 @@
-import { GroceryService } from "@copilot-chef/core";
+"use client";
 
-import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-export default async function GroceryListPage() {
-  const groceryService = new GroceryService();
-  const groceryList = await groceryService.getCurrentGroceryList();
+import { fetchJson } from "@/lib/api";
+import {
+  deriveGroceryList,
+  isToday,
+  isUpcoming,
+  removeGroceryListFromCollection,
+  upsertGroceryList,
+  updateGroceryListInCollection,
+  type GroceryItem,
+  type GroceryList,
+  type QuickFilter
+} from "@/lib/grocery";
 
-  const items = groceryList?.items ?? [];
-  const groupedItems = Object.entries(
-    items.reduce<Record<string, typeof items>>((groups, item) => {
-      const key = item.category ?? "other";
-      groups[key] = [...(groups[key] ?? []), item];
-      return groups;
-    }, {})
-  );
+import styles from "./grocery-list.module.css";
+import { ListEditor } from "./components/ListEditor";
+import { ListsSidebar } from "./components/ListsSidebar";
+import { NewListModal } from "./components/NewListModal";
+import { QuickReference } from "./components/QuickReference";
+
+export default function GroceryListPage() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const listsQueryKey = ["grocery-lists"] as const;
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<QuickFilter>("today");
+  const [upcomingDays, setUpcomingDays] = useState(7);
+  const [showNewModal, setShowNewModal] = useState(false);
+
+  const listsQuery = useQuery({
+    queryKey: ["grocery-lists"],
+    queryFn: () => fetchJson<{ data: GroceryList[] }>("/api/grocery-lists").then((response) => response.data)
+  });
+
+  const lists = listsQuery.data ?? [];
+
+  const selectedList = useMemo(() => {
+    if (selectedId) {
+      const found = lists.find((list) => list.id === selectedId);
+      if (found) {
+        return found;
+      }
+    }
+
+    return lists[0] ?? null;
+  }, [lists, selectedId]);
+
+  const filteredQuick = useMemo(() => {
+    if (activeFilter === "today") {
+      return lists.filter((list) => isToday(list.date));
+    }
+    if (activeFilter === "upcoming") {
+      return lists.filter((list) => isUpcoming(list.date, upcomingDays));
+    }
+    if (activeFilter === "fav") {
+      return lists.filter((list) => list.favourite);
+    }
+    if (activeFilter === "recent") {
+      return [...lists]
+        .sort((left, right) => new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime())
+        .slice(0, 5);
+    }
+    return lists;
+  }, [activeFilter, lists, upcomingDays]);
+
+  const setListsCache = (updater: (current: GroceryList[]) => GroceryList[]) => {
+    queryClient.setQueryData<GroceryList[]>(listsQueryKey, (current) => updater(current ?? []));
+  };
+
+  const setListCache = (listId: string, updater: (current: GroceryList) => GroceryList) => {
+    queryClient.setQueryData<GroceryList | undefined>(["grocery-list", listId], (current) =>
+      current ? deriveGroceryList(updater(current)) : current
+    );
+  };
+
+  const syncList = (nextList: GroceryList, previousId?: string) => {
+    if (previousId && previousId !== nextList.id) {
+      setListsCache((current) => removeGroceryListFromCollection(current, previousId));
+      queryClient.removeQueries({ queryKey: ["grocery-list", previousId], exact: true });
+    }
+
+    setListsCache((current) => upsertGroceryList(current, nextList));
+    queryClient.setQueryData(["grocery-list", nextList.id], deriveGroceryList(nextList, nextList.updatedAt));
+  };
+
+  const rollbackListSnapshots = (
+    previousLists: GroceryList[] | undefined,
+    previousList: GroceryList | undefined,
+    listId: string,
+    clearList = false
+  ) => {
+    queryClient.setQueryData(listsQueryKey, previousLists);
+    if (clearList) {
+      queryClient.removeQueries({ queryKey: ["grocery-list", listId], exact: true });
+    } else {
+      queryClient.setQueryData(["grocery-list", listId], previousList);
+    }
+  };
+
+  const patchList = async (id: string, payload: Partial<GroceryList>) => {
+    const previousLists = queryClient.getQueryData<GroceryList[]>(listsQueryKey);
+    const previousList = queryClient.getQueryData<GroceryList>(["grocery-list", id]);
+
+    setListsCache((current) =>
+      updateGroceryListInCollection(current, id, (list) => ({
+        ...list,
+        ...payload
+      }))
+    );
+    setListCache(id, (list) => ({ ...list, ...payload }));
+
+    try {
+      const response = await fetchJson<{ data: GroceryList }>(`/api/grocery-lists/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      });
+      syncList(response.data);
+    } catch (error) {
+      rollbackListSnapshots(previousLists, previousList, id);
+      throw error;
+    }
+  };
+
+  const patchItem = async (listId: string, itemId: string, payload: Partial<GroceryItem>) => {
+    const previousLists = queryClient.getQueryData<GroceryList[]>(listsQueryKey);
+    const previousList = queryClient.getQueryData<GroceryList>(["grocery-list", listId]);
+
+    const applyItemUpdate = (list: GroceryList) => ({
+      ...list,
+      items: list.items.map((item) => (item.id === itemId ? { ...item, ...payload } : item))
+    });
+
+    setListsCache((current) => updateGroceryListInCollection(current, listId, applyItemUpdate));
+    setListCache(listId, applyItemUpdate);
+
+    try {
+      const response = await fetchJson<{ data: GroceryList }>(`/api/grocery-lists/${listId}/items/${itemId}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload)
+      });
+      syncList(response.data);
+    } catch (error) {
+      rollbackListSnapshots(previousLists, previousList, listId);
+      throw error;
+    }
+  };
 
   return (
-    <PlaceholderPage
-      description="The checklist is real data from the seeded core services. The page is deliberately simple, but the structure is ready for item editing and export controls."
-      eyebrow="Grocery List"
-      primaryAction={{ href: "/settings", label: "Tune Preferences" }}
-      secondaryAction={{ href: "/", label: "Back Home" }}
-      title="This Week's Shop"
-    >
-      <section className="lg:col-span-8 rounded-card border border-green/10 bg-white p-6 shadow-card">
-        <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-orange">Current List</p>
-            <h2 className="font-serif text-3xl font-bold text-text">{groceryList?.name ?? "No grocery list yet"}</h2>
+    <>
+      <div className={styles.pageHeader}>
+        <div>
+          <div className={styles.eyebrow}>Grocery List</div>
+          <h1 className={styles.pageTitle}>Your Lists</h1>
+          <p className={styles.pageSub}>{lists.length} list{lists.length === 1 ? "" : "s"} · select one to edit</p>
+        </div>
+        <button className={styles.btnNewList} onClick={() => setShowNewModal(true)} type="button">
+          + New List
+        </button>
+      </div>
+
+      <QuickReference
+        activeFilter={activeFilter}
+        lists={filteredQuick}
+        onChangeUpcomingDays={setUpcomingDays}
+        onSelectFilter={setActiveFilter}
+        onSelectList={setSelectedId}
+        onToggleFav={(id, nextValue) => void patchList(id, { favourite: nextValue })}
+        selectedId={selectedList?.id ?? null}
+        upcomingDays={upcomingDays}
+      />
+
+      <div className={styles.mainCols}>
+        <ListsSidebar
+          lists={lists}
+          onSelect={setSelectedId}
+          onToggleFav={(id, nextValue) => void patchList(id, { favourite: nextValue })}
+          selectedId={selectedList?.id ?? null}
+        />
+
+        {selectedList ? (
+          <ListEditor
+            list={selectedList}
+            onCreateItem={async (listId, payload) => {
+              const previousLists = queryClient.getQueryData<GroceryList[]>(listsQueryKey);
+              const previousList = queryClient.getQueryData<GroceryList>(["grocery-list", listId]);
+              const tempItem: GroceryItem = {
+                id: `temp-${Date.now()}`,
+                name: payload.name,
+                category: "Produce",
+                unit: "",
+                qty: "",
+                notes: "",
+                meal: "",
+                checked: false,
+                sortOrder: selectedList?.items.length ?? 0
+              };
+              const applyCreate = (list: GroceryList) => ({
+                ...list,
+                items: [...list.items, tempItem]
+              });
+
+              setListsCache((current) => updateGroceryListInCollection(current, listId, applyCreate));
+              setListCache(listId, applyCreate);
+
+              try {
+                const response = await fetchJson<{ data: GroceryList }>(`/api/grocery-lists/${listId}/items`, {
+                  method: "POST",
+                  body: JSON.stringify({
+                    ...payload,
+                    category: "Produce",
+                    unit: "",
+                    qty: "",
+                    notes: "",
+                    meal: "",
+                    checked: false
+                  })
+                });
+                syncList(response.data);
+              } catch (error) {
+                rollbackListSnapshots(previousLists, previousList, listId);
+                throw error;
+              }
+            }}
+            onDeleteItem={async (listId, itemId) => {
+              const previousLists = queryClient.getQueryData<GroceryList[]>(listsQueryKey);
+              const previousList = queryClient.getQueryData<GroceryList>(["grocery-list", listId]);
+              const applyDelete = (list: GroceryList) => ({
+                ...list,
+                items: list.items.filter((item) => item.id !== itemId)
+              });
+
+              setListsCache((current) => updateGroceryListInCollection(current, listId, applyDelete));
+              setListCache(listId, applyDelete);
+
+              try {
+                const response = await fetchJson<{ data: GroceryList }>(`/api/grocery-lists/${listId}/items/${itemId}`, {
+                  method: "DELETE"
+                });
+                syncList(response.data);
+              } catch (error) {
+                rollbackListSnapshots(previousLists, previousList, listId);
+                throw error;
+              }
+            }}
+            onDeleteList={async (id) => {
+              const previousLists = queryClient.getQueryData<GroceryList[]>(listsQueryKey);
+              const previousList = queryClient.getQueryData<GroceryList>(["grocery-list", id]);
+              const remaining = removeGroceryListFromCollection(previousLists ?? [], id);
+
+              setListsCache((current) => removeGroceryListFromCollection(current, id));
+              queryClient.removeQueries({ queryKey: ["grocery-list", id], exact: true });
+              if (selectedList?.id === id) {
+                setSelectedId(remaining[0]?.id ?? null);
+              }
+
+              try {
+                await fetchJson<{ data: { id: string } }>(`/api/grocery-lists/${id}`, {
+                  method: "DELETE"
+                });
+              } catch (error) {
+                rollbackListSnapshots(previousLists, previousList, id);
+                throw error;
+              }
+            }}
+            onReorder={async (listId, itemIds) => {
+              const previousLists = queryClient.getQueryData<GroceryList[]>(listsQueryKey);
+              const previousList = queryClient.getQueryData<GroceryList>(["grocery-list", listId]);
+              const applyReorder = (list: GroceryList) => ({
+                ...list,
+                items: itemIds
+                  .map((itemId, index) => {
+                    const item = list.items.find((entry) => entry.id === itemId);
+                    return item ? { ...item, sortOrder: index } : null;
+                  })
+                  .filter((item): item is GroceryItem => item !== null)
+              });
+
+              setListsCache((current) => updateGroceryListInCollection(current, listId, applyReorder));
+              setListCache(listId, applyReorder);
+
+              try {
+                const response = await fetchJson<{ data: GroceryList }>(`/api/grocery-lists/${listId}/reorder`, {
+                  method: "POST",
+                  body: JSON.stringify({ itemIds })
+                });
+                syncList(response.data);
+              } catch (error) {
+                rollbackListSnapshots(previousLists, previousList, listId);
+                throw error;
+              }
+            }}
+            onShop={() => {
+              router.push(`/grocery-list/shop/${selectedList.id}`);
+            }}
+            onUpdateItem={patchItem}
+            onUpdateList={async (id, updates) => {
+              await patchList(id, updates);
+            }}
+          />
+        ) : (
+          <div className={styles.editorPlaceholder}>
+            <div className={styles.editorPlaceholderIcon}>🛒</div>
+            <p className={styles.editorPlaceholderText}>Select a list to start editing.</p>
           </div>
-          <p className="text-sm font-semibold text-text-muted">
-            {groceryList?.checkedCount ?? 0} of {groceryList?.totalItems ?? 0} collected
-          </p>
-        </div>
+        )}
+      </div>
 
-        <div className="space-y-5">
-          {groupedItems.map(([category, items]) => (
-            <div key={category}>
-              <h3 className="mb-3 font-serif text-xl font-semibold capitalize text-text">{category}</h3>
-              <div className="space-y-3">
-                {items.map((item) => (
-                  <div className="flex items-center justify-between rounded-btn border border-cream-dark bg-cream px-4 py-3" key={item.id}>
-                    <div>
-                      <p className="font-semibold text-text">{item.name}</p>
-                      <p className="text-sm font-medium text-text-muted">{item.checked ? "Collected" : "Still needed"}</p>
-                    </div>
-                    <span className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] ${item.checked ? "bg-green-pale text-green" : "bg-[#FDF0E8] text-orange"}`}>
-                      {item.checked ? "Done" : "Open"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {showNewModal ? (
+        <NewListModal
+          onClose={() => setShowNewModal(false)}
+          onCreate={async ({ name, date }) => {
+            const previousLists = queryClient.getQueryData<GroceryList[]>(listsQueryKey);
+            const tempId = `temp-list-${Date.now()}`;
+            const optimisticList = deriveGroceryList({
+              id: tempId,
+              name,
+              date: new Date(`${date}T12:00:00`).toISOString(),
+              favourite: false,
+              mealPlanId: null,
+              mealPlan: null,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              checkedCount: 0,
+              totalItems: 0,
+              completionPercentage: 0,
+              items: []
+            });
 
-      <aside className="lg:col-span-4 space-y-5">
-        <section className="rounded-card border border-green/10 bg-white p-6 shadow-card">
-          <h2 className="font-serif text-2xl font-bold text-text">Progress</h2>
-          <p className="mt-2 text-sm font-medium text-text-muted">
-            Completion is already computed by the shared service layer, so toggles and exports can land here without rewriting list logic.
-          </p>
-        </section>
-        <section className="rounded-card bg-cream p-6 shadow-card">
-          <h3 className="font-serif text-xl font-semibold text-text">Planned additions</h3>
-          <ul className="mt-3 space-y-2 text-sm font-medium text-text-muted">
-            <li>Categorized item editing</li>
-            <li>Pantry-aware substitutions</li>
-            <li>Export to printable shopping sheet</li>
-          </ul>
-        </section>
-      </aside>
-    </PlaceholderPage>
+            setListsCache((current) => [...current, optimisticList]);
+            queryClient.setQueryData(["grocery-list", tempId], optimisticList);
+            setSelectedId(tempId);
+            setShowNewModal(false);
+
+            try {
+              const response = await fetchJson<{ data: GroceryList }>("/api/grocery-lists", {
+                method: "POST",
+                body: JSON.stringify({ name, date: new Date(`${date}T12:00:00`).toISOString() })
+              });
+              syncList(response.data, tempId);
+              setSelectedId(response.data.id);
+            } catch (error) {
+              queryClient.setQueryData(listsQueryKey, previousLists);
+              queryClient.removeQueries({ queryKey: ["grocery-list", tempId], exact: true });
+              setSelectedId(previousLists?.[0]?.id ?? null);
+              throw error;
+            }
+          }}
+        />
+      ) : null}
+    </>
   );
 }

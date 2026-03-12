@@ -4,15 +4,21 @@ import { bootstrapDatabase } from "../lib/bootstrap";
 function serializeGroceryList(groceryList: {
   id: string;
   name: string;
+  date: Date;
+  favourite: boolean;
   createdAt: Date;
+  updatedAt: Date;
   mealPlanId: string | null;
+  mealPlan: { name: string } | null;
   items: Array<{
     id: string;
     name: string;
-    category: string | null;
-    checked: boolean;
-    quantity: number | null;
+    qty: string | null;
     unit: string | null;
+    category: string;
+    notes: string | null;
+    meal: string | null;
+    checked: boolean;
     sortOrder: number;
   }>;
 }) {
@@ -21,8 +27,12 @@ function serializeGroceryList(groceryList: {
   return {
     id: groceryList.id,
     name: groceryList.name,
+    date: groceryList.date.toISOString(),
+    favourite: groceryList.favourite,
     createdAt: groceryList.createdAt.toISOString(),
+    updatedAt: groceryList.updatedAt.toISOString(),
     mealPlanId: groceryList.mealPlanId,
+    mealPlan: groceryList.mealPlan?.name ?? null,
     checkedCount,
     totalItems: groceryList.items.length,
     completionPercentage:
@@ -35,12 +45,95 @@ function serializeGroceryList(groceryList: {
       .map((item) => ({
         id: item.id,
         name: item.name,
+        qty: item.qty,
+        unit: item.unit,
         category: item.category,
+        notes: item.notes,
+        meal: item.meal,
         checked: item.checked,
-        quantity: item.quantity,
-        unit: item.unit
+        sortOrder: item.sortOrder
       }))
   };
+}
+
+type CreateListInput = {
+  name: string;
+  date?: string | Date;
+  favourite?: boolean;
+  mealPlanId?: string;
+  items?: Array<{
+    name: string;
+    qty?: string;
+    unit?: string;
+    category?: string;
+    notes?: string;
+    meal?: string;
+    checked?: boolean;
+  }>;
+};
+
+type UpdateListInput = {
+  name?: string;
+  date?: string | Date;
+  favourite?: boolean;
+  mealPlanId?: string | null;
+};
+
+type CreateItemInput = {
+  name: string;
+  qty?: string;
+  unit?: string;
+  category?: string;
+  notes?: string;
+  meal?: string;
+  checked?: boolean;
+};
+
+type UpdateItemInput = {
+  name?: string;
+  qty?: string | null;
+  unit?: string | null;
+  category?: string;
+  notes?: string | null;
+  meal?: string | null;
+  checked?: boolean;
+};
+
+function toDate(value: string | Date | undefined) {
+  if (!value) {
+    return new Date();
+  }
+
+  if (value instanceof Date) {
+    return value;
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error("Invalid date provided");
+  }
+
+  return parsed;
+}
+
+async function getListOrThrow(id: string) {
+  const groceryList = await prisma.groceryList.findUnique({
+    where: { id },
+    include: {
+      mealPlan: {
+        select: {
+          name: true
+        }
+      },
+      items: true
+    }
+  });
+
+  if (!groceryList) {
+    throw new Error("Grocery list not found");
+  }
+
+  return groceryList;
 }
 
 export class GroceryService {
@@ -49,11 +142,14 @@ export class GroceryService {
 
     const groceryLists = await prisma.groceryList.findMany({
       include: {
+        mealPlan: {
+          select: {
+            name: true
+          }
+        },
         items: true
       },
-      orderBy: {
-        createdAt: "desc"
-      }
+      orderBy: [{ date: "asc" }, { updatedAt: "desc" }]
     });
 
     return groceryLists.map(serializeGroceryList);
@@ -65,6 +161,11 @@ export class GroceryService {
     const groceryList = await prisma.groceryList.findUnique({
       where: { id },
       include: {
+        mealPlan: {
+          select: {
+            name: true
+          }
+        },
         items: true
       }
     });
@@ -77,50 +178,212 @@ export class GroceryService {
 
     const groceryList = await prisma.groceryList.findFirst({
       include: {
+        mealPlan: {
+          select: {
+            name: true
+          }
+        },
         items: true
       },
-      orderBy: {
-        createdAt: "desc"
-      }
+      orderBy: [{ date: "asc" }, { updatedAt: "desc" }]
     });
 
     return groceryList ? serializeGroceryList(groceryList) : null;
   }
 
-  async createGroceryList(input: {
-    name: string;
-    mealPlanId?: string;
-    items?: Array<{
-      name: string;
-      category?: string;
-      quantity?: number;
-      unit?: string;
-      checked?: boolean;
-    }>;
-  }) {
+  async createGroceryList(input: CreateListInput) {
     await bootstrapDatabase();
 
     const groceryList = await prisma.groceryList.create({
       data: {
         name: input.name,
+        date: toDate(input.date),
+        favourite: input.favourite ?? false,
         mealPlanId: input.mealPlanId,
         items: {
           create: (input.items ?? []).map((item, index) => ({
             name: item.name,
-            category: item.category,
-            quantity: item.quantity,
+            qty: item.qty,
             unit: item.unit,
+            category: item.category ?? "Other",
+            notes: item.notes,
+            meal: item.meal,
             checked: item.checked ?? false,
             sortOrder: index
           }))
         }
       },
       include: {
+        mealPlan: {
+          select: {
+            name: true
+          }
+        },
         items: true
       }
     });
 
     return serializeGroceryList(groceryList);
+  }
+
+  async updateGroceryList(id: string, input: UpdateListInput) {
+    await bootstrapDatabase();
+
+    const data: {
+      name?: string;
+      date?: Date;
+      favourite?: boolean;
+      mealPlanId?: string | null;
+    } = {};
+
+    if (input.name !== undefined) {
+      data.name = input.name;
+    }
+    if (input.date !== undefined) {
+      data.date = toDate(input.date);
+    }
+    if (input.favourite !== undefined) {
+      data.favourite = input.favourite;
+    }
+    if (input.mealPlanId !== undefined) {
+      data.mealPlanId = input.mealPlanId;
+    }
+
+    const groceryList = await prisma.groceryList.update({
+      where: { id },
+      data,
+      include: {
+        mealPlan: {
+          select: {
+            name: true
+          }
+        },
+        items: true
+      }
+    });
+
+    return serializeGroceryList(groceryList);
+  }
+
+  async deleteGroceryList(id: string) {
+    await bootstrapDatabase();
+
+    await prisma.groceryList.delete({
+      where: { id }
+    });
+
+    return { id };
+  }
+
+  async createGroceryItem(groceryListId: string, input: CreateItemInput) {
+    await bootstrapDatabase();
+
+    const maxOrder = await prisma.groceryItem.aggregate({
+      where: { groceryListId },
+      _max: {
+        sortOrder: true
+      }
+    });
+
+    await prisma.groceryItem.create({
+      data: {
+        groceryListId,
+        name: input.name,
+        qty: input.qty,
+        unit: input.unit,
+        category: input.category ?? "Other",
+        notes: input.notes,
+        meal: input.meal,
+        checked: input.checked ?? false,
+        sortOrder: (maxOrder._max.sortOrder ?? -1) + 1
+      }
+    });
+
+    return serializeGroceryList(await getListOrThrow(groceryListId));
+  }
+
+  async updateGroceryItem(groceryListId: string, itemId: string, input: UpdateItemInput) {
+    await bootstrapDatabase();
+
+    const existing = await prisma.groceryItem.findUnique({
+      where: { id: itemId },
+      select: { groceryListId: true }
+    });
+
+    if (!existing || existing.groceryListId !== groceryListId) {
+      throw new Error("Grocery item not found");
+    }
+
+    await prisma.groceryItem.update({
+      where: {
+        id: itemId
+      },
+      data: {
+        name: input.name,
+        qty: input.qty,
+        unit: input.unit,
+        category: input.category,
+        notes: input.notes,
+        meal: input.meal,
+        checked: input.checked
+      }
+    });
+
+    return serializeGroceryList(await getListOrThrow(groceryListId));
+  }
+
+  async deleteGroceryItem(groceryListId: string, itemId: string) {
+    await bootstrapDatabase();
+
+    const existing = await prisma.groceryItem.findUnique({
+      where: { id: itemId },
+      select: { groceryListId: true }
+    });
+
+    if (!existing || existing.groceryListId !== groceryListId) {
+      throw new Error("Grocery item not found");
+    }
+
+    await prisma.groceryItem.delete({
+      where: {
+        id: itemId
+      }
+    });
+
+    return serializeGroceryList(await getListOrThrow(groceryListId));
+  }
+
+  async reorderGroceryItems(groceryListId: string, itemIds: string[]) {
+    await bootstrapDatabase();
+
+    const existingItems = await prisma.groceryItem.findMany({
+      where: {
+        groceryListId,
+        id: { in: itemIds }
+      },
+      select: {
+        id: true
+      }
+    });
+
+    if (existingItems.length !== itemIds.length) {
+      throw new Error("Some grocery items were not found");
+    }
+
+    await prisma.$transaction(
+      itemIds.map((itemId, index) =>
+        prisma.groceryItem.update({
+          where: {
+            id: itemId
+          },
+          data: {
+            sortOrder: index
+          }
+        })
+      )
+    );
+
+    return serializeGroceryList(await getListOrThrow(groceryListId));
   }
 
   async toggleItem(itemId: string, checked: boolean) {
@@ -136,6 +399,11 @@ export class GroceryService {
       include: {
         groceryList: {
           include: {
+            mealPlan: {
+              select: {
+                name: true
+              }
+            },
             items: true
           }
         }
