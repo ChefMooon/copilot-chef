@@ -9,7 +9,9 @@ datasource db {
 
 enum MealType {
   BREAKFAST
+  MORNING_SNACK
   LUNCH
+  AFTERNOON_SNACK
   DINNER
   SNACK
 }
@@ -27,17 +29,18 @@ model MealPlan {
 }
 
 model Meal {
-  id         String    @id @default(cuid())
-  mealPlanId String
-  name       String
-  dayOfWeek  Int
-  mealType   MealType
-  notes      String?
-  createdAt  DateTime  @default(now())
-  mealPlan   MealPlan  @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
-  logs       MealLog[]
+  id              String    @id @default(cuid())
+  mealPlanId      String?
+  name            String
+  date            DateTime  @default(now())
+  mealType        MealType
+  notes           String?
+  ingredientsJson String    @default("[]")
+  createdAt       DateTime  @default(now())
+  mealPlan        MealPlan? @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
+  logs            MealLog[]
 
-  @@index([mealPlanId, dayOfWeek])
+  @@index([mealPlanId, date])
 }
 
 model GroceryList {

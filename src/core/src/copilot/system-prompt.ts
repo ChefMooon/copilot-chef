@@ -1,10 +1,8 @@
-const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
 export type SystemPromptContext = {
   mealPlan?: {
     name: string;
     totalMeals: number;
-    meals: Array<{ name: string; mealType: string; dayOfWeek: number }>;
+    meals: Array<{ name: string; mealType: string; date: string }>;
   } | null;
   groceryList?: {
     name: string;
@@ -29,7 +27,14 @@ export function buildSystemPrompt(context: SystemPromptContext = {}): string {
 
   if (mealPlan) {
     const mealLines = mealPlan.meals
-      .map((m) => `  - ${DAY_LABELS[m.dayOfWeek] ?? `Day ${m.dayOfWeek}`}: ${m.name} (${m.mealType})`)
+      .map((m) => {
+        const label = new Date(m.date).toLocaleDateString("en-US", {
+          weekday: "long",
+          month: "short",
+          day: "numeric"
+        });
+        return `  - ${label}: ${m.name} (${m.mealType})`;
+      })
       .join("\n");
 
     sections.push(

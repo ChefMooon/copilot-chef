@@ -1,4 +1,10 @@
-type MealTypeValue = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
+type MealTypeValue =
+  | "BREAKFAST"
+  | "MORNING_SNACK"
+  | "LUNCH"
+  | "AFTERNOON_SNACK"
+  | "DINNER"
+  | "SNACK";
 
 import { bootstrapDatabase } from "../lib/bootstrap";
 import { addDays, formatDayKey, startOfDay, startOfWeek } from "../lib/date";
@@ -6,7 +12,9 @@ import { prisma } from "../lib/prisma";
 
 const mealTypeLabel: Record<MealTypeValue, string> = {
   BREAKFAST: "breakfast",
+  MORNING_SNACK: "morning snack",
   LUNCH: "lunch",
+  AFTERNOON_SNACK: "afternoon snack",
   DINNER: "dinner",
   SNACK: "snack"
 };

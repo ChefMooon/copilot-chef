@@ -5,5 +5,6 @@ export { chatRequestSchema, chatResponseSchema, quickPromptSchema } from "./sche
 export { getClient, resetClient, stopClient } from "./lib/copilot-client";
 export { GroceryService } from "./services/grocery-service";
 export { MealLogService } from "./services/meal-log-service";
+export { MealService } from "./services/meal-service";
 export { MealPlanService } from "./services/meal-plan-service";
 export { PreferenceService } from "./services/preference-service";

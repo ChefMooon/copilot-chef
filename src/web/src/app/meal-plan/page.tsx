@@ -30,7 +30,12 @@ export default async function MealPlanPage() {
                 <div>
                   <h3 className="font-serif text-xl font-semibold text-text">{meal.name}</h3>
                   <p className="mt-1 text-sm font-semibold uppercase tracking-[0.08em] text-text-muted">
-                    Day {meal.dayOfWeek === 0 ? 7 : meal.dayOfWeek} · {meal.mealType}
+                    {new Date(meal.date).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric"
+                    })}{" "}
+                    · {meal.mealType}
                   </p>
                 </div>
                 <span className="rounded-md bg-[#FDF0E8] px-2 py-1 text-[0.68rem] font-bold uppercase tracking-[0.04em] text-orange">

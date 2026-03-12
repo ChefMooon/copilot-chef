@@ -1,61 +1,90 @@
-type MealTypeValue = "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
+type MealTypeValue =
+  | "BREAKFAST"
+  | "MORNING_SNACK"
+  | "LUNCH"
+  | "AFTERNOON_SNACK"
+  | "DINNER"
+  | "SNACK";
 
 import { prisma } from "./prisma";
 import { addDays, startOfDay } from "./date";
 
 const sampleMeals: Array<{
   name: string;
-  dayOfWeek: number;
+  dayOffset: number;
   mealType: MealTypeValue;
   notes: string;
+  ingredients: string[];
 }> = [
   {
     name: "Lemon Ricotta Pancakes",
-    dayOfWeek: 1,
+    dayOffset: 0,
     mealType: "BREAKFAST",
-    notes: "Bright start for the week with blueberry compote."
+    notes: "Bright start for the week with blueberry compote.",
+    ingredients: ["Ricotta", "Blueberries", "Flour", "Eggs"]
+  },
+  {
+    name: "Apple & Almond Butter",
+    dayOffset: 0,
+    mealType: "MORNING_SNACK",
+    notes: "Simple snack to bridge breakfast and lunch.",
+    ingredients: ["Apple", "Almond butter"]
   },
   {
     name: "Green Goddess Grain Bowls",
-    dayOfWeek: 1,
+    dayOffset: 0,
     mealType: "LUNCH",
-    notes: "Roasted vegetables, quinoa, and herby dressing."
+    notes: "Roasted vegetables, quinoa, and herby dressing.",
+    ingredients: ["Quinoa", "Cucumber", "Herbs", "Lemon"]
   },
   {
     name: "Roast Chicken with Spring Vegetables",
-    dayOfWeek: 2,
+    dayOffset: 1,
     mealType: "DINNER",
-    notes: "Use leftovers for Thursday lunch wraps."
+    notes: "Use leftovers for Thursday lunch wraps.",
+    ingredients: ["Chicken", "Carrots", "Potatoes", "Rosemary"]
+  },
+  {
+    name: "Greek Yogurt",
+    dayOffset: 2,
+    mealType: "AFTERNOON_SNACK",
+    notes: "Add honey and cinnamon.",
+    ingredients: ["Greek yogurt", "Honey"]
   },
   {
     name: "Miso Butter Salmon",
-    dayOfWeek: 3,
+    dayOffset: 2,
     mealType: "DINNER",
-    notes: "Serve with jasmine rice and blistered green beans."
+    notes: "Serve with jasmine rice and blistered green beans.",
+    ingredients: ["Salmon", "Miso", "Butter", "Green beans"]
   },
   {
     name: "Butternut Squash Risotto",
-    dayOfWeek: 4,
+    dayOffset: 3,
     mealType: "DINNER",
-    notes: "Extra parmesan and sage breadcrumbs."
+    notes: "Extra parmesan and sage breadcrumbs.",
+    ingredients: ["Arborio rice", "Butternut squash", "Parmesan"]
   },
   {
     name: "Sourdough Tartines",
-    dayOfWeek: 5,
+    dayOffset: 4,
     mealType: "LUNCH",
-    notes: "Whipped ricotta, herbs, and jammy tomatoes."
+    notes: "Whipped ricotta, herbs, and jammy tomatoes.",
+    ingredients: ["Sourdough", "Ricotta", "Tomatoes", "Basil"]
   },
   {
     name: "Coconut Curry Fish Stew",
-    dayOfWeek: 6,
+    dayOffset: 5,
     mealType: "DINNER",
-    notes: "One-pot dinner with lime and cilantro."
+    notes: "One-pot dinner with lime and cilantro.",
+    ingredients: ["White fish", "Coconut milk", "Lime", "Cilantro"]
   },
   {
     name: "Citrus Salad Board",
-    dayOfWeek: 0,
+    dayOffset: 6,
     mealType: "LUNCH",
-    notes: "A lighter Sunday spread with toasted nuts."
+    notes: "A lighter Sunday spread with toasted nuts.",
+    ingredients: ["Citrus", "Fennel", "Mint", "Walnuts"]
   }
 ];
 
@@ -159,7 +188,13 @@ export async function seedDatabase() {
       endDate: weekEnd,
       isCurrent: true,
       meals: {
-        create: sampleMeals
+        create: sampleMeals.map((meal) => ({
+          name: meal.name,
+          date: addDays(weekStart, meal.dayOffset),
+          mealType: meal.mealType,
+          notes: meal.notes,
+          ingredientsJson: JSON.stringify(meal.ingredients)
+        }))
       }
     },
     include: {

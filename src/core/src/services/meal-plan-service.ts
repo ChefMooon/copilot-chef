@@ -10,9 +10,10 @@ function serializeMealPlan(mealPlan: {
   meals: Array<{
     id: string;
     name: string;
-    dayOfWeek: number;
+    date: Date;
     mealType: string;
     notes: string | null;
+    ingredientsJson: string;
   }>;
 }) {
   return {
@@ -24,13 +25,14 @@ function serializeMealPlan(mealPlan: {
     totalMeals: mealPlan.meals.length,
     meals: mealPlan.meals
       .slice()
-      .sort((left, right) => left.dayOfWeek - right.dayOfWeek)
+      .sort((left, right) => left.date.getTime() - right.date.getTime())
       .map((meal) => ({
         id: meal.id,
         name: meal.name,
-        dayOfWeek: meal.dayOfWeek,
+        date: meal.date.toISOString(),
         mealType: meal.mealType,
-        notes: meal.notes
+        notes: meal.notes,
+        ingredients: JSON.parse(meal.ingredientsJson) as string[]
       }))
   };
 }
@@ -88,9 +90,10 @@ export class MealPlanService {
     endDate: string;
     meals?: Array<{
       name: string;
-      dayOfWeek: number;
-      mealType: "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
+      date: string;
+      mealType: "BREAKFAST" | "MORNING_SNACK" | "LUNCH" | "AFTERNOON_SNACK" | "DINNER" | "SNACK";
       notes?: string;
+      ingredients?: string[];
     }>;
   }) {
     await bootstrapDatabase();
@@ -103,9 +106,10 @@ export class MealPlanService {
         meals: {
           create: (input.meals ?? []).map((meal) => ({
             name: meal.name,
-            dayOfWeek: meal.dayOfWeek,
+            date: new Date(meal.date),
             mealType: meal.mealType,
-            notes: meal.notes
+            notes: meal.notes,
+            ingredientsJson: JSON.stringify(meal.ingredients ?? [])
           }))
         }
       },
