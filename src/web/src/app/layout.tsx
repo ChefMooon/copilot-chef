@@ -22,7 +22,18 @@ const nunito = Nunito({
 
 export const metadata: Metadata = {
   title: "Copilot Chef",
-  description: "Warm, AI-assisted meal planning with GitHub Copilot."
+  description: "Warm, AI-assisted meal planning with GitHub Copilot.",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/copilot-chef-192x192.png",
+    other: [
+      {
+        rel: "icon",
+        url: "/copilot-chef-512x512.png",
+        sizes: "512x512"
+      }
+    ]
+  }
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {
