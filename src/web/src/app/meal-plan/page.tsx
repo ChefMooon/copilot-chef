@@ -137,6 +137,14 @@ export default function MealPlanPage() {
     await queryClient.invalidateQueries({ queryKey: ["meals"] });
   };
 
+  const onDeleteMeal = async (mealId: string) => {
+    await fetchJson<{ data: { id: string } }>(`/api/meals/${mealId}`, {
+      method: "DELETE"
+    });
+
+    await queryClient.invalidateQueries({ queryKey: ["meals"] });
+  };
+
   const onResuggest = async (meal: EditableMeal) => {
     const answer = await readChatResponse(
       `Re-suggest a ${meal.type} meal for ${meal.date.toDateString()} based on my preferences. Return a short meal name and one sentence.`
@@ -214,7 +222,13 @@ export default function MealPlanPage() {
       </div>
 
       {editMeal ? (
-        <EditModal meal={editMeal} onClose={() => setEditMeal(null)} onResuggest={onResuggest} onSave={onSaveMeal} />
+        <EditModal
+          meal={editMeal}
+          onClose={() => setEditMeal(null)}
+          onDelete={onDeleteMeal}
+          onResuggest={onResuggest}
+          onSave={onSaveMeal}
+        />
       ) : null}
 
       {mealsQuery.isLoading ? (
