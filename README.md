@@ -23,6 +23,10 @@ src/
   - shadcn-style `Button`, `Input`, and `Textarea` primitives
   - Custom CSS modules for the header shell and landing page chat/heatmap layouts
   - Home landing page based on the provided prototype
+  - **Chat interface** with ChatPanel, ChatWidget, SlashCommandMenu, and session management
+  - Inline choice buttons for guided assistant responses
+  - Slash commands for quick meal planning and grocery list actions
+  - ChatContext for managing chat state, messages, and page context awareness
   - Basic Calendar, Meal Plan, Grocery List, Settings, and Stats pages ready for later customization
   - API routes for chat, meal plans, grocery lists, preferences, and meal logs
 
