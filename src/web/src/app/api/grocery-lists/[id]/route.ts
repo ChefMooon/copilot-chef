@@ -11,7 +11,10 @@ export async function GET(
   const data = await groceryService.getGroceryList(id);
 
   if (!data) {
-    return NextResponse.json({ error: "Grocery list not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Grocery list not found" },
+      { status: 404 }
+    );
   }
 
   return NextResponse.json({ data });
@@ -35,7 +38,10 @@ export async function PATCH(
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to update grocery list"
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to update grocery list",
       },
       { status: 400 }
     );
@@ -53,7 +59,10 @@ export async function DELETE(
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to update grocery list"
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to update grocery list",
       },
       { status: 400 }
     );

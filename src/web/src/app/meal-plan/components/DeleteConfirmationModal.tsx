@@ -17,7 +17,7 @@ export function DeleteConfirmationModal({
   isLoading,
   error,
   onConfirm,
-  onCancel
+  onCancel,
 }: DeleteConfirmationModalProps) {
   const overlayRef = useRef<HTMLDivElement | null>(null);
 
@@ -53,7 +53,12 @@ export function DeleteConfirmationModal({
 
   return (
     <div className={styles.confirmationOverlay} ref={overlayRef}>
-      <div className={styles.confirmationPanel} role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
+      <div
+        className={styles.confirmationPanel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-confirm-title"
+      >
         <h2 className={styles.confirmationTitle} id="delete-confirm-title">
           Delete this meal?
         </h2>
@@ -63,10 +68,20 @@ export function DeleteConfirmationModal({
         </p>
         {error ? <p className={styles.confirmationError}>{error}</p> : null}
         <div className={styles.confirmationActions}>
-          <button className={styles.btnGhost} onClick={onCancel} type="button" disabled={isLoading}>
+          <button
+            className={styles.btnGhost}
+            onClick={onCancel}
+            type="button"
+            disabled={isLoading}
+          >
             Keep
           </button>
-          <button className={styles.btnDelete} onClick={onConfirm} type="button" disabled={isLoading}>
+          <button
+            className={styles.btnDelete}
+            onClick={onConfirm}
+            type="button"
+            disabled={isLoading}
+          >
             {isLoading ? "Deleting..." : "Delete Meal"}
           </button>
         </div>

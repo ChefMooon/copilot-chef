@@ -1,4 +1,9 @@
-import { formatListDate, isToday, listProgress, type GroceryList } from "@/lib/grocery";
+import {
+  formatListDate,
+  isToday,
+  listProgress,
+  type GroceryList,
+} from "@/lib/grocery";
 
 import styles from "../grocery-list.module.css";
 
@@ -9,7 +14,12 @@ type Props = {
   onToggleFav: (id: string, nextValue: boolean) => void;
 };
 
-export function ListsSidebar({ lists, selectedId, onSelect, onToggleFav }: Props) {
+export function ListsSidebar({
+  lists,
+  selectedId,
+  onSelect,
+  onToggleFav,
+}: Props) {
   return (
     <div className={styles.listsSidebar}>
       <div className={styles.sidebarHeader}>
@@ -33,7 +43,8 @@ export function ListsSidebar({ lists, selectedId, onSelect, onToggleFav }: Props
           <div className={styles.listRowInfo}>
             <div className={styles.listRowName}>{list.name}</div>
             <div className={styles.listRowMeta}>
-              {isToday(list.date) ? "Today" : formatListDate(list.date)} · {list.items.length} items
+              {isToday(list.date) ? "Today" : formatListDate(list.date)} ·{" "}
+              {list.items.length} items
             </div>
           </div>
           <button

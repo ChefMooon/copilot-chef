@@ -66,24 +66,34 @@ function getGreeting() {
 }
 
 export function HomeDashboard() {
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
+  const [tooltip, setTooltip] = useState<{
+    x: number;
+    y: number;
+    text: string;
+  } | null>(null);
 
   const mealPlanQuery = useQuery({
     queryKey: ["meal-plan", "current"],
     queryFn: () =>
-      fetchJson<{ data: MealPlanPayload | null }>("/api/meal-plans?current=1").then((response) => response.data)
+      fetchJson<{ data: MealPlanPayload | null }>(
+        "/api/meal-plans?current=1"
+      ).then((response) => response.data),
   });
 
   const groceryListQuery = useQuery({
     queryKey: ["grocery-list", "current"],
     queryFn: () =>
-      fetchJson<{ data: GroceryListPayload | null }>("/api/grocery-lists?current=1").then((response) => response.data)
+      fetchJson<{ data: GroceryListPayload | null }>(
+        "/api/grocery-lists?current=1"
+      ).then((response) => response.data),
   });
 
   const heatmapQuery = useQuery({
     queryKey: ["meal-logs", 13],
     queryFn: () =>
-      fetchJson<{ data: HeatmapPayload }>("/api/meal-logs?weeks=13").then((response) => response.data)
+      fetchJson<{ data: HeatmapPayload }>("/api/meal-logs?weeks=13").then(
+        (response) => response.data
+      ),
   });
 
   const greetingDate = useMemo(
@@ -91,17 +101,20 @@ export function HomeDashboard() {
       new Intl.DateTimeFormat("en-US", {
         weekday: "long",
         month: "long",
-        day: "numeric"
+        day: "numeric",
       }).format(new Date()),
     []
   );
 
   const monthLabels = useMemo(() => {
     const entries = Object.entries(heatmapQuery.data?.monthStarts ?? {});
-    return entries.reduce<Record<number, string>>((accumulator, [month, index]) => {
-      accumulator[index] = month;
-      return accumulator;
-    }, {});
+    return entries.reduce<Record<number, string>>(
+      (accumulator, [month, index]) => {
+        accumulator[index] = month;
+        return accumulator;
+      },
+      {}
+    );
   }, [heatmapQuery.data?.monthStarts]);
 
   const totalMeals = mealPlanQuery.data?.totalMeals ?? 0;
@@ -150,17 +163,24 @@ export function HomeDashboard() {
 
             <div className={styles.heatmapGrid}>
               {["M", "", "W", "", "F", "", ""].map((label, dayIndex) => (
-                <div className={styles.dayLabel} key={`label-${dayIndex}`} style={{ gridColumn: 1, gridRow: dayIndex + 1 }}>
+                <div
+                  className={styles.dayLabel}
+                  key={`label-${dayIndex}`}
+                  style={{ gridColumn: 1, gridRow: dayIndex + 1 }}
+                >
                   {label}
                 </div>
               ))}
 
               {heatmap.map((week, weekIndex) =>
                 week.map((cell, dayIndex) => {
-                  const dateLabel = new Date(cell.date).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric"
-                  });
+                  const dateLabel = new Date(cell.date).toLocaleDateString(
+                    "en-US",
+                    {
+                      month: "short",
+                      day: "numeric",
+                    }
+                  );
 
                   return (
                     <button
@@ -172,14 +192,14 @@ export function HomeDashboard() {
                           y: event.clientY,
                           text: cell.isFuture
                             ? "Not yet"
-                            : `${dateLabel} — ${cell.meals} meal${cell.meals !== 1 ? "s" : ""}`
+                            : `${dateLabel} — ${cell.meals} meal${cell.meals !== 1 ? "s" : ""}`,
                         })
                       }
                       onMouseLeave={() => setTooltip(null)}
                       style={{
                         gridColumn: weekIndex + 2,
                         gridRow: dayIndex + 1,
-                        background: getHeatColor(cell.meals, cell.isFuture)
+                        background: getHeatColor(cell.meals, cell.isFuture),
                       }}
                       type="button"
                     />
@@ -191,7 +211,11 @@ export function HomeDashboard() {
             <div className={styles.heatmapLegend}>
               <span className={styles.legendLabel}>Less</span>
               {["#E4DDD0", "#A8C8B0", "#6FA882", "#3B5E45"].map((color) => (
-                <div className={styles.legendSquare} key={color} style={{ background: color }} />
+                <div
+                  className={styles.legendSquare}
+                  key={color}
+                  style={{ background: color }}
+                />
               ))}
               <span className={styles.legendLabel}>More</span>
             </div>
@@ -208,12 +232,16 @@ export function HomeDashboard() {
 
           <div className={styles.grocerySummary}>
             <div>
-              <div className={styles.groceryListName}>{groceryList?.name ?? "Loading this week's list"}</div>
+              <div className={styles.groceryListName}>
+                {groceryList?.name ?? "Loading this week's list"}
+              </div>
               <div className={styles.groceryMeta}>
                 {groceryList
-                  ? `Created ${new Date(groceryList.createdAt).toLocaleDateString("en-US", {
+                  ? `Created ${new Date(
+                      groceryList.createdAt
+                    ).toLocaleDateString("en-US", {
                       month: "short",
-                      day: "numeric"
+                      day: "numeric",
                     })} · ${groceryList.totalItems} items`
                   : "Fetching current list"}
               </div>
@@ -222,13 +250,24 @@ export function HomeDashboard() {
             <div>
               <div className={styles.groceryStatRow}>
                 <div>
-                  <span className={styles.groceryStatBig}>{groceryList?.checkedCount ?? 0}</span>
-                  <span className={styles.groceryStatLabel}>of {groceryList?.totalItems ?? 0} collected</span>
+                  <span className={styles.groceryStatBig}>
+                    {groceryList?.checkedCount ?? 0}
+                  </span>
+                  <span className={styles.groceryStatLabel}>
+                    of {groceryList?.totalItems ?? 0} collected
+                  </span>
                 </div>
-                <span className={styles.groceryPct}>{groceryList?.completionPercentage ?? 0}%</span>
+                <span className={styles.groceryPct}>
+                  {groceryList?.completionPercentage ?? 0}%
+                </span>
               </div>
               <div className={styles.progressTrack}>
-                <div className={styles.progressFill} style={{ width: `${groceryList?.completionPercentage ?? 0}%` }} />
+                <div
+                  className={styles.progressFill}
+                  style={{
+                    width: `${groceryList?.completionPercentage ?? 0}%`,
+                  }}
+                />
               </div>
             </div>
 
@@ -240,7 +279,10 @@ export function HomeDashboard() {
       </section>
 
       {tooltip ? (
-        <div className={styles.tooltip} style={{ left: tooltip.x, top: tooltip.y }}>
+        <div
+          className={styles.tooltip}
+          style={{ left: tooltip.x, top: tooltip.y }}
+        >
           {tooltip.text}
         </div>
       ) : null}

@@ -13,8 +13,8 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/prisma/generated/**",
       "**/next-env.d.ts",
-      "**/.github/**"
-    ]
+      "**/.github/**",
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -22,29 +22,29 @@ export default tseslint.config(
     files: ["src/core/**/*.ts"],
     languageOptions: {
       globals: {
-        ...globals.node
-      }
+        ...globals.node,
+      },
     },
     rules: {
-      "no-console": "off"
-    }
+      "no-console": "off",
+    },
   },
   {
     files: ["src/web/**/*.{ts,tsx}"],
     languageOptions: {
       globals: {
         ...globals.browser,
-        ...globals.node
-      }
+        ...globals.node,
+      },
     },
     plugins: {
-      "@next/next": nextPlugin
+      "@next/next": nextPlugin,
     },
     rules: {
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs["core-web-vitals"].rules,
-      "@next/next/no-html-link-for-pages": "off"
-    }
+      "@next/next/no-html-link-for-pages": "off",
+    },
   },
   prettierConfig
 );

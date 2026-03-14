@@ -1,72 +1,314 @@
 import { useState, useRef, useEffect } from "react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const CATEGORIES = ["Produce","Meat & Fish","Dairy & Eggs","Bakery","Pantry","Frozen","Drinks","Other"];
-const UNITS = ["","pcs","g","kg","ml","L","cups","tbsp","tsp","oz","lb","bunches","cans","bags","boxes"];
-const NAV_ITEMS = ["Home","Calendar","Meal Plan","Grocery List","Stats"];
+const CATEGORIES = [
+  "Produce",
+  "Meat & Fish",
+  "Dairy & Eggs",
+  "Bakery",
+  "Pantry",
+  "Frozen",
+  "Drinks",
+  "Other",
+];
+const UNITS = [
+  "",
+  "pcs",
+  "g",
+  "kg",
+  "ml",
+  "L",
+  "cups",
+  "tbsp",
+  "tsp",
+  "oz",
+  "lb",
+  "bunches",
+  "cans",
+  "bags",
+  "boxes",
+];
+const NAV_ITEMS = ["Home", "Calendar", "Meal Plan", "Grocery List", "Stats"];
 const FILTERS = [
-  { id:"today",    label:"Today",        icon:"📅" },
-  { id:"upcoming", label:"Next 7 Days",  icon:"🗓️" },
-  { id:"fav",      label:"Favourites",   icon:"⭐" },
-  { id:"recent",   label:"Recent",       icon:"🕐" },
+  { id: "today", label: "Today", icon: "📅" },
+  { id: "upcoming", label: "Next 7 Days", icon: "🗓️" },
+  { id: "fav", label: "Favourites", icon: "⭐" },
+  { id: "recent", label: "Recent", icon: "🕐" },
 ];
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
-const TODAY = new Date(2026,2,12);
-const d = (offset) => { const dt = new Date(TODAY); dt.setDate(dt.getDate()+offset); return dt; };
+const TODAY = new Date(2026, 2, 12);
+const d = (offset) => {
+  const dt = new Date(TODAY);
+  dt.setDate(dt.getDate() + offset);
+  return dt;
+};
 
 const MOCK_LISTS = [
   {
-    id:1, name:"This Week's Shop", date: d(0), favourite:true,
-    mealPlan:"Cozy Weeknight Plan",
-    items:[
-      { id:101, name:"Whole chicken",       qty:1,   unit:"",    category:"Meat & Fish", notes:"Free-range if available", meal:"Roast Chicken",   checked:false },
-      { id:102, name:"Butternut squash",    qty:2,   unit:"pcs", category:"Produce",     notes:"",                        meal:"Risotto",         checked:true  },
-      { id:103, name:"Arborio rice",        qty:500, unit:"g",   category:"Pantry",      notes:"Carnaroli works too",     meal:"Risotto",         checked:false },
-      { id:104, name:"Fresh thyme",         qty:1,   unit:"bunches", category:"Produce", notes:"",                        meal:"Roast Chicken",   checked:false },
-      { id:105, name:"Parmesan block",      qty:150, unit:"g",   category:"Dairy & Eggs",notes:"Parmigiano Reggiano",     meal:"Risotto",         checked:true  },
-      { id:106, name:"Salmon fillets",      qty:2,   unit:"pcs", category:"Meat & Fish", notes:"Skin-on",                 meal:"Miso Salmon",     checked:false },
-      { id:107, name:"White miso paste",    qty:1,   unit:"",    category:"Pantry",      notes:"",                        meal:"Miso Salmon",     checked:true  },
-      { id:108, name:"Sourdough loaf",      qty:1,   unit:"",    category:"Bakery",      notes:"From the bakery section", meal:"",                checked:false },
-    ]
+    id: 1,
+    name: "This Week's Shop",
+    date: d(0),
+    favourite: true,
+    mealPlan: "Cozy Weeknight Plan",
+    items: [
+      {
+        id: 101,
+        name: "Whole chicken",
+        qty: 1,
+        unit: "",
+        category: "Meat & Fish",
+        notes: "Free-range if available",
+        meal: "Roast Chicken",
+        checked: false,
+      },
+      {
+        id: 102,
+        name: "Butternut squash",
+        qty: 2,
+        unit: "pcs",
+        category: "Produce",
+        notes: "",
+        meal: "Risotto",
+        checked: true,
+      },
+      {
+        id: 103,
+        name: "Arborio rice",
+        qty: 500,
+        unit: "g",
+        category: "Pantry",
+        notes: "Carnaroli works too",
+        meal: "Risotto",
+        checked: false,
+      },
+      {
+        id: 104,
+        name: "Fresh thyme",
+        qty: 1,
+        unit: "bunches",
+        category: "Produce",
+        notes: "",
+        meal: "Roast Chicken",
+        checked: false,
+      },
+      {
+        id: 105,
+        name: "Parmesan block",
+        qty: 150,
+        unit: "g",
+        category: "Dairy & Eggs",
+        notes: "Parmigiano Reggiano",
+        meal: "Risotto",
+        checked: true,
+      },
+      {
+        id: 106,
+        name: "Salmon fillets",
+        qty: 2,
+        unit: "pcs",
+        category: "Meat & Fish",
+        notes: "Skin-on",
+        meal: "Miso Salmon",
+        checked: false,
+      },
+      {
+        id: 107,
+        name: "White miso paste",
+        qty: 1,
+        unit: "",
+        category: "Pantry",
+        notes: "",
+        meal: "Miso Salmon",
+        checked: true,
+      },
+      {
+        id: 108,
+        name: "Sourdough loaf",
+        qty: 1,
+        unit: "",
+        category: "Bakery",
+        notes: "From the bakery section",
+        meal: "",
+        checked: false,
+      },
+    ],
   },
   {
-    id:2, name:"Weekend Brunch Prep", date: d(2), favourite:false,
-    mealPlan:"",
-    items:[
-      { id:201, name:"Ricotta",       qty:250, unit:"g",   category:"Dairy & Eggs", notes:"Full fat", meal:"Pancakes", checked:false },
-      { id:202, name:"Lemons",        qty:3,   unit:"pcs", category:"Produce",      notes:"",         meal:"Pancakes", checked:false },
-      { id:203, name:"Maple syrup",   qty:1,   unit:"",    category:"Pantry",       notes:"Pure, not maple-flavoured", meal:"Pancakes", checked:false },
-      { id:204, name:"Smoked salmon", qty:100, unit:"g",   category:"Meat & Fish",  notes:"",         meal:"Eggs Benedict", checked:false },
-    ]
+    id: 2,
+    name: "Weekend Brunch Prep",
+    date: d(2),
+    favourite: false,
+    mealPlan: "",
+    items: [
+      {
+        id: 201,
+        name: "Ricotta",
+        qty: 250,
+        unit: "g",
+        category: "Dairy & Eggs",
+        notes: "Full fat",
+        meal: "Pancakes",
+        checked: false,
+      },
+      {
+        id: 202,
+        name: "Lemons",
+        qty: 3,
+        unit: "pcs",
+        category: "Produce",
+        notes: "",
+        meal: "Pancakes",
+        checked: false,
+      },
+      {
+        id: 203,
+        name: "Maple syrup",
+        qty: 1,
+        unit: "",
+        category: "Pantry",
+        notes: "Pure, not maple-flavoured",
+        meal: "Pancakes",
+        checked: false,
+      },
+      {
+        id: 204,
+        name: "Smoked salmon",
+        qty: 100,
+        unit: "g",
+        category: "Meat & Fish",
+        notes: "",
+        meal: "Eggs Benedict",
+        checked: false,
+      },
+    ],
   },
   {
-    id:3, name:"Mid-week Top-up", date: d(3), favourite:true,
-    mealPlan:"Cozy Weeknight Plan",
-    items:[
-      { id:301, name:"Cherry tomatoes", qty:1, unit:"bags",  category:"Produce",     notes:"", meal:"", checked:false },
-      { id:302, name:"Greek yogurt",    qty:500,unit:"g",    category:"Dairy & Eggs",notes:"Full fat", meal:"", checked:false },
-      { id:303, name:"Eggs",            qty:12, unit:"pcs",  category:"Dairy & Eggs",notes:"Free-range", meal:"", checked:false },
-    ]
+    id: 3,
+    name: "Mid-week Top-up",
+    date: d(3),
+    favourite: true,
+    mealPlan: "Cozy Weeknight Plan",
+    items: [
+      {
+        id: 301,
+        name: "Cherry tomatoes",
+        qty: 1,
+        unit: "bags",
+        category: "Produce",
+        notes: "",
+        meal: "",
+        checked: false,
+      },
+      {
+        id: 302,
+        name: "Greek yogurt",
+        qty: 500,
+        unit: "g",
+        category: "Dairy & Eggs",
+        notes: "Full fat",
+        meal: "",
+        checked: false,
+      },
+      {
+        id: 303,
+        name: "Eggs",
+        qty: 12,
+        unit: "pcs",
+        category: "Dairy & Eggs",
+        notes: "Free-range",
+        meal: "",
+        checked: false,
+      },
+    ],
   },
   {
-    id:4, name:"Next Week's Meals", date: d(6), favourite:false,
-    mealPlan:"Spring Refresh Plan",
-    items:[
-      { id:401, name:"Lamb shoulder",   qty:800,unit:"g",   category:"Meat & Fish", notes:"Ask butcher to debone", meal:"Lamb Kofta", checked:false },
-      { id:402, name:"Coconut milk",    qty:2,  unit:"cans",category:"Pantry",      notes:"Full fat",              meal:"Thai Curry", checked:false },
-      { id:403, name:"Thai basil",      qty:1,  unit:"bunches",category:"Produce",  notes:"",                      meal:"Thai Curry", checked:false },
-      { id:404, name:"Fish sauce",      qty:1,  unit:"",    category:"Pantry",      notes:"",                      meal:"Thai Curry", checked:false },
-    ]
+    id: 4,
+    name: "Next Week's Meals",
+    date: d(6),
+    favourite: false,
+    mealPlan: "Spring Refresh Plan",
+    items: [
+      {
+        id: 401,
+        name: "Lamb shoulder",
+        qty: 800,
+        unit: "g",
+        category: "Meat & Fish",
+        notes: "Ask butcher to debone",
+        meal: "Lamb Kofta",
+        checked: false,
+      },
+      {
+        id: 402,
+        name: "Coconut milk",
+        qty: 2,
+        unit: "cans",
+        category: "Pantry",
+        notes: "Full fat",
+        meal: "Thai Curry",
+        checked: false,
+      },
+      {
+        id: 403,
+        name: "Thai basil",
+        qty: 1,
+        unit: "bunches",
+        category: "Produce",
+        notes: "",
+        meal: "Thai Curry",
+        checked: false,
+      },
+      {
+        id: 404,
+        name: "Fish sauce",
+        qty: 1,
+        unit: "",
+        category: "Pantry",
+        notes: "",
+        meal: "Thai Curry",
+        checked: false,
+      },
+    ],
   },
   {
-    id:5, name:"Party Snacks", date: d(10), favourite:false,
-    mealPlan:"",
-    items:[
-      { id:501, name:"Brie",           qty:200,unit:"g",   category:"Dairy & Eggs",notes:"", meal:"", checked:false },
-      { id:502, name:"Crackers assorted",qty:2,unit:"boxes",category:"Bakery",     notes:"", meal:"", checked:false },
-      { id:503, name:"Grapes",         qty:500,unit:"g",   category:"Produce",     notes:"Red and green", meal:"", checked:false },
-    ]
+    id: 5,
+    name: "Party Snacks",
+    date: d(10),
+    favourite: false,
+    mealPlan: "",
+    items: [
+      {
+        id: 501,
+        name: "Brie",
+        qty: 200,
+        unit: "g",
+        category: "Dairy & Eggs",
+        notes: "",
+        meal: "",
+        checked: false,
+      },
+      {
+        id: 502,
+        name: "Crackers assorted",
+        qty: 2,
+        unit: "boxes",
+        category: "Bakery",
+        notes: "",
+        meal: "",
+        checked: false,
+      },
+      {
+        id: 503,
+        name: "Grapes",
+        qty: 500,
+        unit: "g",
+        category: "Produce",
+        notes: "Red and green",
+        meal: "",
+        checked: false,
+      },
+    ],
   },
 ];
 
@@ -74,18 +316,28 @@ let nextId = 600;
 const newId = () => ++nextId;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const fmtDate = (dt) => dt.toLocaleDateString("default",{month:"short",day:"numeric"});
+const fmtDate = (dt) =>
+  dt.toLocaleDateString("default", { month: "short", day: "numeric" });
 const isToday = (dt) => dt.toDateString() === TODAY.toDateString();
-const isUpcoming = (dt, days=7) => { const diff = (dt - TODAY)/(1000*60*60*24); return diff>=0 && diff<=days; };
+const isUpcoming = (dt, days = 7) => {
+  const diff = (dt - TODAY) / (1000 * 60 * 60 * 24);
+  return diff >= 0 && diff <= days;
+};
 const progress = (items) => {
   if (!items.length) return 0;
-  return Math.round(items.filter(i=>i.checked).length / items.length * 100);
+  return Math.round(
+    (items.filter((i) => i.checked).length / items.length) * 100
+  );
 };
 const groupByCategory = (items) => {
   const map = {};
-  CATEGORIES.forEach(c => { map[c] = []; });
-  items.forEach(item => { (map[item.category] = map[item.category]||[]).push(item); });
-  return Object.entries(map).filter(([,v])=>v.length>0);
+  CATEGORIES.forEach((c) => {
+    map[c] = [];
+  });
+  items.forEach((item) => {
+    (map[item.category] = map[item.category] || []).push(item);
+  });
+  return Object.entries(map).filter(([, v]) => v.length > 0);
 };
 
 // ─── Item Edit Row ────────────────────────────────────────────────────────────
@@ -94,46 +346,110 @@ function ItemRow({ item, index, total, onUpdate, onDelete, onMove }) {
   const [dragging, setDragging] = useState(false);
 
   return (
-    <div className={`item-row ${dragging?"item-row-dragging":""}`}
-      draggable onDragStart={()=>setDragging(true)} onDragEnd={()=>setDragging(false)}>
+    <div
+      className={`item-row ${dragging ? "item-row-dragging" : ""}`}
+      draggable
+      onDragStart={() => setDragging(true)}
+      onDragEnd={() => setDragging(false)}
+    >
       <div className="item-row-main">
-        <span className="drag-handle" title="Drag to reorder">⠿</span>
-        <input type="checkbox" className="item-check" checked={item.checked}
-          onChange={e=>onUpdate({...item,checked:e.target.checked})} />
-        <input className={`item-name-input ${item.checked?"item-done":""}`} value={item.name}
-          onChange={e=>onUpdate({...item,name:e.target.value})} placeholder="Item name…" />
+        <span className="drag-handle" title="Drag to reorder">
+          ⠿
+        </span>
+        <input
+          type="checkbox"
+          className="item-check"
+          checked={item.checked}
+          onChange={(e) => onUpdate({ ...item, checked: e.target.checked })}
+        />
+        <input
+          className={`item-name-input ${item.checked ? "item-done" : ""}`}
+          value={item.name}
+          onChange={(e) => onUpdate({ ...item, name: e.target.value })}
+          placeholder="Item name…"
+        />
         <div className="item-qty-row">
-          <input className="item-qty-input" type="number" min="0" value={item.qty||""}
-            onChange={e=>onUpdate({...item,qty:e.target.value})} placeholder="Qty" />
-          <select className="item-unit-select" value={item.unit}
-            onChange={e=>onUpdate({...item,unit:e.target.value})}>
-            {UNITS.map(u=><option key={u} value={u}>{u||"—"}</option>)}
+          <input
+            className="item-qty-input"
+            type="number"
+            min="0"
+            value={item.qty || ""}
+            onChange={(e) => onUpdate({ ...item, qty: e.target.value })}
+            placeholder="Qty"
+          />
+          <select
+            className="item-unit-select"
+            value={item.unit}
+            onChange={(e) => onUpdate({ ...item, unit: e.target.value })}
+          >
+            {UNITS.map((u) => (
+              <option key={u} value={u}>
+                {u || "—"}
+              </option>
+            ))}
           </select>
         </div>
-        <select className="item-cat-select" value={item.category}
-          onChange={e=>onUpdate({...item,category:e.target.value})}>
-          {CATEGORIES.map(c=><option key={c}>{c}</option>)}
+        <select
+          className="item-cat-select"
+          value={item.category}
+          onChange={(e) => onUpdate({ ...item, category: e.target.value })}
+        >
+          {CATEGORIES.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
         </select>
         <div className="item-row-actions">
-          <button className="item-arrow" onClick={()=>onMove(index,-1)} disabled={index===0} title="Move up">↑</button>
-          <button className="item-arrow" onClick={()=>onMove(index,1)} disabled={index===total-1} title="Move down">↓</button>
-          <button className="item-expand-btn" onClick={()=>setExpanded(e=>!e)} title="More fields">
-            {expanded?"▲":"▼"}
+          <button
+            className="item-arrow"
+            onClick={() => onMove(index, -1)}
+            disabled={index === 0}
+            title="Move up"
+          >
+            ↑
           </button>
-          <button className="item-delete-btn" onClick={()=>onDelete(item.id)} title="Remove">✕</button>
+          <button
+            className="item-arrow"
+            onClick={() => onMove(index, 1)}
+            disabled={index === total - 1}
+            title="Move down"
+          >
+            ↓
+          </button>
+          <button
+            className="item-expand-btn"
+            onClick={() => setExpanded((e) => !e)}
+            title="More fields"
+          >
+            {expanded ? "▲" : "▼"}
+          </button>
+          <button
+            className="item-delete-btn"
+            onClick={() => onDelete(item.id)}
+            title="Remove"
+          >
+            ✕
+          </button>
         </div>
       </div>
       {expanded && (
         <div className="item-row-extra">
           <div className="item-extra-field">
             <label className="item-extra-label">Notes / Brand</label>
-            <input className="item-extra-input" value={item.notes}
-              onChange={e=>onUpdate({...item,notes:e.target.value})} placeholder="e.g. Free-range, organic…" />
+            <input
+              className="item-extra-input"
+              value={item.notes}
+              onChange={(e) => onUpdate({ ...item, notes: e.target.value })}
+              placeholder="e.g. Free-range, organic…"
+            />
           </div>
           <div className="item-extra-field">
             <label className="item-extra-label">Linked Meal</label>
-            <input className="item-extra-input" value={item.meal}
-              onChange={e=>onUpdate({...item,meal:e.target.value})} placeholder="e.g. Roast Chicken" />
+            <input
+              className="item-extra-input"
+              value={item.meal}
+              onChange={(e) => onUpdate({ ...item, meal: e.target.value })}
+              placeholder="e.g. Roast Chicken"
+            />
           </div>
         </div>
       )}
@@ -148,11 +464,20 @@ function ListEditor({ list, onChange, onDelete, onShop }) {
   const [newItemName, setNewItemName] = useState("");
   const nameRef = useRef();
 
-  useEffect(()=>{ setNameVal(list.name); },[list.id]);
-  useEffect(()=>{ if(editingName) nameRef.current?.focus(); },[editingName]);
+  useEffect(() => {
+    setNameVal(list.name);
+  }, [list.id]);
+  useEffect(() => {
+    if (editingName) nameRef.current?.focus();
+  }, [editingName]);
 
-  const updateItem = (updated) => onChange({ ...list, items: list.items.map(i=>i.id===updated.id?updated:i) });
-  const deleteItem = (id) => onChange({ ...list, items: list.items.filter(i=>i.id!==id) });
+  const updateItem = (updated) =>
+    onChange({
+      ...list,
+      items: list.items.map((i) => (i.id === updated.id ? updated : i)),
+    });
+  const deleteItem = (id) =>
+    onChange({ ...list, items: list.items.filter((i) => i.id !== id) });
   const moveItem = (index, dir) => {
     const items = [...list.items];
     const target = index + dir;
@@ -162,67 +487,126 @@ function ListEditor({ list, onChange, onDelete, onShop }) {
   };
   const addItem = () => {
     if (!newItemName.trim()) return;
-    onChange({ ...list, items: [...list.items, {
-      id: newId(), name: newItemName.trim(), qty:"", unit:"", category:"Produce",
-      notes:"", meal:"", checked:false
-    }]});
+    onChange({
+      ...list,
+      items: [
+        ...list.items,
+        {
+          id: newId(),
+          name: newItemName.trim(),
+          qty: "",
+          unit: "",
+          category: "Produce",
+          notes: "",
+          meal: "",
+          checked: false,
+        },
+      ],
+    });
     setNewItemName("");
   };
-  const saveName = () => { onChange({...list, name: nameVal}); setEditingName(false); };
+  const saveName = () => {
+    onChange({ ...list, name: nameVal });
+    setEditingName(false);
+  };
   const pct = progress(list.items);
-  const done = list.items.filter(i=>i.checked).length;
+  const done = list.items.filter((i) => i.checked).length;
 
   return (
     <div className="editor-panel">
       {/* Editor header */}
       <div className="editor-header">
         <div className="editor-title-row">
-          {editingName
-            ? <input ref={nameRef} className="editor-name-input" value={nameVal}
-                onChange={e=>setNameVal(e.target.value)}
-                onBlur={saveName} onKeyDown={e=>{if(e.key==="Enter")saveName();if(e.key==="Escape")setEditingName(false);}} />
-            : <h2 className="editor-name" onClick={()=>setEditingName(true)} title="Click to rename">{list.name} <span className="edit-pencil">✎</span></h2>
-          }
+          {editingName ? (
+            <input
+              ref={nameRef}
+              className="editor-name-input"
+              value={nameVal}
+              onChange={(e) => setNameVal(e.target.value)}
+              onBlur={saveName}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveName();
+                if (e.key === "Escape") setEditingName(false);
+              }}
+            />
+          ) : (
+            <h2
+              className="editor-name"
+              onClick={() => setEditingName(true)}
+              title="Click to rename"
+            >
+              {list.name} <span className="edit-pencil">✎</span>
+            </h2>
+          )}
           <div className="editor-header-meta">
             <span className="editor-date">📅 {fmtDate(list.date)}</span>
-            {list.mealPlan && <span className="editor-meal-plan-tag">🍽 {list.mealPlan}</span>}
+            {list.mealPlan && (
+              <span className="editor-meal-plan-tag">🍽 {list.mealPlan}</span>
+            )}
           </div>
         </div>
         <div className="editor-header-actions">
-          <button className="btn-shop" onClick={onShop}>🛒 Shop</button>
-          <button className="btn-telegram-disabled" disabled title="Coming soon — send to Telegram">
+          <button className="btn-shop" onClick={onShop}>
+            🛒 Shop
+          </button>
+          <button
+            className="btn-telegram-disabled"
+            disabled
+            title="Coming soon — send to Telegram"
+          >
             <span className="telegram-icon">✈</span> Send to Telegram
           </button>
-          <button className="btn-delete-list" onClick={()=>onDelete(list.id)} title="Delete list">🗑</button>
+          <button
+            className="btn-delete-list"
+            onClick={() => onDelete(list.id)}
+            title="Delete list"
+          >
+            🗑
+          </button>
         </div>
       </div>
 
       {/* Progress */}
       <div className="editor-progress">
         <div className="progress-bar-bg">
-          <div className="progress-bar-fill" style={{width:`${pct}%`}} />
+          <div className="progress-bar-fill" style={{ width: `${pct}%` }} />
         </div>
-        <span className="progress-label">{done} of {list.items.length} collected · {pct}%</span>
+        <span className="progress-label">
+          {done} of {list.items.length} collected · {pct}%
+        </span>
       </div>
 
       {/* Items */}
       <div className="editor-items">
-        {list.items.length === 0
-          ? <div className="editor-empty">No items yet — add one below.</div>
-          : list.items.map((item,i) => (
-              <ItemRow key={item.id} item={item} index={i} total={list.items.length}
-                onUpdate={updateItem} onDelete={deleteItem} onMove={moveItem} />
-            ))
-        }
+        {list.items.length === 0 ? (
+          <div className="editor-empty">No items yet — add one below.</div>
+        ) : (
+          list.items.map((item, i) => (
+            <ItemRow
+              key={item.id}
+              item={item}
+              index={i}
+              total={list.items.length}
+              onUpdate={updateItem}
+              onDelete={deleteItem}
+              onMove={moveItem}
+            />
+          ))
+        )}
       </div>
 
       {/* Add item */}
       <div className="editor-add-row">
-        <input className="editor-add-input" value={newItemName}
-          onChange={e=>setNewItemName(e.target.value)}
-          onKeyDown={e=>e.key==="Enter"&&addItem()}
-          placeholder="Add an item…" />
-        <button className="btn-add-item" onClick={addItem}>+ Add</button>
+        <input
+          className="editor-add-input"
+          value={newItemName}
+          onChange={(e) => setNewItemName(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && addItem()}
+          placeholder="Add an item…"
+        />
+        <button className="btn-add-item" onClick={addItem}>
+          + Add
+        </button>
       </div>
     </div>
   );
@@ -231,11 +615,15 @@ function ListEditor({ list, onChange, onDelete, onShop }) {
 // ─── Shopping View ────────────────────────────────────────────────────────────
 function ShoppingView({ list, onChange, onClose }) {
   const groups = groupByCategory(list.items);
-  const done = list.items.filter(i=>i.checked).length;
+  const done = list.items.filter((i) => i.checked).length;
   const pct = progress(list.items);
-  const toggleItem = (id) => onChange({
-    ...list, items: list.items.map(i=>i.id===id?{...i,checked:!i.checked}:i)
-  });
+  const toggleItem = (id) =>
+    onChange({
+      ...list,
+      items: list.items.map((i) =>
+        i.id === id ? { ...i, checked: !i.checked } : i
+      ),
+    });
 
   return (
     <div className="shopping-overlay">
@@ -244,38 +632,62 @@ function ShoppingView({ list, onChange, onClose }) {
           <span className="shopping-logo">🍳</span>
           <div>
             <div className="shopping-list-name">{list.name}</div>
-            <div className="shopping-progress-text">{done} of {list.items.length} collected</div>
+            <div className="shopping-progress-text">
+              {done} of {list.items.length} collected
+            </div>
           </div>
         </div>
-        <button className="shopping-close" onClick={onClose}>✕ Done</button>
+        <button className="shopping-close" onClick={onClose}>
+          ✕ Done
+        </button>
       </div>
       <div className="shopping-progress-bar-bg">
-        <div className="shopping-progress-fill" style={{width:`${pct}%`}} />
+        <div className="shopping-progress-fill" style={{ width: `${pct}%` }} />
       </div>
       <div className="shopping-body">
         {groups.map(([cat, items]) => (
           <div key={cat} className="shopping-category">
             <div className="shopping-cat-header">{cat}</div>
-            {items.map(item => (
-              <button key={item.id}
-                className={`shopping-item ${item.checked?"shopping-item-done":""}`}
-                onClick={()=>toggleItem(item.id)}>
-                <div className={`shopping-check-circle ${item.checked?"shopping-check-filled":""}`}>
-                  {item.checked && <span className="shopping-checkmark">✓</span>}
+            {items.map((item) => (
+              <button
+                key={item.id}
+                className={`shopping-item ${item.checked ? "shopping-item-done" : ""}`}
+                onClick={() => toggleItem(item.id)}
+              >
+                <div
+                  className={`shopping-check-circle ${item.checked ? "shopping-check-filled" : ""}`}
+                >
+                  {item.checked && (
+                    <span className="shopping-checkmark">✓</span>
+                  )}
                 </div>
                 <div className="shopping-item-info">
                   <span className="shopping-item-name">{item.name}</span>
                   <div className="shopping-item-meta">
-                    {item.qty && <span>{item.qty}{item.unit ? ` ${item.unit}` : ""}</span>}
-                    {item.notes && <span className="shopping-item-notes">· {item.notes}</span>}
-                    {item.meal && <span className="shopping-item-meal">for {item.meal}</span>}
+                    {item.qty && (
+                      <span>
+                        {item.qty}
+                        {item.unit ? ` ${item.unit}` : ""}
+                      </span>
+                    )}
+                    {item.notes && (
+                      <span className="shopping-item-notes">
+                        · {item.notes}
+                      </span>
+                    )}
+                    {item.meal && (
+                      <span className="shopping-item-meal">
+                        for {item.meal}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="shopping-item-right">
-                  {item.checked
-                    ? <span className="shopping-status-done">Collected</span>
-                    : <span className="shopping-status-open">Needed</span>
-                  }
+                  {item.checked ? (
+                    <span className="shopping-status-done">Collected</span>
+                  ) : (
+                    <span className="shopping-status-open">Needed</span>
+                  )}
                 </div>
               </button>
             ))}
@@ -295,31 +707,61 @@ function NewListModal({ onClose, onCreate }) {
   const [date, setDate] = useState(TODAY.toISOString().split("T")[0]);
 
   return (
-    <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+    <div
+      className="modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="new-list-modal">
         <div className="new-list-header">
           <h3 className="new-list-title">New Grocery List</h3>
-          <button className="modal-close-btn" onClick={onClose}>✕</button>
+          <button className="modal-close-btn" onClick={onClose}>
+            ✕
+          </button>
         </div>
         <div className="new-list-body">
           <div className="form-group">
             <label className="form-label">List Name</label>
-            <input className="form-input" value={name} onChange={e=>setName(e.target.value)}
-              placeholder="e.g. This Week's Shop" autoFocus />
+            <input
+              className="form-input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. This Week's Shop"
+              autoFocus
+            />
           </div>
           <div className="form-group">
             <label className="form-label">Date</label>
-            <input className="form-input" type="date" value={date} onChange={e=>setDate(e.target.value)} />
+            <input
+              className="form-input"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
           </div>
         </div>
         <div className="new-list-footer">
-          <button className="btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn-create" onClick={()=>{
-            if(!name.trim()) return;
-            onCreate({ id: newId(), name: name.trim(), date: new Date(date+"T12:00:00"),
-              favourite:false, mealPlan:"", items:[] });
-            onClose();
-          }}>Create List</button>
+          <button className="btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn-create"
+            onClick={() => {
+              if (!name.trim()) return;
+              onCreate({
+                id: newId(),
+                name: name.trim(),
+                date: new Date(date + "T12:00:00"),
+                favourite: false,
+                mealPlan: "",
+                items: [],
+              });
+              onClose();
+            }}
+          >
+            Create List
+          </button>
         </div>
       </div>
     </div>
@@ -337,31 +779,53 @@ export default function GroceryPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const carouselRef = useRef();
 
-  const selectedList = lists.find(l=>l.id===selectedId);
+  const selectedList = lists.find((l) => l.id === selectedId);
 
-  const updateList = (updated) => setLists(ls=>ls.map(l=>l.id===updated.id?updated:l));
+  const updateList = (updated) =>
+    setLists((ls) => ls.map((l) => (l.id === updated.id ? updated : l)));
   const deleteList = (id) => {
-    setLists(ls=>ls.filter(l=>l.id!==id));
-    const remaining = lists.filter(l=>l.id!==id);
+    setLists((ls) => ls.filter((l) => l.id !== id));
+    const remaining = lists.filter((l) => l.id !== id);
     setSelectedId(remaining.length ? remaining[0].id : null);
   };
-  const toggleFav = (id) => setLists(ls=>ls.map(l=>l.id===id?{...l,favourite:!l.favourite}:l));
-  const createList = (l) => { setLists(ls=>[...ls,l]); setSelectedId(l.id); };
+  const toggleFav = (id) =>
+    setLists((ls) =>
+      ls.map((l) => (l.id === id ? { ...l, favourite: !l.favourite } : l))
+    );
+  const createList = (l) => {
+    setLists((ls) => [...ls, l]);
+    setSelectedId(l.id);
+  };
 
-  const filteredQuick = lists.filter(l => {
-    if (activeFilter==="today") return isToday(l.date);
-    if (activeFilter==="upcoming") return isUpcoming(l.date, upcomingDays);
-    if (activeFilter==="fav") return l.favourite;
-    if (activeFilter==="recent") return true;
-    return true;
-  }).slice(0, activeFilter==="recent" ? 5 : undefined);
+  const filteredQuick = lists
+    .filter((l) => {
+      if (activeFilter === "today") return isToday(l.date);
+      if (activeFilter === "upcoming") return isUpcoming(l.date, upcomingDays);
+      if (activeFilter === "fav") return l.favourite;
+      if (activeFilter === "recent") return true;
+      return true;
+    })
+    .slice(0, activeFilter === "recent" ? 5 : undefined);
 
   if (shopping && selectedList) {
-    return <ShoppingView list={selectedList} onChange={updateList} onClose={()=>setShopping(false)} />;
+    return (
+      <ShoppingView
+        list={selectedList}
+        onChange={updateList}
+        onClose={() => setShopping(false)}
+      />
+    );
   }
 
   return (
-    <div style={{fontFamily:"'Nunito',sans-serif",background:"var(--cream)",minHeight:"100vh",color:"var(--text)"}}>
+    <div
+      style={{
+        fontFamily: "'Nunito',sans-serif",
+        background: "var(--cream)",
+        minHeight: "100vh",
+        color: "var(--text)",
+      }}
+    >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Nunito:wght@400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0;}
@@ -583,21 +1047,33 @@ export default function GroceryPage() {
       <header className="header">
         <div className="logo">🍳 Copilot Chef</div>
         <nav className="nav-desktop">
-          {NAV_ITEMS.map(item=>(
-            <button key={item} className={`nav-link ${item==="Grocery List"?"active":""}`}>{item}</button>
+          {NAV_ITEMS.map((item) => (
+            <button
+              key={item}
+              className={`nav-link ${item === "Grocery List" ? "active" : ""}`}
+            >
+              {item}
+            </button>
           ))}
         </nav>
         <div className="nav-right">
-          <button className="hamburger" onClick={()=>setMenuOpen(o=>!o)}>
-            <span/><span/><span/>
+          <button className="hamburger" onClick={() => setMenuOpen((o) => !o)}>
+            <span />
+            <span />
+            <span />
           </button>
           <button className="settings-btn">⚙️</button>
         </div>
       </header>
-      <div className={`mobile-menu ${menuOpen?"open":""}`}>
-        {NAV_ITEMS.map(item=>(
-          <button key={item} className={`mobile-nav-link ${item==="Grocery List"?"active":""}`}
-            onClick={()=>setMenuOpen(false)}>{item}</button>
+      <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
+        {NAV_ITEMS.map((item) => (
+          <button
+            key={item}
+            className={`mobile-nav-link ${item === "Grocery List" ? "active" : ""}`}
+            onClick={() => setMenuOpen(false)}
+          >
+            {item}
+          </button>
         ))}
       </div>
 
@@ -607,54 +1083,106 @@ export default function GroceryPage() {
           <div>
             <div className="eyebrow">Grocery List</div>
             <h1 className="page-title">Your Lists</h1>
-            <p className="page-sub">{lists.length} list{lists.length!==1?"s":""} · select one to edit</p>
+            <p className="page-sub">
+              {lists.length} list{lists.length !== 1 ? "s" : ""} · select one to
+              edit
+            </p>
           </div>
-          <button className="btn-new-list" onClick={()=>setShowNewModal(true)}>+ New List</button>
+          <button
+            className="btn-new-list"
+            onClick={() => setShowNewModal(true)}
+          >
+            + New List
+          </button>
         </div>
 
         {/* Quick Reference */}
         <div className="section-label">Quick Reference</div>
         <div className="filter-tabs">
-          {FILTERS.map(f=>(
-            <button key={f.id} className={`filter-tab ${activeFilter===f.id?"active":""}`}
-              onClick={()=>setActiveFilter(f.id)}>
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              className={`filter-tab ${activeFilter === f.id ? "active" : ""}`}
+              onClick={() => setActiveFilter(f.id)}
+            >
               {f.icon} {f.label}
             </button>
           ))}
-          {activeFilter==="upcoming" && (
-            <label style={{display:"flex",alignItems:"center",gap:"0.35rem",fontFamily:"'Nunito',sans-serif",fontSize:"0.75rem",fontWeight:700,color:"var(--text-muted)"}}>
+          {activeFilter === "upcoming" && (
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.35rem",
+                fontFamily: "'Nunito',sans-serif",
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                color: "var(--text-muted)",
+              }}
+            >
               Days:
-              <input type="number" className="upcoming-input" min={1} max={60} value={upcomingDays}
-                onChange={e=>setUpcomingDays(Number(e.target.value))} />
+              <input
+                type="number"
+                className="upcoming-input"
+                min={1}
+                max={60}
+                value={upcomingDays}
+                onChange={(e) => setUpcomingDays(Number(e.target.value))}
+              />
             </label>
           )}
         </div>
         <div className="carousel-wrap">
           <div className="carousel" ref={carouselRef}>
-            {filteredQuick.length===0
-              ? <div className="quick-empty">No lists match this filter.</div>
-              : filteredQuick.map(l=>{
-                  const pct=progress(l.items);
-                  return (
-                    <div key={l.id} className={`quick-card ${selectedId===l.id?"selected":""}`}
-                      onClick={()=>setSelectedId(l.id)}>
-                      <button className={`quick-card-fav ${l.favourite?"active":""}`}
-                        onClick={e=>{e.stopPropagation();toggleFav(l.id);}}>
-                        {l.favourite?"⭐":"☆"}
-                      </button>
-                      <div className="quick-card-name">{l.name}</div>
-                      <div className="quick-card-date">
-                        {isToday(l.date)?"Today":fmtDate(l.date)} · {l.items.length} items
-                      </div>
-                      {l.mealPlan && <div className="quick-card-meta">🍽 {l.mealPlan}</div>}
-                      <div className="quick-card-progress">
-                        <div className="quick-card-fill" style={{width:`${pct}%`}} />
-                      </div>
-                      <div style={{fontFamily:"'Nunito',sans-serif",fontSize:"0.65rem",fontWeight:700,color:"var(--text-muted)",marginTop:"0.15rem"}}>{pct}% collected</div>
+            {filteredQuick.length === 0 ? (
+              <div className="quick-empty">No lists match this filter.</div>
+            ) : (
+              filteredQuick.map((l) => {
+                const pct = progress(l.items);
+                return (
+                  <div
+                    key={l.id}
+                    className={`quick-card ${selectedId === l.id ? "selected" : ""}`}
+                    onClick={() => setSelectedId(l.id)}
+                  >
+                    <button
+                      className={`quick-card-fav ${l.favourite ? "active" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFav(l.id);
+                      }}
+                    >
+                      {l.favourite ? "⭐" : "☆"}
+                    </button>
+                    <div className="quick-card-name">{l.name}</div>
+                    <div className="quick-card-date">
+                      {isToday(l.date) ? "Today" : fmtDate(l.date)} ·{" "}
+                      {l.items.length} items
                     </div>
-                  );
-                })
-            }
+                    {l.mealPlan && (
+                      <div className="quick-card-meta">🍽 {l.mealPlan}</div>
+                    )}
+                    <div className="quick-card-progress">
+                      <div
+                        className="quick-card-fill"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "'Nunito',sans-serif",
+                        fontSize: "0.65rem",
+                        fontWeight: 700,
+                        color: "var(--text-muted)",
+                        marginTop: "0.15rem",
+                      }}
+                    >
+                      {pct}% collected
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -666,16 +1194,27 @@ export default function GroceryPage() {
               <span className="sidebar-title">All Lists</span>
               <span className="sidebar-count">{lists.length}</span>
             </div>
-            {lists.map(l=>(
-              <div key={l.id} className={`list-row ${selectedId===l.id?"selected":""}`}
-                onClick={()=>setSelectedId(l.id)}>
+            {lists.map((l) => (
+              <div
+                key={l.id}
+                className={`list-row ${selectedId === l.id ? "selected" : ""}`}
+                onClick={() => setSelectedId(l.id)}
+              >
                 <div className="list-row-info">
                   <div className="list-row-name">{l.name}</div>
-                  <div className="list-row-meta">{isToday(l.date)?"Today":fmtDate(l.date)} · {l.items.length} items</div>
+                  <div className="list-row-meta">
+                    {isToday(l.date) ? "Today" : fmtDate(l.date)} ·{" "}
+                    {l.items.length} items
+                  </div>
                 </div>
-                <button className={`list-row-fav ${l.favourite?"on":""}`}
-                  onClick={e=>{e.stopPropagation();toggleFav(l.id);}}>
-                  {l.favourite?"⭐":"☆"}
+                <button
+                  className={`list-row-fav ${l.favourite ? "on" : ""}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFav(l.id);
+                  }}
+                >
+                  {l.favourite ? "⭐" : "☆"}
                 </button>
                 <span className="list-row-pct">{progress(l.items)}%</span>
               </div>
@@ -683,18 +1222,30 @@ export default function GroceryPage() {
           </div>
 
           {/* Editor */}
-          {selectedList
-            ? <ListEditor list={selectedList} onChange={updateList}
-                onDelete={deleteList} onShop={()=>setShopping(true)} />
-            : <div className="editor-placeholder">
-                <div className="editor-placeholder-icon">🛒</div>
-                <p className="editor-placeholder-text">Select a list to start editing.</p>
-              </div>
-          }
+          {selectedList ? (
+            <ListEditor
+              list={selectedList}
+              onChange={updateList}
+              onDelete={deleteList}
+              onShop={() => setShopping(true)}
+            />
+          ) : (
+            <div className="editor-placeholder">
+              <div className="editor-placeholder-icon">🛒</div>
+              <p className="editor-placeholder-text">
+                Select a list to start editing.
+              </p>
+            </div>
+          )}
         </div>
       </main>
 
-      {showNewModal && <NewListModal onClose={()=>setShowNewModal(false)} onCreate={createList} />}
+      {showNewModal && (
+        <NewListModal
+          onClose={() => setShowNewModal(false)}
+          onCreate={createList}
+        />
+      )}
     </div>
   );
 }

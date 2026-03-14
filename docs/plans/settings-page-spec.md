@@ -170,11 +170,11 @@ Replace the placeholder with a full client component (`"use client"`). Use React
 - Toggle switches, tag selections, chip additions/removals, and reorders fire immediately (no debounce).
 - Display an autosave pill in the top-right of the page header showing one of three states:
 
-| State | Text | Style |
-|---|---|---|
-| Idle / saved | "All changes saved" | Green text, green border |
-| Pending save | "Saving…" | Muted text, default border |
-| Error | "Failed to save" | Red text, red border |
+| State        | Text                | Style                      |
+| ------------ | ------------------- | -------------------------- |
+| Idle / saved | "All changes saved" | Green text, green border   |
+| Pending save | "Saving…"           | Muted text, default border |
+| Error        | "Failed to save"    | Red text, red border       |
 
 ---
 
@@ -213,6 +213,7 @@ Replace the placeholder with a full client component (`"use client"`). Use React
 Create `src/web/components/settings/CollapsibleSection.tsx`.
 
 Props:
+
 ```ts
 {
   id: string
@@ -223,6 +224,7 @@ Props:
 ```
 
 Behavior:
+
 - The section header is a full-width clickable row containing a chevron SVG, the uppercase label, and an extending horizontal rule line.
 - Clicking toggles open/closed state, persisted in `localStorage` keyed as `settings-section-{id}` so sections remember their collapsed state across page visits.
 - The chevron rotates 90° when closed (pointing right) and returns to pointing down when open.
@@ -238,21 +240,23 @@ Behavior:
 Two-column grid.
 
 **Left — Household size:**
+
 - Label: "Household size"
 - `<input type="range" min={1} max={8} step={1} />`
 - Display the current value as a number to the right of the slider.
 - The slider and value display must be vertically centered relative to each other, and vertically aligned with the select on the right.
 
 **Right — Preferred cooking length:**
+
 - Label: "Preferred cooking length"
 - `<select>` with options:
 
-| Value | Label |
-|---|---|
-| `quick` | Quick (< 20 min) |
+| Value       | Label                        |
+| ----------- | ---------------------------- |
+| `quick`     | Quick (< 20 min)             |
 | `weeknight` | Weeknight-friendly (~30 min) |
-| `relaxed` | Relaxed (45–60 min) |
-| `weekend` | Weekend projects (1 hr+) |
+| `relaxed`   | Relaxed (45–60 min)          |
+| `weekend`   | Weekend projects (1 hr+)     |
 
 ---
 
@@ -273,10 +277,12 @@ Both columns render the same list of cuisine tags:
 `Mediterranean`, `Japanese`, `Comfort food`, `Mexican`, `Thai`, `Indian`, `Italian`, `Korean`, `Middle Eastern`, `French`, `Chinese`, `American BBQ`
 
 **Active styles:**
+
 - Favorites: orange (`#b85c1a` bg, white text)
 - Avoid: dark red (`#7a1c1c` bg, white text)
 
 **Mutual exclusion logic (critical):**
+
 - When a cuisine is activated in Favorites, it must be immediately deactivated in Avoid if it was active there.
 - When a cuisine is activated in Avoid, it must be immediately deactivated in Favorites if it was active there.
 - Clicking an already-active tag in either column deactivates it (toggle off). This does not affect the other column.
@@ -291,6 +297,7 @@ Two-column grid. Each column is an independent chip list with its own text input
 **Shared chip list behavior (applies to both columns):**
 
 Each column has:
+
 1. A single-line text input with placeholder text and an "Add" button to its right.
 2. Pressing Enter in the input is equivalent to clicking Add.
 3. Comma-separated input is supported: entering "garlic, onion, salt" adds three separate chips.
@@ -305,12 +312,14 @@ Each column has:
 8. The cursor is `grab` on the handle, `grabbing` while dragging.
 
 **Left — Avoid ingredients:**
+
 - Card title: "Avoid ingredients"
 - Card description: "Allergies or hard avoidances. Drag to reprioritize."
 - Input placeholder: "e.g. peanuts, shellfish"
 - Seeded values: `["Peanuts", "Tree nuts"]`
 
 **Right — Pantry staples:**
+
 - Card title: "Pantry staples"
 - Card description: "Always in stock — skip from grocery lists. Drag to reorder."
 - Input placeholder: "e.g. olive oil, garlic"
@@ -344,20 +353,20 @@ Two-column grid, both selects.
 
 **Left — Cooking skill level:**
 
-| Value | Label |
-|---|---|
-| `beginner` | Beginner |
-| `home-cook` | Home cook |
+| Value       | Label          |
+| ----------- | -------------- |
+| `beginner`  | Beginner       |
+| `home-cook` | Home cook      |
 | `confident` | Confident cook |
-| `advanced` | Advanced |
+| `advanced`  | Advanced       |
 
 **Right — Budget range:**
 
-| Value | Label |
-|---|---|
-| `budget` | Budget-friendly |
-| `moderate` | Moderate |
-| `premium` | Premium ok |
+| Value      | Label           |
+| ---------- | --------------- |
+| `budget`   | Budget-friendly |
+| `moderate` | Moderate        |
+| `premium`  | Premium ok      |
 
 ---
 
@@ -373,27 +382,27 @@ Two-column grid, both selects.
 
 **Persona grid — 3 columns, 2 rows:**
 
-| Value | Icon | Name | Subtitle |
-|---|---|---|---|
-| `coach` | 🧑‍🍳 | The Coach | Encouraging, practical |
-| `scientist` | 👨‍🔬 | The Scientist | Precise, data-driven |
-| `entertainer` | 🎭 | The Entertainer | Witty, energetic |
-| `minimalist` | 🧘 | The Minimalist | Terse, efficient |
-| `professor` | 📚 | The Professor | Thoughtful, educational |
-| `michelin` | ⭐ | The Michelin | Refined, high standards |
+| Value         | Icon | Name            | Subtitle                |
+| ------------- | ---- | --------------- | ----------------------- |
+| `coach`       | 🧑‍🍳   | The Coach       | Encouraging, practical  |
+| `scientist`   | 👨‍🔬   | The Scientist   | Precise, data-driven    |
+| `entertainer` | 🎭   | The Entertainer | Witty, energetic        |
+| `minimalist`  | 🧘   | The Minimalist  | Terse, efficient        |
+| `professor`   | 📚   | The Professor   | Thoughtful, educational |
+| `michelin`    | ⭐   | The Michelin    | Refined, high standards |
 
 Selected persona card: `border: 1.5px solid #2c4a1e`, light green tinted background. Only one can be selected at a time.
 
 Each persona maps to a system prompt tone instruction. See section 4 for the injection spec. The tone instructions per persona are:
 
-| Persona | System prompt tone instruction |
-|---|---|
-| `coach` | "You are an encouraging, practical cooking coach. Be warm, motivating, and clear. Use plain language." |
-| `scientist` | "You are a precise, analytical cooking guide. Reference technique, chemistry, and data where relevant. Be methodical." |
-| `entertainer` | "You are an energetic, witty kitchen entertainer. Be playful, enthusiastic, and fun while still being helpful." |
-| `minimalist` | "You are a terse, efficient kitchen assistant. Be direct. No preamble, no filler. Say exactly what is needed." |
-| `professor` | "You are a thoughtful, educational culinary guide. Explain the 'why' behind techniques and choices. Be measured." |
-| `michelin` | "You are a refined, exacting chef with high standards. Be elegant, precise, and sophisticated in all suggestions." |
+| Persona       | System prompt tone instruction                                                                                         |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `coach`       | "You are an encouraging, practical cooking coach. Be warm, motivating, and clear. Use plain language."                 |
+| `scientist`   | "You are a precise, analytical cooking guide. Reference technique, chemistry, and data where relevant. Be methodical." |
+| `entertainer` | "You are an energetic, witty kitchen entertainer. Be playful, enthusiastic, and fun while still being helpful."        |
+| `minimalist`  | "You are a terse, efficient kitchen assistant. Be direct. No preamble, no filler. Say exactly what is needed."         |
+| `professor`   | "You are a thoughtful, educational culinary guide. Explain the 'why' behind techniques and choices. Be measured."      |
+| `michelin`    | "You are a refined, exacting chef with high standards. Be elegant, precise, and sophisticated in all suggestions."     |
 
 ---
 
@@ -419,36 +428,38 @@ Active style for both: green border (`#2c4a1e`), green text, light green tinted 
 
 A stacked list of toggle rows. Each row: label + description on the left, a toggle switch on the right.
 
-| Field | Label | Description | Default |
-|---|---|---|---|
-| `autoImproveChef` | Auto-improve chef | Chef learns from your feedback and adjusts suggestions over time. | On |
-| `contextAwareness` | Context-aware suggestions | Include current meal plan and pantry when generating ideas. | On |
-| `seasonalAwareness` | Seasonal awareness | Prioritize ingredients that are in season in your region. | On |
-| `proactiveTips` | Proactive tips | Chef offers unprompted suggestions and cooking tips in chat. | Off |
+| Field               | Label                     | Description                                                       | Default |
+| ------------------- | ------------------------- | ----------------------------------------------------------------- | ------- |
+| `autoImproveChef`   | Auto-improve chef         | Chef learns from your feedback and adjusts suggestions over time. | On      |
+| `contextAwareness`  | Context-aware suggestions | Include current meal plan and pantry when generating ideas.       | On      |
+| `seasonalAwareness` | Seasonal awareness        | Prioritize ingredients that are in season in your region.         | On      |
+| `proactiveTips`     | Proactive tips            | Chef offers unprompted suggestions and cooking tips in chat.      | Off     |
 
 **Seasonal awareness toggle — region sub-field:**
 
 When `seasonalAwareness` is `true`, a region selector appears inline below the toggle description with a smooth expand animation (max-height transition, 200ms ease). When toggled off, the region selector collapses.
 
 The region row contains:
+
 1. A `<select>` with these options:
 
-| Value | Label |
-|---|---|
-| `northern-us-canada` | Northern US / Canada |
-| `eastern-us` | Eastern US |
-| `southern-us` | Southern US |
-| `western-us` | Western US / Pacific |
-| `western-europe` | Western Europe |
-| `mediterranean` | Mediterranean |
-| `east-asia` | East Asia |
-| `south-asia` | South Asia |
-| `australia-nz` | Australia / NZ |
-| `southern-hemisphere` | Southern hemisphere |
+| Value                 | Label                |
+| --------------------- | -------------------- |
+| `northern-us-canada`  | Northern US / Canada |
+| `eastern-us`          | Eastern US           |
+| `southern-us`         | Southern US          |
+| `western-us`          | Western US / Pacific |
+| `western-europe`      | Western Europe       |
+| `mediterranean`       | Mediterranean        |
+| `east-asia`           | East Asia            |
+| `south-asia`          | South Asia           |
+| `australia-nz`        | Australia / NZ       |
+| `southern-hemisphere` | Southern hemisphere  |
 
 2. A "Detect" button to the right of the select.
 
 **Detect button behavior:**
+
 - On click: button text changes to "Detecting…", button is disabled.
 - Calls `GET /api/preferences/detect-region`.
 - On success: set the select value to the returned region, save via PATCH, button text briefly shows "Detected ✓" for 1.4 seconds, then resets to "Detect" and re-enables.
@@ -462,10 +473,10 @@ Toggle rows followed by two selects in a grid.
 
 **Toggles:**
 
-| Field | Label | Description | Default |
-|---|---|---|---|
-| `autoGenerateGrocery` | Auto-generate grocery list | Automatically create a grocery list when a meal plan is finalized. | On |
-| `consolidateIngredients` | Consolidate similar ingredients | Merge quantities of the same ingredient across multiple meals. | On |
+| Field                    | Label                           | Description                                                        | Default |
+| ------------------------ | ------------------------------- | ------------------------------------------------------------------ | ------- |
+| `autoGenerateGrocery`    | Auto-generate grocery list      | Automatically create a grocery list when a meal plan is finalized. | On      |
+| `consolidateIngredients` | Consolidate similar ingredients | Merge quantities of the same ingredient across multiple meals.     | On      |
 
 **Selects (two-column grid, rendered below the toggle rows with `margin-top: 1rem`):**
 
@@ -479,9 +490,9 @@ Right — Grocery list grouping (`groceryGrouping`): `By category` / `By meal` /
 
 **Toggle row:**
 
-| Field | Label | Description | Default |
-|---|---|---|---|
-| `saveChatHistory` | Save chat history | Persist conversations for context across sessions. | On |
+| Field             | Label             | Description                                        | Default |
+| ----------------- | ----------------- | -------------------------------------------------- | ------- |
+| `saveChatHistory` | Save chat history | Persist conversations for context across sessions. | On      |
 
 **Destructive action buttons** (rendered below the toggle, `margin-top: 1rem`, in a flex row with `gap: 0.5rem`):
 
@@ -500,6 +511,7 @@ Right — Grocery list grouping (`groceryGrouping`): `By category` / `By meal` /
 Create `src/web/components/settings/ToggleSwitch.tsx` if one does not already exist.
 
 Props:
+
 ```ts
 {
   checked: boolean
@@ -509,6 +521,7 @@ Props:
 ```
 
 Styles:
+
 - Track: 36px × 20px, border-radius 999px, no border.
 - Track color: `#2c4a1e` when on, `var(--color-border-secondary)` when off.
 - Thumb: 16px × 16px white circle, positioned `top: 2px`. Left: `18px` when on, `2px` when off.
@@ -553,25 +566,25 @@ The Settings page must be fully usable at all breakpoints defined in the project
 
 ## 16. File Checklist
 
-| File | Action |
-|---|---|
-| `src/core/prisma/schema.prisma` | Update `UserPreference` model |
-| `src/core/prisma/seed.ts` | Update seed data with all new fields |
-| `src/core/services/PreferenceService.ts` | Add new fields, `addToList`, `removeFromList`, `reorderList` |
-| `src/core/CopilotChef.ts` | Update system prompt context injection |
-| `src/web/app/api/preferences/route.ts` | Verify supports all new fields in GET/PATCH |
-| `src/web/app/api/preferences/detect-region/route.ts` | **New** — IP geolocation endpoint |
-| `src/web/app/api/preferences/export/route.ts` | **New** — JSON data export endpoint |
-| `src/web/app/api/preferences/reset/route.ts` | **New** — Reset to defaults endpoint |
-| `src/web/app/api/chat/history/route.ts` | **New** — DELETE chat history endpoint |
-| `src/web/app/settings/page.tsx` | Replace placeholder with full page |
-| `src/web/components/settings/CollapsibleSection.tsx` | **New** |
-| `src/web/components/settings/ToggleSwitch.tsx` | **New** (or verify existing) |
-| `src/web/components/settings/ChipList.tsx` | **New** |
-| `src/web/components/settings/TagCloud.tsx` | **New** |
-| `src/web/components/settings/SegmentedControl.tsx` | **New** |
-| `src/web/components/settings/PersonaGrid.tsx` | **New** |
-| `src/web/styles/settings.module.css` | **New** — custom CSS for page layout |
+| File                                                 | Action                                                       |
+| ---------------------------------------------------- | ------------------------------------------------------------ |
+| `src/core/prisma/schema.prisma`                      | Update `UserPreference` model                                |
+| `src/core/prisma/seed.ts`                            | Update seed data with all new fields                         |
+| `src/core/services/PreferenceService.ts`             | Add new fields, `addToList`, `removeFromList`, `reorderList` |
+| `src/core/CopilotChef.ts`                            | Update system prompt context injection                       |
+| `src/web/app/api/preferences/route.ts`               | Verify supports all new fields in GET/PATCH                  |
+| `src/web/app/api/preferences/detect-region/route.ts` | **New** — IP geolocation endpoint                            |
+| `src/web/app/api/preferences/export/route.ts`        | **New** — JSON data export endpoint                          |
+| `src/web/app/api/preferences/reset/route.ts`         | **New** — Reset to defaults endpoint                         |
+| `src/web/app/api/chat/history/route.ts`              | **New** — DELETE chat history endpoint                       |
+| `src/web/app/settings/page.tsx`                      | Replace placeholder with full page                           |
+| `src/web/components/settings/CollapsibleSection.tsx` | **New**                                                      |
+| `src/web/components/settings/ToggleSwitch.tsx`       | **New** (or verify existing)                                 |
+| `src/web/components/settings/ChipList.tsx`           | **New**                                                      |
+| `src/web/components/settings/TagCloud.tsx`           | **New**                                                      |
+| `src/web/components/settings/SegmentedControl.tsx`   | **New**                                                      |
+| `src/web/components/settings/PersonaGrid.tsx`        | **New**                                                      |
+| `src/web/styles/settings.module.css`                 | **New** — custom CSS for page layout                         |
 
 ---
 

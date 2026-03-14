@@ -87,7 +87,10 @@ export function serializePageContext(ctx: PageContext): string {
       const listSummaries =
         ctx.allLists.length > 0
           ? ctx.allLists
-              .map((l) => `  - "${l.name}": ${l.checkedCount}/${l.itemCount} items checked`)
+              .map(
+                (l) =>
+                  `  - "${l.name}": ${l.checkedCount}/${l.itemCount} items checked`
+              )
               .join("\n")
           : "  (none)";
       if (!ctx.activeList) {

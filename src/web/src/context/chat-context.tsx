@@ -59,8 +59,10 @@ const INITIAL_MESSAGE: ChatMessageWithChoices = {
 };
 
 function getMinimalContextForPath(path: string): string {
-  if (path === "/stats") return "The user is on the Stats page, viewing meal activity statistics.";
-  if (path === "/settings") return "The user is on the Settings page, managing household preferences.";
+  if (path === "/stats")
+    return "The user is on the Stats page, viewing meal activity statistics.";
+  if (path === "/settings")
+    return "The user is on the Settings page, managing household preferences.";
   if (path === "/") return "The user is on the Home page.";
   if (path === "/meal-plan") return "The user is on the Meal Plan page.";
   if (path === "/grocery-list") return "The user is on the Grocery List page.";
@@ -73,10 +75,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const [isOpen, setIsOpen] = useState(false);
   const [size, setSize] = useState<ChatSize>("compact");
-  const [messages, setMessages] = useState<ChatMessageWithChoices[]>([INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState<ChatMessageWithChoices[]>([
+    INITIAL_MESSAGE,
+  ]);
   const [isTyping, setIsTyping] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState("");
-  const [copilotSessionId, setCopilotSessionId] = useState<string | undefined>();
+  const [copilotSessionId, setCopilotSessionId] = useState<
+    string | undefined
+  >();
   const [chatSessionId, setChatSessionId] = useState<string | undefined>();
   const [showSessionBrowser, setShowSessionBrowser] = useState(false);
 
@@ -133,19 +139,26 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             };
           };
           if (payload.sessionId) setCopilotSessionId(payload.sessionId);
-          if (payload.chatSessionId && !chatSessionId) setChatSessionId(payload.chatSessionId);
+          if (payload.chatSessionId && !chatSessionId)
+            setChatSessionId(payload.chatSessionId);
 
           if (payload.action?.domain === "meal") {
             await queryClient.invalidateQueries({ queryKey: ["meals"] });
           }
           if (payload.action?.domain === "grocery") {
-            await queryClient.invalidateQueries({ queryKey: ["grocery-lists"] });
+            await queryClient.invalidateQueries({
+              queryKey: ["grocery-lists"],
+            });
           }
 
           setIsTyping(false);
           setMessages((prev) => [
             ...prev,
-            { role: "assistant", text: payload.message.trim(), choices: payload.choices ?? [] },
+            {
+              role: "assistant",
+              text: payload.message.trim(),
+              choices: payload.choices ?? [],
+            },
           ]);
           return;
         }
@@ -158,7 +171,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const newChatSessionId = response.headers.get("x-chat-session-id");
 
         if (newCopilotSessionId) setCopilotSessionId(newCopilotSessionId);
-        if (newChatSessionId && !chatSessionId) setChatSessionId(newChatSessionId);
+        if (newChatSessionId && !chatSessionId)
+          setChatSessionId(newChatSessionId);
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -173,14 +187,21 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         }
         assistantText += decoder.decode();
 
-        setMessages((prev) => [...prev, { role: "assistant", text: assistantText.trim(), choices: [] }]);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", text: assistantText.trim(), choices: [] },
+        ]);
         setStreamingMessage("");
       } catch {
         setIsTyping(false);
         setStreamingMessage("");
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", text: "Something went wrong. Please try again.", choices: [] },
+          {
+            role: "assistant",
+            text: "Something went wrong. Please try again.",
+            choices: [],
+          },
         ]);
       }
     },
@@ -202,7 +223,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       lastSentPathRef.current = "";
       setMessages([
         INITIAL_MESSAGE,
-        ...data.messages.map((m) => ({ role: m.role, text: m.content, choices: [] })),
+        ...data.messages.map((m) => ({
+          role: m.role,
+          text: m.content,
+          choices: [],
+        })),
       ]);
       setShowSessionBrowser(false);
     } catch {

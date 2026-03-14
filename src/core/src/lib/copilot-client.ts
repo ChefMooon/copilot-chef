@@ -13,12 +13,63 @@ function getCliPath(): string {
     initCwd
       ? resolve(initCwd, "node_modules", "@github", "copilot", "npm-loader.js")
       : "",
-    resolve(process.cwd(), "node_modules", "@github", "copilot", "npm-loader.js"),
-    resolve(process.cwd(), "..", "node_modules", "@github", "copilot", "npm-loader.js"),
-    resolve(process.cwd(), "..", "..", "node_modules", "@github", "copilot", "npm-loader.js"),
-    resolve(process.cwd(), "..", "..", "..", "node_modules", "@github", "copilot", "npm-loader.js"),
-    resolve(moduleDir, "..", "..", "..", "..", "..", "node_modules", "@github", "copilot", "npm-loader.js"),
-    resolve(moduleDir, "..", "..", "..", "..", "node_modules", "@github", "copilot", "npm-loader.js")
+    resolve(
+      process.cwd(),
+      "node_modules",
+      "@github",
+      "copilot",
+      "npm-loader.js"
+    ),
+    resolve(
+      process.cwd(),
+      "..",
+      "node_modules",
+      "@github",
+      "copilot",
+      "npm-loader.js"
+    ),
+    resolve(
+      process.cwd(),
+      "..",
+      "..",
+      "node_modules",
+      "@github",
+      "copilot",
+      "npm-loader.js"
+    ),
+    resolve(
+      process.cwd(),
+      "..",
+      "..",
+      "..",
+      "node_modules",
+      "@github",
+      "copilot",
+      "npm-loader.js"
+    ),
+    resolve(
+      moduleDir,
+      "..",
+      "..",
+      "..",
+      "..",
+      "..",
+      "node_modules",
+      "@github",
+      "copilot",
+      "npm-loader.js"
+    ),
+    resolve(
+      moduleDir,
+      "..",
+      "..",
+      "..",
+      "..",
+      "node_modules",
+      "@github",
+      "copilot",
+      "npm-loader.js"
+    ),
   ].filter(Boolean);
 
   for (const candidate of candidates) {
@@ -27,7 +78,9 @@ function getCliPath(): string {
     }
   }
 
-  throw new Error(`Unable to locate @github/copilot npm-loader.js. Checked: ${candidates.join(", ")}`);
+  throw new Error(
+    `Unable to locate @github/copilot npm-loader.js. Checked: ${candidates.join(", ")}`
+  );
 }
 
 export async function getClient(): Promise<CopilotClient> {
@@ -40,7 +93,7 @@ export async function getClient(): Promise<CopilotClient> {
       const c = new CopilotClient({
         cliPath: getCliPath(),
         autoStart: true,
-        autoRestart: true
+        autoRestart: true,
       });
       await c.start();
       client = c;

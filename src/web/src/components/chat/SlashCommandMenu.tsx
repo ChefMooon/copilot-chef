@@ -11,7 +11,11 @@ interface SlashCommandMenuProps {
   onClose: () => void;
 }
 
-export function SlashCommandMenu({ query, onSelect, onClose }: SlashCommandMenuProps) {
+export function SlashCommandMenu({
+  query,
+  onSelect,
+  onClose,
+}: SlashCommandMenuProps) {
   const [cursor, setCursor] = useState(0);
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -49,7 +53,12 @@ export function SlashCommandMenu({ query, onSelect, onClose }: SlashCommandMenuP
   if (!filtered.length) return null;
 
   return (
-    <ul aria-label="Available commands" className={styles.slashMenu} ref={listRef} role="listbox">
+    <ul
+      aria-label="Available commands"
+      className={styles.slashMenu}
+      ref={listRef}
+      role="listbox"
+    >
       {filtered.map((cmd, index) => (
         <li
           aria-selected={index === cursor}

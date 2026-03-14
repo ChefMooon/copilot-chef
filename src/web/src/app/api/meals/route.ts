@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       ...body,
       name: body?.name ?? body?.title,
       mealType: body?.mealType ?? body?.type,
-      ingredients: body?.ingredients ?? ingredientsFromJson ?? []
+      ingredients: body?.ingredients ?? ingredientsFromJson ?? [],
     };
 
     const data = await mealService.createMeal(normalizedBody);
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to create meal"
+        error: error instanceof Error ? error.message : "Unable to create meal",
       },
       { status: 400 }
     );

@@ -105,10 +105,7 @@ function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function findMatchingItems(
-  items: GroceryPageItem[],
-  phrase: string
-) {
+function findMatchingItems(items: GroceryPageItem[], phrase: string) {
   const cleaned = normalizeText(phrase).replace(/^(the|a|an)\s+/, "");
   if (!cleaned) return [];
 
@@ -118,7 +115,10 @@ function findMatchingItems(
   return items.filter((item) => normalizeText(item.name).includes(cleaned));
 }
 
-function buildItemChoices(items: GroceryPageItem[], promptBuilder: (name: string) => string) {
+function buildItemChoices(
+  items: GroceryPageItem[],
+  promptBuilder: (name: string) => string
+) {
   return items.slice(0, 6).map((item) => ({
     id: item.id,
     label: item.name,
@@ -134,7 +134,11 @@ function resolveRelativeDate(input: string) {
     .replace(/^on\s+/, "")
     .replace(/^for\s+/, "");
 
-  if (normalized === "today" || normalized === "tonight" || normalized === "this evening") {
+  if (
+    normalized === "today" ||
+    normalized === "tonight" ||
+    normalized === "this evening"
+  ) {
     return today;
   }
 
@@ -144,7 +148,15 @@ function resolveRelativeDate(input: string) {
     return next;
   }
 
-  const weekDays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const weekDays = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
   const weekdayMatch = normalized.match(
     /^(?:next\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)(?:\s+(?:night|evening))?$/
   );
@@ -312,7 +324,8 @@ async function tryHandleMealCommand(
   if (/^(?:undo|undo last action)$/i.test(text)) {
     if (!chatSessionId) {
       return {
-        message: "I could not find a chat session for undo yet. Try another command first.",
+        message:
+          "I could not find a chat session for undo yet. Try another command first.",
         action: {
           domain: "meal",
           type: "undo-unavailable",
@@ -321,7 +334,10 @@ async function tryHandleMealCommand(
       };
     }
 
-    const action = await historyService.getLatestUndoAction(chatSessionId, "meal");
+    const action = await historyService.getLatestUndoAction(
+      chatSessionId,
+      "meal"
+    );
     if (!action) {
       return {
         message: "There is no meal action to undo.",
@@ -359,7 +375,10 @@ async function tryHandleMealCommand(
       };
     }
 
-    const action = await historyService.getLatestRedoAction(chatSessionId, "meal");
+    const action = await historyService.getLatestRedoAction(
+      chatSessionId,
+      "meal"
+    );
     if (!action) {
       return {
         message: "There is no meal action to redo.",
@@ -395,7 +414,8 @@ async function tryHandleMealCommand(
     const resolvedDate = resolveRelativeDate(when);
     if (!mealType || !resolvedDate) {
       return {
-        message: "I need a valid meal type and date. Try something like: Add Grilled Cheese for lunch today.",
+        message:
+          "I need a valid meal type and date. Try something like: Add Grilled Cheese for lunch today.",
         action: {
           domain: "meal",
           type: "clarify-add",
@@ -462,7 +482,8 @@ async function tryHandleMealCommand(
     const toDate = resolveRelativeDate(toText);
     if (!mealType || !fromDate || !toDate) {
       return {
-        message: "I need valid source and destination dates. Example: Move lunch from Tuesday to Friday.",
+        message:
+          "I need valid source and destination dates. Example: Move lunch from Tuesday to Friday.",
         action: {
           domain: "meal",
           type: "clarify-move",
@@ -518,9 +539,15 @@ async function tryHandleMealCommand(
       };
     }
 
-    const updated = await mealService.updateMeal(selected.id, { date: toDate.toISOString() });
-    const forwardOps: MealForwardOp[] = [{ op: "update", id: selected.id, patch: { date: updated.date } }];
-    const inverseOps: MealForwardOp[] = [{ op: "update", id: selected.id, patch: { date: before.date } }];
+    const updated = await mealService.updateMeal(selected.id, {
+      date: toDate.toISOString(),
+    });
+    const forwardOps: MealForwardOp[] = [
+      { op: "update", id: selected.id, patch: { date: updated.date } },
+    ];
+    const inverseOps: MealForwardOp[] = [
+      { op: "update", id: selected.id, patch: { date: before.date } },
+    ];
 
     if (chatSessionId) {
       await historyService.recordAction({
@@ -560,7 +587,9 @@ async function tryHandleMealCommand(
       };
     }
 
-    const candidates = context.meals.filter((meal) => normalizeText(meal.name).includes(normalizeText(mealName)));
+    const candidates = context.meals.filter((meal) =>
+      normalizeText(meal.name).includes(normalizeText(mealName))
+    );
     if (candidates.length === 0) {
       return {
         message: `I couldn't find a meal named "${mealName}" in the current view.`,
@@ -599,9 +628,15 @@ async function tryHandleMealCommand(
       };
     }
 
-    const updated = await mealService.updateMeal(candidates[0].id, { date: toDate.toISOString() });
-    const forwardOps: MealForwardOp[] = [{ op: "update", id: updated.id, patch: { date: updated.date } }];
-    const inverseOps: MealForwardOp[] = [{ op: "update", id: updated.id, patch: { date: before.date } }];
+    const updated = await mealService.updateMeal(candidates[0].id, {
+      date: toDate.toISOString(),
+    });
+    const forwardOps: MealForwardOp[] = [
+      { op: "update", id: updated.id, patch: { date: updated.date } },
+    ];
+    const inverseOps: MealForwardOp[] = [
+      { op: "update", id: updated.id, patch: { date: before.date } },
+    ];
 
     if (chatSessionId) {
       await historyService.recordAction({
@@ -635,7 +670,8 @@ async function tryHandleMealCommand(
     const date = resolveRelativeDate(dateText);
     if (!mealType || !date) {
       return {
-        message: "I need a valid meal type/date to replace. Example: Replace dinner on Tuesday with Tacos.",
+        message:
+          "I need a valid meal type/date to replace. Example: Replace dinner on Tuesday with Tacos.",
         action: {
           domain: "meal",
           type: "clarify-replace",
@@ -645,7 +681,9 @@ async function tryHandleMealCommand(
     }
 
     const matches = context.meals.filter(
-      (meal) => normalizeMealType(meal.mealType) === mealType && new Date(meal.date).toDateString() === date.toDateString()
+      (meal) =>
+        normalizeMealType(meal.mealType) === mealType &&
+        new Date(meal.date).toDateString() === date.toDateString()
     );
     if (matches.length === 0) {
       return {
@@ -670,9 +708,15 @@ async function tryHandleMealCommand(
       };
     }
 
-    const updated = await mealService.updateMeal(matches[0].id, { name: nextName });
-    const forwardOps: MealForwardOp[] = [{ op: "update", id: updated.id, patch: { name: updated.name } }];
-    const inverseOps: MealForwardOp[] = [{ op: "update", id: updated.id, patch: { name: before.name } }];
+    const updated = await mealService.updateMeal(matches[0].id, {
+      name: nextName,
+    });
+    const forwardOps: MealForwardOp[] = [
+      { op: "update", id: updated.id, patch: { name: updated.name } },
+    ];
+    const inverseOps: MealForwardOp[] = [
+      { op: "update", id: updated.id, patch: { name: before.name } },
+    ];
 
     if (chatSessionId) {
       await historyService.recordAction({
@@ -705,7 +749,8 @@ async function tryHandleMealCommand(
     const date = resolveRelativeDate(dateText);
     if (!mealType || !date) {
       return {
-        message: "I need a valid meal type/date to remove. Example: Remove lunch on Tuesday.",
+        message:
+          "I need a valid meal type/date to remove. Example: Remove lunch on Tuesday.",
         action: {
           domain: "meal",
           type: "clarify-remove",
@@ -715,7 +760,9 @@ async function tryHandleMealCommand(
     }
 
     const matches = context.meals.filter(
-      (meal) => normalizeMealType(meal.mealType) === mealType && new Date(meal.date).toDateString() === date.toDateString()
+      (meal) =>
+        normalizeMealType(meal.mealType) === mealType &&
+        new Date(meal.date).toDateString() === date.toDateString()
     );
     if (matches.length === 0) {
       return {
@@ -779,9 +826,14 @@ async function tryHandleMealCommand(
     };
   }
 
-  const suggestMatch = text.match(/^(?:suggest|plan)\s+(\d+)\s+(?:meals|dinners)(?:\s+for\s+next\s+\d+\s+nights?)?/i);
+  const suggestMatch = text.match(
+    /^(?:suggest|plan)\s+(\d+)\s+(?:meals|dinners)(?:\s+for\s+next\s+\d+\s+nights?)?/i
+  );
   if (suggestMatch && chatSessionId) {
-    const count = Math.max(1, Math.min(7, Number.parseInt(suggestMatch[1], 10)));
+    const count = Math.max(
+      1,
+      Math.min(7, Number.parseInt(suggestMatch[1], 10))
+    );
     const pool = [
       "Lemon Herb Chicken Bowls",
       "Creamy Tomato Pasta",
@@ -792,7 +844,9 @@ async function tryHandleMealCommand(
       "Turkey Lettuce Wraps",
       "Garlic Butter Shrimp Rice",
     ];
-    const picks = Array.from({ length: count }).map((_, index) => pool[index % pool.length]);
+    const picks = Array.from({ length: count }).map(
+      (_, index) => pool[index % pool.length]
+    );
 
     await Promise.all(
       picks.map((name, index) =>
@@ -800,7 +854,11 @@ async function tryHandleMealCommand(
           chatSessionId,
           domain: "meal",
           title: name,
-          payloadJson: JSON.stringify({ name, mealType: "DINNER", rank: index }),
+          payloadJson: JSON.stringify({
+            name,
+            mealType: "DINNER",
+            rank: index,
+          }),
         })
       )
     );
@@ -829,7 +887,9 @@ async function tryHandleMealCommand(
     const requested = Number.parseInt(usePendingMatch[1], 10);
     const nights = Number.parseInt(usePendingMatch[2], 10);
     const count = Math.max(1, Math.min(requested, nights));
-    const suggestions = (await historyService.listPendingSuggestions(chatSessionId))
+    const suggestions = (
+      await historyService.listPendingSuggestions(chatSessionId)
+    )
       .filter((entry) => entry.domain === "meal")
       .slice(0, count)
       .reverse();
@@ -846,10 +906,15 @@ async function tryHandleMealCommand(
     }
 
     const dates = nextNights(count);
-    const createdMeals = [] as Awaited<ReturnType<typeof mealService.createMeal>>[];
+    const createdMeals = [] as Awaited<
+      ReturnType<typeof mealService.createMeal>
+    >[];
     for (let i = 0; i < count; i += 1) {
       const suggestion = suggestions[i];
-      const payload = JSON.parse(suggestion.payloadJson) as { name: string; mealType?: MealTypeValue };
+      const payload = JSON.parse(suggestion.payloadJson) as {
+        name: string;
+        mealType?: MealTypeValue;
+      };
       const created = await mealService.createMeal({
         mealPlanId: null,
         name: payload.name,
@@ -873,7 +938,10 @@ async function tryHandleMealCommand(
         ingredients: meal.ingredients,
       },
     }));
-    const inverseOps: MealForwardOp[] = createdMeals.map((meal) => ({ op: "delete", id: meal.id }));
+    const inverseOps: MealForwardOp[] = createdMeals.map((meal) => ({
+      op: "delete",
+      id: meal.id,
+    }));
 
     await historyService.recordAction({
       chatSessionId,
@@ -913,7 +981,8 @@ async function tryHandleGroceryCommand(
   if (/^(?:undo|undo last action)$/i.test(text)) {
     if (!chatSessionId) {
       return {
-        message: "I could not find a chat session for undo yet. Try another command first.",
+        message:
+          "I could not find a chat session for undo yet. Try another command first.",
         action: {
           domain: "grocery",
           type: "undo-unavailable",
@@ -922,7 +991,10 @@ async function tryHandleGroceryCommand(
       };
     }
 
-    const action = await historyService.getLatestUndoAction(chatSessionId, "grocery");
+    const action = await historyService.getLatestUndoAction(
+      chatSessionId,
+      "grocery"
+    );
     if (!action) {
       return {
         message: "There is no grocery action to undo.",
@@ -960,7 +1032,10 @@ async function tryHandleGroceryCommand(
       };
     }
 
-    const action = await historyService.getLatestRedoAction(chatSessionId, "grocery");
+    const action = await historyService.getLatestRedoAction(
+      chatSessionId,
+      "grocery"
+    );
     if (!action) {
       return {
         message: "There is no grocery action to redo.",
@@ -987,7 +1062,8 @@ async function tryHandleGroceryCommand(
   }
 
   const requireActiveList = (): HandledChatAction => ({
-    message: "I need an active grocery list first. Choose one of your lists and I can apply that change.",
+    message:
+      "I need an active grocery list first. Choose one of your lists and I can apply that change.",
     choices: context.allLists.slice(0, 6).map((list) => ({
       id: list.id,
       label: `Use ${list.name}`,
@@ -1000,7 +1076,9 @@ async function tryHandleGroceryCommand(
     },
   });
 
-  const addMatch = text.match(/^(?:add|put)\s+(.+?)(?:\s+(?:to|on)\s+(?:this\s+)?(?:grocery\s+)?list)?$/i);
+  const addMatch = text.match(
+    /^(?:add|put)\s+(.+?)(?:\s+(?:to|on)\s+(?:this\s+)?(?:grocery\s+)?list)?$/i
+  );
   if (addMatch) {
     if (!activeList) return requireActiveList();
     const beforeList = await groceryService.getGroceryList(activeList.id);
@@ -1008,7 +1086,9 @@ async function tryHandleGroceryCommand(
       throw new Error("Grocery list not found");
     }
     const itemName = addMatch[1].trim();
-    const updatedList = await groceryService.createGroceryItem(activeList.id, { name: itemName });
+    const updatedList = await groceryService.createGroceryItem(activeList.id, {
+      name: itemName,
+    });
     await recordSnapshotAction(chatSessionId, {
       actionType: "add-item",
       summary: `Added ${itemName} to ${updatedList.name}`,
@@ -1018,8 +1098,16 @@ async function tryHandleGroceryCommand(
     return {
       message: `Added ${itemName} to ${updatedList.name}.`,
       choices: [
-        { id: "add-another", label: "Add another item", prompt: "Add garlic to this list" },
-        { id: "mark-item", label: `Mark ${itemName} complete`, prompt: `Mark ${itemName} complete` },
+        {
+          id: "add-another",
+          label: "Add another item",
+          prompt: "Add garlic to this list",
+        },
+        {
+          id: "mark-item",
+          label: `Mark ${itemName} complete`,
+          prompt: `Mark ${itemName} complete`,
+        },
       ],
       action: {
         domain: "grocery",
@@ -1029,7 +1117,9 @@ async function tryHandleGroceryCommand(
     };
   }
 
-  const completeMatch = text.match(/^(?:mark|check(?:\s+off)?)\s+(.+?)\s*(?:as\s+)?(?:complete|done|checked)?$/i);
+  const completeMatch = text.match(
+    /^(?:mark|check(?:\s+off)?)\s+(.+?)\s*(?:as\s+)?(?:complete|done|checked)?$/i
+  );
   if (completeMatch) {
     if (!activeList) return requireActiveList();
     const beforeList = await groceryService.getGroceryList(activeList.id);
@@ -1041,7 +1131,10 @@ async function tryHandleGroceryCommand(
     if (matches.length === 0) {
       return {
         message: `I couldn't find "${target}" in ${activeList.name}. Pick one of these items or edit the item name.`,
-        choices: buildItemChoices(activeList.items, (name) => `Mark ${name} complete`),
+        choices: buildItemChoices(
+          activeList.items,
+          (name) => `Mark ${name} complete`
+        ),
         action: {
           domain: "grocery",
           type: "clarify-item-target",
@@ -1062,7 +1155,11 @@ async function tryHandleGroceryCommand(
     }
 
     const item = matches[0];
-    const updatedList = await groceryService.updateGroceryItem(activeList.id, item.id, { checked: true });
+    const updatedList = await groceryService.updateGroceryItem(
+      activeList.id,
+      item.id,
+      { checked: true }
+    );
     await recordSnapshotAction(chatSessionId, {
       actionType: "check-item",
       summary: `Checked ${item.name}`,
@@ -1071,7 +1168,9 @@ async function tryHandleGroceryCommand(
     });
     return {
       message: `Checked off ${item.name}.`,
-      choices: [{ id: "undo-check", label: `Undo`, prompt: `Uncheck ${item.name}` }],
+      choices: [
+        { id: "undo-check", label: `Undo`, prompt: `Uncheck ${item.name}` },
+      ],
       action: {
         domain: "grocery",
         type: "check-item",
@@ -1080,7 +1179,9 @@ async function tryHandleGroceryCommand(
     };
   }
 
-  const uncheckMatch = text.match(/^(?:uncheck|mark)\s+(.+?)\s*(?:as\s+)?(?:incomplete|not\s+done|unchecked)?$/i);
+  const uncheckMatch = text.match(
+    /^(?:uncheck|mark)\s+(.+?)\s*(?:as\s+)?(?:incomplete|not\s+done|unchecked)?$/i
+  );
   if (uncheckMatch) {
     if (!activeList) return requireActiveList();
     const beforeList = await groceryService.getGroceryList(activeList.id);
@@ -1103,7 +1204,11 @@ async function tryHandleGroceryCommand(
     }
 
     const item = matches[0];
-    const updatedList = await groceryService.updateGroceryItem(activeList.id, item.id, { checked: false });
+    const updatedList = await groceryService.updateGroceryItem(
+      activeList.id,
+      item.id,
+      { checked: false }
+    );
     await recordSnapshotAction(chatSessionId, {
       actionType: "uncheck-item",
       summary: `Unchecked ${item.name}`,
@@ -1120,7 +1225,9 @@ async function tryHandleGroceryCommand(
     };
   }
 
-  const removeMatch = text.match(/^(?:remove|delete|take)\s+(.+?)(?:\s+(?:from|off)\s+(?:this\s+)?(?:grocery\s+)?list)?$/i);
+  const removeMatch = text.match(
+    /^(?:remove|delete|take)\s+(.+?)(?:\s+(?:from|off)\s+(?:this\s+)?(?:grocery\s+)?list)?$/i
+  );
   if (removeMatch) {
     if (!activeList) return requireActiveList();
     const beforeList = await groceryService.getGroceryList(activeList.id);
@@ -1154,7 +1261,10 @@ async function tryHandleGroceryCommand(
     }
 
     const item = matches[0];
-    const updatedList = await groceryService.deleteGroceryItem(activeList.id, item.id);
+    const updatedList = await groceryService.deleteGroceryItem(
+      activeList.id,
+      item.id
+    );
     await recordSnapshotAction(chatSessionId, {
       actionType: "remove-item",
       summary: `Removed ${item.name} from ${updatedList.name}`,
@@ -1171,7 +1281,9 @@ async function tryHandleGroceryCommand(
     };
   }
 
-  const renameMatch = text.match(/^(?:rename|call)\s+(?:this\s+)?list\s+(?:to|as)\s+(.+)$/i);
+  const renameMatch = text.match(
+    /^(?:rename|call)\s+(?:this\s+)?list\s+(?:to|as)\s+(.+)$/i
+  );
   if (renameMatch) {
     if (!activeList) return requireActiveList();
     const beforeList = await groceryService.getGroceryList(activeList.id);
@@ -1179,7 +1291,9 @@ async function tryHandleGroceryCommand(
       throw new Error("Grocery list not found");
     }
     const nextName = renameMatch[1].trim();
-    const updatedList = await groceryService.updateGroceryList(activeList.id, { name: nextName });
+    const updatedList = await groceryService.updateGroceryList(activeList.id, {
+      name: nextName,
+    });
     await recordSnapshotAction(chatSessionId, {
       actionType: "rename-list",
       summary: `Renamed grocery list to ${nextName}`,
@@ -1196,13 +1310,19 @@ async function tryHandleGroceryCommand(
     };
   }
 
-  if (/^(?:favorite|favourite|star)\s+(?:this\s+)?(?:grocery\s+)?list$/i.test(text)) {
+  if (
+    /^(?:favorite|favourite|star)\s+(?:this\s+)?(?:grocery\s+)?list$/i.test(
+      text
+    )
+  ) {
     if (!activeList) return requireActiveList();
     const beforeList = await groceryService.getGroceryList(activeList.id);
     if (!beforeList) {
       throw new Error("Grocery list not found");
     }
-    const updatedList = await groceryService.updateGroceryList(activeList.id, { favourite: true });
+    const updatedList = await groceryService.updateGroceryList(activeList.id, {
+      favourite: true,
+    });
     await recordSnapshotAction(chatSessionId, {
       actionType: "favorite-list",
       summary: `Favorited ${updatedList.name}`,
@@ -1219,13 +1339,19 @@ async function tryHandleGroceryCommand(
     };
   }
 
-  if (/^(?:unfavorite|unfavourite|unstar)\s+(?:this\s+)?(?:grocery\s+)?list$/i.test(text)) {
+  if (
+    /^(?:unfavorite|unfavourite|unstar)\s+(?:this\s+)?(?:grocery\s+)?list$/i.test(
+      text
+    )
+  ) {
     if (!activeList) return requireActiveList();
     const beforeList = await groceryService.getGroceryList(activeList.id);
     if (!beforeList) {
       throw new Error("Grocery list not found");
     }
-    const updatedList = await groceryService.updateGroceryList(activeList.id, { favourite: false });
+    const updatedList = await groceryService.updateGroceryList(activeList.id, {
+      favourite: false,
+    });
     await recordSnapshotAction(chatSessionId, {
       actionType: "unfavorite-list",
       summary: `Unfavorited ${updatedList.name}`,
@@ -1242,7 +1368,9 @@ async function tryHandleGroceryCommand(
     };
   }
 
-  const dateMatch = text.match(/^(?:move|set)\s+(?:this\s+)?list\s+(?:to|for)\s+(.+)$/i);
+  const dateMatch = text.match(
+    /^(?:move|set)\s+(?:this\s+)?list\s+(?:to|for)\s+(.+)$/i
+  );
   if (dateMatch) {
     if (!activeList) return requireActiveList();
     const beforeList = await groceryService.getGroceryList(activeList.id);
@@ -1262,7 +1390,9 @@ async function tryHandleGroceryCommand(
       };
     }
 
-    const updatedList = await groceryService.updateGroceryList(activeList.id, { date: resolvedDate.toISOString() });
+    const updatedList = await groceryService.updateGroceryList(activeList.id, {
+      date: resolvedDate.toISOString(),
+    });
     await recordSnapshotAction(chatSessionId, {
       actionType: "set-list-date",
       summary: `Set ${updatedList.name} date to ${resolvedDate.toLocaleDateString()}`,
@@ -1295,7 +1425,10 @@ async function tryHandleGroceryCommand(
           matches.length === 0
             ? `I couldn't find "${target}" in ${activeList.name}.`
             : `I found multiple matches for "${target}". Which one should I update?`,
-        choices: buildItemChoices(matches.length > 0 ? matches : activeList.items, (name) => `Set ${name} qty to ${qty}`),
+        choices: buildItemChoices(
+          matches.length > 0 ? matches : activeList.items,
+          (name) => `Set ${name} qty to ${qty}`
+        ),
         action: {
           domain: "grocery",
           type: "clarify-item-target",
@@ -1305,7 +1438,11 @@ async function tryHandleGroceryCommand(
     }
 
     const item = matches[0];
-    const updatedList = await groceryService.updateGroceryItem(activeList.id, item.id, { qty });
+    const updatedList = await groceryService.updateGroceryItem(
+      activeList.id,
+      item.id,
+      { qty }
+    );
     await recordSnapshotAction(chatSessionId, {
       actionType: "update-item-qty",
       summary: `Set ${item.name} qty to ${qty}`,
@@ -1339,7 +1476,10 @@ async function tryHandleGroceryCommand(
           matches.length === 0
             ? `I couldn't find "${target}" in ${activeList.name}.`
             : `I found multiple matches for "${target}". Which one should I update?`,
-        choices: buildItemChoices(matches.length > 0 ? matches : activeList.items, (name) => `Set ${name} unit to ${unit}`),
+        choices: buildItemChoices(
+          matches.length > 0 ? matches : activeList.items,
+          (name) => `Set ${name} unit to ${unit}`
+        ),
         action: {
           domain: "grocery",
           type: "clarify-item-target",
@@ -1349,7 +1489,11 @@ async function tryHandleGroceryCommand(
     }
 
     const item = matches[0];
-    const updatedList = await groceryService.updateGroceryItem(activeList.id, item.id, { unit });
+    const updatedList = await groceryService.updateGroceryItem(
+      activeList.id,
+      item.id,
+      { unit }
+    );
     await recordSnapshotAction(chatSessionId, {
       actionType: "update-item-unit",
       summary: `Set ${item.name} unit to ${unit}`,
@@ -1367,7 +1511,9 @@ async function tryHandleGroceryCommand(
     };
   }
 
-  const categoryMatch = text.match(/^(?:move|set)\s+(.+?)\s+(?:to|in)\s+([\w\s&-]+)\s+category$/i);
+  const categoryMatch = text.match(
+    /^(?:move|set)\s+(.+?)\s+(?:to|in)\s+([\w\s&-]+)\s+category$/i
+  );
   if (categoryMatch) {
     if (!activeList) return requireActiveList();
     const beforeList = await groceryService.getGroceryList(activeList.id);
@@ -1383,7 +1529,10 @@ async function tryHandleGroceryCommand(
           matches.length === 0
             ? `I couldn't find "${target}" in ${activeList.name}.`
             : `I found multiple matches for "${target}". Which one should I move to ${category}?`,
-        choices: buildItemChoices(matches.length > 0 ? matches : activeList.items, (name) => `Move ${name} to ${category} category`),
+        choices: buildItemChoices(
+          matches.length > 0 ? matches : activeList.items,
+          (name) => `Move ${name} to ${category} category`
+        ),
         action: {
           domain: "grocery",
           type: "clarify-item-target",
@@ -1393,7 +1542,11 @@ async function tryHandleGroceryCommand(
     }
 
     const item = matches[0];
-    const updatedList = await groceryService.updateGroceryItem(activeList.id, item.id, { category });
+    const updatedList = await groceryService.updateGroceryItem(
+      activeList.id,
+      item.id,
+      { category }
+    );
     await recordSnapshotAction(chatSessionId, {
       actionType: "update-item-category",
       summary: `Moved ${item.name} to ${category}`,
@@ -1427,7 +1580,10 @@ async function tryHandleGroceryCommand(
           matches.length === 0
             ? `I couldn't find "${target}" in ${activeList.name}.`
             : `I found multiple matches for "${target}". Which one should I rename?`,
-        choices: buildItemChoices(matches.length > 0 ? matches : activeList.items, (name) => `Rename item ${name} to ${nextName}`),
+        choices: buildItemChoices(
+          matches.length > 0 ? matches : activeList.items,
+          (name) => `Rename item ${name} to ${nextName}`
+        ),
         action: {
           domain: "grocery",
           type: "clarify-item-target",
@@ -1437,7 +1593,11 @@ async function tryHandleGroceryCommand(
     }
 
     const item = matches[0];
-    const updatedList = await groceryService.updateGroceryItem(activeList.id, item.id, { name: nextName });
+    const updatedList = await groceryService.updateGroceryItem(
+      activeList.id,
+      item.id,
+      { name: nextName }
+    );
     await recordSnapshotAction(chatSessionId, {
       actionType: "rename-item",
       summary: `Renamed ${item.name} to ${nextName}`,
@@ -1470,7 +1630,10 @@ async function tryHandleGroceryCommand(
           matches.length === 0
             ? `I couldn't find "${target}" in ${activeList.name}.`
             : `I found multiple matches for "${target}". Which one should I move to the top?`,
-        choices: buildItemChoices(matches.length > 0 ? matches : activeList.items, (name) => `Move ${name} to the top`),
+        choices: buildItemChoices(
+          matches.length > 0 ? matches : activeList.items,
+          (name) => `Move ${name} to the top`
+        ),
         action: {
           domain: "grocery",
           type: "clarify-item-target",
@@ -1480,8 +1643,16 @@ async function tryHandleGroceryCommand(
     }
 
     const targetId = matches[0].id;
-    const ordered = [targetId, ...activeList.items.filter((item) => item.id !== targetId).map((item) => item.id)];
-    const updatedList = await groceryService.reorderGroceryItems(activeList.id, ordered);
+    const ordered = [
+      targetId,
+      ...activeList.items
+        .filter((item) => item.id !== targetId)
+        .map((item) => item.id),
+    ];
+    const updatedList = await groceryService.reorderGroceryItems(
+      activeList.id,
+      ordered
+    );
     await recordSnapshotAction(chatSessionId, {
       actionType: "manual-reorder",
       summary: `Moved ${matches[0].name} to top`,
@@ -1500,7 +1671,9 @@ async function tryHandleGroceryCommand(
     };
   }
 
-  const firstSecondMatch = text.match(/^put\s+(.+?)\s+first\s+and\s+(.+?)\s+second$/i);
+  const firstSecondMatch = text.match(
+    /^put\s+(.+?)\s+first\s+and\s+(.+?)\s+second$/i
+  );
   if (firstSecondMatch) {
     if (!activeList) return requireActiveList();
     const beforeList = await groceryService.getGroceryList(activeList.id);
@@ -1532,7 +1705,10 @@ async function tryHandleGroceryCommand(
         .filter((item) => item.id !== firstId && item.id !== secondId)
         .map((item) => item.id),
     ];
-    const updatedList = await groceryService.reorderGroceryItems(activeList.id, ordered);
+    const updatedList = await groceryService.reorderGroceryItems(
+      activeList.id,
+      ordered
+    );
     await recordSnapshotAction(chatSessionId, {
       actionType: "manual-reorder",
       summary: `Put ${firstMatches[0].name} first and ${secondMatches[0].name} second`,
@@ -1565,7 +1741,10 @@ async function tryHandleGroceryCommand(
         return left.name.localeCompare(right.name);
       })
       .map((item) => item.id);
-    const updatedList = await groceryService.reorderGroceryItems(activeList.id, ordered);
+    const updatedList = await groceryService.reorderGroceryItems(
+      activeList.id,
+      ordered
+    );
     await recordSnapshotAction(chatSessionId, {
       actionType: "reorder-by-category",
       summary: `Reordered ${updatedList.name} by category`,
@@ -1582,18 +1761,24 @@ async function tryHandleGroceryCommand(
     };
   }
 
-  const bulkMatch = text.match(/^(?:mark|check|uncheck)\s+all\s+(.+?)\s+(?:items\s+)?(complete|done|checked|unchecked|incomplete)$/i);
+  const bulkMatch = text.match(
+    /^(?:mark|check|uncheck)\s+all\s+(.+?)\s+(?:items\s+)?(complete|done|checked|unchecked|incomplete)$/i
+  );
   if (bulkMatch) {
     if (!activeList) return requireActiveList();
     const beforeList = await groceryService.getGroceryList(activeList.id);
     if (!beforeList) {
       throw new Error("Grocery list not found");
     }
-    const actionWord = normalizeText(text).startsWith("uncheck") ? "unchecked" : normalizeText(bulkMatch[2]);
+    const actionWord = normalizeText(text).startsWith("uncheck")
+      ? "unchecked"
+      : normalizeText(bulkMatch[2]);
     const checked = !["unchecked", "incomplete"].includes(actionWord);
     const categoryLabel = bulkMatch[1].trim();
     const regex = new RegExp(`^${escapeRegex(categoryLabel)}$`, "i");
-    const matches = activeList.items.filter((item) => regex.test(item.category));
+    const matches = activeList.items.filter((item) =>
+      regex.test(item.category)
+    );
     if (matches.length === 0) {
       return {
         message: `I found no ${categoryLabel} items in ${activeList.name}, so I didn't change anything.`,
@@ -1606,7 +1791,9 @@ async function tryHandleGroceryCommand(
     }
 
     await Promise.all(
-      matches.map((item) => groceryService.updateGroceryItem(activeList.id, item.id, { checked }))
+      matches.map((item) =>
+        groceryService.updateGroceryItem(activeList.id, item.id, { checked })
+      )
     );
     const updatedList = await groceryService.getGroceryList(activeList.id);
     if (!updatedList) {
@@ -1648,7 +1835,11 @@ export async function POST(request: Request) {
         const newSession = await historyService.createSession();
         activeChatSessionId = newSession.id;
       }
-      await historyService.addMessage(activeChatSessionId, "user", parsed.message);
+      await historyService.addMessage(
+        activeChatSessionId,
+        "user",
+        parsed.message
+      );
     }
 
     // Keep deterministic slash-style command handling ahead of SDK tool calls.
@@ -1659,7 +1850,11 @@ export async function POST(request: Request) {
     );
     if (mealHandled) {
       if (shouldPersist && activeChatSessionId) {
-        await historyService.addMessage(activeChatSessionId, "assistant", mealHandled.message);
+        await historyService.addMessage(
+          activeChatSessionId,
+          "assistant",
+          mealHandled.message
+        );
       }
 
       return NextResponse.json({
@@ -1678,7 +1873,11 @@ export async function POST(request: Request) {
     );
     if (handled) {
       if (shouldPersist && activeChatSessionId) {
-        await historyService.addMessage(activeChatSessionId, "assistant", handled.message);
+        await historyService.addMessage(
+          activeChatSessionId,
+          "assistant",
+          handled.message
+        );
       }
 
       return NextResponse.json({
@@ -1711,7 +1910,11 @@ export async function POST(request: Request) {
       }
       fullText += decoder.decode();
       if (shouldPersist && snapshotId) {
-        await historyService.addMessage(snapshotId, "assistant", fullText.trim());
+        await historyService.addMessage(
+          snapshotId,
+          "assistant",
+          fullText.trim()
+        );
       }
     })().catch(console.error);
 
@@ -1720,16 +1923,19 @@ export async function POST(request: Request) {
         "Cache-Control": "no-store",
         "Content-Type": "text/plain; charset=utf-8",
         "x-session-id": sessionId,
-        ...(activeChatSessionId ? { "x-chat-session-id": activeChatSessionId } : {}),
+        ...(activeChatSessionId
+          ? { "x-chat-session-id": activeChatSessionId }
+          : {}),
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to handle chat request";
-    const stack = process.env.NODE_ENV !== "production" && error instanceof Error ? error.stack : undefined;
+    const message =
+      error instanceof Error ? error.message : "Unable to handle chat request";
+    const stack =
+      process.env.NODE_ENV !== "production" && error instanceof Error
+        ? error.stack
+        : undefined;
 
-    return NextResponse.json(
-      { error: message, stack },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: message, stack }, { status: 400 });
   }
 }

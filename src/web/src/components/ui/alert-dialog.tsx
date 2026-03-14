@@ -11,7 +11,10 @@ const AlertDialogPortal = AlertDialogPrimitive.Portal;
 const AlertDialogCancel = AlertDialogPrimitive.Cancel;
 const AlertDialogAction = AlertDialogPrimitive.Action;
 
-function AlertDialogContent({ className, ...props }: AlertDialogPrimitive.AlertDialogContentProps) {
+function AlertDialogContent({
+  className,
+  ...props
+}: AlertDialogPrimitive.AlertDialogContentProps) {
   return (
     <AlertDialogPortal>
       <AlertDialogPrimitive.Overlay className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-[1px]" />
@@ -26,20 +29,44 @@ function AlertDialogContent({ className, ...props }: AlertDialogPrimitive.AlertD
   );
 }
 
-function AlertDialogHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+function AlertDialogHeader({
+  className,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("space-y-2", className)} {...props} />;
 }
 
-function AlertDialogFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("mt-6 flex justify-end gap-3", className)} {...props} />;
+function AlertDialogFooter({
+  className,
+  ...props
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn("mt-6 flex justify-end gap-3", className)} {...props} />
+  );
 }
 
-function AlertDialogTitle({ className, ...props }: AlertDialogPrimitive.AlertDialogTitleProps) {
-  return <AlertDialogPrimitive.Title className={cn("font-serif text-2xl font-semibold text-text", className)} {...props} />;
+function AlertDialogTitle({
+  className,
+  ...props
+}: AlertDialogPrimitive.AlertDialogTitleProps) {
+  return (
+    <AlertDialogPrimitive.Title
+      className={cn("font-serif text-2xl font-semibold text-text", className)}
+      {...props}
+    />
+  );
 }
 
-function AlertDialogDescription({ className, ...props }: AlertDialogPrimitive.AlertDialogDescriptionProps) {
-  return <AlertDialogPrimitive.Description className={cn("text-sm text-text-muted", className)} {...props} />;
+function AlertDialogDescription({
+  className,
+  ...props
+}: AlertDialogPrimitive.AlertDialogDescriptionProps) {
+  return (
+    <AlertDialogPrimitive.Description
+      className={cn("text-sm text-text-muted", className)}
+      {...props}
+    />
+  );
 }
 
 export {
@@ -51,5 +78,5 @@ export {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger
+  AlertDialogTrigger,
 };

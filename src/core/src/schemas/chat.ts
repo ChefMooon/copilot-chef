@@ -6,7 +6,7 @@ export const quickPromptSchema = z.enum([
   "Suggest a dinner",
   "Add a meal",
   "What's in season?",
-  "Surprise me!"
+  "Surprise me!",
 ]);
 
 export const chatRequestSchema = z.object({
@@ -99,7 +99,7 @@ export const chatResponseSchema = z.object({
   sessionId: z.string(),
   message: z.string(),
   suggestions: z.array(z.string()).default([]),
-  quickPrompts: z.array(z.string()).default([])
+  quickPrompts: z.array(z.string()).default([]),
 });
 
 export type ChatRequest = z.infer<typeof chatRequestSchema>;

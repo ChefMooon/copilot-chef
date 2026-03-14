@@ -24,7 +24,15 @@ function parseInput(value: string) {
     .filter(Boolean);
 }
 
-export function ChipList({ title, description, placeholder, items, onAdd, onRemove, onReorder }: ChipListProps) {
+export function ChipList({
+  title,
+  description,
+  placeholder,
+  items,
+  onAdd,
+  onRemove,
+  onReorder,
+}: ChipListProps) {
   const [inputValue, setInputValue] = useState("");
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -67,7 +75,9 @@ export function ChipList({ title, description, placeholder, items, onAdd, onRemo
       </div>
 
       <div className={styles.chipList}>
-        {items.length === 0 ? <div className={styles.chipEmpty}>Nothing added yet.</div> : null}
+        {items.length === 0 ? (
+          <div className={styles.chipEmpty}>Nothing added yet.</div>
+        ) : null}
         {items.map((item, index) => (
           <div
             className={cn(
@@ -81,7 +91,11 @@ export function ChipList({ title, description, placeholder, items, onAdd, onRemo
               setDragIndex(null);
               setDragOverIndex(null);
             }}
-            onDragLeave={() => setDragOverIndex((current) => (current === index ? null : current))}
+            onDragLeave={() =>
+              setDragOverIndex((current) =>
+                current === index ? null : current
+              )
+            }
             onDragOver={(event) => {
               event.preventDefault();
               setDragOverIndex(index);
@@ -104,7 +118,11 @@ export function ChipList({ title, description, placeholder, items, onAdd, onRemo
           >
             <span className={styles.chipHandle}>⠿</span>
             <span className={styles.chipLabel}>{item}</span>
-            <button className={styles.chipRemove} onClick={() => onRemove(item)} type="button">
+            <button
+              className={styles.chipRemove}
+              onClick={() => onRemove(item)}
+              type="button"
+            >
               ×
             </button>
           </div>

@@ -25,7 +25,10 @@ export async function DELETE(
     return NextResponse.json({ data });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to delete session" },
+      {
+        error:
+          error instanceof Error ? error.message : "Unable to delete session",
+      },
       { status: 400 }
     );
   }

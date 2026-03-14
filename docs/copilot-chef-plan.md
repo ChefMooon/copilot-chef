@@ -6,12 +6,12 @@
 
 ## Project Overview
 
-| | |
-|---|---|
-| **Name** | Copilot Chef |
-| **Language** | TypeScript |
-| **Runtime** | Node.js |
-| **AI Layer** | GitHub Copilot SDK |
+|                |                                                     |
+| -------------- | --------------------------------------------------- |
+| **Name**       | Copilot Chef                                        |
+| **Language**   | TypeScript                                          |
+| **Runtime**    | Node.js                                             |
+| **AI Layer**   | GitHub Copilot SDK                                  |
 | **Interfaces** | Web UI (Phase 1), TUI (Phase 2), Telegram (Phase 3) |
 
 ---
@@ -34,30 +34,34 @@ The project is structured as an **npm monorepo** with three packages sharing a c
 ## Tech Stack
 
 ### Shared (`core/`)
-| Tool | Purpose |
-|---|---|
-| GitHub Copilot SDK | AI orchestration and conversation |
-| Prisma | TypeScript-native ORM |
-| SQLite | Local persistence (meal plans, grocery lists, preferences) |
-| Zod | Runtime schema validation for AI responses |
+
+| Tool               | Purpose                                                    |
+| ------------------ | ---------------------------------------------------------- |
+| GitHub Copilot SDK | AI orchestration and conversation                          |
+| Prisma             | TypeScript-native ORM                                      |
+| SQLite             | Local persistence (meal plans, grocery lists, preferences) |
+| Zod                | Runtime schema validation for AI responses                 |
 
 ### Web Interface (`web/`)
-| Tool | Purpose |
-|---|---|
-| Next.js (App Router) | Full-stack React framework |
-| Tailwind CSS | Utility-first styling for layout, spacing, and typography; also used to configure design token values |
-| shadcn/ui | Accessible component base for complex UI (forms, dialogs, dropdowns, date pickers, toasts) — restyled to match the Copilot Chef design system |
-| React Query | Server state, caching, and AI chat streaming |
+
+| Tool                 | Purpose                                                                                                                                       |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Next.js (App Router) | Full-stack React framework                                                                                                                    |
+| Tailwind CSS         | Utility-first styling for layout, spacing, and typography; also used to configure design token values                                         |
+| shadcn/ui            | Accessible component base for complex UI (forms, dialogs, dropdowns, date pickers, toasts) — restyled to match the Copilot Chef design system |
+| React Query          | Server state, caching, and AI chat streaming                                                                                                  |
 
 ### Terminal Interface (`cli/`)
-| Tool | Purpose |
-|---|---|
-| Ink | React-based terminal UI rendering |
+
+| Tool   | Purpose                                          |
+| ------ | ------------------------------------------------ |
+| Ink    | React-based terminal UI rendering                |
 | Pastel | Ink component library for styled terminal output |
 
 ### Telegram Interface (future)
-| Tool | Purpose |
-|---|---|
+
+| Tool   | Purpose                            |
+| ------ | ---------------------------------- |
 | grammY | Telegram bot framework for Node.js |
 
 ---
@@ -65,34 +69,40 @@ The project is structured as an **npm monorepo** with three packages sharing a c
 ## Data Models
 
 ### `MealPlan`
+
 Represents a weekly meal plan with a name, date range, and associated meals.
 
 ### `Meal`
+
 A single meal entry with a name, day of week, meal type (breakfast / lunch / dinner), and optional notes.
 
 ### `GroceryList`
+
 A generated grocery list tied to a meal plan, containing categorized items. Tracks name, creation date, and associated meal plan.
 
 ### `GroceryItem`
+
 An individual ingredient with name, quantity, unit, category (produce, dairy, meat, etc.), and a checked/unchecked state.
 
 ### `UserPreference`
+
 Stored dietary preferences, restrictions, household size, and cuisine preferences used to personalize AI responses.
 
 ### `MealLog`
+
 A daily log of meals that were actually cooked/eaten. Used to power the home dashboard **Meal Activity heatmap**. Each entry records a date, meal reference, and meal type. Distinct from `MealPlan` — this is the historical record of what was eaten, not just what was planned.
 
 ---
 
 ## Pages
 
-| Page | Description |
-|---|---|
-| **Home** | Dashboard overview: AI chat panel with quick prompts, meal activity heatmap (last 3 months), grocery list progress summary, and quick action shortcuts |
-| **Meal Plan** | Interactive calendar interface for planning and editing meals with day/week/month views, AI-powered meal suggestions, and ingredient tracking |
-| **Grocery List** | Primary interface for creating, editing, and checking off grocery lists |
-| **Settings** | Accessible via ⚙️ icon in the header. Dietary restrictions, household size, cuisine preferences |
-| **Stats** | Full-year meal activity heatmap, meal frequency stats, cuisine breakdowns, and planning streaks |
+| Page             | Description                                                                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Home**         | Dashboard overview: AI chat panel with quick prompts, meal activity heatmap (last 3 months), grocery list progress summary, and quick action shortcuts |
+| **Meal Plan**    | Interactive calendar interface for planning and editing meals with day/week/month views, AI-powered meal suggestions, and ingredient tracking          |
+| **Grocery List** | Primary interface for creating, editing, and checking off grocery lists                                                                                |
+| **Settings**     | Accessible via ⚙️ icon in the header. Dietary restrictions, household size, cuisine preferences                                                        |
+| **Stats**        | Full-year meal activity heatmap, meal frequency stats, cuisine breakdowns, and planning streaks                                                        |
 
 ---
 
@@ -105,6 +115,7 @@ A daily log of meals that were actually cooked/eaten. Used to power the home das
 **Goal:** A fully functional meal planner accessible from the browser with a conversational AI interface.
 
 #### Step 1.1 — Monorepo Setup
+
 - Initialize npm workspaces with `core`, `web`, and `cli` packages
 - Configure shared `tsconfig.base.json`
 - Set up ESLint and Prettier across all packages
@@ -112,6 +123,7 @@ A daily log of meals that were actually cooked/eaten. Used to power the home das
 - Note: Copilot CLI authentication is required via `copilot login` instead of storing a token in the env file
 
 #### Step 1.2 — Core Package
+
 - Install and configure the GitHub Copilot SDK
 - Set up Prisma with SQLite and define all data models (including `MealLog`)
 - Build the `CopilotChef` class — the main AI session manager
@@ -126,6 +138,7 @@ A daily log of meals that were actually cooked/eaten. Used to power the home das
 - Define Zod schemas for all AI response types to ensure structured output
 
 #### Step 1.3 — AI Prompt Design
+
 - System prompt that establishes "Copilot Chef" persona
 - Context injection — include user preferences and existing meal plan in every message
 - **Quick Prompt support** — the following pre-defined prompts should have optimized handling:
@@ -142,6 +155,7 @@ A daily log of meals that were actually cooked/eaten. Used to power the home das
   - Answering one-off cooking or nutrition questions
 
 #### Step 1.4 — Next.js Web App
+
 - Initialize Next.js with App Router and TypeScript
 - Configure Tailwind with the Copilot Chef design tokens (colors, fonts, border radii, shadows) so utilities stay on-brand throughout the app
 - Configure shadcn/ui and override its CSS variables to match the design system palette — use shadcn for any complex interactive component (forms, dialogs, dropdowns, date pickers, command palette, toasts, tooltips)
@@ -150,14 +164,14 @@ A daily log of meals that were actually cooked/eaten. Used to power the home das
 
 **Styling decision guide:**
 
-| Situation | Approach |
-|---|---|
-| Layout, spacing, typography, flex/grid helpers | Tailwind utilities |
-| Color, shadows, border-radius | Tailwind utilities referencing configured design tokens |
-| Button, Input, Select, Dialog, Toast, DatePicker | shadcn/ui restyled with CSS variable overrides |
-| Header, nav drawer, section dividers, cards | Custom CSS (too specific to benefit from utilities) |
-| Heatmap grid, chat panel layout, progress bar | Custom CSS (fixed dimensions and complex grid rules) |
-| Animations (fadeUp, bubbleIn, typing bounce) | Custom CSS keyframes |
+| Situation                                        | Approach                                                |
+| ------------------------------------------------ | ------------------------------------------------------- |
+| Layout, spacing, typography, flex/grid helpers   | Tailwind utilities                                      |
+| Color, shadows, border-radius                    | Tailwind utilities referencing configured design tokens |
+| Button, Input, Select, Dialog, Toast, DatePicker | shadcn/ui restyled with CSS variable overrides          |
+| Header, nav drawer, section dividers, cards      | Custom CSS (too specific to benefit from utilities)     |
+| Heatmap grid, chat panel layout, progress bar    | Custom CSS (fixed dimensions and complex grid rules)    |
+| Animations (fadeUp, bubbleIn, typing bounce)     | Custom CSS keyframes                                    |
 
 - Build API routes:
   - `/api/chat` — streaming AI chat
@@ -177,7 +191,9 @@ A daily log of meals that were actually cooked/eaten. Used to power the home das
   - **Stats** — full 52-week meal activity heatmap, summary statistics
 
 #### Step 1.5 — Heatmap Implementation Notes
+
 The home dashboard heatmap is a core UI element and must be implemented precisely:
+
 - Use a **CSS Grid** layout: `grid-template-columns: 18px repeat(13, 12px)` and `grid-template-rows: repeat(7, 12px)` with `gap: 3px`
 - Cells are **fixed 12×12px** — never use `1fr` columns or `aspect-ratio` tricks that cause rectangles
 - Columns = weeks, rows = days (Mon–Sun top to bottom)
@@ -187,6 +203,7 @@ The home dashboard heatmap is a core UI element and must be implemented precisel
 - The Stats page uses a full 52-week version of the same component
 
 #### Step 1.6 — Polish & Testing
+
 - Test full conversation flows end-to-end including quick prompts
 - Validate AI structured output handling and edge cases
 - Add basic unit tests for core services including `MealLogService`
@@ -200,17 +217,20 @@ The home dashboard heatmap is a core UI element and must be implemented precisel
 **Goal:** Full feature parity with the web UI, accessible from the terminal using Ink.
 
 #### Step 2.1 — CLI Package Setup
+
 - Initialize the `cli` package and install Ink and Pastel
 - Set up a CLI entry point via `package.json` `bin` field
 - Wire up the same `core` services used by the web app
 
 #### Step 2.2 — TUI Components
+
 - **Chat panel** — scrollable message history with an input field at the bottom
 - **Meal plan view** — formatted weekly grid using Ink's box/column layout
 - **Grocery list view** — categorized list with keyboard-navigable checkboxes
 - **Preferences screen** — form-style input for updating user preferences
 
 #### Step 2.3 — Navigation
+
 - Tab or keyboard-driven navigation between views
 - Status bar showing active view and quick-key hints
 - Graceful exit handling
@@ -222,21 +242,24 @@ The home dashboard heatmap is a core UI element and must be implemented precisel
 **Goal:** Control Copilot Chef remotely from Telegram on any device.
 
 #### Step 3.1 — Bot Setup
+
 - Register a Telegram bot via BotFather
 - Install and configure grammY
 - Add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ALLOWED_USER_ID` to environment config
 
 #### Step 3.2 — Bot Commands
-| Command | Description |
-|---|---|
-| `/start` | Introduce the bot and show available commands |
-| `/plan` | Start or view the current weekly meal plan |
-| `/grocery` | Show the current grocery list |
-| `/add [meal]` | Add a meal to the plan |
-| `/preferences` | View or update dietary preferences |
-| Free text | Passed directly to the Copilot chat session |
+
+| Command        | Description                                   |
+| -------------- | --------------------------------------------- |
+| `/start`       | Introduce the bot and show available commands |
+| `/plan`        | Start or view the current weekly meal plan    |
+| `/grocery`     | Show the current grocery list                 |
+| `/add [meal]`  | Add a meal to the plan                        |
+| `/preferences` | View or update dietary preferences            |
+| Free text      | Passed directly to the Copilot chat session   |
 
 #### Step 3.3 — Shared Session
+
 - Telegram shares the same `core` session and database as the web and TUI
 - Messages sent via Telegram are reflected in the web UI and vice versa
 
@@ -282,10 +305,10 @@ npm run dev --workspace=web
 
 ## Design Assets
 
-| File | Description |
-|---|---|
+| File                          | Description                                                      |
+| ----------------------------- | ---------------------------------------------------------------- |
 | `copilot-chef-style-guide.md` | Full UI style guide: colors, typography, components, breakpoints |
-| `copilot-chef-prototype.jsx` | Interactive React prototype of the Home page |
+| `copilot-chef-prototype.jsx`  | Interactive React prototype of the Home page                     |
 
 ---
 
@@ -296,4 +319,4 @@ npm run dev --workspace=web
 - Nutritional summaries — weekly macro and calorie overview for a meal plan
 - Export — download grocery list as PDF or share via link
 - Calendar sync — push meal plan to Google Calendar
-- Stats page — full year heatmap, cuisine breakdown, planning streaks *(partially scoped in Phase 1)*
+- Stats page — full year heatmap, cuisine breakdown, planning streaks _(partially scoped in Phase 1)_

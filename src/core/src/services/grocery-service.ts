@@ -51,8 +51,8 @@ function serializeGroceryList(groceryList: {
         notes: item.notes,
         meal: item.meal,
         checked: item.checked,
-        sortOrder: item.sortOrder
-      }))
+        sortOrder: item.sortOrder,
+      })),
   };
 }
 
@@ -141,11 +141,11 @@ async function getListOrThrow(id: string) {
     include: {
       mealPlan: {
         select: {
-          name: true
-        }
+          name: true,
+        },
       },
-      items: true
-    }
+      items: true,
+    },
   });
 
   if (!groceryList) {
@@ -163,12 +163,12 @@ export class GroceryService {
       include: {
         mealPlan: {
           select: {
-            name: true
-          }
+            name: true,
+          },
         },
-        items: true
+        items: true,
       },
-      orderBy: [{ date: "asc" }, { updatedAt: "desc" }]
+      orderBy: [{ date: "asc" }, { updatedAt: "desc" }],
     });
 
     return groceryLists.map(serializeGroceryList);
@@ -182,11 +182,11 @@ export class GroceryService {
       include: {
         mealPlan: {
           select: {
-            name: true
-          }
+            name: true,
+          },
         },
-        items: true
-      }
+        items: true,
+      },
     });
 
     return groceryList ? serializeGroceryList(groceryList) : null;
@@ -199,12 +199,12 @@ export class GroceryService {
       include: {
         mealPlan: {
           select: {
-            name: true
-          }
+            name: true,
+          },
         },
-        items: true
+        items: true,
       },
-      orderBy: [{ date: "asc" }, { updatedAt: "desc" }]
+      orderBy: [{ date: "asc" }, { updatedAt: "desc" }],
     });
 
     return groceryList ? serializeGroceryList(groceryList) : null;
@@ -228,18 +228,18 @@ export class GroceryService {
             notes: item.notes,
             meal: item.meal,
             checked: item.checked ?? false,
-            sortOrder: index
-          }))
-        }
+            sortOrder: index,
+          })),
+        },
       },
       include: {
         mealPlan: {
           select: {
-            name: true
-          }
+            name: true,
+          },
         },
-        items: true
-      }
+        items: true,
+      },
     });
 
     return serializeGroceryList(groceryList);
@@ -274,11 +274,11 @@ export class GroceryService {
       include: {
         mealPlan: {
           select: {
-            name: true
-          }
+            name: true,
+          },
         },
-        items: true
-      }
+        items: true,
+      },
     });
 
     return serializeGroceryList(groceryList);
@@ -288,7 +288,7 @@ export class GroceryService {
     await bootstrapDatabase();
 
     await prisma.groceryList.delete({
-      where: { id }
+      where: { id },
     });
 
     return { id };
@@ -300,8 +300,8 @@ export class GroceryService {
     const maxOrder = await prisma.groceryItem.aggregate({
       where: { groceryListId },
       _max: {
-        sortOrder: true
-      }
+        sortOrder: true,
+      },
     });
 
     await prisma.groceryItem.create({
@@ -314,19 +314,23 @@ export class GroceryService {
         notes: input.notes,
         meal: input.meal,
         checked: input.checked ?? false,
-        sortOrder: (maxOrder._max.sortOrder ?? -1) + 1
-      }
+        sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
+      },
     });
 
     return serializeGroceryList(await getListOrThrow(groceryListId));
   }
 
-  async updateGroceryItem(groceryListId: string, itemId: string, input: UpdateItemInput) {
+  async updateGroceryItem(
+    groceryListId: string,
+    itemId: string,
+    input: UpdateItemInput
+  ) {
     await bootstrapDatabase();
 
     const existing = await prisma.groceryItem.findUnique({
       where: { id: itemId },
-      select: { groceryListId: true }
+      select: { groceryListId: true },
     });
 
     if (!existing || existing.groceryListId !== groceryListId) {
@@ -335,7 +339,7 @@ export class GroceryService {
 
     await prisma.groceryItem.update({
       where: {
-        id: itemId
+        id: itemId,
       },
       data: {
         name: input.name,
@@ -344,8 +348,8 @@ export class GroceryService {
         category: input.category,
         notes: input.notes,
         meal: input.meal,
-        checked: input.checked
-      }
+        checked: input.checked,
+      },
     });
 
     return serializeGroceryList(await getListOrThrow(groceryListId));
@@ -356,7 +360,7 @@ export class GroceryService {
 
     const existing = await prisma.groceryItem.findUnique({
       where: { id: itemId },
-      select: { groceryListId: true }
+      select: { groceryListId: true },
     });
 
     if (!existing || existing.groceryListId !== groceryListId) {
@@ -365,8 +369,8 @@ export class GroceryService {
 
     await prisma.groceryItem.delete({
       where: {
-        id: itemId
-      }
+        id: itemId,
+      },
     });
 
     return serializeGroceryList(await getListOrThrow(groceryListId));
@@ -378,11 +382,11 @@ export class GroceryService {
     const existingItems = await prisma.groceryItem.findMany({
       where: {
         groceryListId,
-        id: { in: itemIds }
+        id: { in: itemIds },
       },
       select: {
-        id: true
-      }
+        id: true,
+      },
     });
 
     if (existingItems.length !== itemIds.length) {
@@ -393,11 +397,11 @@ export class GroceryService {
       itemIds.map((itemId, index) =>
         prisma.groceryItem.update({
           where: {
-            id: itemId
+            id: itemId,
           },
           data: {
-            sortOrder: index
-          }
+            sortOrder: index,
+          },
         })
       )
     );
@@ -453,28 +457,28 @@ export class GroceryService {
 
     const item = await prisma.groceryItem.update({
       where: {
-        id: itemId
+        id: itemId,
       },
       data: {
-        checked
+        checked,
       },
       include: {
         groceryList: {
           include: {
             mealPlan: {
               select: {
-                name: true
-              }
+                name: true,
+              },
             },
-            items: true
-          }
-        }
-      }
+            items: true,
+          },
+        },
+      },
     });
 
     return serializeGroceryList({
       ...item.groceryList,
-      items: item.groceryList.items
+      items: item.groceryList.items,
     });
   }
 }

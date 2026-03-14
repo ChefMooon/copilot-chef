@@ -87,7 +87,11 @@ export class ChatHistoryService {
     return serializeSession(session);
   }
 
-  async addMessage(chatSessionId: string, role: "user" | "assistant", content: string) {
+  async addMessage(
+    chatSessionId: string,
+    role: "user" | "assistant",
+    content: string
+  ) {
     await bootstrapDatabase();
     const message = await prisma.chatMessage.create({
       data: { chatSessionId, role, content },
@@ -308,7 +312,9 @@ export class ChatHistoryService {
     });
     return sessions.map((session) => ({
       ...serializeSession(session),
-      lastMessage: session.messages[0] ? serializeMessage(session.messages[0]) : null,
+      lastMessage: session.messages[0]
+        ? serializeMessage(session.messages[0])
+        : null,
     }));
   }
 

@@ -10,7 +10,10 @@ export async function DELETE() {
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to clear chat history"
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to clear chat history",
       },
       { status: 400 }
     );

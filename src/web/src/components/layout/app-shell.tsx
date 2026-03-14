@@ -14,7 +14,7 @@ const navigationItems = [
   { label: "Home", href: "/" },
   { label: "Meal Plan", href: "/meal-plan" },
   { label: "Grocery List", href: "/grocery-list" },
-  { label: "Stats", href: "/stats" }
+  { label: "Stats", href: "/stats" },
 ];
 
 export function AppShell({ children }: PropsWithChildren) {
@@ -36,7 +36,10 @@ export function AppShell({ children }: PropsWithChildren) {
         <nav className={styles.navDesktop}>
           {navigationItems.map((item) => (
             <Link
-              className={cn(styles.navLink, pathname === item.href && styles.navLinkActive)}
+              className={cn(
+                styles.navLink,
+                pathname === item.href && styles.navLinkActive
+              )}
               href={item.href}
               key={item.href}
             >
@@ -58,7 +61,10 @@ export function AppShell({ children }: PropsWithChildren) {
           </button>
 
           <Link
-            className={cn(styles.settingsButton, pathname === "/settings" && styles.settingsButtonActive)}
+            className={cn(
+              styles.settingsButton,
+              pathname === "/settings" && styles.settingsButtonActive
+            )}
             href="/settings"
             title="Settings"
           >
@@ -70,7 +76,10 @@ export function AppShell({ children }: PropsWithChildren) {
       <div className={cn(styles.mobileMenu, menuOpen && styles.mobileMenuOpen)}>
         {navigationItems.map((item) => (
           <Link
-            className={cn(styles.mobileNavLink, pathname === item.href && styles.mobileNavLinkActive)}
+            className={cn(
+              styles.mobileNavLink,
+              pathname === item.href && styles.mobileNavLinkActive
+            )}
             href={item.href}
             key={item.href}
           >
@@ -78,7 +87,10 @@ export function AppShell({ children }: PropsWithChildren) {
           </Link>
         ))}
         <Link
-          className={cn(styles.mobileNavLink, pathname === "/settings" && styles.mobileNavLinkActive)}
+          className={cn(
+            styles.mobileNavLink,
+            pathname === "/settings" && styles.mobileNavLinkActive
+          )}
           href="/settings"
         >
           Settings

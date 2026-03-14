@@ -32,8 +32,8 @@ function serializeMealPlan(mealPlan: {
         date: meal.date.toISOString(),
         mealType: meal.mealType,
         notes: meal.notes,
-        ingredients: JSON.parse(meal.ingredientsJson) as string[]
-      }))
+        ingredients: JSON.parse(meal.ingredientsJson) as string[],
+      })),
   };
 }
 
@@ -43,11 +43,11 @@ export class MealPlanService {
 
     const mealPlans = await prisma.mealPlan.findMany({
       include: {
-        meals: true
+        meals: true,
       },
       orderBy: {
-        startDate: "desc"
-      }
+        startDate: "desc",
+      },
     });
 
     return mealPlans.map(serializeMealPlan);
@@ -59,8 +59,8 @@ export class MealPlanService {
     const mealPlan = await prisma.mealPlan.findUnique({
       where: { id },
       include: {
-        meals: true
-      }
+        meals: true,
+      },
     });
 
     return mealPlan ? serializeMealPlan(mealPlan) : null;
@@ -71,14 +71,14 @@ export class MealPlanService {
 
     const mealPlan = await prisma.mealPlan.findFirst({
       where: {
-        isCurrent: true
+        isCurrent: true,
       },
       include: {
-        meals: true
+        meals: true,
       },
       orderBy: {
-        startDate: "desc"
-      }
+        startDate: "desc",
+      },
     });
 
     return mealPlan ? serializeMealPlan(mealPlan) : null;
@@ -91,7 +91,13 @@ export class MealPlanService {
     meals?: Array<{
       name: string;
       date: string;
-      mealType: "BREAKFAST" | "MORNING_SNACK" | "LUNCH" | "AFTERNOON_SNACK" | "DINNER" | "SNACK";
+      mealType:
+        | "BREAKFAST"
+        | "MORNING_SNACK"
+        | "LUNCH"
+        | "AFTERNOON_SNACK"
+        | "DINNER"
+        | "SNACK";
       notes?: string;
       ingredients?: string[];
     }>;
@@ -109,13 +115,13 @@ export class MealPlanService {
             date: new Date(meal.date),
             mealType: meal.mealType,
             notes: meal.notes,
-            ingredientsJson: JSON.stringify(meal.ingredients ?? [])
-          }))
-        }
+            ingredientsJson: JSON.stringify(meal.ingredients ?? []),
+          })),
+        },
       },
       include: {
-        meals: true
-      }
+        meals: true,
+      },
     });
 
     return serializeMealPlan(mealPlan);

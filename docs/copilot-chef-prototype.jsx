@@ -33,7 +33,11 @@ const generateHeatmap = () => {
       const date = new Date(start);
       date.setDate(start.getDate() + w * 7 + d);
       const isFuture = date > TODAY;
-      const meals = isFuture ? -1 : Math.random() < 0.15 ? 0 : Math.floor(Math.random() * 3) + 1;
+      const meals = isFuture
+        ? -1
+        : Math.random() < 0.15
+          ? 0
+          : Math.floor(Math.random() * 3) + 1;
       week.push({ date, meals, isFuture });
     }
     weeks.push(week);
@@ -83,10 +87,13 @@ export default function CopilotChef() {
     setIsTyping(true);
     setTimeout(() => {
       setIsTyping(false);
-      setMessages((m) => [...m, {
-        role: "assistant",
-        text: "Great idea! I'll get on that. In the real app I'd use the Copilot SDK to plan your meals, generate grocery lists, and more. 🍽️",
-      }]);
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant",
+          text: "Great idea! I'll get on that. In the real app I'd use the Copilot SDK to plan your meals, generate grocery lists, and more. 🍽️",
+        },
+      ]);
     }, 1400);
   };
 
@@ -103,7 +110,14 @@ export default function CopilotChef() {
   };
 
   return (
-    <div style={{ fontFamily: "'Lora', Georgia, serif", background: "#F5F0E8", minHeight: "100vh", color: "#2C2416" }}>
+    <div
+      style={{
+        fontFamily: "'Lora', Georgia, serif",
+        background: "#F5F0E8",
+        minHeight: "100vh",
+        color: "#2C2416",
+      }}
+    >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Nunito:wght@400;500;600;700&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -408,36 +422,60 @@ export default function CopilotChef() {
 
       {/* HEADER */}
       <header className="header">
-        <div className="logo"><span style={{ fontSize: "1.5rem" }}>🍳</span>Copilot Chef</div>
+        <div className="logo">
+          <span style={{ fontSize: "1.5rem" }}>🍳</span>Copilot Chef
+        </div>
         <nav className="nav-desktop">
           {NAV_ITEMS.map((item) => (
-            <button key={item} className={`nav-link ${activePage === item ? "active" : ""}`}
-              onClick={() => setActivePage(item)}>{item}</button>
+            <button
+              key={item}
+              className={`nav-link ${activePage === item ? "active" : ""}`}
+              onClick={() => setActivePage(item)}
+            >
+              {item}
+            </button>
           ))}
         </nav>
         <div className="nav-right">
-          <button className="hamburger" onClick={() => setMenuOpen(!menuOpen)} aria-label="Menu">
-            <span /><span /><span />
+          <button
+            className="hamburger"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Menu"
+          >
+            <span />
+            <span />
+            <span />
           </button>
-          <button className="settings-btn" title="Settings">⚙️</button>
+          <button className="settings-btn" title="Settings">
+            ⚙️
+          </button>
         </div>
       </header>
 
       {/* MOBILE MENU */}
       <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
         {NAV_ITEMS.map((item) => (
-          <button key={item} className={`mobile-nav-link ${activePage === item ? "active" : ""}`}
-            onClick={() => { setActivePage(item); setMenuOpen(false); }}>{item}</button>
+          <button
+            key={item}
+            className={`mobile-nav-link ${activePage === item ? "active" : ""}`}
+            onClick={() => {
+              setActivePage(item);
+              setMenuOpen(false);
+            }}
+          >
+            {item}
+          </button>
         ))}
       </div>
 
       {/* PAGE */}
       <main className="page">
-
         <div className="page-greeting fade-in">
           <div className="greeting-eyebrow">Thursday, March 12</div>
           <h1 className="greeting-title">Good morning, Chef! 👋</h1>
-          <p className="greeting-sub">You have 7 meals planned this week. Let's get cooking.</p>
+          <p className="greeting-sub">
+            You have 7 meals planned this week. Let's get cooking.
+          </p>
         </div>
 
         {/* CHAT */}
@@ -453,11 +491,15 @@ export default function CopilotChef() {
           {/* Messages */}
           <div className="chat-messages">
             {messages.map((msg, i) => (
-              <div key={i} className={`chat-bubble ${msg.role}`}>{msg.text}</div>
+              <div key={i} className={`chat-bubble ${msg.role}`}>
+                {msg.text}
+              </div>
             ))}
             {isTyping && (
               <div className="typing-indicator">
-                <div className="typing-dot" /><div className="typing-dot" /><div className="typing-dot" />
+                <div className="typing-dot" />
+                <div className="typing-dot" />
+                <div className="typing-dot" />
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -467,8 +509,13 @@ export default function CopilotChef() {
           <div className="quick-prompts-col">
             <div className="qp-label">Quick Prompts</div>
             {QUICK_PROMPTS.map((qp) => (
-              <button key={qp.label} className="qp-btn" onClick={() => sendMessage(qp.label)}>
-                <span className="qp-icon">{qp.icon}</span>{qp.label}
+              <button
+                key={qp.label}
+                className="qp-btn"
+                onClick={() => sendMessage(qp.label)}
+              >
+                <span className="qp-icon">{qp.icon}</span>
+                {qp.label}
               </button>
             ))}
           </div>
@@ -481,16 +528,22 @@ export default function CopilotChef() {
               value={chatInput}
               rows={1}
               onChange={(e) => setChatInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              }}
             />
-            <button className="chat-send-btn" onClick={() => sendMessage()}>➤</button>
+            <button className="chat-send-btn" onClick={() => sendMessage()}>
+              ➤
+            </button>
           </div>
         </div>
 
         {/* OVERVIEW — heatmap + grocery side by side */}
         <div className="section-divider fade-in">Overview</div>
         <div className="grid-2 fade-in">
-
           {/* Heatmap card */}
           <div className="card">
             <div className="card-header">
@@ -502,17 +555,29 @@ export default function CopilotChef() {
               <div className="heatmap-month-row">
                 <div /> {/* spacer for day-label column */}
                 {HEATMAP.map((week, wi) => {
-                  const mo = week[0].date.toLocaleString("default", { month: "short" });
-                  const isFirst = Object.values(MONTH_STARTS)[Object.keys(MONTH_STARTS).indexOf(mo)] === wi;
-                  return <div key={wi} className="hm-mo-cell">{isFirst ? mo : ""}</div>;
+                  const mo = week[0].date.toLocaleString("default", {
+                    month: "short",
+                  });
+                  const isFirst =
+                    Object.values(MONTH_STARTS)[
+                      Object.keys(MONTH_STARTS).indexOf(mo)
+                    ] === wi;
+                  return (
+                    <div key={wi} className="hm-mo-cell">
+                      {isFirst ? mo : ""}
+                    </div>
+                  );
                 })}
               </div>
               {/* Main grid: day labels in col 1, week cells in cols 2–14 */}
               <div className="heatmap-grid">
                 {/* Day labels — placed in col 1, rows 1–7 */}
-                {["M","","W","","F","",""].map((lbl, di) => (
-                  <div key={`lbl-${di}`} className="hm-day-label"
-                    style={{ gridColumn: 1, gridRow: di + 1 }}>
+                {["M", "", "W", "", "F", "", ""].map((lbl, di) => (
+                  <div
+                    key={`lbl-${di}`}
+                    className="hm-day-label"
+                    style={{ gridColumn: 1, gridRow: di + 1 }}
+                  >
                     {lbl}
                   </div>
                 ))}
@@ -527,11 +592,15 @@ export default function CopilotChef() {
                         gridRow: di + 1,
                         background: heatColor(cell.meals, cell.isFuture),
                       }}
-                      onMouseEnter={(e) => setTooltip({
-                        x: e.clientX, y: e.clientY,
-                        text: cell.isFuture ? "Not yet" :
-                          `${cell.date.toLocaleDateString("default", { month: "short", day: "numeric" })} — ${cell.meals} meal${cell.meals !== 1 ? "s" : ""}`
-                      })}
+                      onMouseEnter={(e) =>
+                        setTooltip({
+                          x: e.clientX,
+                          y: e.clientY,
+                          text: cell.isFuture
+                            ? "Not yet"
+                            : `${cell.date.toLocaleDateString("default", { month: "short", day: "numeric" })} — ${cell.meals} meal${cell.meals !== 1 ? "s" : ""}`,
+                        })
+                      }
                       onMouseLeave={() => setTooltip(null)}
                     />
                   ))
@@ -541,7 +610,11 @@ export default function CopilotChef() {
               <div className="heatmap-legend">
                 <span className="hm-leg-lbl">Less</span>
                 {["#E4DDD0", "#A8C8B0", "#6FA882", "#3B5E45"].map((c) => (
-                  <div key={c} className="hm-leg-sq" style={{ background: c }} />
+                  <div
+                    key={c}
+                    className="hm-leg-sq"
+                    style={{ background: c }}
+                  />
                 ))}
                 <span className="hm-leg-lbl">More</span>
               </div>
@@ -557,30 +630,39 @@ export default function CopilotChef() {
             <div className="grocery-summary">
               <div>
                 <div className="grocery-list-name">This Week's Shop</div>
-                <div className="grocery-list-meta">Created Mar 10 · {groceries.length} items</div>
+                <div className="grocery-list-meta">
+                  Created Mar 10 · {groceries.length} items
+                </div>
               </div>
               <div>
                 <div className="grocery-stat-row">
                   <div>
                     <span className="grocery-stat-big">{checkedCount}</span>
-                    <span className="grocery-stat-label">of {groceries.length} collected</span>
+                    <span className="grocery-stat-label">
+                      of {groceries.length} collected
+                    </span>
                   </div>
                   <span className="grocery-pct">{groceryPct}%</span>
                 </div>
                 <div className="progress-bar-bg">
-                  <div className="progress-bar-fill" style={{ width: `${groceryPct}%` }} />
+                  <div
+                    className="progress-bar-fill"
+                    style={{ width: `${groceryPct}%` }}
+                  />
                 </div>
               </div>
               <button className="grocery-go-btn">Open List →</button>
             </div>
           </div>
-
         </div>
       </main>
 
       {/* Heatmap tooltip */}
       {tooltip && (
-        <div className="heat-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
+        <div
+          className="heat-tooltip"
+          style={{ left: tooltip.x, top: tooltip.y }}
+        >
           {tooltip.text}
         </div>
       )}

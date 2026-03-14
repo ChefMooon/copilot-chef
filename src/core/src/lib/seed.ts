@@ -21,96 +21,138 @@ const sampleMeals: Array<{
     dayOffset: 0,
     mealType: "BREAKFAST",
     notes: "Bright start for the week with blueberry compote.",
-    ingredients: ["Ricotta", "Blueberries", "Flour", "Eggs"]
+    ingredients: ["Ricotta", "Blueberries", "Flour", "Eggs"],
   },
   {
     name: "Apple & Almond Butter",
     dayOffset: 0,
     mealType: "MORNING_SNACK",
     notes: "Simple snack to bridge breakfast and lunch.",
-    ingredients: ["Apple", "Almond butter"]
+    ingredients: ["Apple", "Almond butter"],
   },
   {
     name: "Green Goddess Grain Bowls",
     dayOffset: 0,
     mealType: "LUNCH",
     notes: "Roasted vegetables, quinoa, and herby dressing.",
-    ingredients: ["Quinoa", "Cucumber", "Herbs", "Lemon"]
+    ingredients: ["Quinoa", "Cucumber", "Herbs", "Lemon"],
   },
   {
     name: "Roast Chicken with Spring Vegetables",
     dayOffset: 1,
     mealType: "DINNER",
     notes: "Use leftovers for Thursday lunch wraps.",
-    ingredients: ["Chicken", "Carrots", "Potatoes", "Rosemary"]
+    ingredients: ["Chicken", "Carrots", "Potatoes", "Rosemary"],
   },
   {
     name: "Greek Yogurt",
     dayOffset: 2,
     mealType: "AFTERNOON_SNACK",
     notes: "Add honey and cinnamon.",
-    ingredients: ["Greek yogurt", "Honey"]
+    ingredients: ["Greek yogurt", "Honey"],
   },
   {
     name: "Miso Butter Salmon",
     dayOffset: 2,
     mealType: "DINNER",
     notes: "Serve with jasmine rice and blistered green beans.",
-    ingredients: ["Salmon", "Miso", "Butter", "Green beans"]
+    ingredients: ["Salmon", "Miso", "Butter", "Green beans"],
   },
   {
     name: "Butternut Squash Risotto",
     dayOffset: 3,
     mealType: "DINNER",
     notes: "Extra parmesan and sage breadcrumbs.",
-    ingredients: ["Arborio rice", "Butternut squash", "Parmesan"]
+    ingredients: ["Arborio rice", "Butternut squash", "Parmesan"],
   },
   {
     name: "Sourdough Tartines",
     dayOffset: 4,
     mealType: "LUNCH",
     notes: "Whipped ricotta, herbs, and jammy tomatoes.",
-    ingredients: ["Sourdough", "Ricotta", "Tomatoes", "Basil"]
+    ingredients: ["Sourdough", "Ricotta", "Tomatoes", "Basil"],
   },
   {
     name: "Coconut Curry Fish Stew",
     dayOffset: 5,
     mealType: "DINNER",
     notes: "One-pot dinner with lime and cilantro.",
-    ingredients: ["White fish", "Coconut milk", "Lime", "Cilantro"]
+    ingredients: ["White fish", "Coconut milk", "Lime", "Cilantro"],
   },
   {
     name: "Citrus Salad Board",
     dayOffset: 6,
     mealType: "LUNCH",
     notes: "A lighter Sunday spread with toasted nuts.",
-    ingredients: ["Citrus", "Fennel", "Mint", "Walnuts"]
-  }
+    ingredients: ["Citrus", "Fennel", "Mint", "Walnuts"],
+  },
 ];
 
 const sampleGroceries = [
-  { name: "Whole chicken", category: "Meat & Fish", checked: false, qty: "1", notes: "Free-range if available" },
-  { name: "Butternut squash", category: "Produce", checked: true, qty: "2", unit: "pcs" },
-  { name: "Arborio rice", category: "Pantry", checked: false, qty: "500", unit: "g" },
-  { name: "Fresh thyme & rosemary", category: "Produce", checked: false, qty: "1", unit: "bunches" },
-  { name: "Coconut milk", category: "Pantry", checked: true, qty: "2", unit: "cans" },
+  {
+    name: "Whole chicken",
+    category: "Meat & Fish",
+    checked: false,
+    qty: "1",
+    notes: "Free-range if available",
+  },
+  {
+    name: "Butternut squash",
+    category: "Produce",
+    checked: true,
+    qty: "2",
+    unit: "pcs",
+  },
+  {
+    name: "Arborio rice",
+    category: "Pantry",
+    checked: false,
+    qty: "500",
+    unit: "g",
+  },
+  {
+    name: "Fresh thyme & rosemary",
+    category: "Produce",
+    checked: false,
+    qty: "1",
+    unit: "bunches",
+  },
+  {
+    name: "Coconut milk",
+    category: "Pantry",
+    checked: true,
+    qty: "2",
+    unit: "cans",
+  },
   { name: "Sourdough starter", category: "Bakery", checked: false },
-  { name: "Parmesan block", category: "Dairy & Eggs", checked: true, qty: "150", unit: "g" },
-  { name: "Fish fillets", category: "Meat & Fish", checked: false, qty: "2", unit: "pcs" }
+  {
+    name: "Parmesan block",
+    category: "Dairy & Eggs",
+    checked: true,
+    qty: "150",
+    unit: "g",
+  },
+  {
+    name: "Fish fillets",
+    category: "Meat & Fish",
+    checked: false,
+    qty: "2",
+    unit: "pcs",
+  },
 ];
 
 const breakfastPool = [
   "Skillet granola bowls",
   "Soft scrambled eggs on toast",
   "Ricotta oats with citrus",
-  "Savory mushroom crepes"
+  "Savory mushroom crepes",
 ];
 
 const lunchPool = [
   "Herbed chickpea salad",
   "Leftover roast wraps",
   "Tomato soup and toasties",
-  "Warm lentil bowls"
+  "Warm lentil bowls",
 ];
 
 const dinnerPool = [
@@ -118,7 +160,7 @@ const dinnerPool = [
   "Mushroom pasta bake",
   "Roasted cod with fennel",
   "Braised white beans",
-  "Crisp gnocchi with greens"
+  "Crisp gnocchi with greens",
 ];
 
 function buildMealLogs(referenceDate: Date) {
@@ -142,7 +184,7 @@ function buildMealLogs(referenceDate: Date) {
         date,
         mealType: "DINNER",
         mealName: dinnerPool[offset % dinnerPool.length],
-        cooked: true
+        cooked: true,
       });
     }
 
@@ -151,7 +193,7 @@ function buildMealLogs(referenceDate: Date) {
         date,
         mealType: "LUNCH",
         mealName: lunchPool[offset % lunchPool.length],
-        cooked: true
+        cooked: true,
       });
     }
 
@@ -160,7 +202,7 @@ function buildMealLogs(referenceDate: Date) {
         date,
         mealType: "BREAKFAST",
         mealName: breakfastPool[offset % breakfastPool.length],
-        cooked: true
+        cooked: true,
       });
     }
   }
@@ -193,13 +235,13 @@ export async function seedDatabase() {
           date: addDays(weekStart, meal.dayOffset),
           mealType: meal.mealType,
           notes: meal.notes,
-          ingredientsJson: JSON.stringify(meal.ingredients)
-        }))
-      }
+          ingredientsJson: JSON.stringify(meal.ingredients),
+        })),
+      },
     },
     include: {
-      meals: true
-    }
+      meals: true,
+    },
   });
 
   await prisma.groceryList.create({
@@ -211,10 +253,10 @@ export async function seedDatabase() {
       items: {
         create: sampleGroceries.map((item, index) => ({
           ...item,
-          sortOrder: index
-        }))
-      }
-    }
+          sortOrder: index,
+        })),
+      },
+    },
   });
 
   await prisma.userPreference.create({
@@ -227,7 +269,8 @@ export async function seedDatabase() {
       avoidCuisines: "indian",
       avoidIngredients: JSON.stringify(["Peanuts", "Tree nuts"]),
       pantryStaples: JSON.stringify(["Olive oil", "Garlic", "Salt & pepper"]),
-      planningNotes: "Prefers one-pan dinners on weeknights and a baking project on weekends.",
+      planningNotes:
+        "Prefers one-pan dinners on weeknights and a baking project on weekends.",
       nutritionTags: "high-protein,gut-health",
       skillLevel: "home-cook",
       budgetRange: "moderate",
@@ -243,11 +286,11 @@ export async function seedDatabase() {
       consolidateIngredients: true,
       defaultPlanLength: "7",
       groceryGrouping: "category",
-      saveChatHistory: true
-    }
+      saveChatHistory: true,
+    },
   });
 
   await prisma.mealLog.createMany({
-    data: buildMealLogs(today)
+    data: buildMealLogs(today),
   });
 }

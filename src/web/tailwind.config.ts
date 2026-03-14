@@ -9,24 +9,24 @@ const config: Config = {
         cream: { DEFAULT: "#F5F0E8", dark: "#EDE6D6" },
         orange: { DEFAULT: "#C5622A", light: "#E8885A" },
         text: { DEFAULT: "#2C2416", muted: "#7A6A58" },
-        white: "#FFFDF8"
+        white: "#FFFDF8",
       },
       fontFamily: {
         serif: ["var(--font-lora)", "Georgia", "serif"],
-        sans: ["var(--font-nunito)", "sans-serif"]
+        sans: ["var(--font-nunito)", "sans-serif"],
       },
       borderRadius: {
         card: "16px",
         btn: "10px",
-        chip: "20px"
+        chip: "20px",
       },
       boxShadow: {
         card: "0 2px 12px rgba(44,36,22,0.10)",
-        lg: "0 6px 28px rgba(44,36,22,0.14)"
-      }
-    }
+        lg: "0 6px 28px rgba(44,36,22,0.14)",
+      },
+    },
   },
-  plugins: []
+  plugins: [],
 };
 
 export default config;

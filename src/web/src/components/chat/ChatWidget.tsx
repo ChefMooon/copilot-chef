@@ -12,7 +12,9 @@ export function ChatWidget() {
     <>
       {isOpen ? <ChatPanel /> : null}
       <button
-        aria-label={isOpen ? "Close Copilot Chef chat" : "Open Copilot Chef chat"}
+        aria-label={
+          isOpen ? "Close Copilot Chef chat" : "Open Copilot Chef chat"
+        }
         className={`${styles.fab} ${isOpen ? styles.fabOpen : ""}`}
         onClick={() => (isOpen ? closeChat() : openChat())}
         title={isOpen ? "Close chat" : "Chat with Copilot Chef"}

@@ -22,7 +22,12 @@ type PersonaModalProps = {
   onDelete?: (id: string) => Promise<void>;
 };
 
-export function PersonaModal({ modalMode, onClose, onSave, onDelete }: PersonaModalProps) {
+export function PersonaModal({
+  modalMode,
+  onClose,
+  onSave,
+  onDelete,
+}: PersonaModalProps) {
   const existing = modalMode.mode === "edit" ? modalMode.persona : null;
 
   const [emoji, setEmoji] = useState(existing?.emoji ?? "");
@@ -53,14 +58,20 @@ export function PersonaModal({ modalMode, onClose, onSave, onDelete }: PersonaMo
     };
   }, [onClose]);
 
-  const isValid = emoji.trim() && title.trim() && description.trim() && prompt.trim();
+  const isValid =
+    emoji.trim() && title.trim() && description.trim() && prompt.trim();
 
   const handleSave = async () => {
     if (!isValid) return;
     setError(undefined);
     setIsSaving(true);
     try {
-      await onSave({ emoji: emoji.trim(), title: title.trim(), description: description.trim(), prompt: prompt.trim() });
+      await onSave({
+        emoji: emoji.trim(),
+        title: title.trim(),
+        description: description.trim(),
+        prompt: prompt.trim(),
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save persona.");
     } finally {
@@ -75,7 +86,9 @@ export function PersonaModal({ modalMode, onClose, onSave, onDelete }: PersonaMo
     try {
       await onDelete(modalMode.persona.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete persona.");
+      setError(
+        err instanceof Error ? err.message : "Failed to delete persona."
+      );
       setIsDeleting(false);
     }
   };
@@ -89,7 +102,11 @@ export function PersonaModal({ modalMode, onClose, onSave, onDelete }: PersonaMo
           <span className={styles.personaModalTitle}>
             {isEditing ? "Edit persona" : "Create custom persona"}
           </span>
-          <button className={styles.personaModalClose} onClick={onClose} type="button">
+          <button
+            className={styles.personaModalClose}
+            onClick={onClose}
+            type="button"
+          >
             ✕
           </button>
         </div>
@@ -130,7 +147,9 @@ export function PersonaModal({ modalMode, onClose, onSave, onDelete }: PersonaMo
           </div>
 
           <div className={styles.personaFormGroup}>
-            <label className={styles.personaFormLabel}>Personality instructions</label>
+            <label className={styles.personaFormLabel}>
+              Personality instructions
+            </label>
             <textarea
               className={styles.personaPromptTextarea}
               onChange={(e) => setPrompt(e.target.value)}

@@ -12,11 +12,11 @@ The existing calendar page is a static layout with a fixed weekly grid and no in
 
 ## Reference Files
 
-| File | Purpose |
-|---|---|
-| `copilot-chef-calendar.jsx` | Complete approved UI prototype — source of truth for all markup, styles, and interaction logic |
-| `copilot-chef-style-guide.md` | Design system reference for colors, typography, spacing, and component patterns |
-| `copilot-chef-plan.md` | Overall project plan for architectural context |
+| File                          | Purpose                                                                                        |
+| ----------------------------- | ---------------------------------------------------------------------------------------------- |
+| `copilot-chef-calendar.jsx`   | Complete approved UI prototype — source of truth for all markup, styles, and interaction logic |
+| `copilot-chef-style-guide.md` | Design system reference for colors, typography, spacing, and component patterns                |
+| `copilot-chef-plan.md`        | Overall project plan for architectural context                                                 |
 
 ---
 
@@ -27,6 +27,7 @@ Before touching the UI, ensure the following data structures and API endpoints e
 ### Schema Changes
 
 #### Add `mealType` enum values
+
 The prototype introduces two new meal types not present in the original plan. Update the `MealType` enum in `schema.prisma`:
 
 ```prisma
@@ -40,6 +41,7 @@ enum MealType {
 ```
 
 #### Add `notes` and `ingredients` to `Meal`
+
 The edit modal surfaces both fields. Confirm they exist on the `Meal` model:
 
 ```prisma
@@ -59,12 +61,12 @@ Run `prisma migrate dev` after schema changes.
 
 ### API Endpoints Needed
 
-| Method | Route | Purpose |
-|---|---|---|
-| `GET` | `/api/meals?from=&to=` | Fetch all meals within a date range |
-| `PATCH` | `/api/meals/:id` | Update a meal (name, type, date, notes, ingredients) |
-| `POST` | `/api/meals` | Create a new meal |
-| `DELETE` | `/api/meals/:id` | Delete a meal |
+| Method   | Route                  | Purpose                                              |
+| -------- | ---------------------- | ---------------------------------------------------- |
+| `GET`    | `/api/meals?from=&to=` | Fetch all meals within a date range                  |
+| `PATCH`  | `/api/meals/:id`       | Update a meal (name, type, date, notes, ingredients) |
+| `POST`   | `/api/meals`           | Create a new meal                                    |
+| `DELETE` | `/api/meals/:id`       | Delete a meal                                        |
 
 The `GET` endpoint should accept `from` and `to` as ISO date strings and return all meals (across all meal plans) whose `date` falls within that range. This is what each view uses to load its data.
 
@@ -87,19 +89,37 @@ export const MEAL_TYPES = [
   "dinner",
 ] as const;
 
-export type MealType = typeof MEAL_TYPES[number];
+export type MealType = (typeof MEAL_TYPES)[number];
 
-export const TYPE_CONFIG: Record<MealType, {
-  dot: string;
-  bg: string;
-  text: string;
-  label: string;
-}> = {
-  "breakfast":        { dot: "#E8885A", bg: "#FDF0E8", text: "#A0441A", label: "BREAKFAST" },
-  "morning snack":    { dot: "#C5A84B", bg: "#FBF6E8", text: "#8A6E20", label: "MORNING SNACK" },
-  "lunch":            { dot: "#5A7D63", bg: "#EAF2EC", text: "#2E5438", label: "LUNCH" },
-  "afternoon snack":  { dot: "#8A7DB8", bg: "#F0EDF8", text: "#5A4D8A", label: "AFTERNOON SNACK" },
-  "dinner":           { dot: "#3B5E45", bg: "#D4E4D8", text: "#1E3A26", label: "DINNER" },
+export const TYPE_CONFIG: Record<
+  MealType,
+  {
+    dot: string;
+    bg: string;
+    text: string;
+    label: string;
+  }
+> = {
+  breakfast: {
+    dot: "#E8885A",
+    bg: "#FDF0E8",
+    text: "#A0441A",
+    label: "BREAKFAST",
+  },
+  "morning snack": {
+    dot: "#C5A84B",
+    bg: "#FBF6E8",
+    text: "#8A6E20",
+    label: "MORNING SNACK",
+  },
+  lunch: { dot: "#5A7D63", bg: "#EAF2EC", text: "#2E5438", label: "LUNCH" },
+  "afternoon snack": {
+    dot: "#8A7DB8",
+    bg: "#F0EDF8",
+    text: "#5A4D8A",
+    label: "AFTERNOON SNACK",
+  },
+  dinner: { dot: "#3B5E45", bg: "#D4E4D8", text: "#1E3A26", label: "DINNER" },
 };
 
 export const isSameDay = (a: Date, b: Date) =>
@@ -109,7 +129,7 @@ export const isSameDay = (a: Date, b: Date) =>
 
 export const mealsForDay = (meals: Meal[], date: Date) =>
   meals
-    .filter(m => isSameDay(new Date(m.date), date))
+    .filter((m) => isSameDay(new Date(m.date), date))
     .sort((a, b) => MEAL_TYPES.indexOf(a.type) - MEAL_TYPES.indexOf(b.type));
 ```
 
@@ -152,19 +172,26 @@ This is the top-level component. It owns:
 - The `switchView` function — updates state AND writes to `localStorage`
 
 **View persistence pattern (from prototype):**
+
 ```ts
 const [view, setView] = useState<CalView>(() => {
-  try { return (localStorage.getItem("cal_view") as CalView) || "week"; }
-  catch { return "week"; }
+  try {
+    return (localStorage.getItem("cal_view") as CalView) || "week";
+  } catch {
+    return "week";
+  }
 });
 
 const switchView = (v: CalView) => {
   setView(v);
-  try { localStorage.setItem("cal_view", v); } catch {}
+  try {
+    localStorage.setItem("cal_view", v);
+  } catch {}
 };
 ```
 
 The shell renders:
+
 1. The shared `<Header>` component with `"Calendar"` as the active nav item
 2. The page header section — eyebrow ("CALENDAR"), title, subtitle (context-sensitive based on active view), "Today" button, and the Day/Week/Month toggle
 3. The `cal-card` wrapper containing whichever view component is active
@@ -182,11 +209,13 @@ The shell renders:
 Props: `date: Date`, `meals: Meal[]`, `setDate: (d: Date) => void`, `onEdit: (meal: Meal) => void`
 
 **Layout:**
+
 - A navigation bar at the top with prev/next buttons and a centered title showing the weekday (Lora serif) and full date. If the date is today, show the "Today" pill badge.
 - A vertical timeline below, one slot per meal type in order: breakfast → morning snack → lunch → afternoon snack → dinner.
 
 **Timeline slot structure:**
 Each slot has two columns:
+
 - Left: a colored dot (14×14px circle) with a vertical connector line running to the next slot. The last slot has no line.
 - Right: the type label in uppercase, then either a meal card or an empty dashed slot with a "+ Add" button.
 
@@ -205,6 +234,7 @@ Props: `date: Date`, `meals: Meal[]`, `setDate: (d: Date) => void`, `onEdit: (me
 **Week calculation:** Derive the Monday of the current week from `date` using `(date.getDay() + 6) % 7` offset. Generate 7 day objects from that Monday.
 
 **Layout:** A 7-column CSS grid (`grid-template-columns: repeat(7, 1fr)`). Each column has:
+
 - A header with the 3-letter weekday abbreviation and date number. Today's date number gets an orange circle background.
 - A scrollable list of meal chips below.
 
@@ -221,12 +251,14 @@ Props: `date: Date`, `meals: Meal[]`, `setDate: (d: Date) => void`, `onEdit: (me
 Props: `date: Date`, `meals: Meal[]`, `setDate: (d: Date) => void`, `onEdit: (meal: Meal) => void`
 
 **Grid calculation:**
+
 - First day of the month → `new Date(year, month, 1)`
 - Start offset (Mon-based) → `(firstDay.getDay() + 6) % 7`
 - Total cells → `Math.ceil((startOffset + daysInMonth) / 7) * 7`
 - Cells before day 1 and after the last day render as empty `month-cell-empty` divs
 
 **Day cell contents:**
+
 - Date number in the top-left
 - A row of colored dots at the bottom — one dot per meal type that has at least one meal that day. Dot colors come from `TYPE_CONFIG`. Only render dots for types that have meals — do not render empty/placeholder dots.
 
@@ -254,6 +286,7 @@ This component renders as a centered modal on desktop and a bottom sheet on mobi
 | Ingredients | Chip list + text input | Add on Enter or "Add" button click; remove via × on each chip |
 
 **Footer:**
+
 - Left: ✨ AI Re-suggest button — calls the `/api/chat` streaming endpoint with a prompt like `"Re-suggest a ${form.type} meal for ${form.date} based on my preferences"`. In the prototype this is a placeholder `alert()`.
 - Right: Cancel (ghost button) + Save Changes (orange button)
 
@@ -278,7 +311,8 @@ const dateRange = useMemo(() => {
   if (view === "day") return { from: date, to: date };
   if (view === "week") {
     const mon = getMonday(date);
-    const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+    const sun = new Date(mon);
+    sun.setDate(mon.getDate() + 6);
     return { from: mon, to: sun };
   }
   // month
@@ -297,6 +331,7 @@ const { data: meals = [] } = useQuery({
 **`fetchMeals`** calls `GET /api/meals?from=ISO&to=ISO` and returns a `Meal[]`.
 
 **On save in `EditModal`**, the parent calls:
+
 ```ts
 await fetch(`/api/meals/${updated.id}`, {
   method: "PATCH",
@@ -324,6 +359,7 @@ Do not use a separate CSS file. All styles live in a `<style>` block at the comp
 Before marking the page complete, verify the following at each breakpoint:
 
 **Desktop (>900px)**
+
 - [ ] All three view toggle buttons visible and functional
 - [ ] Week view shows all 7 columns without horizontal scroll
 - [ ] Month grid fills the card width
@@ -331,11 +367,13 @@ Before marking the page complete, verify the following at each breakpoint:
 - [ ] Popover does not overflow viewport on edge-column days
 
 **Tablet (768px–900px)**
+
 - [ ] Nav collapses to hamburger
 - [ ] Week chip type labels hidden, names still visible
 - [ ] Month cells readable at reduced height
 
 **Mobile (<768px)**
+
 - [ ] Edit modal renders as bottom sheet (anchored to bottom, full width, rounded top corners)
 - [ ] Footer buttons stack vertically, AI button spans full width
 - [ ] Form fields are touch-friendly (min 44px tap targets)

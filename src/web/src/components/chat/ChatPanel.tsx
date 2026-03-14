@@ -71,7 +71,11 @@ export function ChatPanel() {
         : styles.panelFullscreen;
 
   return (
-    <div className={`${styles.panel} ${panelSizeClass}`} role="dialog" aria-label="Copilot Chef chat">
+    <div
+      className={`${styles.panel} ${panelSizeClass}`}
+      role="dialog"
+      aria-label="Copilot Chef chat"
+    >
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
@@ -133,7 +137,9 @@ export function ChatPanel() {
                 key={idx}
               >
                 {msg.text}
-                {msg.role === "assistant" && msg.choices && msg.choices.length > 0 ? (
+                {msg.role === "assistant" &&
+                msg.choices &&
+                msg.choices.length > 0 ? (
                   <div className={styles.inlineChoices}>
                     {msg.choices.map((choice) => (
                       <button

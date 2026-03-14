@@ -52,7 +52,11 @@ type MockState = {
   meals: Map<string, MockMeal>;
   groceryLists: Map<string, MockGroceryList>;
   actions: MockAction[];
-  messages: Array<{ chatSessionId: string; role: "user" | "assistant"; content: string }>;
+  messages: Array<{
+    chatSessionId: string;
+    role: "user" | "assistant";
+    content: string;
+  }>;
 };
 
 type CoreMockModule = {
@@ -76,7 +80,11 @@ vi.mock("@copilot-chef/core", () => {
       createdAt: string;
       expiresAt: string;
     }>,
-    messages: [] as Array<{ chatSessionId: string; role: "user" | "assistant"; content: string }>,
+    messages: [] as Array<{
+      chatSessionId: string;
+      role: "user" | "assistant";
+      content: string;
+    }>,
     preferences: { saveChatHistory: true },
     meals: new Map<string, MockMeal>(),
     groceryLists: new Map<string, MockGroceryList>(),
@@ -126,7 +134,11 @@ vi.mock("@copilot-chef/core", () => {
       return session;
     }
 
-    async addMessage(chatSessionId: string, role: "user" | "assistant", content: string) {
+    async addMessage(
+      chatSessionId: string,
+      role: "user" | "assistant",
+      content: string
+    ) {
       state.messages.push({ chatSessionId, role, content });
     }
 
@@ -140,7 +152,12 @@ vi.mock("@copilot-chef/core", () => {
     }) {
       // Redo branch is invalidated after any new action.
       state.actions = state.actions.filter(
-        (action) => !(action.chatSessionId === input.chatSessionId && action.domain === input.domain && action.undoneAt)
+        (action) =>
+          !(
+            action.chatSessionId === input.chatSessionId &&
+            action.domain === input.domain &&
+            action.undoneAt
+          )
       );
       const action: MockAction = {
         id: nextId("action"),
@@ -156,17 +173,33 @@ vi.mock("@copilot-chef/core", () => {
       return action;
     }
 
-    async getLatestUndoAction(chatSessionId: string, domain: "meal" | "grocery") {
+    async getLatestUndoAction(
+      chatSessionId: string,
+      domain: "meal" | "grocery"
+    ) {
       const action = [...state.actions]
         .reverse()
-        .find((entry) => entry.chatSessionId === chatSessionId && entry.domain === domain && !entry.undoneAt);
+        .find(
+          (entry) =>
+            entry.chatSessionId === chatSessionId &&
+            entry.domain === domain &&
+            !entry.undoneAt
+        );
       return action ?? null;
     }
 
-    async getLatestRedoAction(chatSessionId: string, domain: "meal" | "grocery") {
+    async getLatestRedoAction(
+      chatSessionId: string,
+      domain: "meal" | "grocery"
+    ) {
       const action = [...state.actions]
         .reverse()
-        .find((entry) => entry.chatSessionId === chatSessionId && entry.domain === domain && !!entry.undoneAt);
+        .find(
+          (entry) =>
+            entry.chatSessionId === chatSessionId &&
+            entry.domain === domain &&
+            !!entry.undoneAt
+        );
       return action ?? null;
     }
 
@@ -209,12 +242,18 @@ vi.mock("@copilot-chef/core", () => {
       return state.pending
         .filter((entry) => entry.chatSessionId === chatSessionId)
         .filter((entry) => new Date(entry.expiresAt).getTime() > now)
-        .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+        .sort(
+          (left, right) =>
+            new Date(right.createdAt).getTime() -
+            new Date(left.createdAt).getTime()
+        );
     }
 
     async pruneExpiredPendingSuggestions() {
       const now = Date.now();
-      state.pending = state.pending.filter((entry) => new Date(entry.expiresAt).getTime() > now);
+      state.pending = state.pending.filter(
+        (entry) => new Date(entry.expiresAt).getTime() > now
+      );
     }
   }
 
@@ -265,7 +304,9 @@ vi.mock("@copilot-chef/core", () => {
       const updated: MockMeal = {
         ...existing,
         ...patch,
-        ingredients: patch.ingredients ? [...patch.ingredients] : [...existing.ingredients],
+        ingredients: patch.ingredients
+          ? [...patch.ingredients]
+          : [...existing.ingredients],
       };
       state.meals.set(id, updated);
       return cloneMeal(updated);
@@ -291,7 +332,9 @@ vi.mock("@copilot-chef/core", () => {
       if (!list) {
         throw new Error("Grocery list not found");
       }
-      const nextItems = list.items.map((item) => (item.id === groceryItemId ? { ...item, ...patch } : item));
+      const nextItems = list.items.map((item) =>
+        item.id === groceryItemId ? { ...item, ...patch } : item
+      );
       const updated = { ...list, items: nextItems };
       state.groceryLists.set(groceryListId, updated);
       return cloneList(updated);
@@ -332,7 +375,10 @@ vi.mock("@copilot-chef/core", () => {
       if (!list) {
         throw new Error("Grocery list not found");
       }
-      const updated = { ...list, items: list.items.filter((item) => item.id !== groceryItemId) };
+      const updated = {
+        ...list,
+        items: list.items.filter((item) => item.id !== groceryItemId),
+      };
       state.groceryLists.set(groceryListId, updated);
       return cloneList(updated);
     }
@@ -361,7 +407,9 @@ vi.mock("@copilot-chef/core", () => {
           const item = byId.get(id);
           return item ? { ...item, sortOrder: index } : null;
         })
-        .filter((item): item is MockGroceryList["items"][number] => item !== null);
+        .filter(
+          (item): item is MockGroceryList["items"][number] => item !== null
+        );
       const updated = { ...list, items: reordered };
       state.groceryLists.set(groceryListId, updated);
       return cloneList(updated);
@@ -688,8 +736,13 @@ describe("POST /api/chat command actions", () => {
       },
     });
 
-    expect(replace.json.action).toMatchObject({ domain: "meal", type: "replace-meal" });
-    expect(core.__getMockState().meals.get("meal-dinner-1")?.name).toBe("Tacos");
+    expect(replace.json.action).toMatchObject({
+      domain: "meal",
+      type: "replace-meal",
+    });
+    expect(core.__getMockState().meals.get("meal-dinner-1")?.name).toBe(
+      "Tacos"
+    );
 
     const remove = await postJson({
       message: "Remove dinner on Tuesday",
@@ -706,7 +759,10 @@ describe("POST /api/chat command actions", () => {
       },
     });
 
-    expect(remove.json.action).toMatchObject({ domain: "meal", type: "remove-meal" });
+    expect(remove.json.action).toMatchObject({
+      domain: "meal",
+      type: "remove-meal",
+    });
     expect(core.__getMockState().meals.has("meal-dinner-1")).toBe(false);
   });
 
@@ -789,19 +845,41 @@ describe("POST /api/chat command actions", () => {
       ],
     };
 
-    const unit = await postJson({ message: "Set Milk unit to gallon", pageContextData });
-    expect(unit.json.action).toMatchObject({ domain: "grocery", type: "update-item-unit" });
+    const unit = await postJson({
+      message: "Set Milk unit to gallon",
+      pageContextData,
+    });
+    expect(unit.json.action).toMatchObject({
+      domain: "grocery",
+      type: "update-item-unit",
+    });
 
-    const category = await postJson({ message: "Move Milk to Produce category", pageContextData });
-    expect(category.json.action).toMatchObject({ domain: "grocery", type: "update-item-category" });
+    const category = await postJson({
+      message: "Move Milk to Produce category",
+      pageContextData,
+    });
+    expect(category.json.action).toMatchObject({
+      domain: "grocery",
+      type: "update-item-category",
+    });
 
-    const reorder = await postJson({ message: "Move Carrots to the top", pageContextData });
-    expect(reorder.json.action).toMatchObject({ domain: "grocery", type: "manual-reorder" });
+    const reorder = await postJson({
+      message: "Move Carrots to the top",
+      pageContextData,
+    });
+    expect(reorder.json.action).toMatchObject({
+      domain: "grocery",
+      type: "manual-reorder",
+    });
 
     const list = core.__getMockState().groceryLists.get("list-2");
     expect(list?.items[0].name).toBe("Carrots");
-    expect(list?.items.find((item) => item.name === "Milk")?.unit).toBe("gallon");
-    expect(list?.items.find((item) => item.name === "Milk")?.category).toBe("Produce");
+    expect(list?.items.find((item) => item.name === "Milk")?.unit).toBe(
+      "gallon"
+    );
+    expect(list?.items.find((item) => item.name === "Milk")?.category).toBe(
+      "Produce"
+    );
   });
 
   it("applies pending meal suggestions to next nights", async () => {
@@ -816,7 +894,10 @@ describe("POST /api/chat command actions", () => {
       pageContextData: { page: "meal-plan", meals: [] },
     });
 
-    expect(apply.json.action).toMatchObject({ domain: "meal", type: "apply-pending-suggestions" });
+    expect(apply.json.action).toMatchObject({
+      domain: "meal",
+      type: "apply-pending-suggestions",
+    });
 
     const core = await getCoreMock();
     const state = core.__getMockState();

@@ -24,7 +24,10 @@ export async function POST(
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to create grocery item"
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to create grocery item",
       },
       { status: 400 }
     );

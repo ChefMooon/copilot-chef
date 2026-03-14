@@ -10,7 +10,10 @@ export async function POST() {
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to reset preferences"
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to reset preferences",
       },
       { status: 400 }
     );

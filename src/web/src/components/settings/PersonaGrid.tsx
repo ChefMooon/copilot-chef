@@ -20,12 +20,21 @@ type PersonaGridProps = {
   onEditCustom?: (value: string) => void;
 };
 
-export function PersonaGrid({ options, value, onSelect, onCreateCustom, onEditCustom }: PersonaGridProps) {
+export function PersonaGrid({
+  options,
+  value,
+  onSelect,
+  onCreateCustom,
+  onEditCustom,
+}: PersonaGridProps) {
   return (
     <div className={styles.personaGrid}>
       {options.map((option) => (
         <button
-          className={cn(styles.personaCard, value === option.value && styles.personaCardActive)}
+          className={cn(
+            styles.personaCard,
+            value === option.value && styles.personaCardActive
+          )}
           key={option.value}
           onClick={() => onSelect(option.value)}
           type="button"

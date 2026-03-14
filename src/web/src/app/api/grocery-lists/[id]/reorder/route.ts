@@ -20,7 +20,10 @@ export async function POST(
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to reorder grocery items"
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to reorder grocery items",
       },
       { status: 400 }
     );

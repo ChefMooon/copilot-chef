@@ -9,7 +9,7 @@ export function PlaceholderPage({
   description,
   primaryAction,
   secondaryAction,
-  children
+  children,
 }: {
   eyebrow: string;
   title: string;
@@ -26,8 +26,12 @@ export function PlaceholderPage({
             {eyebrow}
           </p>
           <div className="space-y-2">
-            <h1 className="font-serif text-4xl font-bold text-text md:text-5xl">{title}</h1>
-            <p className="max-w-2xl text-base font-medium text-text-muted md:text-lg">{description}</p>
+            <h1 className="font-serif text-4xl font-bold text-text md:text-5xl">
+              {title}
+            </h1>
+            <p className="max-w-2xl text-base font-medium text-text-muted md:text-lg">
+              {description}
+            </p>
           </div>
         </div>
 

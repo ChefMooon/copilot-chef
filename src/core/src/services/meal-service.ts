@@ -25,7 +25,7 @@ function serializeMeal(meal: {
     date: meal.date.toISOString(),
     mealType: meal.mealType,
     notes: meal.notes,
-    ingredients: JSON.parse(meal.ingredientsJson) as string[]
+    ingredients: JSON.parse(meal.ingredientsJson) as string[],
   };
 }
 
@@ -47,10 +47,10 @@ export class MealService {
       where: {
         date: {
           gte: start,
-          lte: end
-        }
+          lte: end,
+        },
       },
-      orderBy: [{ date: "asc" }, { mealType: "asc" }]
+      orderBy: [{ date: "asc" }, { mealType: "asc" }],
     });
 
     return meals.map(serializeMeal);
@@ -75,8 +75,8 @@ export class MealService {
         date: new Date(input.date),
         mealType: input.mealType,
         notes: input.notes ?? null,
-        ingredientsJson: JSON.stringify(input.ingredients ?? [])
-      }
+        ingredientsJson: JSON.stringify(input.ingredients ?? []),
+      },
     });
 
     return serializeMeal(meal);
@@ -98,13 +98,17 @@ export class MealService {
     const meal = await prisma.meal.update({
       where: { id },
       data: {
-        ...(input.mealPlanId !== undefined ? { mealPlanId: input.mealPlanId } : {}),
+        ...(input.mealPlanId !== undefined
+          ? { mealPlanId: input.mealPlanId }
+          : {}),
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.date !== undefined ? { date: new Date(input.date) } : {}),
         ...(input.mealType !== undefined ? { mealType: input.mealType } : {}),
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
-        ...(input.ingredients !== undefined ? { ingredientsJson: JSON.stringify(input.ingredients) } : {})
-      }
+        ...(input.ingredients !== undefined
+          ? { ingredientsJson: JSON.stringify(input.ingredients) }
+          : {}),
+      },
     });
 
     return serializeMeal(meal);
@@ -115,5 +119,29 @@ export class MealService {
 
     await prisma.meal.delete({ where: { id } });
     return { id };
+  }
+
+  async getTopIngredients(limit = 15) {
+    await bootstrapDatabase();
+
+    const meals = await prisma.meal.findMany({
+      select: { ingredientsJson: true },
+    });
+
+    const counts = new Map<string, number>();
+    for (const meal of meals) {
+      const ingredients = JSON.parse(meal.ingredientsJson) as string[];
+      for (const ingredient of ingredients) {
+        const normalized = ingredient.toLowerCase().trim();
+        if (normalized) {
+          counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
+        }
+      }
+    }
+
+    return Array.from(counts.entries())
+      .map(([ingredient, count]) => ({ ingredient, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
   }
 }

@@ -1,41 +1,119 @@
 import { useState, useEffect, useRef } from "react";
 
 // ─── Mock Data ───────────────────────────────────────────────────────────────
-const MEAL_TYPES = ["breakfast", "morning snack", "lunch", "afternoon snack", "dinner"];
+const MEAL_TYPES = [
+  "breakfast",
+  "morning snack",
+  "lunch",
+  "afternoon snack",
+  "dinner",
+];
 const TYPE_COLORS = {
-  breakfast:         { dot: "#E8885A", bg: "#FDF0E8", text: "#A0441A", label: "BREAKFAST" },
-  "morning snack":   { dot: "#C5A84B", bg: "#FBF6E8", text: "#8A6E20", label: "MORNING SNACK" },
-  lunch:             { dot: "#5A7D63", bg: "#EAF2EC", text: "#2E5438", label: "LUNCH" },
-  "afternoon snack": { dot: "#8A7DB8", bg: "#F0EDF8", text: "#5A4D8A", label: "AFTERNOON SNACK" },
-  dinner:            { dot: "#3B5E45", bg: "#D4E4D8", text: "#1E3A26", label: "DINNER" },
+  breakfast: {
+    dot: "#E8885A",
+    bg: "#FDF0E8",
+    text: "#A0441A",
+    label: "BREAKFAST",
+  },
+  "morning snack": {
+    dot: "#C5A84B",
+    bg: "#FBF6E8",
+    text: "#8A6E20",
+    label: "MORNING SNACK",
+  },
+  lunch: { dot: "#5A7D63", bg: "#EAF2EC", text: "#2E5438", label: "LUNCH" },
+  "afternoon snack": {
+    dot: "#8A7DB8",
+    bg: "#F0EDF8",
+    text: "#5A4D8A",
+    label: "AFTERNOON SNACK",
+  },
+  dinner: { dot: "#3B5E45", bg: "#D4E4D8", text: "#1E3A26", label: "DINNER" },
 };
 
-const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
 const generateMeals = () => {
   const base = new Date(2026, 2, 8); // Sunday March 8
   const pool = {
-    breakfast: ["Lemon Ricotta Pancakes","Avocado Toast","Overnight Oats","Poached Eggs & Soldiers","Granola Bowl","Shakshuka","Banana Smoothie"],
-    "morning snack": ["Apple & Almond Butter","Greek Yogurt","Trail Mix","Rice Cakes","Cheese & Crackers"],
-    lunch: ["Green Goddess Grain Bowls","Citrus Salad Board","Sourdough Tartines","Miso Noodle Soup","Roasted Veggie Wrap","Tomato Bisque","Chicken Caesar"],
-    "afternoon snack": ["Hummus & Veg","Dark Chocolate","Fruit Salad","Edamame","Nut Bar"],
-    dinner: ["Roast Chicken with Spring Veg","Miso Butter Salmon","Butternut Squash Risotto","Lamb Kofta","Mushroom Pasta","Thai Green Curry","Beef Tacos"],
+    breakfast: [
+      "Lemon Ricotta Pancakes",
+      "Avocado Toast",
+      "Overnight Oats",
+      "Poached Eggs & Soldiers",
+      "Granola Bowl",
+      "Shakshuka",
+      "Banana Smoothie",
+    ],
+    "morning snack": [
+      "Apple & Almond Butter",
+      "Greek Yogurt",
+      "Trail Mix",
+      "Rice Cakes",
+      "Cheese & Crackers",
+    ],
+    lunch: [
+      "Green Goddess Grain Bowls",
+      "Citrus Salad Board",
+      "Sourdough Tartines",
+      "Miso Noodle Soup",
+      "Roasted Veggie Wrap",
+      "Tomato Bisque",
+      "Chicken Caesar",
+    ],
+    "afternoon snack": [
+      "Hummus & Veg",
+      "Dark Chocolate",
+      "Fruit Salad",
+      "Edamame",
+      "Nut Bar",
+    ],
+    dinner: [
+      "Roast Chicken with Spring Veg",
+      "Miso Butter Salmon",
+      "Butternut Squash Risotto",
+      "Lamb Kofta",
+      "Mushroom Pasta",
+      "Thai Green Curry",
+      "Beef Tacos",
+    ],
   };
   const meals = [];
   let id = 1;
   for (let d = 0; d < 14; d++) {
-    const date = new Date(base); date.setDate(base.getDate() + d);
+    const date = new Date(base);
+    date.setDate(base.getDate() + d);
     MEAL_TYPES.forEach((type, ti) => {
       if (Math.random() < (type.includes("snack") ? 0.5 : 0.85)) {
         const names = pool[type];
         meals.push({
-          id: id++, date: new Date(date), type,
+          id: id++,
+          date: new Date(date),
+          type,
           name: names[Math.floor(Math.random() * names.length)],
-          notes: Math.random() > 0.6 ? "Prep night before for best results." : "",
-          ingredients: type === "breakfast" || type === "dinner"
-            ? ["Olive oil","Garlic","Sea salt","Fresh herbs"].slice(0, 2 + Math.floor(Math.random()*3))
-            : [],
+          notes:
+            Math.random() > 0.6 ? "Prep night before for best results." : "",
+          ingredients:
+            type === "breakfast" || type === "dinner"
+              ? ["Olive oil", "Garlic", "Sea salt", "Fresh herbs"].slice(
+                  0,
+                  2 + Math.floor(Math.random() * 3)
+                )
+              : [],
         });
       }
     });
@@ -51,8 +129,9 @@ const isSameDay = (a, b) =>
   a.getDate() === b.getDate();
 
 const mealsForDay = (meals, date) =>
-  meals.filter(m => isSameDay(m.date, date))
-       .sort((a,b) => MEAL_TYPES.indexOf(a.type) - MEAL_TYPES.indexOf(b.type));
+  meals
+    .filter((m) => isSameDay(m.date, date))
+    .sort((a, b) => MEAL_TYPES.indexOf(a.type) - MEAL_TYPES.indexOf(b.type));
 
 // ─── Edit Modal ──────────────────────────────────────────────────────────────
 function EditModal({ meal, onClose, onSave }) {
@@ -61,14 +140,18 @@ function EditModal({ meal, onClose, onSave }) {
   const overlayRef = useRef(null);
 
   useEffect(() => {
-    const handler = (e) => { if (e.target === overlayRef.current) onClose(); };
-    const keyHandler = (e) => { if (e.key === "Escape") onClose(); };
+    const handler = (e) => {
+      if (e.target === overlayRef.current) onClose();
+    };
+    const keyHandler = (e) => {
+      if (e.key === "Escape") onClose();
+    };
     window.addEventListener("keydown", keyHandler);
     overlayRef.current?.addEventListener("mousedown", handler);
     return () => window.removeEventListener("keydown", keyHandler);
   }, [onClose]);
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const tc = TYPE_COLORS[form.type];
 
   const addIngredient = () => {
@@ -76,53 +159,87 @@ function EditModal({ meal, onClose, onSave }) {
     set("ingredients", [...(form.ingredients || []), ingredientInput.trim()]);
     setIngredientInput("");
   };
-  const removeIngredient = (i) => set("ingredients", form.ingredients.filter((_,idx) => idx !== i));
+  const removeIngredient = (i) =>
+    set(
+      "ingredients",
+      form.ingredients.filter((_, idx) => idx !== i)
+    );
 
   return (
     <div className="modal-overlay" ref={overlayRef}>
       <div className="modal-panel">
         <div className="modal-header" style={{ borderColor: tc.dot }}>
           <div className="modal-header-left">
-            <span className="modal-type-badge" style={{ background: tc.bg, color: tc.text }}>
+            <span
+              className="modal-type-badge"
+              style={{ background: tc.bg, color: tc.text }}
+            >
               {tc.label}
             </span>
             <span className="modal-date-label">
-              {form.date.toLocaleDateString("default", { weekday: "long", month: "long", day: "numeric" })}
+              {form.date.toLocaleDateString("default", {
+                weekday: "long",
+                month: "long",
+                day: "numeric",
+              })}
             </span>
           </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose}>
+            ✕
+          </button>
         </div>
 
         <div className="modal-body">
           {/* Meal name */}
           <div className="form-group">
             <label className="form-label">Meal Name</label>
-            <input className="form-input" value={form.name}
-              onChange={e => set("name", e.target.value)} placeholder="e.g. Lemon Ricotta Pancakes" />
+            <input
+              className="form-input"
+              value={form.name}
+              onChange={(e) => set("name", e.target.value)}
+              placeholder="e.g. Lemon Ricotta Pancakes"
+            />
           </div>
 
           {/* Type + Date row */}
           <div className="form-row">
             <div className="form-group" style={{ flex: 1 }}>
               <label className="form-label">Meal Type</label>
-              <select className="form-input" value={form.type} onChange={e => set("type", e.target.value)}>
-                {MEAL_TYPES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+              <select
+                className="form-input"
+                value={form.type}
+                onChange={(e) => set("type", e.target.value)}
+              >
+                {MEAL_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="form-group" style={{ flex: 1 }}>
               <label className="form-label">Day</label>
-              <input className="form-input" type="date"
+              <input
+                className="form-input"
+                type="date"
                 value={form.date.toISOString().split("T")[0]}
-                onChange={e => { const d = new Date(e.target.value + "T12:00:00"); if (!isNaN(d)) set("date", d); }} />
+                onChange={(e) => {
+                  const d = new Date(e.target.value + "T12:00:00");
+                  if (!isNaN(d)) set("date", d);
+                }}
+              />
             </div>
           </div>
 
           {/* Notes */}
           <div className="form-group">
             <label className="form-label">Notes</label>
-            <textarea className="form-input form-textarea" value={form.notes}
-              onChange={e => set("notes", e.target.value)}
-              placeholder="Prep tips, variations, substitutions…" />
+            <textarea
+              className="form-input form-textarea"
+              value={form.notes}
+              onChange={(e) => set("notes", e.target.value)}
+              placeholder="Prep tips, variations, substitutions…"
+            />
           </div>
 
           {/* Ingredients */}
@@ -132,27 +249,50 @@ function EditModal({ meal, onClose, onSave }) {
               {(form.ingredients || []).map((ing, i) => (
                 <span key={i} className="ingredient-chip">
                   {ing}
-                  <button className="ingredient-remove" onClick={() => removeIngredient(i)}>×</button>
+                  <button
+                    className="ingredient-remove"
+                    onClick={() => removeIngredient(i)}
+                  >
+                    ×
+                  </button>
                 </span>
               ))}
             </div>
             <div className="ingredient-add-row">
-              <input className="form-input ingredient-input" value={ingredientInput}
-                onChange={e => setIngredientInput(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && addIngredient()}
-                placeholder="Add ingredient…" />
-              <button className="btn-add-ingredient" onClick={addIngredient}>Add</button>
+              <input
+                className="form-input ingredient-input"
+                value={ingredientInput}
+                onChange={(e) => setIngredientInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addIngredient()}
+                placeholder="Add ingredient…"
+              />
+              <button className="btn-add-ingredient" onClick={addIngredient}>
+                Add
+              </button>
             </div>
           </div>
         </div>
 
         <div className="modal-footer">
-          <button className="btn-ai-suggest" onClick={() => alert("AI re-suggest would fire here!")}>
+          <button
+            className="btn-ai-suggest"
+            onClick={() => alert("AI re-suggest would fire here!")}
+          >
             ✨ AI Re-suggest
           </button>
           <div className="modal-footer-right">
-            <button className="btn-ghost" onClick={onClose}>Cancel</button>
-            <button className="btn-save" onClick={() => { onSave(form); onClose(); }}>Save Changes</button>
+            <button className="btn-ghost" onClick={onClose}>
+              Cancel
+            </button>
+            <button
+              className="btn-save"
+              onClick={() => {
+                onSave(form);
+                onClose();
+              }}
+            >
+              Save Changes
+            </button>
           </div>
         </div>
       </div>
@@ -163,22 +303,40 @@ function EditModal({ meal, onClose, onSave }) {
 // ─── Day View ─────────────────────────────────────────────────────────────────
 function DayView({ date, meals, setDate, onEdit }) {
   const dayMeals = mealsForDay(meals, date);
-  const prev = () => { const d = new Date(date); d.setDate(d.getDate()-1); setDate(d); };
-  const next = () => { const d = new Date(date); d.setDate(d.getDate()+1); setDate(d); };
-  const isToday = isSameDay(date, new Date(2026,2,12));
+  const prev = () => {
+    const d = new Date(date);
+    d.setDate(d.getDate() - 1);
+    setDate(d);
+  };
+  const next = () => {
+    const d = new Date(date);
+    d.setDate(d.getDate() + 1);
+    setDate(d);
+  };
+  const isToday = isSameDay(date, new Date(2026, 2, 12));
 
   return (
     <div className="day-view">
       <div className="day-nav">
-        <button className="day-nav-btn" onClick={prev}>‹</button>
+        <button className="day-nav-btn" onClick={prev}>
+          ‹
+        </button>
         <div className="day-nav-title">
-          <span className="day-nav-weekday">{date.toLocaleDateString("default",{weekday:"long"})}</span>
+          <span className="day-nav-weekday">
+            {date.toLocaleDateString("default", { weekday: "long" })}
+          </span>
           <span className="day-nav-date">
-            {date.toLocaleDateString("default",{month:"long",day:"numeric",year:"numeric"})}
+            {date.toLocaleDateString("default", {
+              month: "long",
+              day: "numeric",
+              year: "numeric",
+            })}
             {isToday && <span className="today-pill">Today</span>}
           </span>
         </div>
-        <button className="day-nav-btn" onClick={next}>›</button>
+        <button className="day-nav-btn" onClick={next}>
+          ›
+        </button>
       </div>
 
       {dayMeals.length === 0 ? (
@@ -190,26 +348,44 @@ function DayView({ date, meals, setDate, onEdit }) {
       ) : (
         <div className="day-timeline">
           {MEAL_TYPES.map((type, ti) => {
-            const typeMeals = dayMeals.filter(m => m.type === type);
+            const typeMeals = dayMeals.filter((m) => m.type === type);
             const tc = TYPE_COLORS[type];
             return (
               <div key={type} className="timeline-slot">
                 <div className="timeline-label-col">
-                  <div className="timeline-dot" style={{ background: tc.dot }} />
-                  {ti < MEAL_TYPES.length - 1 && <div className="timeline-line" />}
+                  <div
+                    className="timeline-dot"
+                    style={{ background: tc.dot }}
+                  />
+                  {ti < MEAL_TYPES.length - 1 && (
+                    <div className="timeline-line" />
+                  )}
                 </div>
                 <div className="timeline-content">
-                  <div className="timeline-type-label" style={{ color: tc.text }}>{tc.label}</div>
+                  <div
+                    className="timeline-type-label"
+                    style={{ color: tc.text }}
+                  >
+                    {tc.label}
+                  </div>
                   {typeMeals.length === 0 ? (
                     <div className="timeline-empty-slot">
                       <button className="btn-add-slot">+ Add</button>
                     </div>
                   ) : (
-                    typeMeals.map(meal => (
-                      <div key={meal.id} className="timeline-meal-card" onClick={() => onEdit(meal)}
-                        style={{ borderLeft: `3px solid ${tc.dot}` }}>
+                    typeMeals.map((meal) => (
+                      <div
+                        key={meal.id}
+                        className="timeline-meal-card"
+                        onClick={() => onEdit(meal)}
+                        style={{ borderLeft: `3px solid ${tc.dot}` }}
+                      >
                         <span className="timeline-meal-name">{meal.name}</span>
-                        {meal.notes && <span className="timeline-meal-notes">{meal.notes}</span>}
+                        {meal.notes && (
+                          <span className="timeline-meal-notes">
+                            {meal.notes}
+                          </span>
+                        )}
                       </div>
                     ))
                   )}
@@ -230,43 +406,87 @@ function WeekView({ date, meals, setDate, onEdit }) {
   const dow = (weekStart.getDay() + 6) % 7;
   weekStart.setDate(weekStart.getDate() - dow);
 
-  const days = Array.from({length:7}, (_,i) => { const d = new Date(weekStart); d.setDate(d.getDate()+i); return d; });
-  const today = new Date(2026,2,12);
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+  const today = new Date(2026, 2, 12);
 
-  const prevWeek = () => { const d = new Date(date); d.setDate(d.getDate()-7); setDate(d); };
-  const nextWeek = () => { const d = new Date(date); d.setDate(d.getDate()+7); setDate(d); };
+  const prevWeek = () => {
+    const d = new Date(date);
+    d.setDate(d.getDate() - 7);
+    setDate(d);
+  };
+  const nextWeek = () => {
+    const d = new Date(date);
+    d.setDate(d.getDate() + 7);
+    setDate(d);
+  };
 
-  const startLabel = days[0].toLocaleDateString("default",{month:"short",day:"numeric"});
-  const endLabel = days[6].toLocaleDateString("default",{month:"short",day:"numeric",year:"numeric"});
+  const startLabel = days[0].toLocaleDateString("default", {
+    month: "short",
+    day: "numeric",
+  });
+  const endLabel = days[6].toLocaleDateString("default", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 
   return (
     <div className="week-view">
       <div className="week-nav">
-        <button className="day-nav-btn" onClick={prevWeek}>‹</button>
-        <span className="week-nav-label">{startLabel} — {endLabel}</span>
-        <button className="day-nav-btn" onClick={nextWeek}>›</button>
+        <button className="day-nav-btn" onClick={prevWeek}>
+          ‹
+        </button>
+        <span className="week-nav-label">
+          {startLabel} — {endLabel}
+        </span>
+        <button className="day-nav-btn" onClick={nextWeek}>
+          ›
+        </button>
       </div>
       <div className="week-grid">
         {days.map((day, di) => {
           const dayMeals = mealsForDay(meals, day);
           const isToday = isSameDay(day, today);
           return (
-            <div key={di} className={`week-col ${isToday ? "week-col-today" : ""}`}>
+            <div
+              key={di}
+              className={`week-col ${isToday ? "week-col-today" : ""}`}
+            >
               <div className="week-col-header">
-                <span className="week-col-weekday">{DAYS[(day.getDay())]}</span>
-                <span className={`week-col-num ${isToday ? "week-col-num-today" : ""}`}>{day.getDate()}</span>
+                <span className="week-col-weekday">{DAYS[day.getDay()]}</span>
+                <span
+                  className={`week-col-num ${isToday ? "week-col-num-today" : ""}`}
+                >
+                  {day.getDate()}
+                </span>
               </div>
               <div className="week-col-meals">
                 {dayMeals.length === 0 ? (
                   <div className="week-empty-day">—</div>
                 ) : (
-                  dayMeals.map(meal => {
+                  dayMeals.map((meal) => {
                     const tc = TYPE_COLORS[meal.type];
                     return (
-                      <button key={meal.id} className="week-chip" onClick={() => onEdit(meal)}
-                        style={{ background: tc.bg, borderLeft: `3px solid ${tc.dot}` }}>
+                      <button
+                        key={meal.id}
+                        className="week-chip"
+                        onClick={() => onEdit(meal)}
+                        style={{
+                          background: tc.bg,
+                          borderLeft: `3px solid ${tc.dot}`,
+                        }}
+                      >
                         <span className="week-chip-name">{meal.name}</span>
-                        <span className="week-chip-type" style={{ color: tc.text }}>{tc.label}</span>
+                        <span
+                          className="week-chip-type"
+                          style={{ color: tc.text }}
+                        >
+                          {tc.label}
+                        </span>
                       </button>
                     );
                   })
@@ -283,16 +503,27 @@ function WeekView({ date, meals, setDate, onEdit }) {
 // ─── Month View ───────────────────────────────────────────────────────────────
 function MonthView({ date, meals, setDate, onEdit }) {
   const [popover, setPopover] = useState(null); // { date, x, y }
-  const today = new Date(2026,2,12);
+  const today = new Date(2026, 2, 12);
 
-  const year = date.getFullYear(), month = date.getMonth();
+  const year = date.getFullYear(),
+    month = date.getMonth();
   const firstDay = new Date(year, month, 1);
   const startOffset = (firstDay.getDay() + 6) % 7; // Mon start
-  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
   const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
 
-  const prevMonth = () => { const d = new Date(date); d.setDate(1); d.setMonth(d.getMonth()-1); setDate(d); };
-  const nextMonth = () => { const d = new Date(date); d.setDate(1); d.setMonth(d.getMonth()+1); setDate(d); };
+  const prevMonth = () => {
+    const d = new Date(date);
+    d.setDate(1);
+    d.setMonth(d.getMonth() - 1);
+    setDate(d);
+  };
+  const nextMonth = () => {
+    const d = new Date(date);
+    d.setDate(1);
+    d.setMonth(d.getMonth() + 1);
+    setDate(d);
+  };
 
   const handleDayClick = (e, day) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -302,33 +533,55 @@ function MonthView({ date, meals, setDate, onEdit }) {
   return (
     <div className="month-view">
       <div className="month-nav">
-        <button className="day-nav-btn" onClick={prevMonth}>‹</button>
-        <span className="month-nav-label">{MONTHS[month]} {year}</span>
-        <button className="day-nav-btn" onClick={nextMonth}>›</button>
+        <button className="day-nav-btn" onClick={prevMonth}>
+          ‹
+        </button>
+        <span className="month-nav-label">
+          {MONTHS[month]} {year}
+        </span>
+        <button className="day-nav-btn" onClick={nextMonth}>
+          ›
+        </button>
       </div>
 
       <div className="month-grid">
         {/* Day headers */}
-        {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
-          <div key={d} className="month-day-header">{d}</div>
+        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+          <div key={d} className="month-day-header">
+            {d}
+          </div>
         ))}
 
         {/* Cells */}
-        {Array.from({length: totalCells}, (_, i) => {
+        {Array.from({ length: totalCells }, (_, i) => {
           const dayNum = i - startOffset + 1;
-          if (dayNum < 1 || dayNum > daysInMonth) return <div key={i} className="month-cell month-cell-empty" />;
+          if (dayNum < 1 || dayNum > daysInMonth)
+            return <div key={i} className="month-cell month-cell-empty" />;
           const cellDate = new Date(year, month, dayNum);
           const cellMeals = mealsForDay(meals, cellDate);
           const isToday = isSameDay(cellDate, today);
 
           return (
-            <div key={i} className={`month-cell ${isToday ? "month-cell-today" : ""} ${cellMeals.length ? "month-cell-has-meals" : ""}`}
-              onClick={(e) => cellMeals.length && handleDayClick(e, cellDate)}>
-              <span className={`month-cell-num ${isToday ? "month-cell-num-today" : ""}`}>{dayNum}</span>
+            <div
+              key={i}
+              className={`month-cell ${isToday ? "month-cell-today" : ""} ${cellMeals.length ? "month-cell-has-meals" : ""}`}
+              onClick={(e) => cellMeals.length && handleDayClick(e, cellDate)}
+            >
+              <span
+                className={`month-cell-num ${isToday ? "month-cell-num-today" : ""}`}
+              >
+                {dayNum}
+              </span>
               <div className="month-dots">
-                {MEAL_TYPES.map(type => {
-                  const has = cellMeals.some(m => m.type === type);
-                  return has ? <span key={type} className="month-dot" style={{ background: TYPE_COLORS[type].dot }} /> : null;
+                {MEAL_TYPES.map((type) => {
+                  const has = cellMeals.some((m) => m.type === type);
+                  return has ? (
+                    <span
+                      key={type}
+                      className="month-dot"
+                      style={{ background: TYPE_COLORS[type].dot }}
+                    />
+                  ) : null;
                 })}
               </div>
             </div>
@@ -340,22 +593,52 @@ function MonthView({ date, meals, setDate, onEdit }) {
       {popover && (
         <>
           <div className="popover-backdrop" onClick={() => setPopover(null)} />
-          <div className="month-popover" style={{ top: Math.min(popover.y, window.innerHeight - 320), left: Math.min(popover.x, window.innerWidth - 260) }}>
+          <div
+            className="month-popover"
+            style={{
+              top: Math.min(popover.y, window.innerHeight - 320),
+              left: Math.min(popover.x, window.innerWidth - 260),
+            }}
+          >
             <div className="popover-header">
               <span className="popover-date">
-                {popover.date.toLocaleDateString("default",{weekday:"long",month:"short",day:"numeric"})}
+                {popover.date.toLocaleDateString("default", {
+                  weekday: "long",
+                  month: "short",
+                  day: "numeric",
+                })}
               </span>
-              <button className="popover-close" onClick={() => setPopover(null)}>✕</button>
+              <button
+                className="popover-close"
+                onClick={() => setPopover(null)}
+              >
+                ✕
+              </button>
             </div>
             <div className="popover-meals">
-              {mealsForDay(meals, popover.date).map(meal => {
+              {mealsForDay(meals, popover.date).map((meal) => {
                 const tc = TYPE_COLORS[meal.type];
                 return (
-                  <button key={meal.id} className="popover-meal-row" onClick={() => { onEdit(meal); setPopover(null); }}>
-                    <span className="popover-dot" style={{ background: tc.dot }} />
+                  <button
+                    key={meal.id}
+                    className="popover-meal-row"
+                    onClick={() => {
+                      onEdit(meal);
+                      setPopover(null);
+                    }}
+                  >
+                    <span
+                      className="popover-dot"
+                      style={{ background: tc.dot }}
+                    />
                     <div className="popover-meal-info">
                       <span className="popover-meal-name">{meal.name}</span>
-                      <span className="popover-meal-type" style={{ color: tc.text }}>{tc.label}</span>
+                      <span
+                        className="popover-meal-type"
+                        style={{ color: tc.text }}
+                      >
+                        {tc.label}
+                      </span>
                     </div>
                     <span className="popover-edit-hint">Edit →</span>
                   </button>
@@ -372,26 +655,39 @@ function MonthView({ date, meals, setDate, onEdit }) {
 // ─── Main Calendar Page ────────────────────────────────────────────────────────
 export default function CalendarPage() {
   const [view, setView] = useState(() => {
-    try { return localStorage.getItem("cal_view") || "week"; } catch { return "week"; }
+    try {
+      return localStorage.getItem("cal_view") || "week";
+    } catch {
+      return "week";
+    }
   });
-  const [date, setDate] = useState(new Date(2026,2,12));
+  const [date, setDate] = useState(new Date(2026, 2, 12));
   const [meals, setMeals] = useState(MEALS_DATA);
   const [editMeal, setEditMeal] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const activePage = "Calendar";
-  const NAV_ITEMS = ["Home","Calendar","Meal Plan","Grocery List","Stats"];
+  const NAV_ITEMS = ["Home", "Calendar", "Meal Plan", "Grocery List", "Stats"];
 
   const switchView = (v) => {
     setView(v);
-    try { localStorage.setItem("cal_view", v); } catch {}
+    try {
+      localStorage.setItem("cal_view", v);
+    } catch {}
   };
 
   const handleSave = (updated) => {
-    setMeals(ms => ms.map(m => m.id === updated.id ? updated : m));
+    setMeals((ms) => ms.map((m) => (m.id === updated.id ? updated : m)));
   };
 
   return (
-    <div style={{ fontFamily: "'Nunito', sans-serif", background: "#F5F0E8", minHeight: "100vh", color: "#2C2416" }}>
+    <div
+      style={{
+        fontFamily: "'Nunito', sans-serif",
+        background: "#F5F0E8",
+        minHeight: "100vh",
+        color: "#2C2416",
+      }}
+    >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Nunito:wght@400;500;600;700;800&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -587,21 +883,33 @@ export default function CalendarPage() {
       <header className="header">
         <div className="logo">🍳 Copilot Chef</div>
         <nav className="nav-desktop">
-          {NAV_ITEMS.map(item => (
-            <button key={item} className={`nav-link ${item === activePage ? "active" : ""}`}>{item}</button>
+          {NAV_ITEMS.map((item) => (
+            <button
+              key={item}
+              className={`nav-link ${item === activePage ? "active" : ""}`}
+            >
+              {item}
+            </button>
           ))}
         </nav>
         <div className="nav-right">
-          <button className="hamburger" onClick={() => setMenuOpen(o => !o)}>
-            <span/><span/><span/>
+          <button className="hamburger" onClick={() => setMenuOpen((o) => !o)}>
+            <span />
+            <span />
+            <span />
           </button>
           <button className="settings-btn">⚙️</button>
         </div>
       </header>
       <div className={`mobile-menu ${menuOpen ? "open" : ""}`}>
-        {NAV_ITEMS.map(item => (
-          <button key={item} className={`mobile-nav-link ${item === activePage ? "active" : ""}`}
-            onClick={() => setMenuOpen(false)}>{item}</button>
+        {NAV_ITEMS.map((item) => (
+          <button
+            key={item}
+            className={`mobile-nav-link ${item === activePage ? "active" : ""}`}
+            onClick={() => setMenuOpen(false)}
+          >
+            {item}
+          </button>
         ))}
       </div>
 
@@ -612,17 +920,32 @@ export default function CalendarPage() {
             <div className="eyebrow">Calendar</div>
             <h1 className="page-title">Weekly Meal Calendar</h1>
             <p className="page-sub">
-              {view === "day" && date.toLocaleDateString("default",{weekday:"long",month:"long",day:"numeric",year:"numeric"})}
+              {view === "day" &&
+                date.toLocaleDateString("default", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
               {view === "week" && "Plan and review your meals week by week."}
-              {view === "month" && `${MONTHS[date.getMonth()]} ${date.getFullYear()}`}
+              {view === "month" &&
+                `${MONTHS[date.getMonth()]} ${date.getFullYear()}`}
             </p>
           </div>
           <div className="page-header-right">
-            <button className="btn-today" onClick={() => setDate(new Date(2026,2,12))}>Today</button>
+            <button
+              className="btn-today"
+              onClick={() => setDate(new Date(2026, 2, 12))}
+            >
+              Today
+            </button>
             <div className="view-toggle">
-              {["day","week","month"].map(v => (
-                <button key={v} className={`view-btn ${view === v ? "active" : ""}`}
-                  onClick={() => switchView(v)}>
+              {["day", "week", "month"].map((v) => (
+                <button
+                  key={v}
+                  className={`view-btn ${view === v ? "active" : ""}`}
+                  onClick={() => switchView(v)}
+                >
                   {v.charAt(0).toUpperCase() + v.slice(1)}
                 </button>
               ))}
@@ -632,17 +955,67 @@ export default function CalendarPage() {
 
         {/* Calendar card */}
         <div className="cal-card">
-          {view === "day" && <DayView date={date} meals={meals} setDate={setDate} onEdit={setEditMeal} />}
-          {view === "week" && <WeekView date={date} meals={meals} setDate={setDate} onEdit={setEditMeal} />}
-          {view === "month" && <MonthView date={date} meals={meals} setDate={setDate} onEdit={setEditMeal} />}
+          {view === "day" && (
+            <DayView
+              date={date}
+              meals={meals}
+              setDate={setDate}
+              onEdit={setEditMeal}
+            />
+          )}
+          {view === "week" && (
+            <WeekView
+              date={date}
+              meals={meals}
+              setDate={setDate}
+              onEdit={setEditMeal}
+            />
+          )}
+          {view === "month" && (
+            <MonthView
+              date={date}
+              meals={meals}
+              setDate={setDate}
+              onEdit={setEditMeal}
+            />
+          )}
         </div>
 
         {/* Legend */}
-        <div style={{ display:"flex", gap:"1.25rem", flexWrap:"wrap", marginTop:"1rem", paddingLeft:"0.25rem" }}>
-          {MEAL_TYPES.map(type => (
-            <div key={type} style={{ display:"flex", alignItems:"center", gap:"0.4rem" }}>
-              <span style={{ width:8, height:8, borderRadius:"50%", background:TYPE_COLORS[type].dot, display:"inline-block", flexShrink:0 }} />
-              <span style={{ fontFamily:"'Nunito',sans-serif", fontSize:"0.7rem", fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "1.25rem",
+            flexWrap: "wrap",
+            marginTop: "1rem",
+            paddingLeft: "0.25rem",
+          }}
+        >
+          {MEAL_TYPES.map((type) => (
+            <div
+              key={type}
+              style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: TYPE_COLORS[type].dot,
+                  display: "inline-block",
+                  flexShrink: 0,
+                }}
+              />
+              <span
+                style={{
+                  fontFamily: "'Nunito',sans-serif",
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  color: "var(--text-muted)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                }}
+              >
                 {TYPE_COLORS[type].label}
               </span>
             </div>
@@ -651,7 +1024,13 @@ export default function CalendarPage() {
       </main>
 
       {/* Edit Modal */}
-      {editMeal && <EditModal meal={editMeal} onClose={() => setEditMeal(null)} onSave={handleSave} />}
+      {editMeal && (
+        <EditModal
+          meal={editMeal}
+          onClose={() => setEditMeal(null)}
+          onSave={handleSave}
+        />
+      )}
     </div>
   );
 }

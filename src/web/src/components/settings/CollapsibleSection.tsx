@@ -14,7 +14,12 @@ type CollapsibleSectionProps = {
   children: ReactNode;
 };
 
-export function CollapsibleSection({ id, label, defaultOpen = true, children }: CollapsibleSectionProps) {
+export function CollapsibleSection({
+  id,
+  label,
+  defaultOpen = true,
+  children,
+}: CollapsibleSectionProps) {
   const storageKey = `settings-section-${id}`;
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -39,12 +44,27 @@ export function CollapsibleSection({ id, label, defaultOpen = true, children }: 
 
   return (
     <section className={styles.section}>
-      <button className={styles.sectionButton} onClick={() => setIsOpen((open) => !open)} type="button">
-        <ChevronDown className={cn(styles.sectionChevron, !isOpen && styles.sectionChevronClosed)} size={18} />
+      <button
+        className={styles.sectionButton}
+        onClick={() => setIsOpen((open) => !open)}
+        type="button"
+      >
+        <ChevronDown
+          className={cn(
+            styles.sectionChevron,
+            !isOpen && styles.sectionChevronClosed
+          )}
+          size={18}
+        />
         <span className={styles.sectionLabel}>{label}</span>
         <span aria-hidden className={styles.sectionRule} />
       </button>
-      <div className={cn(styles.sectionContent, !isOpen && styles.sectionContentClosed)}>
+      <div
+        className={cn(
+          styles.sectionContent,
+          !isOpen && styles.sectionContentClosed
+        )}
+      >
         <div className={styles.sectionInner}>{children}</div>
       </div>
     </section>

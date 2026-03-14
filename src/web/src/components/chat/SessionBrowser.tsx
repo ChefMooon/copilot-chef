@@ -48,7 +48,11 @@ export function SessionBrowser() {
     <div className={styles.sessionBrowser}>
       <div className={styles.sessionBrowserHeader}>
         <span className={styles.sessionBrowserTitle}>Chat History</span>
-        <button className={styles.newChatBtn} onClick={clearSession} type="button">
+        <button
+          className={styles.newChatBtn}
+          onClick={clearSession}
+          type="button"
+        >
           + New Chat
         </button>
       </div>
@@ -66,7 +70,9 @@ export function SessionBrowser() {
               onClick={() => void loadSession(session.id)}
               role="button"
               tabIndex={0}
-              onKeyDown={(e) => { if (e.key === "Enter") void loadSession(session.id); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void loadSession(session.id);
+              }}
             >
               <div className={styles.sessionItemMain}>
                 <span className={styles.sessionItemTitle}>

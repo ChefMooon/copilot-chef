@@ -42,18 +42,33 @@ export function NewListModal({ onClose, onCreate }: Props) {
       <div className={styles.newListModal}>
         <div className={styles.newListHeader}>
           <h3 className={styles.newListTitle}>New Grocery List</h3>
-          <button className={styles.modalCloseBtn} onClick={onClose} type="button">
+          <button
+            className={styles.modalCloseBtn}
+            onClick={onClose}
+            type="button"
+          >
             ✕
           </button>
         </div>
         <div className={styles.newListBody}>
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>List Name</label>
-            <input autoFocus className={styles.formInput} onChange={(event) => setName(event.target.value)} placeholder="e.g. This Week's Shop" value={name} />
+            <input
+              autoFocus
+              className={styles.formInput}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="e.g. This Week's Shop"
+              value={name}
+            />
           </div>
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Date</label>
-            <input className={styles.formInput} onChange={(event) => setDate(event.target.value)} type="date" value={date} />
+            <input
+              className={styles.formInput}
+              onChange={(event) => setDate(event.target.value)}
+              type="date"
+              value={date}
+            />
           </div>
         </div>
         <div className={styles.newListFooter}>

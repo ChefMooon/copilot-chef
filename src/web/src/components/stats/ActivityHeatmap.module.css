@@ -1,0 +1,89 @@
+.wrap {
+  overflow-x: auto;
+  width: 100%;
+  padding-bottom: 0.5rem;
+}
+
+.inner {
+  width: fit-content;
+  min-width: 100%;
+}
+
+.monthRow {
+  display: grid;
+  grid-template-columns: 18px repeat(52, 10px);
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+.monthCell {
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 18px repeat(52, 10px);
+  grid-template-rows: repeat(7, 10px);
+  gap: 2px;
+}
+
+.dayLabel {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 2px;
+  color: var(--text-muted);
+  font-size: 0.55rem;
+  font-weight: 700;
+}
+
+.square {
+  width: 10px;
+  height: 10px;
+  border: none;
+  border-radius: 2px;
+  cursor: default;
+  transition: transform 0.1s ease;
+}
+
+.square:hover {
+  transform: scale(1.5);
+  z-index: 2;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 8px;
+}
+
+.legendLabel {
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 600;
+}
+
+.legendSquare {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 9999;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--text);
+  color: #fffdf8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 8px));
+  white-space: nowrap;
+}

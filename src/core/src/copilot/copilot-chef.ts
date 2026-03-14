@@ -1,6 +1,10 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { approveAll, defineTool, type CopilotSession } from "@github/copilot-sdk";
+import {
+  approveAll,
+  defineTool,
+  type CopilotSession,
+} from "@github/copilot-sdk";
 import { z } from "zod";
 
 import { getClient } from "../lib/copilot-client";
@@ -22,7 +26,7 @@ const mealTypeSchema = z.enum([
   "LUNCH",
   "AFTERNOON_SNACK",
   "DINNER",
-  "SNACK"
+  "SNACK",
 ]);
 
 const createMealArgsSchema = z.object({
@@ -30,13 +34,13 @@ const createMealArgsSchema = z.object({
   mealType: mealTypeSchema,
   date: z.string(),
   notes: z.string().nullable().optional(),
-  ingredients: z.array(z.string()).optional()
+  ingredients: z.array(z.string()).optional(),
 });
 
 const listMealsArgsSchema = z
   .object({
     from: z.string().optional(),
-    to: z.string().optional()
+    to: z.string().optional(),
   })
   .optional();
 
@@ -84,13 +88,15 @@ export class CopilotChef {
     const [mealPlan, groceryList, preferences] = await Promise.all([
       this.mealPlanService.getCurrentMealPlan(),
       this.groceryService.getCurrentGroceryList(),
-      this.preferenceService.getPreferences()
+      this.preferenceService.getPreferences(),
     ]);
 
     let customPersonaPrompt: string | undefined;
     if (preferences && !BUILT_IN_PERSONA_KEYS.has(preferences.chefPersona)) {
       try {
-        const persona = await this.personaService.findById(preferences.chefPersona);
+        const persona = await this.personaService.findById(
+          preferences.chefPersona
+        );
         customPersonaPrompt = persona?.prompt;
       } catch {
         // persona may have been deleted; fall back to default
@@ -104,7 +110,9 @@ export class CopilotChef {
   // Session management
   // ---------------------------------------------------------------------------
 
-  private async createCopilotSession(extraContext?: string): Promise<CopilotSession> {
+  private async createCopilotSession(
+    extraContext?: string
+  ): Promise<CopilotSession> {
     ensureConfigDir();
     const client = await getClient();
     const context = await this.buildContext();
@@ -122,28 +130,36 @@ export class CopilotChef {
             properties: {
               name: {
                 type: "string",
-                description: "Meal name, e.g. Grilled Cheese"
+                description: "Meal name, e.g. Grilled Cheese",
               },
               mealType: {
                 type: "string",
-                enum: ["BREAKFAST", "MORNING_SNACK", "LUNCH", "AFTERNOON_SNACK", "DINNER", "SNACK"],
-                description: "Meal type"
+                enum: [
+                  "BREAKFAST",
+                  "MORNING_SNACK",
+                  "LUNCH",
+                  "AFTERNOON_SNACK",
+                  "DINNER",
+                  "SNACK",
+                ],
+                description: "Meal type",
               },
               date: {
                 type: "string",
-                description: "ISO date or date-time string for when the meal should occur"
+                description:
+                  "ISO date or date-time string for when the meal should occur",
               },
               notes: {
                 type: ["string", "null"],
-                description: "Optional notes for prep or preferences"
+                description: "Optional notes for prep or preferences",
               },
               ingredients: {
                 type: "array",
                 items: { type: "string" },
-                description: "Optional ingredient names"
-              }
+                description: "Optional ingredient names",
+              },
             },
-            required: ["name", "mealType", "date"]
+            required: ["name", "mealType", "date"],
           },
           handler: async (rawArgs) => {
             const args = createMealArgsSchema.parse(rawArgs);
@@ -153,15 +169,15 @@ export class CopilotChef {
               mealType: args.mealType,
               date: new Date(args.date).toISOString(),
               notes: args.notes ?? null,
-              ingredients: args.ingredients ?? []
+              ingredients: args.ingredients ?? [],
             });
 
             return {
               success: true,
               meal: created,
-              message: `Added ${created.name} for ${created.mealType.toLowerCase().replace("_", " ")} on ${new Date(created.date).toLocaleDateString()}.`
+              message: `Added ${created.name} for ${created.mealType.toLowerCase().replace("_", " ")} on ${new Date(created.date).toLocaleDateString()}.`,
             };
-          }
+          },
         }),
         defineTool("list_meals", {
           description: "List meals for the current meal plan context.",
@@ -169,26 +185,29 @@ export class CopilotChef {
             type: "object",
             properties: {
               from: { type: "string", description: "Optional ISO start date" },
-              to: { type: "string", description: "Optional ISO end date" }
-            }
+              to: { type: "string", description: "Optional ISO end date" },
+            },
           },
           handler: async (rawArgs) => {
             const args = listMealsArgsSchema.parse(rawArgs);
             if (args?.from && args?.to) {
-              const meals = await this.mealService.listMealsInRange(args.from, args.to);
+              const meals = await this.mealService.listMealsInRange(
+                args.from,
+                args.to
+              );
               return { count: meals.length, meals };
             }
 
             const plan = await this.mealPlanService.getCurrentMealPlan();
             return {
               count: plan?.meals.length ?? 0,
-              meals: plan?.meals ?? []
+              meals: plan?.meals ?? [],
             };
-          }
-        })
+          },
+        }),
       ],
       systemMessage: { content: systemMessage },
-      onPermissionRequest: approveAll
+      onPermissionRequest: approveAll,
     });
   }
 
@@ -233,7 +252,8 @@ export class CopilotChef {
     sessionId?: string,
     pageContext?: string
   ): Promise<{ sessionId: string; stream: ReadableStream<Uint8Array> }> {
-    const { session, sessionId: activeId } = await this.ensureSession(sessionId);
+    const { session, sessionId: activeId } =
+      await this.ensureSession(sessionId);
     const encoder = new TextEncoder();
 
     const prompt = pageContext
@@ -262,7 +282,7 @@ export class CopilotChef {
               // already errored
             }
           });
-      }
+      },
     });
 
     return { sessionId: activeId, stream };

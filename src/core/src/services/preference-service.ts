@@ -5,7 +5,12 @@ import { prisma } from "../lib/prisma";
 
 const SINGLETON_ID = "default";
 
-const csvFields = ["dietaryTags", "favoriteCuisines", "avoidCuisines", "nutritionTags"] as const;
+const csvFields = [
+  "dietaryTags",
+  "favoriteCuisines",
+  "avoidCuisines",
+  "nutritionTags",
+] as const;
 const orderedListFields = ["avoidIngredients", "pantryStaples"] as const;
 const stringFields = [
   "cookingLength",
@@ -17,7 +22,7 @@ const stringFields = [
   "emojiUsage",
   "seasonalRegion",
   "defaultPlanLength",
-  "groceryGrouping"
+  "groceryGrouping",
 ] as const;
 const booleanFields = [
   "autoImproveChef",
@@ -26,7 +31,7 @@ const booleanFields = [
   "proactiveTips",
   "autoGenerateGrocery",
   "consolidateIngredients",
-  "saveChatHistory"
+  "saveChatHistory",
 ] as const;
 
 export type PreferenceListField = (typeof orderedListFields)[number];
@@ -61,7 +66,9 @@ export type PreferencesPayload = {
   saveChatHistory: boolean;
 };
 
-export type PreferenceUpdateInput = Partial<Omit<PreferencesPayload, "id" | "createdAt" | "updatedAt">>;
+export type PreferenceUpdateInput = Partial<
+  Omit<PreferencesPayload, "id" | "createdAt" | "updatedAt">
+>;
 
 const DEFAULT_PREFERENCE_VALUES = {
   householdSize: 2,
@@ -87,7 +94,7 @@ const DEFAULT_PREFERENCE_VALUES = {
   consolidateIngredients: true,
   defaultPlanLength: "7",
   groceryGrouping: "category",
-  saveChatHistory: true
+  saveChatHistory: true,
 } satisfies Prisma.UserPreferenceCreateInput;
 
 function splitCsv(value: string) {
@@ -105,7 +112,10 @@ function joinCsv(values: string[]) {
 }
 
 function normalizeStringArray(values: string[], field: string) {
-  if (!Array.isArray(values) || values.some((value) => typeof value !== "string")) {
+  if (
+    !Array.isArray(values) ||
+    values.some((value) => typeof value !== "string")
+  ) {
     throw new Error(`Expected ${field} to be an array of strings`);
   }
 
@@ -130,7 +140,10 @@ function parseOrderedList(value: string) {
       return [];
     }
 
-    return normalizeStringArray(parsed.filter((item): item is string => typeof item === "string"), "list");
+    return normalizeStringArray(
+      parsed.filter((item): item is string => typeof item === "string"),
+      "list"
+    );
   } catch {
     return [];
   }
@@ -164,7 +177,7 @@ function serializePreferences(preferences: UserPreference): PreferencesPayload {
     consolidateIngredients: preferences.consolidateIngredients,
     defaultPlanLength: preferences.defaultPlanLength,
     groceryGrouping: preferences.groceryGrouping,
-    saveChatHistory: preferences.saveChatHistory
+    saveChatHistory: preferences.saveChatHistory,
   };
 }
 
@@ -172,11 +185,16 @@ function hasOwn<T extends object>(value: T, key: PropertyKey): key is keyof T {
   return Object.prototype.hasOwnProperty.call(value, key);
 }
 
-function normalizePatch(input: PreferenceUpdateInput): Prisma.UserPreferenceUpdateInput {
+function normalizePatch(
+  input: PreferenceUpdateInput
+): Prisma.UserPreferenceUpdateInput {
   const patch: Prisma.UserPreferenceUpdateInput = {};
 
   if (hasOwn(input, "householdSize")) {
-    if (typeof input.householdSize !== "number" || !Number.isInteger(input.householdSize)) {
+    if (
+      typeof input.householdSize !== "number" ||
+      !Number.isInteger(input.householdSize)
+    ) {
       throw new Error("Expected householdSize to be an integer");
     }
     patch.householdSize = input.householdSize;
@@ -232,8 +250,8 @@ export class PreferenceService {
       update: {},
       create: {
         id: SINGLETON_ID,
-        ...DEFAULT_PREFERENCE_VALUES
-      }
+        ...DEFAULT_PREFERENCE_VALUES,
+      },
     });
   }
 
@@ -241,8 +259,8 @@ export class PreferenceService {
     const preferences = await prisma.userPreference.update({
       where: { id: SINGLETON_ID },
       data: {
-        [field]: JSON.stringify(normalizeStringArray(values, field))
-      }
+        [field]: JSON.stringify(normalizeStringArray(values, field)),
+      },
     });
 
     return serializePreferences(preferences);
@@ -265,7 +283,7 @@ export class PreferenceService {
 
     const preferences = await prisma.userPreference.update({
       where: { id: SINGLETON_ID },
-      data: patch
+      data: patch,
     });
 
     return serializePreferences(preferences);
@@ -279,8 +297,8 @@ export class PreferenceService {
       update: DEFAULT_PREFERENCE_VALUES,
       create: {
         id: SINGLETON_ID,
-        ...DEFAULT_PREFERENCE_VALUES
-      }
+        ...DEFAULT_PREFERENCE_VALUES,
+      },
     });
 
     return serializePreferences(preferences);
@@ -295,7 +313,11 @@ export class PreferenceService {
     }
 
     const nextValues = [...current[field]];
-    if (!nextValues.some((item) => item.toLowerCase() === normalized.toLowerCase())) {
+    if (
+      !nextValues.some(
+        (item) => item.toLowerCase() === normalized.toLowerCase()
+      )
+    ) {
       nextValues.push(normalized);
     }
 
@@ -305,7 +327,9 @@ export class PreferenceService {
   async removeFromList(field: PreferenceListField, value: string) {
     await bootstrapDatabase();
     const current = await this.getPreferences();
-    const nextValues = current[field].filter((item) => item.toLowerCase() !== value.trim().toLowerCase());
+    const nextValues = current[field].filter(
+      (item) => item.toLowerCase() !== value.trim().toLowerCase()
+    );
     return this.writeOrderedList(field, nextValues);
   }
 

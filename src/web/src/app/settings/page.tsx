@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+} from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { PersonaModal } from "@/components/settings/PersonaModal";
@@ -22,7 +28,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useChatContext, useChatPageContext } from "@/context/chat-context";
@@ -54,7 +60,7 @@ const dietaryOptions = [
   { label: "Gluten-free", value: "gluten-free" },
   { label: "Dairy-free", value: "dairy-free" },
   { label: "Halal", value: "halal" },
-  { label: "Kosher", value: "kosher" }
+  { label: "Kosher", value: "kosher" },
 ];
 
 const cuisineOptions = [
@@ -69,7 +75,7 @@ const cuisineOptions = [
   { label: "Middle Eastern", value: "middle-eastern" },
   { label: "French", value: "french" },
   { label: "Chinese", value: "chinese" },
-  { label: "American BBQ", value: "american-bbq" }
+  { label: "American BBQ", value: "american-bbq" },
 ];
 
 const nutritionOptions = [
@@ -80,48 +86,78 @@ const nutritionOptions = [
   { label: "Low calorie", value: "low-calorie" },
   { label: "Anti-inflammatory", value: "anti-inflammatory" },
   { label: "Gut health", value: "gut-health" },
-  { label: "Heart-healthy", value: "heart-healthy" }
+  { label: "Heart-healthy", value: "heart-healthy" },
 ];
 
 const cookingLengthOptions = [
   { label: "Quick (< 20 min)", value: "quick" },
   { label: "Weeknight-friendly (~30 min)", value: "weeknight" },
   { label: "Relaxed (45-60 min)", value: "relaxed" },
-  { label: "Weekend projects (1 hr+)", value: "weekend" }
+  { label: "Weekend projects (1 hr+)", value: "weekend" },
 ];
 
 const skillOptions = [
   { label: "Beginner", value: "beginner" },
   { label: "Home cook", value: "home-cook" },
   { label: "Confident cook", value: "confident" },
-  { label: "Advanced", value: "advanced" }
+  { label: "Advanced", value: "advanced" },
 ];
 
 const budgetOptions = [
   { label: "Budget-friendly", value: "budget" },
   { label: "Moderate", value: "moderate" },
-  { label: "Premium ok", value: "premium" }
+  { label: "Premium ok", value: "premium" },
 ];
 
 const personaOptions = [
-  { value: "coach", icon: "🧑‍🍳", name: "The Coach", subtitle: "Encouraging, practical" },
-  { value: "scientist", icon: "👨‍🔬", name: "The Scientist", subtitle: "Precise, data-driven" },
-  { value: "entertainer", icon: "🎭", name: "The Entertainer", subtitle: "Witty, energetic" },
-  { value: "minimalist", icon: "🧘", name: "The Minimalist", subtitle: "Terse, efficient" },
-  { value: "professor", icon: "📚", name: "The Professor", subtitle: "Thoughtful, educational" },
-  { value: "michelin", icon: "⭐", name: "The Michelin", subtitle: "Refined, high standards" }
+  {
+    value: "coach",
+    icon: "🧑‍🍳",
+    name: "The Coach",
+    subtitle: "Encouraging, practical",
+  },
+  {
+    value: "scientist",
+    icon: "👨‍🔬",
+    name: "The Scientist",
+    subtitle: "Precise, data-driven",
+  },
+  {
+    value: "entertainer",
+    icon: "🎭",
+    name: "The Entertainer",
+    subtitle: "Witty, energetic",
+  },
+  {
+    value: "minimalist",
+    icon: "🧘",
+    name: "The Minimalist",
+    subtitle: "Terse, efficient",
+  },
+  {
+    value: "professor",
+    icon: "📚",
+    name: "The Professor",
+    subtitle: "Thoughtful, educational",
+  },
+  {
+    value: "michelin",
+    icon: "⭐",
+    name: "The Michelin",
+    subtitle: "Refined, high standards",
+  },
 ];
 
 const replyLengthOptions = [
   { label: "Concise", value: "concise" },
   { label: "Balanced", value: "balanced" },
-  { label: "Detailed", value: "detailed" }
+  { label: "Detailed", value: "detailed" },
 ];
 
 const emojiOptions = [
   { label: "Occasional", value: "occasional" },
   { label: "Frequent", value: "frequent" },
-  { label: "None", value: "none" }
+  { label: "None", value: "none" },
 ];
 
 const regionOptions = [
@@ -134,19 +170,19 @@ const regionOptions = [
   { label: "East Asia", value: "east-asia" },
   { label: "South Asia", value: "south-asia" },
   { label: "Australia / NZ", value: "australia-nz" },
-  { label: "Southern hemisphere", value: "southern-hemisphere" }
+  { label: "Southern hemisphere", value: "southern-hemisphere" },
 ];
 
 const planLengthOptions = [
   { label: "3 days", value: "3" },
   { label: "7 days (week)", value: "7" },
-  { label: "14 days", value: "14" }
+  { label: "14 days", value: "14" },
 ];
 
 const groupingOptions = [
   { label: "By category", value: "category" },
   { label: "By meal", value: "meal" },
-  { label: "Alphabetical", value: "alpha" }
+  { label: "Alphabetical", value: "alpha" },
 ];
 
 type ArrayPreferenceField =
@@ -175,13 +211,18 @@ function ToggleRow(props: {
 }
 
 function toggleValue(values: string[], value: string) {
-  return values.includes(value) ? values.filter((entry) => entry !== value) : [...values, value];
+  return values.includes(value)
+    ? values.filter((entry) => entry !== value)
+    : [...values, value];
 }
 
-function mergePreferences(current: SettingsPreferences, patch: Partial<SettingsPreferences>) {
+function mergePreferences(
+  current: SettingsPreferences,
+  patch: Partial<SettingsPreferences>
+) {
   return {
     ...current,
-    ...patch
+    ...patch,
   };
 }
 
@@ -201,7 +242,7 @@ export default function SettingsPage() {
   const clearHistoryMutation = useMutation({ mutationFn: clearChatHistory });
   const preferencesQuery = useQuery({
     queryKey: preferenceQueryKey,
-    queryFn: getPreferences
+    queryFn: getPreferences,
   });
 
   const preferences = preferencesQuery.data;
@@ -217,7 +258,9 @@ export default function SettingsPage() {
     | { open: false }
     | { open: true; mode: "create" }
     | { open: true; mode: "edit"; persona: CustomPersonaPayload };
-  const [personaModalState, setPersonaModalState] = useState<PersonaModalState>({ open: false });
+  const [personaModalState, setPersonaModalState] = useState<PersonaModalState>(
+    { open: false }
+  );
 
   const householdTimerRef = useRef<number | null>(null);
   const notesTimerRef = useRef<number | null>(null);
@@ -231,7 +274,9 @@ export default function SettingsPage() {
   const [notesScheduled, setNotesScheduled] = useState(false);
   const [pendingSaves, setPendingSaves] = useState(0);
   const [saveError, setSaveError] = useState(false);
-  const [detectState, setDetectState] = useState<"idle" | "detecting" | "success">("idle");
+  const [detectState, setDetectState] = useState<
+    "idle" | "detecting" | "success"
+  >("idle");
 
   useChatPageContext({ page: "settings" });
 
@@ -269,14 +314,22 @@ export default function SettingsPage() {
     return { label: "All changes saved", className: styles.autosaveSaved };
   }, [householdScheduled, notesScheduled, pendingSaves, saveError]);
 
-  async function commitPatch(patch: Partial<SettingsPreferences>, optimistic = true) {
+  async function commitPatch(
+    patch: Partial<SettingsPreferences>,
+    optimistic = true
+  ) {
     if (!preferences) {
       return null;
     }
 
-    const previous = queryClient.getQueryData<SettingsPreferences>(preferenceQueryKey) ?? preferences;
+    const previous =
+      queryClient.getQueryData<SettingsPreferences>(preferenceQueryKey) ??
+      preferences;
     if (optimistic) {
-      queryClient.setQueryData<SettingsPreferences>(preferenceQueryKey, mergePreferences(previous, patch));
+      queryClient.setQueryData<SettingsPreferences>(
+        preferenceQueryKey,
+        mergePreferences(previous, patch)
+      );
     }
 
     setSaveError(false);
@@ -331,14 +384,22 @@ export default function SettingsPage() {
     }, 600);
   };
 
-  const handleImmediateArrayToggle = async (field: ArrayPreferenceField, value: string) => {
+  const handleImmediateArrayToggle = async (
+    field: ArrayPreferenceField,
+    value: string
+  ) => {
     if (!preferences) {
       return;
     }
-    await commitPatch({ [field]: toggleValue(preferences[field], value) } as Partial<SettingsPreferences>);
+    await commitPatch({
+      [field]: toggleValue(preferences[field], value),
+    } as Partial<SettingsPreferences>);
   };
 
-  const handleCuisineToggle = async (group: "favoriteCuisines" | "avoidCuisines", value: string) => {
+  const handleCuisineToggle = async (
+    group: "favoriteCuisines" | "avoidCuisines",
+    value: string
+  ) => {
     if (!preferences) {
       return;
     }
@@ -347,7 +408,9 @@ export default function SettingsPage() {
     const avoids = [...preferences.avoidCuisines];
     const target = group === "favoriteCuisines" ? favorites : avoids;
     const other = group === "favoriteCuisines" ? avoids : favorites;
-    const nextTarget = target.includes(value) ? target.filter((entry) => entry !== value) : [...target, value];
+    const nextTarget = target.includes(value)
+      ? target.filter((entry) => entry !== value)
+      : [...target, value];
     const nextOther = other.filter((entry) => entry !== value);
 
     await commitPatch(
@@ -357,14 +420,19 @@ export default function SettingsPage() {
     );
   };
 
-  const handleChipAdd = async (field: "avoidIngredients" | "pantryStaples", values: string[]) => {
+  const handleChipAdd = async (
+    field: "avoidIngredients" | "pantryStaples",
+    values: string[]
+  ) => {
     if (!preferences) {
       return;
     }
 
     const merged = [...preferences[field]];
     values.forEach((value) => {
-      if (!merged.some((entry) => entry.toLowerCase() === value.toLowerCase())) {
+      if (
+        !merged.some((entry) => entry.toLowerCase() === value.toLowerCase())
+      ) {
         merged.push(value);
       }
     });
@@ -372,19 +440,30 @@ export default function SettingsPage() {
     await commitPatch({ [field]: merged } as Partial<SettingsPreferences>);
   };
 
-  const handleChipRemove = async (field: "avoidIngredients" | "pantryStaples", value: string) => {
+  const handleChipRemove = async (
+    field: "avoidIngredients" | "pantryStaples",
+    value: string
+  ) => {
     if (!preferences) {
       return;
     }
 
-    await commitPatch({ [field]: preferences[field].filter((entry) => entry !== value) } as Partial<SettingsPreferences>);
+    await commitPatch({
+      [field]: preferences[field].filter((entry) => entry !== value),
+    } as Partial<SettingsPreferences>);
   };
 
-  const handleChipReorder = async (field: "avoidIngredients" | "pantryStaples", values: string[]) => {
+  const handleChipReorder = async (
+    field: "avoidIngredients" | "pantryStaples",
+    values: string[]
+  ) => {
     await commitPatch({ [field]: values } as Partial<SettingsPreferences>);
   };
 
-  const handleImmediateField = async <K extends keyof SettingsPreferences>(field: K, value: SettingsPreferences[K]) => {
+  const handleImmediateField = async <K extends keyof SettingsPreferences>(
+    field: K,
+    value: SettingsPreferences[K]
+  ) => {
     await commitPatch({ [field]: value } as Partial<SettingsPreferences>);
   };
 
@@ -441,10 +520,16 @@ export default function SettingsPage() {
       await commitPatch({ seasonalRegion: detected.region });
       setDetectState("success");
       clearBrowserTimer(detectResetTimerRef);
-      detectResetTimerRef.current = window.setTimeout(() => setDetectState("idle"), 1400);
+      detectResetTimerRef.current = window.setTimeout(
+        () => setDetectState("idle"),
+        1400
+      );
     } catch {
       setDetectState("idle");
-      toast({ title: "Could not detect region automatically.", variant: "error" });
+      toast({
+        title: "Could not detect region automatically.",
+        variant: "error",
+      });
     }
   };
 
@@ -496,11 +581,15 @@ export default function SettingsPage() {
           <div>
             <div className={styles.eyebrow}>Settings</div>
             <h1 className={styles.pageTitle}>Household preferences</h1>
-            <p className={styles.pageSubtitle}>Loading your cooking profile and app defaults.</p>
+            <p className={styles.pageSubtitle}>
+              Loading your cooking profile and app defaults.
+            </p>
           </div>
         </div>
         <div className={cn(styles.card, styles.loadingCard)}>
-          {preferencesQuery.isError ? "Unable to load settings right now." : "Loading preferences…"}
+          {preferencesQuery.isError
+            ? "Unable to load settings right now."
+            : "Loading preferences…"}
         </div>
       </div>
     );
@@ -513,10 +602,13 @@ export default function SettingsPage() {
           <div className={styles.eyebrow}>Settings</div>
           <h1 className={styles.pageTitle}>Household preferences</h1>
           <p className={styles.pageSubtitle}>
-            Tune dietary direction, planning behavior, and the tone Copilot Chef uses when it helps you cook.
+            Tune dietary direction, planning behavior, and the tone Copilot Chef
+            uses when it helps you cook.
           </p>
         </div>
-        <div className={cn(styles.autosavePill, saveState.className)}>{saveState.label}</div>
+        <div className={cn(styles.autosavePill, saveState.className)}>
+          {saveState.label}
+        </div>
       </header>
 
       <CollapsibleSection id="dietary" label="Dietary Profile">
@@ -532,7 +624,9 @@ export default function SettingsPage() {
                   className={styles.rangeInput}
                   max={8}
                   min={1}
-                  onChange={(event) => scheduleHouseholdSave(Number(event.target.value))}
+                  onChange={(event) =>
+                    scheduleHouseholdSave(Number(event.target.value))
+                  }
                   step={1}
                   type="range"
                   value={householdSizeDraft}
@@ -542,10 +636,14 @@ export default function SettingsPage() {
             </div>
 
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Preferred cooking length</label>
+              <label className={styles.fieldLabel}>
+                Preferred cooking length
+              </label>
               <select
                 className={styles.select}
-                onChange={(event) => void handleImmediateField("cookingLength", event.target.value)}
+                onChange={(event) =>
+                  void handleImmediateField("cookingLength", event.target.value)
+                }
                 value={preferences.cookingLength}
               >
                 {cookingLengthOptions.map((option) => (
@@ -563,7 +661,9 @@ export default function SettingsPage() {
             <h2 className={styles.cardTitle}>Dietary direction</h2>
           </div>
           <TagCloud
-            onToggle={(value) => void handleImmediateArrayToggle("dietaryTags", value)}
+            onToggle={(value) =>
+              void handleImmediateArrayToggle("dietaryTags", value)
+            }
             options={dietaryOptions}
             selectedValues={preferences.dietaryTags}
           />
@@ -577,7 +677,9 @@ export default function SettingsPage() {
             <div className={styles.cuisineColumn}>
               <div className={styles.columnHeading}>Favorites</div>
               <TagCloud
-                onToggle={(value) => void handleCuisineToggle("favoriteCuisines", value)}
+                onToggle={(value) =>
+                  void handleCuisineToggle("favoriteCuisines", value)
+                }
                 options={cuisineOptions}
                 selectedValues={preferences.favoriteCuisines}
                 tone="orange"
@@ -587,7 +689,9 @@ export default function SettingsPage() {
             <div className={styles.cuisineColumn}>
               <div className={styles.columnHeading}>Avoid</div>
               <TagCloud
-                onToggle={(value) => void handleCuisineToggle("avoidCuisines", value)}
+                onToggle={(value) =>
+                  void handleCuisineToggle("avoidCuisines", value)
+                }
                 options={cuisineOptions}
                 selectedValues={preferences.avoidCuisines}
                 tone="red"
@@ -602,8 +706,12 @@ export default function SettingsPage() {
               description="Allergies or hard avoidances. Drag to reprioritize."
               items={preferences.avoidIngredients}
               onAdd={(values) => void handleChipAdd("avoidIngredients", values)}
-              onRemove={(value) => void handleChipRemove("avoidIngredients", value)}
-              onReorder={(values) => void handleChipReorder("avoidIngredients", values)}
+              onRemove={(value) =>
+                void handleChipRemove("avoidIngredients", value)
+              }
+              onReorder={(values) =>
+                void handleChipReorder("avoidIngredients", values)
+              }
               placeholder="e.g. peanuts, shellfish"
               title="Avoid ingredients"
             />
@@ -611,8 +719,12 @@ export default function SettingsPage() {
               description="Always in stock - skip from grocery lists. Drag to reorder."
               items={preferences.pantryStaples}
               onAdd={(values) => void handleChipAdd("pantryStaples", values)}
-              onRemove={(value) => void handleChipRemove("pantryStaples", value)}
-              onReorder={(values) => void handleChipReorder("pantryStaples", values)}
+              onRemove={(value) =>
+                void handleChipRemove("pantryStaples", value)
+              }
+              onReorder={(values) =>
+                void handleChipReorder("pantryStaples", values)
+              }
               placeholder="e.g. olive oil, garlic"
               title="Pantry staples"
             />
@@ -622,7 +734,9 @@ export default function SettingsPage() {
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <h2 className={styles.cardTitle}>Planning notes</h2>
-            <p className={styles.cardDescription}>Free-form context the AI uses when generating plans.</p>
+            <p className={styles.cardDescription}>
+              Free-form context the AI uses when generating plans.
+            </p>
           </div>
           <textarea
             className={styles.textarea}
@@ -638,7 +752,9 @@ export default function SettingsPage() {
             <h2 className={styles.cardTitle}>Nutrition focus</h2>
           </div>
           <TagCloud
-            onToggle={(value) => void handleImmediateArrayToggle("nutritionTags", value)}
+            onToggle={(value) =>
+              void handleImmediateArrayToggle("nutritionTags", value)
+            }
             options={nutritionOptions}
             selectedValues={preferences.nutritionTags}
           />
@@ -653,7 +769,9 @@ export default function SettingsPage() {
               <label className={styles.fieldLabel}>Cooking skill level</label>
               <select
                 className={styles.select}
-                onChange={(event) => void handleImmediateField("skillLevel", event.target.value)}
+                onChange={(event) =>
+                  void handleImmediateField("skillLevel", event.target.value)
+                }
                 value={preferences.skillLevel}
               >
                 {skillOptions.map((option) => (
@@ -667,7 +785,9 @@ export default function SettingsPage() {
               <label className={styles.fieldLabel}>Budget range</label>
               <select
                 className={styles.select}
-                onChange={(event) => void handleImmediateField("budgetRange", event.target.value)}
+                onChange={(event) =>
+                  void handleImmediateField("budgetRange", event.target.value)
+                }
                 value={preferences.budgetRange}
               >
                 {budgetOptions.map((option) => (
@@ -685,15 +805,22 @@ export default function SettingsPage() {
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <h2 className={styles.cardTitle}>Chef personality</h2>
-            <p className={styles.cardDescription}>Choose how your AI chef talks to you.</p>
+            <p className={styles.cardDescription}>
+              Choose how your AI chef talks to you.
+            </p>
           </div>
           <PersonaGrid
-            onCreateCustom={() => setPersonaModalState({ open: true, mode: "create" })}
+            onCreateCustom={() =>
+              setPersonaModalState({ open: true, mode: "create" })
+            }
             onEditCustom={(id) => {
               const persona = customPersonas.find((p) => p.id === id);
-              if (persona) setPersonaModalState({ open: true, mode: "edit", persona });
+              if (persona)
+                setPersonaModalState({ open: true, mode: "edit", persona });
             }}
-            onSelect={(value) => void handleImmediateField("chefPersona", value)}
+            onSelect={(value) =>
+              void handleImmediateField("chefPersona", value)
+            }
             options={allPersonaOptions}
             value={preferences.chefPersona}
           />
@@ -707,15 +834,21 @@ export default function SettingsPage() {
             <div className={styles.fieldGroup}>
               <label className={styles.fieldLabel}>Default reply length</label>
               <SegmentedControl
-                onChange={(value) => void handleImmediateField("replyLength", value)}
+                onChange={(value) =>
+                  void handleImmediateField("replyLength", value)
+                }
                 options={replyLengthOptions}
                 value={preferences.replyLength}
               />
             </div>
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Use of emoji in responses</label>
+              <label className={styles.fieldLabel}>
+                Use of emoji in responses
+              </label>
               <SegmentedControl
-                onChange={(value) => void handleImmediateField("emojiUsage", value)}
+                onChange={(value) =>
+                  void handleImmediateField("emojiUsage", value)
+                }
                 options={emojiOptions}
                 value={preferences.emojiUsage}
               />
@@ -734,26 +867,42 @@ export default function SettingsPage() {
               checked={preferences.autoImproveChef}
               description="Chef learns from your feedback and adjusts suggestions over time."
               label="Auto-improve chef"
-              onChange={(checked) => void handleImmediateField("autoImproveChef", checked)}
+              onChange={(checked) =>
+                void handleImmediateField("autoImproveChef", checked)
+              }
             />
             <ToggleRow
               checked={preferences.contextAwareness}
               description="Include current meal plan and pantry when generating ideas."
               label="Context-aware suggestions"
-              onChange={(checked) => void handleImmediateField("contextAwareness", checked)}
+              onChange={(checked) =>
+                void handleImmediateField("contextAwareness", checked)
+              }
             />
             <div>
               <ToggleRow
                 checked={preferences.seasonalAwareness}
                 description="Prioritize ingredients that are in season in your region."
                 label="Seasonal awareness"
-                onChange={(checked) => void handleImmediateField("seasonalAwareness", checked)}
+                onChange={(checked) =>
+                  void handleImmediateField("seasonalAwareness", checked)
+                }
               />
-              <div className={cn(styles.regionWrap, !preferences.seasonalAwareness && styles.regionWrapClosed)}>
+              <div
+                className={cn(
+                  styles.regionWrap,
+                  !preferences.seasonalAwareness && styles.regionWrapClosed
+                )}
+              >
                 <div className={styles.regionRow}>
                   <select
                     className={styles.select}
-                    onChange={(event) => void handleImmediateField("seasonalRegion", event.target.value)}
+                    onChange={(event) =>
+                      void handleImmediateField(
+                        "seasonalRegion",
+                        event.target.value
+                      )
+                    }
                     value={preferences.seasonalRegion}
                   >
                     {regionOptions.map((option) => (
@@ -762,8 +911,17 @@ export default function SettingsPage() {
                       </option>
                     ))}
                   </select>
-                  <Button disabled={detectState === "detecting"} onClick={() => void handleDetectRegion()} type="button" variant="outline">
-                    {detectState === "detecting" ? "Detecting…" : detectState === "success" ? "Detected ✓" : "Detect"}
+                  <Button
+                    disabled={detectState === "detecting"}
+                    onClick={() => void handleDetectRegion()}
+                    type="button"
+                    variant="outline"
+                  >
+                    {detectState === "detecting"
+                      ? "Detecting…"
+                      : detectState === "success"
+                        ? "Detected ✓"
+                        : "Detect"}
                   </Button>
                 </div>
               </div>
@@ -772,7 +930,9 @@ export default function SettingsPage() {
               checked={preferences.proactiveTips}
               description="Chef offers unprompted suggestions and cooking tips in chat."
               label="Proactive tips"
-              onChange={(checked) => void handleImmediateField("proactiveTips", checked)}
+              onChange={(checked) =>
+                void handleImmediateField("proactiveTips", checked)
+              }
             />
           </div>
         </div>
@@ -786,13 +946,17 @@ export default function SettingsPage() {
               checked={preferences.autoGenerateGrocery}
               description="Automatically create a grocery list when a meal plan is finalized."
               label="Auto-generate grocery list"
-              onChange={(checked) => void handleImmediateField("autoGenerateGrocery", checked)}
+              onChange={(checked) =>
+                void handleImmediateField("autoGenerateGrocery", checked)
+              }
             />
             <ToggleRow
               checked={preferences.consolidateIngredients}
               description="Merge quantities of the same ingredient across multiple meals."
               label="Consolidate similar ingredients"
-              onChange={(checked) => void handleImmediateField("consolidateIngredients", checked)}
+              onChange={(checked) =>
+                void handleImmediateField("consolidateIngredients", checked)
+              }
             />
           </div>
           <div className={styles.twoColumn} style={{ marginTop: "1rem" }}>
@@ -800,7 +964,12 @@ export default function SettingsPage() {
               <label className={styles.fieldLabel}>Default plan length</label>
               <select
                 className={styles.select}
-                onChange={(event) => void handleImmediateField("defaultPlanLength", event.target.value)}
+                onChange={(event) =>
+                  void handleImmediateField(
+                    "defaultPlanLength",
+                    event.target.value
+                  )
+                }
                 value={preferences.defaultPlanLength}
               >
                 {planLengthOptions.map((option) => (
@@ -814,7 +983,12 @@ export default function SettingsPage() {
               <label className={styles.fieldLabel}>Grocery list grouping</label>
               <select
                 className={styles.select}
-                onChange={(event) => void handleImmediateField("groceryGrouping", event.target.value)}
+                onChange={(event) =>
+                  void handleImmediateField(
+                    "groceryGrouping",
+                    event.target.value
+                  )
+                }
                 value={preferences.groceryGrouping}
               >
                 {groupingOptions.map((option) => (
@@ -835,13 +1009,19 @@ export default function SettingsPage() {
             checked={preferences.saveChatHistory}
             description="Persist conversations for context across sessions."
             label="Save chat history"
-            onChange={(checked) => void handleImmediateField("saveChatHistory", checked)}
+            onChange={(checked) =>
+              void handleImmediateField("saveChatHistory", checked)
+            }
           />
 
           <div className={styles.actionsRow}>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button className={styles.dangerButton} type="button" variant="outline">
+                <Button
+                  className={styles.dangerButton}
+                  type="button"
+                  variant="outline"
+                >
                   Clear chat history
                 </Button>
               </AlertDialogTrigger>
@@ -849,7 +1029,8 @@ export default function SettingsPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will permanently delete all saved conversations. This cannot be undone.
+                    This will permanently delete all saved conversations. This
+                    cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -859,7 +1040,12 @@ export default function SettingsPage() {
                     </Button>
                   </AlertDialogCancel>
                   <AlertDialogAction asChild>
-                    <Button className={styles.dangerButton} onClick={() => void handleClearChatHistory()} type="button" variant="outline">
+                    <Button
+                      className={styles.dangerButton}
+                      onClick={() => void handleClearChatHistory()}
+                      type="button"
+                      variant="outline"
+                    >
                       Clear history
                     </Button>
                   </AlertDialogAction>
@@ -867,7 +1053,11 @@ export default function SettingsPage() {
               </AlertDialogContent>
             </AlertDialog>
 
-            <Button onClick={() => void handleExport()} type="button" variant="outline">
+            <Button
+              onClick={() => void handleExport()}
+              type="button"
+              variant="outline"
+            >
               Export my data
             </Button>
 
@@ -881,7 +1071,8 @@ export default function SettingsPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Reset all preferences?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This will restore all settings to their defaults. Your meal plans and grocery lists will not be affected.
+                    This will restore all settings to their defaults. Your meal
+                    plans and grocery lists will not be affected.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -891,7 +1082,11 @@ export default function SettingsPage() {
                     </Button>
                   </AlertDialogCancel>
                   <AlertDialogAction asChild>
-                    <Button onClick={() => void handleReset()} type="button" variant="outline">
+                    <Button
+                      onClick={() => void handleReset()}
+                      type="button"
+                      variant="outline"
+                    >
                       Reset preferences
                     </Button>
                   </AlertDialogAction>

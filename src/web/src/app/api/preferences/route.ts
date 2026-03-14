@@ -19,7 +19,10 @@ export async function PATCH(request: Request) {
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to update preferences"
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to update preferences",
       },
       { status: 400 }
     );

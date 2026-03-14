@@ -6,14 +6,14 @@ const preferenceService = new PreferenceService();
 export async function GET() {
   const [preferences, mealLogs] = await Promise.all([
     preferenceService.getPreferences(),
-    mealLogService.listAll()
+    mealLogService.listAll(),
   ]);
 
   const payload = JSON.stringify(
     {
       exportedAt: new Date().toISOString(),
       preferences,
-      mealLogs
+      mealLogs,
     },
     null,
     2
@@ -24,7 +24,7 @@ export async function GET() {
   return new Response(payload, {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${fileName}"`
-    }
+      "Content-Disposition": `attachment; filename="${fileName}"`,
+    },
   });
 }

@@ -1,4 +1,11 @@
-import { QUICK_FILTERS, formatListDate, isToday, listProgress, type GroceryList, type QuickFilter } from "@/lib/grocery";
+import {
+  QUICK_FILTERS,
+  formatListDate,
+  isToday,
+  listProgress,
+  type GroceryList,
+  type QuickFilter,
+} from "@/lib/grocery";
 
 import styles from "../grocery-list.module.css";
 
@@ -21,7 +28,7 @@ export function QuickReference({
   onSelectFilter,
   onChangeUpcomingDays,
   onSelectList,
-  onToggleFav
+  onToggleFav,
 }: Props) {
   return (
     <>
@@ -45,7 +52,9 @@ export function QuickReference({
               className={styles.upcomingInput}
               max={60}
               min={1}
-              onChange={(event) => onChangeUpcomingDays(Number(event.target.value) || 1)}
+              onChange={(event) =>
+                onChangeUpcomingDays(Number(event.target.value) || 1)
+              }
               type="number"
               value={upcomingDays}
             />
@@ -54,7 +63,9 @@ export function QuickReference({
       </div>
       <div className={styles.carouselWrap}>
         <div className={styles.carousel}>
-          {lists.length === 0 ? <div className={styles.quickEmpty}>No lists match this filter.</div> : null}
+          {lists.length === 0 ? (
+            <div className={styles.quickEmpty}>No lists match this filter.</div>
+          ) : null}
           {lists.map((list) => {
             const pct = listProgress(list.items);
 
@@ -73,14 +84,26 @@ export function QuickReference({
                 >
                   {list.favourite ? "⭐" : "☆"}
                 </button>
-                <button className={styles.quickCardAction} onClick={() => onSelectList(list.id)} type="button">
+                <button
+                  className={styles.quickCardAction}
+                  onClick={() => onSelectList(list.id)}
+                  type="button"
+                >
                   <div className={styles.quickCardName}>{list.name}</div>
                   <div className={styles.quickCardDate}>
-                    {isToday(list.date) ? "Today" : formatListDate(list.date)} · {list.items.length} items
+                    {isToday(list.date) ? "Today" : formatListDate(list.date)} ·{" "}
+                    {list.items.length} items
                   </div>
-                  {list.mealPlan ? <div className={styles.quickCardMeta}>🍽 {list.mealPlan}</div> : null}
+                  {list.mealPlan ? (
+                    <div className={styles.quickCardMeta}>
+                      🍽 {list.mealPlan}
+                    </div>
+                  ) : null}
                   <div className={styles.quickCardProgress}>
-                    <div className={styles.quickCardFill} style={{ width: `${pct}%` }} />
+                    <div
+                      className={styles.quickCardFill}
+                      style={{ width: `${pct}%` }}
+                    />
                   </div>
                   <div className={styles.quickCardPct}>{pct}% collected</div>
                 </button>

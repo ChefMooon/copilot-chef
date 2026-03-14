@@ -87,6 +87,7 @@ For testing with a different Copilot model, set `COPILOT_MODEL` in `src/web/.env
 The SQLite database is created at `src/core/prisma/copilot-chef.db` after running `npm run db:push` and `npm run db:seed`.
 
 Seed data includes:
+
 - Sample meal plans with meals organized by day and meal type
 - User preferences (dietary restrictions, household size, cuisine preferences)
 - Sample grocery lists and items

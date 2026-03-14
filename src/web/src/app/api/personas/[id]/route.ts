@@ -14,7 +14,10 @@ export async function PATCH(
     return NextResponse.json({ data });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to update persona" },
+      {
+        error:
+          error instanceof Error ? error.message : "Unable to update persona",
+      },
       { status: 400 }
     );
   }
@@ -30,7 +33,10 @@ export async function DELETE(
     return NextResponse.json({ data });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to delete persona" },
+      {
+        error:
+          error instanceof Error ? error.message : "Unable to delete persona",
+      },
       { status: 400 }
     );
   }

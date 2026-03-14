@@ -12,11 +12,11 @@ The existing page is a read-only checklist with a single hard-coded list. The ne
 
 ## Reference Files
 
-| File | Purpose |
-|---|---|
-| `copilot-chef-grocery.jsx` | Complete approved UI prototype — source of truth for all markup, styles, and interaction logic |
-| `copilot-chef-style-guide.md` | Design system reference for colors, typography, and component patterns |
-| `copilot-chef-plan.md` | Overall project plan for architectural context |
+| File                          | Purpose                                                                                        |
+| ----------------------------- | ---------------------------------------------------------------------------------------------- |
+| `copilot-chef-grocery.jsx`    | Complete approved UI prototype — source of truth for all markup, styles, and interaction logic |
+| `copilot-chef-style-guide.md` | Design system reference for colors, typography, and component patterns                         |
+| `copilot-chef-plan.md`        | Overall project plan for architectural context                                                 |
 
 ---
 
@@ -27,6 +27,7 @@ The existing page is a read-only checklist with a single hard-coded list. The ne
 The following additions to `schema.prisma` are required before any UI work begins.
 
 #### `GroceryList` model
+
 Ensure these fields exist:
 
 ```prisma
@@ -44,6 +45,7 @@ model GroceryList {
 ```
 
 #### `GroceryItem` model
+
 Ensure all fields from the prototype exist:
 
 ```prisma
@@ -66,16 +68,16 @@ Run `prisma migrate dev` after schema changes.
 
 ### API Endpoints Required
 
-| Method | Route | Purpose |
-|---|---|---|
-| `GET` | `/api/grocery-lists` | Fetch all lists (with items included) |
-| `POST` | `/api/grocery-lists` | Create a new list |
-| `PATCH` | `/api/grocery-lists/:id` | Update list name, date, favourite, mealPlanId |
-| `DELETE` | `/api/grocery-lists/:id` | Delete a list and cascade-delete its items |
-| `POST` | `/api/grocery-lists/:id/items` | Add an item to a list |
-| `PATCH` | `/api/grocery-lists/:id/items/:itemId` | Update an item (any field) |
-| `DELETE` | `/api/grocery-lists/:id/items/:itemId` | Remove an item |
-| `POST` | `/api/grocery-lists/:id/reorder` | Update `sortOrder` for all items after a drag or arrow move — accepts `{ itemIds: number[] }` in new order |
+| Method   | Route                                  | Purpose                                                                                                    |
+| -------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/grocery-lists`                   | Fetch all lists (with items included)                                                                      |
+| `POST`   | `/api/grocery-lists`                   | Create a new list                                                                                          |
+| `PATCH`  | `/api/grocery-lists/:id`               | Update list name, date, favourite, mealPlanId                                                              |
+| `DELETE` | `/api/grocery-lists/:id`               | Delete a list and cascade-delete its items                                                                 |
+| `POST`   | `/api/grocery-lists/:id/items`         | Add an item to a list                                                                                      |
+| `PATCH`  | `/api/grocery-lists/:id/items/:itemId` | Update an item (any field)                                                                                 |
+| `DELETE` | `/api/grocery-lists/:id/items/:itemId` | Remove an item                                                                                             |
+| `POST`   | `/api/grocery-lists/:id/reorder`       | Update `sortOrder` for all items after a drag or arrow move — accepts `{ itemIds: number[] }` in new order |
 
 ---
 
@@ -85,21 +87,42 @@ Extract the following from the prototype into `web/lib/grocery.ts`:
 
 ```ts
 export const CATEGORIES = [
-  "Produce","Meat & Fish","Dairy & Eggs","Bakery","Pantry","Frozen","Drinks","Other"
+  "Produce",
+  "Meat & Fish",
+  "Dairy & Eggs",
+  "Bakery",
+  "Pantry",
+  "Frozen",
+  "Drinks",
+  "Other",
 ] as const;
 
 export const UNITS = [
-  "","pcs","g","kg","ml","L","cups","tbsp","tsp","oz","lb","bunches","cans","bags","boxes"
+  "",
+  "pcs",
+  "g",
+  "kg",
+  "ml",
+  "L",
+  "cups",
+  "tbsp",
+  "tsp",
+  "oz",
+  "lb",
+  "bunches",
+  "cans",
+  "bags",
+  "boxes",
 ] as const;
 
 export const QUICK_FILTERS = [
-  { id: "today",    label: "Today",       icon: "📅" },
+  { id: "today", label: "Today", icon: "📅" },
   { id: "upcoming", label: "Next N Days", icon: "🗓️" },
-  { id: "fav",      label: "Favourites",  icon: "⭐" },
-  { id: "recent",   label: "Recent",      icon: "🕐" },
+  { id: "fav", label: "Favourites", icon: "⭐" },
+  { id: "recent", label: "Recent", icon: "🕐" },
 ] as const;
 
-export type QuickFilter = typeof QUICK_FILTERS[number]["id"];
+export type QuickFilter = (typeof QUICK_FILTERS)[number]["id"];
 
 // Helpers
 export const isToday = (dt: Date) =>
@@ -112,13 +135,17 @@ export const isUpcoming = (dt: Date, days = 7) => {
 
 export const listProgress = (items: GroceryItem[]) => {
   if (!items.length) return 0;
-  return Math.round(items.filter(i => i.checked).length / items.length * 100);
+  return Math.round(
+    (items.filter((i) => i.checked).length / items.length) * 100
+  );
 };
 
 export const groupByCategory = (items: GroceryItem[]) => {
   const map: Record<string, GroceryItem[]> = {};
-  CATEGORIES.forEach(c => { map[c] = []; });
-  items.forEach(item => {
+  CATEGORIES.forEach((c) => {
+    map[c] = [];
+  });
+  items.forEach((item) => {
     if (!map[item.category]) map[item.category] = [];
     map[item.category].push(item);
   });
@@ -172,26 +199,37 @@ The shell owns all top-level state and passes it down as props.
 | `showNewModal` | `boolean` | `false` |
 
 **Data fetching:**
+
 ```ts
 const { data: lists = [], refetch } = useQuery({
   queryKey: ["grocery-lists"],
-  queryFn: () => fetch("/api/grocery-lists").then(r => r.json()),
+  queryFn: () => fetch("/api/grocery-lists").then((r) => r.json()),
 });
 ```
 
 **Filtered quick-reference lists** (computed from `lists` + `activeFilter`):
+
 ```ts
 const filteredQuick = useMemo(() => {
   let result = lists;
-  if (activeFilter === "today")    result = lists.filter(l => isToday(new Date(l.date)));
-  if (activeFilter === "upcoming") result = lists.filter(l => isUpcoming(new Date(l.date), upcomingDays));
-  if (activeFilter === "fav")      result = lists.filter(l => l.favourite);
-  if (activeFilter === "recent")   result = [...lists].sort((a,b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 5);
+  if (activeFilter === "today")
+    result = lists.filter((l) => isToday(new Date(l.date)));
+  if (activeFilter === "upcoming")
+    result = lists.filter((l) => isUpcoming(new Date(l.date), upcomingDays));
+  if (activeFilter === "fav") result = lists.filter((l) => l.favourite);
+  if (activeFilter === "recent")
+    result = [...lists]
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      )
+      .slice(0, 5);
   return result;
 }, [lists, activeFilter, upcomingDays]);
 ```
 
 **Layout:** Two sections stacked vertically:
+
 1. Page header (eyebrow, title, subtitle, "+ New List" button)
 2. Quick Reference section (filter tabs + `<QuickReference>` carousel)
 3. A two-column grid: `<ListsSidebar>` (left, `260px` fixed) + `<ListEditor>` or placeholder (right, `1fr`)
@@ -205,11 +243,13 @@ Props: `lists: GroceryList[]`, `selectedId: number | null`, `activeFilter: Quick
 **Filter tabs:** Render one pill button per filter. The active filter gets green background. When `activeFilter === "upcoming"`, render a small number input inline after the tabs for `upcomingDays`.
 
 **Carousel:** A horizontally scrollable row of `quick-card` elements. Key CSS rules — copy from the prototype and do not simplify:
+
 - The **wrap** element gets `overflow-x: auto` and `padding-top: 8px; margin-top: -8px`. This is the fix for the hover shadow clipping bug — the padding creates space above cards for the `box-shadow` and `translateY(-2px)` hover transform to render without being cut off.
 - The **inner carousel** div gets `width: max-content` so it expands naturally and the wrap handles scrolling.
 - Scrollbar styles go on the wrap, not the carousel.
 
 **Quick card contents:**
+
 - Favourite toggle (⭐ / ☆) — top right, `position: absolute`
 - List name (Lora serif)
 - Date label ("Today" if today, otherwise "Mar 12") + item count
@@ -226,6 +266,7 @@ Props: `lists: GroceryList[]`, `selectedId: number | null`, `onSelect`, `onToggl
 A card with a fixed header ("ALL LISTS" label + count badge) and a scrollable list of rows beneath it.
 
 Each row shows:
+
 - List name (truncated with `text-overflow: ellipsis`)
 - Date + item count as secondary meta
 - Favourite toggle button
@@ -239,6 +280,7 @@ Each row shows:
 Props: `list: GroceryList`, `onChange: (updated: GroceryList) => void`, `onDelete: (id: number) => void`, `onShop: () => void`
 
 **Header:**
+
 - Inline-editable list name — clicking the name reveals an `<input>` that saves on blur or Enter, cancels on Escape
 - Date label and optional meal plan tag
 - Action buttons: **🛒 Shop** (calls `onShop`), **Send to Telegram** (disabled, greyed out, with `title="Coming soon — send to Telegram"`), **🗑 Delete** (red on hover, calls `onDelete`)
@@ -258,6 +300,7 @@ Props: `list: GroceryList`, `onChange: (updated: GroceryList) => void`, `onDelet
 Props: `item: GroceryItem`, `index: number`, `total: number`, `onUpdate`, `onDelete`, `onMove`
 
 **Collapsed row (always visible):**
+
 - Drag handle (`⠿` character) — `draggable` on the row div, with `onDragStart`/`onDragEnd` for visual feedback
 - Checkbox — checks/unchecks item, strikes through the name
 - Item name input — inline edit, no border until focused
@@ -268,6 +311,7 @@ Props: `item: GroceryItem`, `index: number`, `total: number`, `onUpdate`, `onDel
 - ✕ delete button
 
 **Expanded section (shown when ▼ is clicked):**
+
 - Notes / Brand preference input
 - Linked Meal input
 - Slightly indented, cream background to differentiate from the main row
@@ -281,6 +325,7 @@ Props: `item: GroceryItem`, `index: number`, `total: number`, `onUpdate`, `onDel
 Props: `onClose: () => void`, `onCreate: (list: GroceryList) => void`
 
 A centered modal with:
+
 - List name text input (auto-focused)
 - Date input (defaults to today's date)
 - Cancel + Create List buttons
@@ -296,15 +341,18 @@ Create `web/app/grocery-list/shop/[id]/page.tsx`.
 This is a **full-screen page** with no shared header or sidebar — it replaces the entire viewport.
 
 **Layout (top to bottom):**
+
 1. **Green header bar** — logo, list name (Lora), progress text ("X of Y collected"), "✕ Done" button that navigates back to `/grocery-list`
 2. **Thin progress bar** — full-width, white fill on green track, animates as items are checked
 3. **Scrollable body** — items grouped by category
 
 **Category group:**
+
 - Category name as an uppercase label with a dividing line
 - One large tappable button per item
 
 **Item button:**
+
 - Full width, white card with generous padding (`1rem`) and `border-radius: 12px`
 - Left: circular check indicator (empty border → filled green with ✓ on check)
 - Middle: item name (Lora serif, `1.05rem`), secondary meta row (qty + unit, notes in italic, linked meal as a green pill)
@@ -342,6 +390,7 @@ When Telegram integration is built in Phase 3, this button will call `POST /api/
 ### Step 10 — Responsive QA checklist
 
 **Desktop (>900px)**
+
 - [ ] Quick reference carousel scrolls horizontally without clipping card shadows on hover
 - [ ] Carousel `padding-top: 8px; margin-top: -8px` on the wrap is present — this is the shadow clip fix
 - [ ] Two-column layout: sidebar 260px, editor fills remaining space
@@ -349,11 +398,13 @@ When Telegram integration is built in Phase 3, this button will call `POST /api/
 - [ ] New list modal is centered, max-width 420px
 
 **Tablet (768px–900px)**
+
 - [ ] Nav collapses to hamburger
 - [ ] Editor and sidebar stack vertically (editor on top)
 - [ ] Item row qty/unit and category selects visible
 
 **Mobile (<768px)**
+
 - [ ] Item row hides quantity and category columns to keep rows scannable
 - [ ] Editor header actions wrap without overflowing
 - [ ] Shopping view items have `min-height` tap targets

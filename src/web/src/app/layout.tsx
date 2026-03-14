@@ -12,13 +12,13 @@ const lora = Lora({
   subsets: ["latin"],
   variable: "--font-lora",
   style: ["normal", "italic"],
-  weight: ["400", "600", "700"]
+  weight: ["400", "600", "700"],
 });
 
 const nunito = Nunito({
   subsets: ["latin"],
   variable: "--font-nunito",
-  weight: ["400", "500", "600", "700"]
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -31,10 +31,10 @@ export const metadata: Metadata = {
       {
         rel: "icon",
         url: "/copilot-chef-512x512.png",
-        sizes: "512x512"
-      }
-    ]
-  }
+        sizes: "512x512",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {

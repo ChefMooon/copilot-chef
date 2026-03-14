@@ -14,14 +14,17 @@ export type DetectedRegionPayload = {
   error?: string;
 };
 
-export async function fetchJson<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
+export async function fetchJson<T>(
+  input: RequestInfo | URL,
+  init?: RequestInit
+): Promise<T> {
   const response = await fetch(input, {
     ...init,
     cache: "no-store",
     headers: {
       "Content-Type": "application/json",
-      ...(init?.headers ?? {})
-    }
+      ...(init?.headers ?? {}),
+    },
   });
 
   if (!response.ok) {
@@ -32,15 +35,20 @@ export async function fetchJson<T>(input: RequestInfo | URL, init?: RequestInit)
 }
 
 export async function getPreferences() {
-  const response = await fetchJson<{ data: SettingsPreferences }>("/api/preferences");
+  const response = await fetchJson<{ data: SettingsPreferences }>(
+    "/api/preferences"
+  );
   return response.data;
 }
 
 export async function patchPreferences(patch: PreferenceUpdateInput) {
-  const response = await fetchJson<{ data: SettingsPreferences }>("/api/preferences", {
-    method: "PATCH",
-    body: JSON.stringify(patch)
-  });
+  const response = await fetchJson<{ data: SettingsPreferences }>(
+    "/api/preferences",
+    {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }
+  );
 
   return response.data;
 }
@@ -50,17 +58,23 @@ export async function detectRegion() {
 }
 
 export async function resetPreferences() {
-  const response = await fetchJson<{ data: SettingsPreferences }>("/api/preferences/reset", {
-    method: "POST"
-  });
+  const response = await fetchJson<{ data: SettingsPreferences }>(
+    "/api/preferences/reset",
+    {
+      method: "POST",
+    }
+  );
 
   return response.data;
 }
 
 export async function clearChatHistory() {
-  const response = await fetchJson<{ data: { count: number } }>("/api/chat/history", {
-    method: "DELETE"
-  });
+  const response = await fetchJson<{ data: { count: number } }>(
+    "/api/chat/history",
+    {
+      method: "DELETE",
+    }
+  );
 
   return response.data;
 }
@@ -68,7 +82,7 @@ export async function clearChatHistory() {
 export async function exportUserData() {
   const response = await fetch("/api/preferences/export", {
     method: "GET",
-    cache: "no-store"
+    cache: "no-store",
   });
 
   if (!response.ok) {
@@ -81,20 +95,27 @@ export async function exportUserData() {
 
   return {
     blob,
-    fileName: fileNameMatch?.[1] ?? "copilot-chef-export.json"
+    fileName: fileNameMatch?.[1] ?? "copilot-chef-export.json",
   };
 }
 
 export async function getPersonas(): Promise<CustomPersonaPayload[]> {
-  const response = await fetchJson<{ data: CustomPersonaPayload[] }>("/api/personas");
+  const response = await fetchJson<{ data: CustomPersonaPayload[] }>(
+    "/api/personas"
+  );
   return response.data;
 }
 
-export async function createPersona(input: CreatePersonaInput): Promise<CustomPersonaPayload> {
-  const response = await fetchJson<{ data: CustomPersonaPayload }>("/api/personas", {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+export async function createPersona(
+  input: CreatePersonaInput
+): Promise<CustomPersonaPayload> {
+  const response = await fetchJson<{ data: CustomPersonaPayload }>(
+    "/api/personas",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    }
+  );
   return response.data;
 }
 
@@ -102,16 +123,22 @@ export async function updatePersona(
   id: string,
   input: Partial<CreatePersonaInput>
 ): Promise<CustomPersonaPayload> {
-  const response = await fetchJson<{ data: CustomPersonaPayload }>(`/api/personas/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify(input),
-  });
+  const response = await fetchJson<{ data: CustomPersonaPayload }>(
+    `/api/personas/${id}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }
+  );
   return response.data;
 }
 
 export async function deletePersona(id: string): Promise<{ id: string }> {
-  const response = await fetchJson<{ data: { id: string } }>(`/api/personas/${id}`, {
-    method: "DELETE",
-  });
+  const response = await fetchJson<{ data: { id: string } }>(
+    `/api/personas/${id}`,
+    {
+      method: "DELETE",
+    }
+  );
   return response.data;
 }

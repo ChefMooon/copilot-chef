@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 
-import { MEAL_TYPES, toDateInputValue, type EditableMeal, TYPE_CONFIG } from "@/lib/calendar";
+import {
+  MEAL_TYPES,
+  toDateInputValue,
+  type EditableMeal,
+  TYPE_CONFIG,
+} from "@/lib/calendar";
 
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 
@@ -14,7 +19,13 @@ type EditModalProps = {
   onResuggest: (meal: EditableMeal) => Promise<Partial<EditableMeal> | void>;
 };
 
-export function EditModal({ meal, onClose, onSave, onDelete, onResuggest }: EditModalProps) {
+export function EditModal({
+  meal,
+  onClose,
+  onSave,
+  onDelete,
+  onResuggest,
+}: EditModalProps) {
   const [form, setForm] = useState<EditableMeal>({ ...meal });
   const [ingredientInput, setIngredientInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -51,7 +62,10 @@ export function EditModal({ meal, onClose, onSave, onDelete, onResuggest }: Edit
     };
   }, [onClose, showDeleteConfirmation]);
 
-  const setField = <K extends keyof EditableMeal>(key: K, value: EditableMeal[K]) => {
+  const setField = <K extends keyof EditableMeal>(
+    key: K,
+    value: EditableMeal[K]
+  ) => {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
@@ -86,7 +100,11 @@ export function EditModal({ meal, onClose, onSave, onDelete, onResuggest }: Edit
       setShowDeleteConfirmation(false);
       onClose();
     } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : "Unable to delete meal. Please try again.");
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete meal. Please try again."
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -96,16 +114,30 @@ export function EditModal({ meal, onClose, onSave, onDelete, onResuggest }: Edit
     <>
       <div className={styles.modalOverlay} ref={overlayRef}>
         <div className={styles.modalPanel}>
-          <div className={styles.modalHeader} style={{ borderColor: typeConfig.dot }}>
+          <div
+            className={styles.modalHeader}
+            style={{ borderColor: typeConfig.dot }}
+          >
             <div className={styles.modalHeaderLeft}>
-              <span className={styles.modalTypeBadge} style={{ background: typeConfig.bg, color: typeConfig.text }}>
+              <span
+                className={styles.modalTypeBadge}
+                style={{ background: typeConfig.bg, color: typeConfig.text }}
+              >
                 {typeConfig.label}
               </span>
               <span className={styles.modalDateLabel}>
-                {form.date.toLocaleDateString("default", { weekday: "long", month: "long", day: "numeric" })}
+                {form.date.toLocaleDateString("default", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                })}
               </span>
             </div>
-            <button className={styles.modalClose} onClick={onClose} type="button">
+            <button
+              className={styles.modalClose}
+              onClick={onClose}
+              type="button"
+            >
               x
             </button>
           </div>
@@ -135,7 +167,8 @@ export function EditModal({ meal, onClose, onSave, onDelete, onResuggest }: Edit
                   onChange={(event) =>
                     setField(
                       "type",
-                      MEAL_TYPES.find((type) => type === event.target.value) ?? "breakfast"
+                      MEAL_TYPES.find((type) => type === event.target.value) ??
+                        "breakfast"
                     )
                   }
                   value={form.type}
@@ -183,9 +216,16 @@ export function EditModal({ meal, onClose, onSave, onDelete, onResuggest }: Edit
               <label className={styles.formLabel}>Ingredients</label>
               <div className={styles.ingredientsList}>
                 {form.ingredients.map((ingredient, index) => (
-                  <span className={styles.ingredientChip} key={`${ingredient}-${index}`}>
+                  <span
+                    className={styles.ingredientChip}
+                    key={`${ingredient}-${index}`}
+                  >
                     {ingredient}
-                    <button className={styles.ingredientRemove} onClick={() => removeIngredient(index)} type="button">
+                    <button
+                      className={styles.ingredientRemove}
+                      onClick={() => removeIngredient(index)}
+                      type="button"
+                    >
                       x
                     </button>
                   </span>
@@ -204,7 +244,11 @@ export function EditModal({ meal, onClose, onSave, onDelete, onResuggest }: Edit
                   placeholder="Add ingredient..."
                   value={ingredientInput}
                 />
-                <button className={styles.btnAddIngredient} onClick={addIngredient} type="button">
+                <button
+                  className={styles.btnAddIngredient}
+                  onClick={addIngredient}
+                  type="button"
+                >
                   Add
                 </button>
               </div>
@@ -244,7 +288,11 @@ export function EditModal({ meal, onClose, onSave, onDelete, onResuggest }: Edit
                   Delete
                 </button>
               ) : null}
-              <button className={styles.btnGhost} onClick={onClose} type="button">
+              <button
+                className={styles.btnGhost}
+                onClick={onClose}
+                type="button"
+              >
                 Cancel
               </button>
               <button

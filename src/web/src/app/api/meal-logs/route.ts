@@ -7,7 +7,10 @@ export async function GET(request: NextRequest) {
   const weeks = Number(request.nextUrl.searchParams.get("weeks") ?? "13");
   const recent = Number(request.nextUrl.searchParams.get("recent") ?? "0");
 
-  const data = recent > 0 ? await mealLogService.listRecent(recent) : await mealLogService.getHeatmap(weeks);
+  const data =
+    recent > 0
+      ? await mealLogService.listRecent(recent)
+      : await mealLogService.getHeatmap(weeks);
   return NextResponse.json({ data });
 }
 
@@ -19,7 +22,8 @@ export async function POST(request: Request) {
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to record meal log"
+        error:
+          error instanceof Error ? error.message : "Unable to record meal log",
       },
       { status: 400 }
     );

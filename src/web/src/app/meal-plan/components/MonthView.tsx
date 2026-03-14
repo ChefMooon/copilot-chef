@@ -1,6 +1,13 @@
 import { useEffect, useState, type MouseEvent } from "react";
 
-import { isSameDay, MEAL_TYPES, mealsForDay, MONTHS, type EditableMeal, TYPE_CONFIG } from "@/lib/calendar";
+import {
+  isSameDay,
+  MEAL_TYPES,
+  mealsForDay,
+  MONTHS,
+  type EditableMeal,
+  TYPE_CONFIG,
+} from "@/lib/calendar";
 
 import styles from "../meal-plan.module.css";
 
@@ -84,7 +91,12 @@ export function MonthView({ date, meals, setDate, onEdit }: MonthViewProps) {
           const dayNum = index - startOffset + 1;
 
           if (dayNum < 1 || dayNum > daysInMonth) {
-            return <div className={`${styles.monthCell} ${styles.monthCellEmpty}`} key={index} />;
+            return (
+              <div
+                className={`${styles.monthCell} ${styles.monthCellEmpty}`}
+                key={index}
+              />
+            );
           }
 
           const cellDate = new Date(year, month, dayNum);
@@ -102,12 +114,22 @@ export function MonthView({ date, meals, setDate, onEdit }: MonthViewProps) {
               }}
               type="button"
             >
-              <span className={`${styles.monthCellNum} ${todayMatch ? styles.monthCellNumToday : ""}`}>{dayNum}</span>
+              <span
+                className={`${styles.monthCellNum} ${todayMatch ? styles.monthCellNumToday : ""}`}
+              >
+                {dayNum}
+              </span>
               <div className={styles.monthDots}>
                 {MEAL_TYPES.map((type) => {
-                  const hasMealType = cellMeals.some((meal) => meal.type === type);
+                  const hasMealType = cellMeals.some(
+                    (meal) => meal.type === type
+                  );
                   return hasMealType ? (
-                    <span className={styles.monthDot} key={type} style={{ background: TYPE_CONFIG[type].dot }} />
+                    <span
+                      className={styles.monthDot}
+                      key={type}
+                      style={{ background: TYPE_CONFIG[type].dot }}
+                    />
                   ) : null;
                 })}
               </div>
@@ -118,12 +140,15 @@ export function MonthView({ date, meals, setDate, onEdit }: MonthViewProps) {
 
       {popover ? (
         <>
-          <div className={styles.popoverBackdrop} onClick={() => setPopover(null)} />
+          <div
+            className={styles.popoverBackdrop}
+            onClick={() => setPopover(null)}
+          />
           <div
             className={styles.monthPopover}
             style={{
               top: Math.min(popover.y, window.innerHeight - 320),
-              left: Math.min(popover.x, window.innerWidth - 260)
+              left: Math.min(popover.x, window.innerWidth - 260),
             }}
           >
             <div className={styles.popoverHeader}>
@@ -131,10 +156,14 @@ export function MonthView({ date, meals, setDate, onEdit }: MonthViewProps) {
                 {popover.date.toLocaleDateString("default", {
                   weekday: "long",
                   month: "short",
-                  day: "numeric"
+                  day: "numeric",
                 })}
               </span>
-              <button className={styles.popoverClose} onClick={() => setPopover(null)} type="button">
+              <button
+                className={styles.popoverClose}
+                onClick={() => setPopover(null)}
+                type="button"
+              >
                 x
               </button>
             </div>
@@ -144,17 +173,28 @@ export function MonthView({ date, meals, setDate, onEdit }: MonthViewProps) {
                 return (
                   <button
                     className={styles.popoverMealRow}
-                    key={meal.id || `${meal.type}-${meal.date.toISOString()}-${meal.name}`}
+                    key={
+                      meal.id ||
+                      `${meal.type}-${meal.date.toISOString()}-${meal.name}`
+                    }
                     onClick={() => {
                       onEdit(meal);
                       setPopover(null);
                     }}
                     type="button"
                   >
-                    <span className={styles.popoverDot} style={{ background: typeConfig.dot }} />
+                    <span
+                      className={styles.popoverDot}
+                      style={{ background: typeConfig.dot }}
+                    />
                     <div className={styles.popoverMealInfo}>
-                      <span className={styles.popoverMealName}>{meal.name}</span>
-                      <span className={styles.popoverMealType} style={{ color: typeConfig.text }}>
+                      <span className={styles.popoverMealName}>
+                        {meal.name}
+                      </span>
+                      <span
+                        className={styles.popoverMealType}
+                        style={{ color: typeConfig.text }}
+                      >
                         {typeConfig.label}
                       </span>
                     </div>

@@ -10,7 +10,7 @@ const REGION_LABELS: Record<string, string> = {
   "east-asia": "East Asia",
   "south-asia": "South Asia",
   "australia-nz": "Australia / NZ",
-  "southern-hemisphere": "Southern hemisphere"
+  "southern-hemisphere": "Southern hemisphere",
 };
 
 type GeoPayload = {
@@ -44,20 +44,84 @@ function mapRegion(payload: GeoPayload) {
   }
 
   if (country === "US") {
-    if (["ME", "NH", "VT", "MA", "RI", "CT", "NY", "NJ", "PA", "DE", "MD", "DC", "VA", "WV"].includes(region ?? "")) {
+    if (
+      [
+        "ME",
+        "NH",
+        "VT",
+        "MA",
+        "RI",
+        "CT",
+        "NY",
+        "NJ",
+        "PA",
+        "DE",
+        "MD",
+        "DC",
+        "VA",
+        "WV",
+      ].includes(region ?? "")
+    ) {
       return "eastern-us";
     }
-    if (["NC", "SC", "GA", "FL", "AL", "MS", "TN", "KY", "LA", "AR", "OK", "TX"].includes(region ?? "")) {
+    if (
+      [
+        "NC",
+        "SC",
+        "GA",
+        "FL",
+        "AL",
+        "MS",
+        "TN",
+        "KY",
+        "LA",
+        "AR",
+        "OK",
+        "TX",
+      ].includes(region ?? "")
+    ) {
       return "southern-us";
     }
-    if (["CA", "OR", "WA", "AK", "HI", "NV", "AZ", "UT", "ID", "MT", "WY", "CO", "NM"].includes(region ?? "")) {
+    if (
+      [
+        "CA",
+        "OR",
+        "WA",
+        "AK",
+        "HI",
+        "NV",
+        "AZ",
+        "UT",
+        "ID",
+        "MT",
+        "WY",
+        "CO",
+        "NM",
+      ].includes(region ?? "")
+    ) {
       return "western-us";
     }
     return "northern-us-canada";
   }
 
   if (country === "CA") return "northern-us-canada";
-  if (["GB", "IE", "FR", "DE", "NL", "BE", "LU", "CH", "AT", "DK", "SE", "NO", "FI"].includes(country)) {
+  if (
+    [
+      "GB",
+      "IE",
+      "FR",
+      "DE",
+      "NL",
+      "BE",
+      "LU",
+      "CH",
+      "AT",
+      "DK",
+      "SE",
+      "NO",
+      "FI",
+    ].includes(country)
+  ) {
     return "western-europe";
   }
   if (["ES", "PT", "IT", "GR", "HR", "SI", "MT", "CY"].includes(country)) {
@@ -85,10 +149,12 @@ export async function GET(request: NextRequest) {
   const timeout = setTimeout(() => controller.abort(), 1_900);
 
   try {
-    const url = ip ? `https://ipapi.co/${encodeURIComponent(ip)}/json/` : "https://ipapi.co/json/";
+    const url = ip
+      ? `https://ipapi.co/${encodeURIComponent(ip)}/json/`
+      : "https://ipapi.co/json/";
     const response = await fetch(url, {
       signal: controller.signal,
-      cache: "no-store"
+      cache: "no-store",
     });
 
     if (!response.ok) {
@@ -98,12 +164,18 @@ export async function GET(request: NextRequest) {
     const payload = (await response.json()) as GeoPayload;
     const region = payload.error ? null : mapRegion(payload);
     if (!region) {
-      return NextResponse.json({ region: null, error: "Could not detect region" });
+      return NextResponse.json({
+        region: null,
+        error: "Could not detect region",
+      });
     }
 
     return NextResponse.json({ region, label: REGION_LABELS[region] });
   } catch {
-    return NextResponse.json({ region: null, error: "Could not detect region" });
+    return NextResponse.json({
+      region: null,
+      error: "Could not detect region",
+    });
   } finally {
     clearTimeout(timeout);
   }

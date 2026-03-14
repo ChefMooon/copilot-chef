@@ -3,7 +3,7 @@ export const MEAL_TYPES = [
   "morning snack",
   "lunch",
   "afternoon snack",
-  "dinner"
+  "dinner",
 ] as const;
 
 export type CalendarMealType = (typeof MEAL_TYPES)[number];
@@ -40,11 +40,26 @@ export const TYPE_CONFIG: Record<
   CalendarMealType,
   { dot: string; bg: string; text: string; label: string }
 > = {
-  breakfast: { dot: "#E8885A", bg: "#FDF0E8", text: "#A0441A", label: "BREAKFAST" },
-  "morning snack": { dot: "#C5A84B", bg: "#FBF6E8", text: "#8A6E20", label: "MORNING SNACK" },
+  breakfast: {
+    dot: "#E8885A",
+    bg: "#FDF0E8",
+    text: "#A0441A",
+    label: "BREAKFAST",
+  },
+  "morning snack": {
+    dot: "#C5A84B",
+    bg: "#FBF6E8",
+    text: "#8A6E20",
+    label: "MORNING SNACK",
+  },
   lunch: { dot: "#5A7D63", bg: "#EAF2EC", text: "#2E5438", label: "LUNCH" },
-  "afternoon snack": { dot: "#8A7DB8", bg: "#F0EDF8", text: "#5A4D8A", label: "AFTERNOON SNACK" },
-  dinner: { dot: "#3B5E45", bg: "#D4E4D8", text: "#1E3A26", label: "DINNER" }
+  "afternoon snack": {
+    dot: "#8A7DB8",
+    bg: "#F0EDF8",
+    text: "#5A4D8A",
+    label: "AFTERNOON SNACK",
+  },
+  dinner: { dot: "#3B5E45", bg: "#D4E4D8", text: "#1E3A26", label: "DINNER" },
 };
 
 export function toCalendarMealType(mealType: ApiMealType): CalendarMealType {
@@ -63,7 +78,9 @@ export function toCalendarMealType(mealType: ApiMealType): CalendarMealType {
   }
 }
 
-export function fromCalendarMealType(mealType: CalendarMealType): Exclude<ApiMealType, "SNACK"> {
+export function fromCalendarMealType(
+  mealType: CalendarMealType
+): Exclude<ApiMealType, "SNACK"> {
   switch (mealType) {
     case "breakfast":
       return "BREAKFAST";
@@ -86,7 +103,7 @@ export function toEditableMeal(meal: CalendarMeal): EditableMeal {
     date: new Date(meal.date),
     type: toCalendarMealType(meal.mealType),
     notes: meal.notes ?? "",
-    ingredients: meal.ingredients ?? []
+    ingredients: meal.ingredients ?? [],
   };
 }
 
@@ -103,16 +120,21 @@ export const MONTHS = [
   "September",
   "October",
   "November",
-  "December"
+  "December",
 ];
 
 export const isSameDay = (a: Date, b: Date) =>
-  a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
 
 export const mealsForDay = (meals: EditableMeal[], date: Date) =>
   meals
     .filter((meal) => isSameDay(meal.date, date))
-    .sort((left, right) => MEAL_TYPES.indexOf(left.type) - MEAL_TYPES.indexOf(right.type));
+    .sort(
+      (left, right) =>
+        MEAL_TYPES.indexOf(left.type) - MEAL_TYPES.indexOf(right.type)
+    );
 
 export function getMonday(date: Date) {
   const monday = new Date(date);
@@ -147,11 +169,22 @@ export function toRangeByView(view: "day" | "week" | "month", date: Date) {
   }
 
   const from = new Date(date.getFullYear(), date.getMonth(), 1);
-  const to = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+  const to = new Date(
+    date.getFullYear(),
+    date.getMonth() + 1,
+    0,
+    23,
+    59,
+    59,
+    999
+  );
   return { from, to };
 }
 
-export function createEmptyMeal(date: Date, type: CalendarMealType): EditableMeal {
+export function createEmptyMeal(
+  date: Date,
+  type: CalendarMealType
+): EditableMeal {
   return {
     id: "",
     mealPlanId: null,
@@ -159,6 +192,6 @@ export function createEmptyMeal(date: Date, type: CalendarMealType): EditableMea
     date,
     type,
     notes: "",
-    ingredients: []
+    ingredients: [],
   };
 }

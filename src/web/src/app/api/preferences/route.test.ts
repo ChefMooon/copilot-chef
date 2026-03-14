@@ -58,16 +58,24 @@ function buildPreferences(): PreferencesState {
     consolidateIngredients: true,
     defaultPlanLength: "7",
     groceryGrouping: "category",
-    saveChatHistory: true
+    saveChatHistory: true,
   };
 }
 
 vi.mock("@copilot-chef/core", () => {
   const state = {
     preferences: buildPreferences(),
-    mealLogs: [{ id: "log-1", date: "2026-03-10T00:00:00.000Z", mealType: "dinner", mealName: "Salmon", cooked: true }],
+    mealLogs: [
+      {
+        id: "log-1",
+        date: "2026-03-10T00:00:00.000Z",
+        mealType: "dinner",
+        mealName: "Salmon",
+        cooked: true,
+      },
+    ],
     clearCount: 2,
-    updateCalls: [] as Array<Record<string, unknown>>
+    updateCalls: [] as Array<Record<string, unknown>>,
   };
 
   class PreferenceService {
@@ -80,7 +88,7 @@ vi.mock("@copilot-chef/core", () => {
       state.preferences = {
         ...state.preferences,
         ...patch,
-        updatedAt: "2026-03-14T12:00:00.000Z"
+        updatedAt: "2026-03-14T12:00:00.000Z",
       };
       return state.preferences;
     }
@@ -106,7 +114,7 @@ vi.mock("@copilot-chef/core", () => {
   return {
     PreferenceService,
     MealLogService,
-    ChatHistoryService
+    ChatHistoryService,
   };
 });
 
@@ -134,8 +142,11 @@ describe("preferences routes", () => {
     const response = await PATCH(
       new Request("http://localhost/api/preferences", {
         method: "PATCH",
-        body: JSON.stringify({ favoriteCuisines: ["japanese"], avoidCuisines: [] }),
-        headers: { "Content-Type": "application/json" }
+        body: JSON.stringify({
+          favoriteCuisines: ["japanese"],
+          avoidCuisines: [],
+        }),
+        headers: { "Content-Type": "application/json" },
       })
     );
 
@@ -150,16 +161,19 @@ describe("preferences routes", () => {
       "fetch",
       vi.fn().mockResolvedValue({
         ok: true,
-        json: async () => ({ country_code: "US", region_code: "NY" })
+        json: async () => ({ country_code: "US", region_code: "NY" }),
       })
     );
 
     const response = await detectRegionGet(
       new Request("http://localhost/api/preferences/detect-region", {
-        headers: { "x-forwarded-for": "198.51.100.10" }
+        headers: { "x-forwarded-for": "198.51.100.10" },
       }) as never
     );
-    const payload = (await response.json()) as { region: string; label: string };
+    const payload = (await response.json()) as {
+      region: string;
+      label: string;
+    };
 
     expect(payload).toEqual({ region: "eastern-us", label: "Eastern US" });
   });
@@ -167,7 +181,9 @@ describe("preferences routes", () => {
   it("returns the spec error object when detection fails", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("boom")));
 
-    const response = await detectRegionGet(new Request("http://localhost/api/preferences/detect-region") as never);
+    const response = await detectRegionGet(
+      new Request("http://localhost/api/preferences/detect-region") as never
+    );
     const payload = (await response.json()) as { region: null; error: string };
 
     expect(payload).toEqual({ region: null, error: "Could not detect region" });
@@ -176,9 +192,14 @@ describe("preferences routes", () => {
   it("exports preferences and meal logs as a json download", async () => {
     const response = await exportGet();
     const text = await response.text();
-    const payload = JSON.parse(text) as { preferences: PreferencesState; mealLogs: Array<{ id: string }> };
+    const payload = JSON.parse(text) as {
+      preferences: PreferencesState;
+      mealLogs: Array<{ id: string }>;
+    };
 
-    expect(response.headers.get("content-disposition")).toContain("copilot-chef-export-");
+    expect(response.headers.get("content-disposition")).toContain(
+      "copilot-chef-export-"
+    );
     expect(payload.preferences.id).toBe("default");
     expect(payload.mealLogs).toHaveLength(1);
   });
@@ -188,7 +209,7 @@ describe("preferences routes", () => {
       new Request("http://localhost/api/preferences", {
         method: "PATCH",
         body: JSON.stringify({ householdSize: 5 }),
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
       })
     );
 

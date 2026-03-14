@@ -29,7 +29,7 @@ export function ItemRow({
   onDragStartItem,
   onDragHoverItem,
   onDropItem,
-  onDragEndItem
+  onDragEndItem,
 }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -85,7 +85,11 @@ export function ItemRow({
             type="text"
             value={item.qty ?? ""}
           />
-          <select className={styles.itemUnitSelect} onChange={(event) => onUpdate({ unit: event.target.value })} value={item.unit ?? ""}>
+          <select
+            className={styles.itemUnitSelect}
+            onChange={(event) => onUpdate({ unit: event.target.value })}
+            value={item.unit ?? ""}
+          >
             {UNITS.map((unit) => (
               <option key={unit} value={unit}>
                 {unit || "-"}
@@ -93,7 +97,11 @@ export function ItemRow({
             ))}
           </select>
         </div>
-        <select className={styles.itemCatSelect} onChange={(event) => onUpdate({ category: event.target.value })} value={item.category}>
+        <select
+          className={styles.itemCatSelect}
+          onChange={(event) => onUpdate({ category: event.target.value })}
+          value={item.category}
+        >
           {CATEGORIES.map((category) => (
             <option key={category} value={category}>
               {category}
@@ -101,16 +109,38 @@ export function ItemRow({
           ))}
         </select>
         <div className={styles.itemRowActions}>
-          <button className={styles.iconBtn} disabled={index === 0} onClick={() => onMove(-1)} title="Move up" type="button">
+          <button
+            className={styles.iconBtn}
+            disabled={index === 0}
+            onClick={() => onMove(-1)}
+            title="Move up"
+            type="button"
+          >
             ↑
           </button>
-          <button className={styles.iconBtn} disabled={index === total - 1} onClick={() => onMove(1)} title="Move down" type="button">
+          <button
+            className={styles.iconBtn}
+            disabled={index === total - 1}
+            onClick={() => onMove(1)}
+            title="Move down"
+            type="button"
+          >
             ↓
           </button>
-          <button className={styles.iconBtn} onClick={() => setExpanded((value) => !value)} title="More fields" type="button">
+          <button
+            className={styles.iconBtn}
+            onClick={() => setExpanded((value) => !value)}
+            title="More fields"
+            type="button"
+          >
             {expanded ? "▲" : "▼"}
           </button>
-          <button className={`${styles.iconBtn} ${styles.itemDeleteBtn}`} onClick={onDelete} title="Remove" type="button">
+          <button
+            className={`${styles.iconBtn} ${styles.itemDeleteBtn}`}
+            onClick={onDelete}
+            title="Remove"
+            type="button"
+          >
             ✕
           </button>
         </div>

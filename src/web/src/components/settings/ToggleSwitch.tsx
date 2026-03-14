@@ -10,7 +10,11 @@ type ToggleSwitchProps = {
   disabled?: boolean;
 };
 
-export function ToggleSwitch({ checked, onChange, disabled = false }: ToggleSwitchProps) {
+export function ToggleSwitch({
+  checked,
+  onChange,
+  disabled = false,
+}: ToggleSwitchProps) {
   return (
     <button
       aria-checked={checked}

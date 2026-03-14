@@ -15,7 +15,7 @@ export async function PATCH(
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to update meal"
+        error: error instanceof Error ? error.message : "Unable to update meal",
       },
       { status: 400 }
     );
@@ -33,7 +33,7 @@ export async function DELETE(
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Unable to delete meal"
+        error: error instanceof Error ? error.message : "Unable to delete meal",
       },
       { status: 400 }
     );

@@ -19,10 +19,15 @@ type TagCloudProps = {
 const activeToneClass = {
   green: styles.tagGreenActive,
   orange: styles.tagOrangeActive,
-  red: styles.tagRedActive
+  red: styles.tagRedActive,
 };
 
-export function TagCloud({ options, selectedValues, onToggle, tone = "green" }: TagCloudProps) {
+export function TagCloud({
+  options,
+  selectedValues,
+  onToggle,
+  tone = "green",
+}: TagCloudProps) {
   return (
     <div className={styles.tagCloud}>
       {options.map((option) => {

@@ -1,4 +1,11 @@
-import { DAYS, getMonday, isSameDay, mealsForDay, type EditableMeal, TYPE_CONFIG } from "@/lib/calendar";
+import {
+  DAYS,
+  getMonday,
+  isSameDay,
+  mealsForDay,
+  type EditableMeal,
+  TYPE_CONFIG,
+} from "@/lib/calendar";
 
 import styles from "../meal-plan.module.css";
 
@@ -30,9 +37,17 @@ export function WeekView({ date, meals, setDate, onEdit }: WeekViewProps) {
     setDate(nextDate);
   };
 
-  const startLabel = days[0]?.toLocaleDateString("default", { month: "short", day: "numeric" }) ?? "";
+  const startLabel =
+    days[0]?.toLocaleDateString("default", {
+      month: "short",
+      day: "numeric",
+    }) ?? "";
   const endLabel =
-    days[6]?.toLocaleDateString("default", { month: "short", day: "numeric", year: "numeric" }) ?? "";
+    days[6]?.toLocaleDateString("default", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }) ?? "";
   const today = new Date();
 
   return (
@@ -54,10 +69,19 @@ export function WeekView({ date, meals, setDate, onEdit }: WeekViewProps) {
           const todayMatch = isSameDay(day, today);
 
           return (
-            <div className={`${styles.weekCol} ${todayMatch ? styles.weekColToday : ""}`} key={index}>
+            <div
+              className={`${styles.weekCol} ${todayMatch ? styles.weekColToday : ""}`}
+              key={index}
+            >
               <div className={styles.weekColHeader}>
-                <span className={styles.weekColWeekday}>{DAYS[day.getDay()]}</span>
-                <span className={`${styles.weekColNum} ${todayMatch ? styles.weekColNumToday : ""}`}>{day.getDate()}</span>
+                <span className={styles.weekColWeekday}>
+                  {DAYS[day.getDay()]}
+                </span>
+                <span
+                  className={`${styles.weekColNum} ${todayMatch ? styles.weekColNumToday : ""}`}
+                >
+                  {day.getDate()}
+                </span>
               </div>
               <div className={styles.weekColMeals}>
                 {dayMeals.length === 0 ? (
@@ -68,13 +92,22 @@ export function WeekView({ date, meals, setDate, onEdit }: WeekViewProps) {
                     return (
                       <button
                         className={styles.weekChip}
-                        key={meal.id || `${meal.type}-${meal.date.toISOString()}-${meal.name}`}
+                        key={
+                          meal.id ||
+                          `${meal.type}-${meal.date.toISOString()}-${meal.name}`
+                        }
                         onClick={() => onEdit(meal)}
-                        style={{ background: typeConfig.bg, borderLeft: `3px solid ${typeConfig.dot}` }}
+                        style={{
+                          background: typeConfig.bg,
+                          borderLeft: `3px solid ${typeConfig.dot}`,
+                        }}
                         type="button"
                       >
                         <span className={styles.weekChipName}>{meal.name}</span>
-                        <span className={styles.weekChipType} style={{ color: typeConfig.text }}>
+                        <span
+                          className={styles.weekChipType}
+                          style={{ color: typeConfig.text }}
+                        >
                           {typeConfig.label}
                         </span>
                       </button>

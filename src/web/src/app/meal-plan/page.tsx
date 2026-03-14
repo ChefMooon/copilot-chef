@@ -18,7 +18,7 @@ import {
   toRangeByView,
   TYPE_CONFIG,
   type CalendarMeal,
-  type EditableMeal
+  type EditableMeal,
 } from "@/lib/calendar";
 
 import { fetchJson } from "@/lib/api";
@@ -34,9 +34,9 @@ async function readChatResponse(message: string) {
   const response = await fetch("/api/chat", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
-    body: JSON.stringify({ message })
+    body: JSON.stringify({ message }),
   });
 
   if (!response.ok || !response.body) {
@@ -78,13 +78,18 @@ export default function MealPlanPage() {
   const dateRange = useMemo(() => toRangeByView(view, date), [view, date]);
 
   const mealsQuery = useQuery({
-    queryKey: ["meals", view, dateRange.from.toISOString(), dateRange.to.toISOString()],
+    queryKey: [
+      "meals",
+      view,
+      dateRange.from.toISOString(),
+      dateRange.to.toISOString(),
+    ],
     queryFn: () =>
       fetchJson<{ data: CalendarMeal[] }>(
         `/api/meals?from=${encodeURIComponent(toIsoString(dateRange.from))}&to=${encodeURIComponent(
           toIsoString(dateRange.to)
         )}`
-      ).then((response) => response.data.map(toEditableMeal))
+      ).then((response) => response.data.map(toEditableMeal)),
   });
 
   const meals = mealsQuery.data ?? [];
@@ -119,18 +124,18 @@ export default function MealPlanPage() {
       date: updatedMeal.date.toISOString(),
       mealType: fromCalendarMealType(updatedMeal.type),
       notes: updatedMeal.notes,
-      ingredients: updatedMeal.ingredients
+      ingredients: updatedMeal.ingredients,
     };
 
     if (updatedMeal.id) {
       await fetchJson<{ data: CalendarMeal }>(`/api/meals/${updatedMeal.id}`, {
         method: "PATCH",
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
     } else {
       await fetchJson<{ data: CalendarMeal }>("/api/meals", {
         method: "POST",
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
     }
 
@@ -139,7 +144,7 @@ export default function MealPlanPage() {
 
   const onDeleteMeal = async (mealId: string) => {
     await fetchJson<{ data: { id: string } }>(`/api/meals/${mealId}`, {
-      method: "DELETE"
+      method: "DELETE",
     });
 
     await queryClient.invalidateQueries({ queryKey: ["meals"] });
@@ -150,15 +155,15 @@ export default function MealPlanPage() {
       `Re-suggest a ${meal.type} meal for ${meal.date.toDateString()} based on my preferences. Return a short meal name and one sentence.`
     );
 
-    const nextName = answer
-      .split("\n")
-      .map((line) => line.trim())
-      .find((line) => line.length > 0)
-      ?.replace(/^[-*\d.)\s]+/, "")
-      ?? meal.name;
+    const nextName =
+      answer
+        .split("\n")
+        .map((line) => line.trim())
+        .find((line) => line.length > 0)
+        ?.replace(/^[-*\d.)\s]+/, "") ?? meal.name;
 
     return {
-      name: nextName.replace(/^"|"$/g, "")
+      name: nextName.replace(/^"|"$/g, ""),
     };
   };
 
@@ -174,21 +179,28 @@ export default function MealPlanPage() {
                 weekday: "long",
                 month: "long",
                 day: "numeric",
-                year: "numeric"
+                year: "numeric",
               })}
             {view === "week" && "Plan and review your meals week by week."}
-            {view === "month" && `${MONTHS[date.getMonth()]} ${date.getFullYear()}`}
+            {view === "month" &&
+              `${MONTHS[date.getMonth()]} ${date.getFullYear()}`}
           </p>
         </div>
         <div className={styles.pageHeaderRight}>
           <button
             className={styles.btnAddMeal}
-            onClick={() => setEditMeal(createEmptyMeal(new Date(date), "dinner"))}
+            onClick={() =>
+              setEditMeal(createEmptyMeal(new Date(date), "dinner"))
+            }
             type="button"
           >
             + Add Meal
           </button>
-          <button className={styles.btnToday} onClick={() => setDate(new Date())} type="button">
+          <button
+            className={styles.btnToday}
+            onClick={() => setDate(new Date())}
+            type="button"
+          >
             Today
           </button>
           <div className={styles.viewToggle}>
@@ -207,15 +219,39 @@ export default function MealPlanPage() {
       </div>
 
       <div className={styles.calCard}>
-        {view === "day" ? <DayView date={date} meals={meals} onEdit={setEditMeal} setDate={setDate} /> : null}
-        {view === "week" ? <WeekView date={date} meals={meals} onEdit={setEditMeal} setDate={setDate} /> : null}
-        {view === "month" ? <MonthView date={date} meals={meals} onEdit={setEditMeal} setDate={setDate} /> : null}
+        {view === "day" ? (
+          <DayView
+            date={date}
+            meals={meals}
+            onEdit={setEditMeal}
+            setDate={setDate}
+          />
+        ) : null}
+        {view === "week" ? (
+          <WeekView
+            date={date}
+            meals={meals}
+            onEdit={setEditMeal}
+            setDate={setDate}
+          />
+        ) : null}
+        {view === "month" ? (
+          <MonthView
+            date={date}
+            meals={meals}
+            onEdit={setEditMeal}
+            setDate={setDate}
+          />
+        ) : null}
       </div>
 
       <div className={styles.legend}>
         {MEAL_TYPES.map((type) => (
           <div className={styles.legendItem} key={type}>
-            <span className={styles.legendDot} style={{ background: TYPE_CONFIG[type].dot }} />
+            <span
+              className={styles.legendDot}
+              style={{ background: TYPE_CONFIG[type].dot }}
+            />
             <span className={styles.legendText}>{TYPE_CONFIG[type].label}</span>
           </div>
         ))}
@@ -237,7 +273,10 @@ export default function MealPlanPage() {
         </p>
       ) : null}
       {mealsQuery.error ? (
-        <p className={styles.pageSub} style={{ marginTop: "0.85rem", color: "#A0441A" }}>
+        <p
+          className={styles.pageSub}
+          style={{ marginTop: "0.85rem", color: "#A0441A" }}
+        >
           Unable to load meals for this range.
         </p>
       ) : null}
