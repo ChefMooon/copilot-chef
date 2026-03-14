@@ -3,6 +3,7 @@ export { bootstrapDatabase } from "./lib/bootstrap";
 export { getGreeting } from "./lib/date";
 export { chatRequestSchema, chatResponseSchema, quickPromptSchema } from "./schemas/chat";
 export { getClient, resetClient, stopClient } from "./lib/copilot-client";
+export { ChatHistoryService } from "./services/chat-history-service";
 export { GroceryService } from "./services/grocery-service";
 export { MealLogService } from "./services/meal-log-service";
 export { MealService } from "./services/meal-service";

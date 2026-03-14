@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { DayView } from "./components/DayView";
@@ -22,6 +22,7 @@ import {
 } from "@/lib/calendar";
 
 import { fetchJson } from "@/lib/api";
+import { useChatPageContext } from "@/context/chat-context";
 
 type CalView = "day" | "week" | "month";
 
@@ -60,14 +61,16 @@ async function readChatResponse(message: string) {
 }
 
 export default function MealPlanPage() {
-  const [view, setView] = useState<CalView>(() => {
+  const [view, setView] = useState<CalView>("week");
+
+  useEffect(() => {
     try {
       const storedView = localStorage.getItem("cal_view") as CalView | null;
-      return storedView ?? "week";
+      if (storedView) setView(storedView);
     } catch {
-      return "week";
+      // ignore persistence failures
     }
-  });
+  }, []);
   const [date, setDate] = useState(() => new Date());
   const [editMeal, setEditMeal] = useState<EditableMeal | null>(null);
   const queryClient = useQueryClient();
@@ -85,6 +88,20 @@ export default function MealPlanPage() {
   });
 
   const meals = mealsQuery.data ?? [];
+
+  useChatPageContext({
+    page: "meal-plan",
+    view,
+    date: date.toISOString(),
+    dateRangeFrom: dateRange.from.toISOString(),
+    dateRangeTo: dateRange.to.toISOString(),
+    meals: meals.map((m) => ({
+      id: m.id ?? "",
+      name: m.name,
+      mealType: m.type,
+      date: m.date.toISOString(),
+    })),
+  });
 
   const switchView = (nextView: CalView) => {
     setView(nextView);

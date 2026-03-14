@@ -15,6 +15,7 @@ function serializePreferences(preferences: {
   cuisinePreferences: string | null;
   avoidIngredients: string | null;
   notes: string | null;
+  persistChatHistory: boolean;
   updatedAt: Date;
 }) {
   return {
@@ -23,6 +24,7 @@ function serializePreferences(preferences: {
     cuisinePreferences: splitCsv(preferences.cuisinePreferences),
     avoidIngredients: splitCsv(preferences.avoidIngredients),
     notes: preferences.notes ?? "",
+    persistChatHistory: preferences.persistChatHistory,
     updatedAt: preferences.updatedAt.toISOString()
   };
 }
@@ -50,6 +52,7 @@ export class PreferenceService {
     cuisinePreferences: string[];
     avoidIngredients: string[];
     notes?: string;
+    persistChatHistory?: boolean;
   }) {
     await bootstrapDatabase();
 
@@ -62,7 +65,8 @@ export class PreferenceService {
         householdSize: input.householdSize,
         cuisinePreferences: joinCsv(input.cuisinePreferences),
         avoidIngredients: joinCsv(input.avoidIngredients),
-        notes: input.notes ?? ""
+        notes: input.notes ?? "",
+        ...(input.persistChatHistory !== undefined ? { persistChatHistory: input.persistChatHistory } : {})
       },
       create: {
         id: "default",
@@ -70,7 +74,8 @@ export class PreferenceService {
         householdSize: input.householdSize,
         cuisinePreferences: joinCsv(input.cuisinePreferences),
         avoidIngredients: joinCsv(input.avoidIngredients),
-        notes: input.notes ?? ""
+        notes: input.notes ?? "",
+        persistChatHistory: input.persistChatHistory ?? true
       }
     });
 

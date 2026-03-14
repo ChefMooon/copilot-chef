@@ -111,15 +111,19 @@ export class CopilotChef {
   async chat(
     message: string,
     sessionId?: string,
-    extraContext?: string
+    pageContext?: string
   ): Promise<{ sessionId: string; stream: ReadableStream<Uint8Array> }> {
-    const { session, sessionId: activeId } = await this.ensureSession(sessionId, extraContext);
+    const { session, sessionId: activeId } = await this.ensureSession(sessionId);
     const encoder = new TextEncoder();
+
+    const prompt = pageContext
+      ? `[Page Context]\n${pageContext}\n\n[User Message]\n${message}`
+      : message;
 
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
         session
-          .sendAndWait({ prompt: message }, 120_000)
+          .sendAndWait({ prompt }, 120_000)
           .then((response) => {
             const text = response?.data?.content ?? "";
             if (text) {

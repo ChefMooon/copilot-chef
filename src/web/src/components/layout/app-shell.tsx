@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type PropsWithChildren, useEffect, useState } from "react";
 
+import { ChatProvider } from "@/context/chat-context";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 import { cn } from "@/lib/utils";
 
 import styles from "./app-shell.module.css";
@@ -24,7 +26,7 @@ export function AppShell({ children }: PropsWithChildren) {
   }, [pathname]);
 
   return (
-    <>
+    <ChatProvider>
       <header className={styles.header}>
         <Link className={styles.logo} href="/">
           <span className={styles.logoIcon}>🍳</span>
@@ -84,6 +86,7 @@ export function AppShell({ children }: PropsWithChildren) {
       </div>
 
       <main className={styles.page}>{children}</main>
-    </>
+      <ChatWidget />
+    </ChatProvider>
   );
 }

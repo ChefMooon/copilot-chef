@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { fetchJson } from "@/lib/api";
+import { useChatPageContext } from "@/context/chat-context";
 import {
   deriveGroceryList,
   isToday,
@@ -149,6 +150,33 @@ export default function GroceryListPage() {
       throw error;
     }
   };
+
+  useChatPageContext({
+    page: "grocery-list",
+    activeList: selectedList
+      ? {
+          id: selectedList.id,
+          name: selectedList.name,
+          items: selectedList.items.map((item) => ({
+            id: item.id,
+            name: item.name,
+            qty: item.qty,
+            unit: item.unit,
+            category: item.category,
+            checked: item.checked,
+          })),
+          totalItems: selectedList.totalItems,
+          checkedCount: selectedList.checkedCount,
+          completionPercentage: selectedList.completionPercentage,
+        }
+      : null,
+    allLists: lists.map((l) => ({
+      id: l.id,
+      name: l.name,
+      itemCount: l.totalItems,
+      checkedCount: l.checkedCount,
+    })),
+  });
 
   return (
     <>
