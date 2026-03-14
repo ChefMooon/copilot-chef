@@ -6,22 +6,22 @@ import { ChatPanel } from "./ChatPanel";
 import styles from "./ChatWidget.module.css";
 
 export function ChatWidget() {
-  const { isOpen, openChat, closeChat } = useChatContext();
+  const { isOpen, openChat } = useChatContext();
 
   return (
     <>
       {isOpen ? <ChatPanel /> : null}
-      <button
-        aria-label={
-          isOpen ? "Close Copilot Chef chat" : "Open Copilot Chef chat"
-        }
-        className={`${styles.fab} ${isOpen ? styles.fabOpen : ""}`}
-        onClick={() => (isOpen ? closeChat() : openChat())}
-        title={isOpen ? "Close chat" : "Chat with Copilot Chef"}
-        type="button"
-      >
-        {isOpen ? "✕" : "💬"}
-      </button>
+      {!isOpen && (
+        <button
+          aria-label="Open Copilot Chef chat"
+          className={styles.fab}
+          onClick={openChat}
+          title="Chat with Copilot Chef"
+          type="button"
+        >
+          💬
+        </button>
+      )}
     </>
   );
 }

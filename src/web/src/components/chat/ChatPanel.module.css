@@ -1,7 +1,7 @@
 /* ─── Panel shell ─── */
 .panel {
   position: fixed;
-  bottom: 5rem;
+  bottom: 1rem;
   right: 1.5rem;
   z-index: 999;
   display: flex;
@@ -28,12 +28,12 @@
 }
 
 .panelCompact {
-  width: 360px;
-  height: 480px;
+  width: 540px;
+  height: 240px;
 }
 
 .panelMedium {
-  width: 480px;
+  width: 540px;
   height: 640px;
 }
 
