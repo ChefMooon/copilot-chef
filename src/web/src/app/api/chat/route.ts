@@ -129,16 +129,27 @@ function buildItemChoices(items: GroceryPageItem[], promptBuilder: (name: string
 function resolveRelativeDate(input: string) {
   const today = new Date();
   const lower = normalizeText(input);
+  const normalized = lower
+    .replace(/[.!?,;:]+$/g, "")
+    .replace(/^on\s+/, "")
+    .replace(/^for\s+/, "");
 
-  if (lower === "today") return today;
-  if (lower === "tomorrow") {
+  if (normalized === "today" || normalized === "tonight" || normalized === "this evening") {
+    return today;
+  }
+
+  if (/^tomorrow(?:\s+(?:night|evening))?$/.test(normalized)) {
     const next = new Date(today);
     next.setDate(today.getDate() + 1);
     return next;
   }
 
   const weekDays = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-  const dayIndex = weekDays.indexOf(lower);
+  const weekdayMatch = normalized.match(
+    /^(?:next\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)(?:\s+(?:night|evening))?$/
+  );
+  const dayKey = weekdayMatch?.[1] ?? normalized;
+  const dayIndex = weekDays.indexOf(dayKey);
   if (dayIndex >= 0) {
     const next = new Date(today);
     const delta = (dayIndex - today.getDay() + 7) % 7;
@@ -146,7 +157,7 @@ function resolveRelativeDate(input: string) {
     return next;
   }
 
-  const parsed = new Date(input);
+  const parsed = new Date(normalized);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
@@ -1640,6 +1651,7 @@ export async function POST(request: Request) {
       await historyService.addMessage(activeChatSessionId, "user", parsed.message);
     }
 
+    // Keep deterministic slash-style command handling ahead of SDK tool calls.
     const mealHandled = await tryHandleMealCommand(
       parsed.message,
       parsed.pageContextData,

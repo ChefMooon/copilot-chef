@@ -472,6 +472,69 @@ describe("POST /api/chat command actions", () => {
     expect(created.mealType).toBe("LUNCH");
   });
 
+  it("accepts tonight and trailing punctuation in add commands", async () => {
+    const tonight = await postJson({
+      message: "add sloppy joes and tater tots for dinner tonight",
+      pageContextData: { page: "meal-plan", meals: [] },
+    });
+
+    expect(tonight.json.action).toMatchObject({
+      domain: "meal",
+      type: "add-meal",
+    });
+
+    const punctuated = await postJson({
+      message: "Add Grilled Cheese for lunch today.",
+      pageContextData: { page: "meal-plan", meals: [] },
+    });
+
+    expect(punctuated.json.action).toMatchObject({
+      domain: "meal",
+      type: "add-meal",
+    });
+
+    const core = await getCoreMock();
+    const state = core.__getMockState();
+    expect(state.meals.size).toBe(2);
+    const names = Array.from(state.meals.values()).map((meal) => meal.name);
+    expect(names).toContain("sloppy joes and tater tots");
+    expect(names).toContain("Grilled Cheese");
+  });
+
+  it("accepts tomorrow night and next weekday night phrases", async () => {
+    const tomorrowNight = await postJson({
+      message: "Add Tacos for dinner tomorrow night",
+      pageContextData: { page: "meal-plan", meals: [] },
+    });
+
+    expect(tomorrowNight.json.action).toMatchObject({
+      domain: "meal",
+      type: "add-meal",
+    });
+
+    const nextWeekdayNight = await postJson({
+      message: "Add Chili for dinner next tuesday night",
+      pageContextData: { page: "meal-plan", meals: [] },
+    });
+
+    expect(nextWeekdayNight.json.action).toMatchObject({
+      domain: "meal",
+      type: "add-meal",
+    });
+
+    const core = await getCoreMock();
+    const state = core.__getMockState();
+    const meals = Array.from(state.meals.values());
+
+    const tacos = meals.find((meal) => meal.name === "Tacos");
+    const chili = meals.find((meal) => meal.name === "Chili");
+
+    expect(tacos).toBeDefined();
+    expect(chili).toBeDefined();
+    expect(tacos?.mealType).toBe("DINNER");
+    expect(chili?.mealType).toBe("DINNER");
+  });
+
   it("undoes the previous meal action", async () => {
     const add = await postJson({
       message: "Add Grilled Cheese for lunch today",

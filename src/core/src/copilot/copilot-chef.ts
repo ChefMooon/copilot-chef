@@ -1,9 +1,11 @@
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { approveAll, type CopilotSession } from "@github/copilot-sdk";
+import { approveAll, defineTool, type CopilotSession } from "@github/copilot-sdk";
+import { z } from "zod";
 
 import { getClient } from "../lib/copilot-client";
 import { GroceryService } from "../services/grocery-service";
+import { MealService } from "../services/meal-service";
 import { MealPlanService } from "../services/meal-plan-service";
 import { PreferenceService } from "../services/preference-service";
 import { buildSystemPrompt, type SystemPromptContext } from "./system-prompt";
@@ -12,6 +14,30 @@ export { buildSystemPrompt, type SystemPromptContext } from "./system-prompt";
 
 /** Default model — override by setting COPILOT_MODEL in your environment. */
 export const COPILOT_DEFAULT_MODEL = "gpt-4o-mini";
+
+const mealTypeSchema = z.enum([
+  "BREAKFAST",
+  "MORNING_SNACK",
+  "LUNCH",
+  "AFTERNOON_SNACK",
+  "DINNER",
+  "SNACK"
+]);
+
+const createMealArgsSchema = z.object({
+  name: z.string().min(1),
+  mealType: mealTypeSchema,
+  date: z.string(),
+  notes: z.string().nullable().optional(),
+  ingredients: z.array(z.string()).optional()
+});
+
+const listMealsArgsSchema = z
+  .object({
+    from: z.string().optional(),
+    to: z.string().optional()
+  })
+  .optional();
 
 function getModel(): string {
   return process.env["COPILOT_MODEL"] ?? COPILOT_DEFAULT_MODEL;
@@ -34,6 +60,7 @@ export class CopilotChef {
 
   constructor(
     private readonly mealPlanService = new MealPlanService(),
+    private readonly mealService = new MealService(),
     private readonly groceryService = new GroceryService(),
     private readonly preferenceService = new PreferenceService()
   ) {}
@@ -66,7 +93,79 @@ export class CopilotChef {
       model: getModel(),
       configDir: CONFIG_DIR,
       streaming: true,
-      availableTools: [],
+      tools: [
+        defineTool("create_meal", {
+          description: "Create a meal entry in the user's meal plan calendar.",
+          parameters: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                description: "Meal name, e.g. Grilled Cheese"
+              },
+              mealType: {
+                type: "string",
+                enum: ["BREAKFAST", "MORNING_SNACK", "LUNCH", "AFTERNOON_SNACK", "DINNER", "SNACK"],
+                description: "Meal type"
+              },
+              date: {
+                type: "string",
+                description: "ISO date or date-time string for when the meal should occur"
+              },
+              notes: {
+                type: ["string", "null"],
+                description: "Optional notes for prep or preferences"
+              },
+              ingredients: {
+                type: "array",
+                items: { type: "string" },
+                description: "Optional ingredient names"
+              }
+            },
+            required: ["name", "mealType", "date"]
+          },
+          handler: async (rawArgs) => {
+            const args = createMealArgsSchema.parse(rawArgs);
+            const created = await this.mealService.createMeal({
+              mealPlanId: null,
+              name: args.name,
+              mealType: args.mealType,
+              date: new Date(args.date).toISOString(),
+              notes: args.notes ?? null,
+              ingredients: args.ingredients ?? []
+            });
+
+            return {
+              success: true,
+              meal: created,
+              message: `Added ${created.name} for ${created.mealType.toLowerCase().replace("_", " ")} on ${new Date(created.date).toLocaleDateString()}.`
+            };
+          }
+        }),
+        defineTool("list_meals", {
+          description: "List meals for the current meal plan context.",
+          parameters: {
+            type: "object",
+            properties: {
+              from: { type: "string", description: "Optional ISO start date" },
+              to: { type: "string", description: "Optional ISO end date" }
+            }
+          },
+          handler: async (rawArgs) => {
+            const args = listMealsArgsSchema.parse(rawArgs);
+            if (args?.from && args?.to) {
+              const meals = await this.mealService.listMealsInRange(args.from, args.to);
+              return { count: meals.length, meals };
+            }
+
+            const plan = await this.mealPlanService.getCurrentMealPlan();
+            return {
+              count: plan?.meals.length ?? 0,
+              meals: plan?.meals ?? []
+            };
+          }
+        })
+      ],
       systemMessage: { content: systemMessage },
       onPermissionRequest: approveAll
     });

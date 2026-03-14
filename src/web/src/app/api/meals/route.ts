@@ -21,7 +21,27 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const data = await mealService.createMeal(body);
+
+    const ingredientsFromJson =
+      typeof body?.ingredientsJson === "string"
+        ? (() => {
+            try {
+              const parsed = JSON.parse(body.ingredientsJson);
+              return Array.isArray(parsed) ? parsed : [];
+            } catch {
+              return [];
+            }
+          })()
+        : undefined;
+
+    const normalizedBody = {
+      ...body,
+      name: body?.name ?? body?.title,
+      mealType: body?.mealType ?? body?.type,
+      ingredients: body?.ingredients ?? ingredientsFromJson ?? []
+    };
+
+    const data = await mealService.createMeal(normalizedBody);
     return NextResponse.json({ data }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
