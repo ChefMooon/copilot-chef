@@ -99,6 +99,25 @@ type UpdateItemInput = {
   checked?: boolean;
 };
 
+type GroceryListSnapshot = {
+  id: string;
+  mealPlanId: string | null;
+  name: string;
+  date: string;
+  favourite: boolean;
+  items: Array<{
+    id: string;
+    name: string;
+    qty: string | null;
+    unit: string | null;
+    category: string;
+    notes: string | null;
+    meal: string | null;
+    checked: boolean;
+    sortOrder: number;
+  }>;
+};
+
 function toDate(value: string | Date | undefined) {
   if (!value) {
     return new Date();
@@ -384,6 +403,49 @@ export class GroceryService {
     );
 
     return serializeGroceryList(await getListOrThrow(groceryListId));
+  }
+
+  async restoreGroceryListSnapshot(snapshot: GroceryListSnapshot) {
+    await bootstrapDatabase();
+
+    await prisma.$transaction(async (tx) => {
+      await tx.groceryList.update({
+        where: {
+          id: snapshot.id,
+        },
+        data: {
+          mealPlanId: snapshot.mealPlanId,
+          name: snapshot.name,
+          date: new Date(snapshot.date),
+          favourite: snapshot.favourite,
+        },
+      });
+
+      await tx.groceryItem.deleteMany({
+        where: {
+          groceryListId: snapshot.id,
+        },
+      });
+
+      if (snapshot.items.length > 0) {
+        await tx.groceryItem.createMany({
+          data: snapshot.items.map((item, index) => ({
+            id: item.id,
+            groceryListId: snapshot.id,
+            name: item.name,
+            qty: item.qty,
+            unit: item.unit,
+            category: item.category,
+            notes: item.notes,
+            meal: item.meal,
+            checked: item.checked,
+            sortOrder: item.sortOrder ?? index,
+          })),
+        });
+      }
+    });
+
+    return serializeGroceryList(await getListOrThrow(snapshot.id));
   }
 
   async toggleItem(itemId: string, checked: boolean) {

@@ -30,6 +30,13 @@ function serializeMeal(meal: {
 }
 
 export class MealService {
+  async getMeal(id: string) {
+    await bootstrapDatabase();
+
+    const meal = await prisma.meal.findUnique({ where: { id } });
+    return meal ? serializeMeal(meal) : null;
+  }
+
   async listMealsInRange(from: string, to: string) {
     await bootstrapDatabase();
 
@@ -50,6 +57,7 @@ export class MealService {
   }
 
   async createMeal(input: {
+    id?: string;
     mealPlanId?: string | null;
     name: string;
     date: string;
@@ -61,6 +69,7 @@ export class MealService {
 
     const meal = await prisma.meal.create({
       data: {
+        ...(input.id ? { id: input.id } : {}),
         mealPlanId: input.mealPlanId ?? null,
         name: input.name,
         date: new Date(input.date),

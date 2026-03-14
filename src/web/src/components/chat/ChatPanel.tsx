@@ -133,6 +133,20 @@ export function ChatPanel() {
                 key={idx}
               >
                 {msg.text}
+                {msg.role === "assistant" && msg.choices && msg.choices.length > 0 ? (
+                  <div className={styles.inlineChoices}>
+                    {msg.choices.map((choice) => (
+                      <button
+                        className={styles.inlineChoiceBtn}
+                        key={choice.id}
+                        onClick={() => void sendMessage(choice.prompt)}
+                        type="button"
+                      >
+                        {choice.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ))}
 

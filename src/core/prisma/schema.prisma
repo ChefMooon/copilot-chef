@@ -85,11 +85,13 @@ model UserPreference {
 }
 
 model ChatSession {
-  id        String        @id @default(cuid())
-  title     String?
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
-  messages  ChatMessage[]
+  id                 String                @id @default(cuid())
+  title              String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  messages           ChatMessage[]
+  actions            ChatAction[]
+  pendingSuggestions ChatPendingSuggestion[]
 }
 
 model ChatMessage {
@@ -101,6 +103,36 @@ model ChatMessage {
   chatSession   ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
 
   @@index([chatSessionId, createdAt])
+}
+
+model ChatAction {
+  id            String      @id @default(cuid())
+  chatSessionId String
+  domain        String
+  actionType    String
+  summary       String
+  forwardJson   String
+  inverseJson   String
+  undoneAt      DateTime?
+  createdAt     DateTime    @default(now())
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+
+  @@index([chatSessionId, createdAt])
+  @@index([chatSessionId, undoneAt])
+}
+
+model ChatPendingSuggestion {
+  id            String      @id @default(cuid())
+  chatSessionId String
+  domain        String
+  title         String
+  payloadJson   String
+  expiresAt     DateTime
+  createdAt     DateTime    @default(now())
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+
+  @@index([chatSessionId, createdAt])
+  @@index([chatSessionId, expiresAt])
 }
 
 model MealLog {

@@ -151,6 +151,30 @@
   border-bottom-left-radius: 4px;
 }
 
+.inlineChoices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+.inlineChoiceBtn {
+  border: 1px solid rgba(59, 94, 69, 0.22);
+  background: #fff;
+  color: var(--green);
+  border-radius: 999px;
+  padding: 0.26rem 0.65rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.inlineChoiceBtn:hover {
+  background: rgba(59, 94, 69, 0.08);
+  border-color: rgba(59, 94, 69, 0.4);
+}
+
 .typingIndicator {
   display: flex;
   align-items: center;

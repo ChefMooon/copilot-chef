@@ -10,16 +10,28 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { type PageContext, serializePageContext } from "./page-context-types";
 
-export type ChatMessage = { role: "user" | "assistant"; text: string };
 export type ChatSize = "compact" | "medium" | "fullscreen";
+
+export type ChatChoice = {
+  id: string;
+  label: string;
+  prompt: string;
+};
+
+export type ChatMessageWithChoices = {
+  role: "user" | "assistant";
+  text: string;
+  choices?: ChatChoice[];
+};
 
 interface ChatContextValue {
   isOpen: boolean;
   size: ChatSize;
-  messages: ChatMessage[];
+  messages: ChatMessageWithChoices[];
   isTyping: boolean;
   streamingMessage: string;
   showSessionBrowser: boolean;
@@ -41,7 +53,7 @@ export function useChatContext() {
   return ctx;
 }
 
-const INITIAL_MESSAGE: ChatMessage = {
+const INITIAL_MESSAGE: ChatMessageWithChoices = {
   role: "assistant",
   text: "Hey Chef! I'm your Copilot. Ask me to plan meals, build a grocery list, suggest recipes, or swap anything on your plan. Type / to see available commands.",
 };
@@ -57,10 +69,11 @@ function getMinimalContextForPath(path: string): string {
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const queryClient = useQueryClient();
 
   const [isOpen, setIsOpen] = useState(false);
   const [size, setSize] = useState<ChatSize>("compact");
-  const [messages, setMessages] = useState<ChatMessage[]>([INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState<ChatMessageWithChoices[]>([INITIAL_MESSAGE]);
   const [isTyping, setIsTyping] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [copilotSessionId, setCopilotSessionId] = useState<string | undefined>();
@@ -99,11 +112,45 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             message: text,
             sessionId: copilotSessionId,
             pageContext: pageContextStr,
+            pageContextData: pageContextRef.current,
             chatSessionId,
           }),
         });
 
-        if (!response.ok || !response.body) {
+        if (!response.ok) {
+          throw new Error("Chat request failed");
+        }
+
+        const contentType = response.headers.get("content-type") ?? "";
+        if (contentType.includes("application/json")) {
+          const payload = (await response.json()) as {
+            sessionId?: string;
+            chatSessionId?: string;
+            message: string;
+            choices?: ChatChoice[];
+            action?: {
+              domain: "meal" | "grocery";
+            };
+          };
+          if (payload.sessionId) setCopilotSessionId(payload.sessionId);
+          if (payload.chatSessionId && !chatSessionId) setChatSessionId(payload.chatSessionId);
+
+          if (payload.action?.domain === "meal") {
+            await queryClient.invalidateQueries({ queryKey: ["meals"] });
+          }
+          if (payload.action?.domain === "grocery") {
+            await queryClient.invalidateQueries({ queryKey: ["grocery-lists"] });
+          }
+
+          setIsTyping(false);
+          setMessages((prev) => [
+            ...prev,
+            { role: "assistant", text: payload.message.trim(), choices: payload.choices ?? [] },
+          ]);
+          return;
+        }
+
+        if (!response.body) {
           throw new Error("Chat request failed");
         }
 
@@ -126,18 +173,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         }
         assistantText += decoder.decode();
 
-        setMessages((prev) => [...prev, { role: "assistant", text: assistantText.trim() }]);
+        setMessages((prev) => [...prev, { role: "assistant", text: assistantText.trim(), choices: [] }]);
         setStreamingMessage("");
       } catch {
         setIsTyping(false);
         setStreamingMessage("");
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", text: "Something went wrong. Please try again." },
+          { role: "assistant", text: "Something went wrong. Please try again.", choices: [] },
         ]);
       }
     },
-    [pathname, copilotSessionId, chatSessionId]
+    [pathname, copilotSessionId, chatSessionId, queryClient]
   );
 
   const loadSession = useCallback(async (id: string) => {
@@ -155,7 +202,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       lastSentPathRef.current = "";
       setMessages([
         INITIAL_MESSAGE,
-        ...data.messages.map((m) => ({ role: m.role, text: m.content })),
+        ...data.messages.map((m) => ({ role: m.role, text: m.content, choices: [] })),
       ]);
       setShowSessionBrowser(false);
     } catch {
