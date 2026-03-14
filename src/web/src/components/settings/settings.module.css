@@ -308,6 +308,7 @@
 .chipColumn {
   display: grid;
   gap: 0.9rem;
+  align-content: start;
 }
 
 .chipInputRow {
@@ -407,6 +408,7 @@
 }
 
 .personaCard {
+  position: relative;
   display: grid;
   gap: 0.25rem;
   padding: 0.95rem;
@@ -560,6 +562,236 @@
   .pageHeader {
     flex-direction: column;
   }
+}
+
+/* ── Persona card: custom edit button ── */
+.personaEditBtn {
+  position: absolute;
+  top: 0.45rem;
+  right: 0.45rem;
+  padding: 0.25rem 0.3rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  opacity: 0;
+  border-radius: 6px;
+  transition:
+    opacity 0.15s,
+    background 0.15s;
+}
+
+.personaCard:hover .personaEditBtn {
+  opacity: 1;
+}
+
+.personaEditBtn:hover {
+  background: rgba(122, 106, 88, 0.1);
+  color: var(--text);
+}
+
+/* ── Persona add card ── */
+.personaCardAdd {
+  border-style: dashed;
+  color: var(--text-muted);
+  align-items: center;
+  justify-items: center;
+}
+
+.personaCardAdd:hover {
+  border-color: var(--green-light);
+  color: var(--text);
+}
+
+.personaAddIcon {
+  font-size: 1.5rem;
+  font-weight: 300;
+  line-height: 1;
+}
+
+/* ── Persona modal ── */
+.personaModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.personaModalPanel {
+  width: min(520px, 94vw);
+  border-radius: 20px;
+  background: var(--cream);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  display: grid;
+}
+
+.personaModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.personaModalTitle {
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.personaModalClose {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.personaModalClose:hover {
+  background: rgba(122, 106, 88, 0.1);
+  color: var(--text);
+}
+
+.personaModalBody {
+  padding: 1.25rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.personaModalFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.personaModalFooterRight {
+  display: flex;
+  gap: 0.55rem;
+}
+
+.personaFormGroup {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.personaFormLabel {
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.personaModalError {
+  color: #9d2b2b;
+  font-size: 0.88rem;
+}
+
+.personaEmojiInput {
+  width: 5rem;
+  border: 1px solid var(--cream-dark);
+  border-radius: 12px;
+  background: var(--cream);
+  color: var(--text);
+  padding: 0.72rem 0.85rem;
+  outline: none;
+  font-size: 1.3rem;
+  text-align: center;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.personaEmojiInput:focus {
+  border-color: var(--green-light);
+  box-shadow: 0 0 0 3px rgba(59, 94, 69, 0.12);
+}
+
+.personaPromptTextarea {
+  width: 100%;
+  min-height: 110px;
+  border: 1px solid var(--cream-dark);
+  border-radius: 12px;
+  background: var(--cream);
+  color: var(--text);
+  padding: 0.72rem 0.85rem;
+  outline: none;
+  resize: vertical;
+  font-size: 0.95rem;
+  font-family: inherit;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.personaPromptTextarea:focus {
+  border-color: var(--green-light);
+  box-shadow: 0 0 0 3px rgba(59, 94, 69, 0.12);
+}
+
+.personaModalBtnCancel {
+  padding: 0.6rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.personaModalBtnCancel:hover {
+  background: rgba(122, 106, 88, 0.08);
+  color: var(--text);
+}
+
+.personaModalBtnDelete {
+  padding: 0.6rem 1.1rem;
+  border: 1px solid rgba(157, 43, 43, 0.3);
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 700;
+  color: #9d2b2b;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.personaModalBtnDelete:hover {
+  background: rgba(157, 43, 43, 0.08);
+}
+
+.personaModalBtnDelete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.personaModalBtnSave {
+  padding: 0.6rem 1.25rem;
+  border: 0;
+  border-radius: 12px;
+  background: #2c4a1e;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  transition: opacity 0.15s;
+}
+
+.personaModalBtnSave:hover {
+  opacity: 0.88;
+}
+
+.personaModalBtnSave:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 @media (max-width: 600px) {

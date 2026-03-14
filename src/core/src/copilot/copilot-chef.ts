@@ -7,6 +7,7 @@ import { getClient } from "../lib/copilot-client";
 import { GroceryService } from "../services/grocery-service";
 import { MealService } from "../services/meal-service";
 import { MealPlanService } from "../services/meal-plan-service";
+import { PersonaService } from "../services/persona-service";
 import { PreferenceService } from "../services/preference-service";
 import { buildSystemPrompt, type SystemPromptContext } from "./system-prompt";
 
@@ -54,6 +55,15 @@ function ensureConfigDir() {
   }
 }
 
+const BUILT_IN_PERSONA_KEYS = new Set([
+  "coach",
+  "scientist",
+  "entertainer",
+  "minimalist",
+  "professor",
+  "michelin",
+]);
+
 export class CopilotChef {
   /** Active SDK sessions keyed by their Copilot session ID. */
   private readonly sessions = new Map<string, CopilotSession>();
@@ -62,7 +72,8 @@ export class CopilotChef {
     private readonly mealPlanService = new MealPlanService(),
     private readonly mealService = new MealService(),
     private readonly groceryService = new GroceryService(),
-    private readonly preferenceService = new PreferenceService()
+    private readonly preferenceService = new PreferenceService(),
+    private readonly personaService = new PersonaService()
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -76,7 +87,17 @@ export class CopilotChef {
       this.preferenceService.getPreferences()
     ]);
 
-    return { mealPlan, groceryList, preferences };
+    let customPersonaPrompt: string | undefined;
+    if (preferences && !BUILT_IN_PERSONA_KEYS.has(preferences.chefPersona)) {
+      try {
+        const persona = await this.personaService.findById(preferences.chefPersona);
+        customPersonaPrompt = persona?.prompt;
+      } catch {
+        // persona may have been deleted; fall back to default
+      }
+    }
+
+    return { mealPlan, groceryList, preferences, customPersonaPrompt };
   }
 
   // ---------------------------------------------------------------------------

@@ -1,6 +1,12 @@
-import { type PreferenceUpdateInput, type PreferencesPayload } from "@copilot-chef/core";
+import {
+  type CustomPersonaPayload,
+  type CreatePersonaInput,
+  type PreferenceUpdateInput,
+  type PreferencesPayload,
+} from "@copilot-chef/core";
 
 export type SettingsPreferences = PreferencesPayload;
+export type { CustomPersonaPayload };
 
 export type DetectedRegionPayload = {
   region: string | null;
@@ -77,4 +83,35 @@ export async function exportUserData() {
     blob,
     fileName: fileNameMatch?.[1] ?? "copilot-chef-export.json"
   };
+}
+
+export async function getPersonas(): Promise<CustomPersonaPayload[]> {
+  const response = await fetchJson<{ data: CustomPersonaPayload[] }>("/api/personas");
+  return response.data;
+}
+
+export async function createPersona(input: CreatePersonaInput): Promise<CustomPersonaPayload> {
+  const response = await fetchJson<{ data: CustomPersonaPayload }>("/api/personas", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return response.data;
+}
+
+export async function updatePersona(
+  id: string,
+  input: Partial<CreatePersonaInput>
+): Promise<CustomPersonaPayload> {
+  const response = await fetchJson<{ data: CustomPersonaPayload }>(`/api/personas/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+  return response.data;
+}
+
+export async function deletePersona(id: string): Promise<{ id: string }> {
+  const response = await fetchJson<{ data: { id: string } }>(`/api/personas/${id}`, {
+    method: "DELETE",
+  });
+  return response.data;
 }

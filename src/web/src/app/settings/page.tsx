@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { PersonaModal } from "@/components/settings/PersonaModal";
+
 import { ChipList } from "@/components/settings/ChipList";
 import { CollapsibleSection } from "@/components/settings/CollapsibleSection";
 import { PersonaGrid } from "@/components/settings/PersonaGrid";
@@ -26,12 +28,17 @@ import { Button } from "@/components/ui/button";
 import { useChatContext, useChatPageContext } from "@/context/chat-context";
 import {
   clearChatHistory,
+  createPersona,
+  deletePersona,
   detectRegion,
   exportUserData,
+  getPersonas,
   getPreferences,
   patchPreferences,
   resetPreferences,
-  type SettingsPreferences
+  updatePersona,
+  type CustomPersonaPayload,
+  type SettingsPreferences,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -198,7 +205,20 @@ export default function SettingsPage() {
   });
 
   const preferences = preferencesQuery.data;
-  const personaEnabled = process.env.NEXT_PUBLIC_PERSONA_ENABLED === "true";
+
+  const customPersonasQueryKey = ["personas"] as const;
+  const customPersonasQuery = useQuery({
+    queryKey: customPersonasQueryKey,
+    queryFn: getPersonas,
+  });
+  const customPersonas = customPersonasQuery.data ?? [];
+
+  type PersonaModalState =
+    | { open: false }
+    | { open: true; mode: "create" }
+    | { open: true; mode: "edit"; persona: CustomPersonaPayload };
+  const [personaModalState, setPersonaModalState] = useState<PersonaModalState>({ open: false });
+
   const householdTimerRef = useRef<number | null>(null);
   const notesTimerRef = useRef<number | null>(null);
   const detectResetTimerRef = useRef<number | null>(null);
@@ -366,6 +386,48 @@ export default function SettingsPage() {
 
   const handleImmediateField = async <K extends keyof SettingsPreferences>(field: K, value: SettingsPreferences[K]) => {
     await commitPatch({ [field]: value } as Partial<SettingsPreferences>);
+  };
+
+  const allPersonaOptions = useMemo(
+    () => [
+      ...personaOptions,
+      ...customPersonas.map((p) => ({
+        value: p.id,
+        icon: p.emoji,
+        name: p.title,
+        subtitle: p.description,
+        isCustom: true as const,
+      })),
+    ],
+    [customPersonas]
+  );
+
+  const handlePersonaModalSave = async (input: {
+    emoji: string;
+    title: string;
+    description: string;
+    prompt: string;
+  }) => {
+    if (personaModalState.open && personaModalState.mode === "edit") {
+      await updatePersona(personaModalState.persona.id, input);
+      toast({ title: "Persona updated." });
+    } else {
+      const created = await createPersona(input);
+      await commitPatch({ chefPersona: created.id });
+      toast({ title: "Custom persona created." });
+    }
+    await queryClient.invalidateQueries({ queryKey: customPersonasQueryKey });
+    setPersonaModalState({ open: false });
+  };
+
+  const handlePersonaDelete = async (id: string) => {
+    await deletePersona(id);
+    if (preferences?.chefPersona === id) {
+      await commitPatch({ chefPersona: "coach" });
+    }
+    await queryClient.invalidateQueries({ queryKey: customPersonasQueryKey });
+    toast({ title: "Persona deleted." });
+    setPersonaModalState({ open: false });
   };
 
   const handleDetectRegion = async () => {
@@ -622,22 +684,17 @@ export default function SettingsPage() {
       <CollapsibleSection id="chef" label="Your Chef">
         <div className={styles.card}>
           <div className={styles.cardHeader}>
-            <div className={styles.cardTitleRow}>
-              <h2 className={styles.cardTitle}>Chef personality</h2>
-              <span className={styles.comingSoonBadge}>Coming soon</span>
-            </div>
+            <h2 className={styles.cardTitle}>Chef personality</h2>
             <p className={styles.cardDescription}>Choose how your AI chef talks to you.</p>
           </div>
           <PersonaGrid
-            disabled={!personaEnabled}
-            onSelect={(value) => {
-              if (!personaEnabled) {
-                toast({ title: "Chef personalities are coming soon." });
-                return;
-              }
-              void handleImmediateField("chefPersona", value);
+            onCreateCustom={() => setPersonaModalState({ open: true, mode: "create" })}
+            onEditCustom={(id) => {
+              const persona = customPersonas.find((p) => p.id === id);
+              if (persona) setPersonaModalState({ open: true, mode: "edit", persona });
             }}
-            options={personaOptions}
+            onSelect={(value) => void handleImmediateField("chefPersona", value)}
+            options={allPersonaOptions}
             value={preferences.chefPersona}
           />
         </div>
@@ -844,6 +901,23 @@ export default function SettingsPage() {
           </div>
         </div>
       </CollapsibleSection>
+
+      {personaModalState.open && (
+        <PersonaModal
+          modalMode={
+            personaModalState.mode === "create"
+              ? { mode: "create" }
+              : { mode: "edit", persona: personaModalState.persona }
+          }
+          onClose={() => setPersonaModalState({ open: false })}
+          onDelete={
+            personaModalState.mode === "edit"
+              ? (id) => handlePersonaDelete(id)
+              : undefined
+          }
+          onSave={(input) => handlePersonaModalSave(input)}
+        />
+      )}
     </div>
   );
 }

@@ -165,3 +165,13 @@ model MealLog {
 
   @@index([date])
 }
+
+model CustomPersona {
+  id          String   @id @default(cuid())
+  emoji       String
+  title       String
+  description String
+  prompt      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

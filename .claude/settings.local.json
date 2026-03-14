@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"C:\\\\Users\\\\justi\\\\Documents\\\\Git\\\\general-dev\\\\copilot-chef\\\\copilot-chef\" && npm run db:push 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\justi\\\\Documents\\\\Git\\\\general-dev\\\\copilot-chef\\\\copilot-chef\" && npm run db:generate 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\justi\\\\Documents\\\\Git\\\\general-dev\\\\copilot-chef\\\\copilot-chef\" && npm run lint 2>&1)",
+      "Bash(cd \"C:\\\\Users\\\\justi\\\\Documents\\\\Git\\\\general-dev\\\\copilot-chef\\\\copilot-chef\" && npm run build 2>&1)"
+    ]
+  }
+}

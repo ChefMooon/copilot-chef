@@ -40,6 +40,8 @@ export type SystemPromptContext = {
   } | null;
   /** Optional free-form context string injected into the system prompt. */
   extraContext?: string;
+  /** Prompt text for a custom persona; populated when chefPersona is not a built-in key. */
+  customPersonaPrompt?: string;
 };
 
 const personaInstructions: Record<string, string> = {
@@ -133,9 +135,12 @@ function formatList(values: string[]) {
 }
 
 export function buildSystemPrompt(context: SystemPromptContext = {}): string {
-  const { mealPlan, groceryList, preferences, extraContext } = context;
+  const { mealPlan, groceryList, preferences, extraContext, customPersonaPrompt } = context;
   const activePersona = preferences?.chefPersona ?? "coach";
-  const personaInstruction = personaInstructions[activePersona] ?? personaInstructions.coach;
+  const personaInstruction =
+    personaInstructions[activePersona] ??
+    customPersonaPrompt ??
+    personaInstructions.coach;
   const replyLengthInstruction = replyLengthInstructions[preferences?.replyLength ?? "balanced"];
   const emojiInstruction = emojiInstructions[preferences?.emojiUsage ?? "occasional"];
 

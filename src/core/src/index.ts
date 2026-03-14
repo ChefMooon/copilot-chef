@@ -24,3 +24,9 @@ export {
 	type PreferencesPayload,
 	type PreferenceUpdateInput,
 } from "./services/preference-service";
+export {
+	PersonaService,
+	type CustomPersonaPayload,
+	type CreatePersonaInput,
+	type UpdatePersonaInput,
+} from "./services/persona-service";
