@@ -12,7 +12,8 @@ export default tseslint.config(
       "**/coverage/**",
       "**/node_modules/**",
       "**/prisma/generated/**",
-      "**/next-env.d.ts"
+      "**/next-env.d.ts",
+      "**/.github/**"
     ]
   },
   js.configs.recommended,
