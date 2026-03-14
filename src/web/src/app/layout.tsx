@@ -4,6 +4,7 @@ import { type PropsWithChildren } from "react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { ToastProvider } from "@/components/providers/toast-provider";
 
 import "./globals.css";
 
@@ -40,9 +41,11 @@ export default function RootLayout({ children }: PropsWithChildren) {
   return (
     <html lang="en">
       <body className={`${lora.variable} ${nunito.variable}`}>
-        <QueryProvider>
-          <AppShell>{children}</AppShell>
-        </QueryProvider>
+        <ToastProvider>
+          <QueryProvider>
+            <AppShell>{children}</AppShell>
+          </QueryProvider>
+        </ToastProvider>
       </body>
     </html>
   );

@@ -220,11 +220,30 @@ export async function seedDatabase() {
   await prisma.userPreference.create({
     data: {
       id: "default",
-      dietaryRestrictions: "Pescatarian-friendly weekday rotation",
       householdSize: 3,
-      cuisinePreferences: "Mediterranean,Japanese,Comfort food",
-      avoidIngredients: "Peanuts",
-      notes: "Prefers one-pan dinners on weeknights and a baking project on weekends."
+      cookingLength: "weeknight",
+      dietaryTags: "pescatarian,gluten-free",
+      favoriteCuisines: "mediterranean,japanese,comfort-food",
+      avoidCuisines: "indian",
+      avoidIngredients: JSON.stringify(["Peanuts", "Tree nuts"]),
+      pantryStaples: JSON.stringify(["Olive oil", "Garlic", "Salt & pepper"]),
+      planningNotes: "Prefers one-pan dinners on weeknights and a baking project on weekends.",
+      nutritionTags: "high-protein,gut-health",
+      skillLevel: "home-cook",
+      budgetRange: "moderate",
+      chefPersona: "coach",
+      replyLength: "balanced",
+      emojiUsage: "occasional",
+      autoImproveChef: true,
+      contextAwareness: true,
+      seasonalAwareness: true,
+      seasonalRegion: "eastern-us",
+      proactiveTips: false,
+      autoGenerateGrocery: true,
+      consolidateIngredients: true,
+      defaultPlanLength: "7",
+      groceryGrouping: "category",
+      saveChatHistory: true
     }
   });
 

@@ -1640,7 +1640,7 @@ export async function POST(request: Request) {
 
     // Check history persistence preference before calling Copilot.
     const prefs = await preferenceService.getPreferences();
-    const shouldPersist = prefs?.persistChatHistory ?? true;
+    const shouldPersist = prefs?.saveChatHistory ?? true;
 
     let activeChatSessionId = parsed.chatSessionId;
     if (shouldPersist) {

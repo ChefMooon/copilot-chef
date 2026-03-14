@@ -18,4 +18,9 @@ export { GroceryService } from "./services/grocery-service";
 export { MealLogService } from "./services/meal-log-service";
 export { MealService } from "./services/meal-service";
 export { MealPlanService } from "./services/meal-plan-service";
-export { PreferenceService } from "./services/preference-service";
+export {
+	PreferenceService,
+	type PreferenceListField,
+	type PreferencesPayload,
+	type PreferenceUpdateInput,
+} from "./services/preference-service";

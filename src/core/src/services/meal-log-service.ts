@@ -50,6 +50,22 @@ function countStreak(counts: Map<string, number>, today: Date) {
 }
 
 export class MealLogService {
+  async listAll() {
+    await bootstrapDatabase();
+
+    const logs = await prisma.mealLog.findMany({
+      orderBy: [{ date: "asc" }, { mealType: "asc" }]
+    });
+
+    return logs.map((log: { id: string; date: Date; mealType: MealTypeValue; mealName: string; cooked: boolean }) => ({
+      id: log.id,
+      date: log.date.toISOString(),
+      mealType: mealTypeLabel[log.mealType],
+      mealName: log.mealName,
+      cooked: log.cooked
+    }));
+  }
+
   async getHeatmap(weeks = 13) {
     await bootstrapDatabase();
 

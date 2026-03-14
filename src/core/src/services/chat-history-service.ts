@@ -318,6 +318,12 @@ export class ChatHistoryService {
     return { id };
   }
 
+  async clearHistory() {
+    await bootstrapDatabase();
+    const deleted = await prisma.chatSession.deleteMany();
+    return { count: deleted.count };
+  }
+
   async updateSessionTitle(id: string, title: string) {
     await bootstrapDatabase();
     const session = await prisma.chatSession.update({

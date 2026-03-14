@@ -10,18 +10,134 @@ export type SystemPromptContext = {
     checkedCount: number;
   } | null;
   preferences?: {
+    id: string;
+    createdAt: string;
+    updatedAt: string;
     householdSize: number;
-    dietaryRestrictions: string[];
-    cuisinePreferences: string[];
+    cookingLength: string;
+    dietaryTags: string[];
+    favoriteCuisines: string[];
+    avoidCuisines: string[];
     avoidIngredients: string[];
-    notes?: string | null;
+    pantryStaples: string[];
+    planningNotes: string;
+    nutritionTags: string[];
+    skillLevel: string;
+    budgetRange: string;
+    chefPersona: string;
+    replyLength: string;
+    emojiUsage: string;
+    autoImproveChef: boolean;
+    contextAwareness: boolean;
+    seasonalAwareness: boolean;
+    seasonalRegion: string;
+    proactiveTips: boolean;
+    autoGenerateGrocery: boolean;
+    consolidateIngredients: boolean;
+    defaultPlanLength: string;
+    groceryGrouping: string;
+    saveChatHistory: boolean;
   } | null;
   /** Optional free-form context string injected into the system prompt. */
   extraContext?: string;
 };
 
+const personaInstructions: Record<string, string> = {
+  coach: "You are an encouraging, practical cooking coach. Be warm, motivating, and clear. Use plain language.",
+  scientist:
+    "You are a precise, analytical cooking guide. Reference technique, chemistry, and data where relevant. Be methodical.",
+  entertainer:
+    "You are an energetic, witty kitchen entertainer. Be playful, enthusiastic, and fun while still being helpful.",
+  minimalist: "You are a terse, efficient kitchen assistant. Be direct. No preamble, no filler. Say exactly what is needed.",
+  professor:
+    "You are a thoughtful, educational culinary guide. Explain the 'why' behind techniques and choices. Be measured.",
+  michelin:
+    "You are a refined, exacting chef with high standards. Be elegant, precise, and sophisticated in all suggestions."
+};
+
+const replyLengthInstructions: Record<string, string> = {
+  concise: "Keep responses brief - 1-3 sentences unless detail is explicitly needed.",
+  balanced: "Aim for clear, well-structured responses of moderate length.",
+  detailed: "Be thorough - explain reasoning, include tips, and use structured formatting where helpful."
+};
+
+const emojiInstructions: Record<string, string> = {
+  none: "Do not use emoji in any response.",
+  frequent: "Use emoji freely throughout your responses.",
+  occasional: "Use emoji sparingly - only where they add warmth or clarity."
+};
+
+const chefPersonaLabels: Record<string, string> = {
+  coach: "The Coach",
+  scientist: "The Scientist",
+  entertainer: "The Entertainer",
+  minimalist: "The Minimalist",
+  professor: "The Professor",
+  michelin: "The Michelin"
+};
+
+const cookingLengthLabels: Record<string, string> = {
+  quick: "Quick (< 20 min)",
+  weeknight: "Weeknight-friendly (~30 min)",
+  relaxed: "Relaxed (45-60 min)",
+  weekend: "Weekend projects (1 hr+)"
+};
+
+const skillLevelLabels: Record<string, string> = {
+  beginner: "Beginner",
+  "home-cook": "Home cook",
+  confident: "Confident cook",
+  advanced: "Advanced"
+};
+
+const budgetLabels: Record<string, string> = {
+  budget: "Budget-friendly",
+  moderate: "Moderate",
+  premium: "Premium"
+};
+
+const replyLengthLabels: Record<string, string> = {
+  concise: "Concise",
+  balanced: "Balanced",
+  detailed: "Detailed"
+};
+
+const emojiUsageLabels: Record<string, string> = {
+  occasional: "Occasional",
+  frequent: "Frequent",
+  none: "None"
+};
+
+const regionLabels: Record<string, string> = {
+  "northern-us-canada": "Northern US / Canada",
+  "eastern-us": "Eastern US",
+  "southern-us": "Southern US",
+  "western-us": "Western US / Pacific",
+  "western-europe": "Western Europe",
+  mediterranean: "Mediterranean",
+  "east-asia": "East Asia",
+  "south-asia": "South Asia",
+  "australia-nz": "Australia / NZ",
+  "southern-hemisphere": "Southern hemisphere"
+};
+
+function formatLabel(value: string) {
+  return value
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatList(values: string[]) {
+  return values.map((value) => formatLabel(value)).join(", ");
+}
+
 export function buildSystemPrompt(context: SystemPromptContext = {}): string {
   const { mealPlan, groceryList, preferences, extraContext } = context;
+  const activePersona = preferences?.chefPersona ?? "coach";
+  const personaInstruction = personaInstructions[activePersona] ?? personaInstructions.coach;
+  const replyLengthInstruction = replyLengthInstructions[preferences?.replyLength ?? "balanced"];
+  const emojiInstruction = emojiInstructions[preferences?.emojiUsage ?? "occasional"];
 
   const sections: string[] = [];
 
@@ -54,21 +170,23 @@ export function buildSystemPrompt(context: SystemPromptContext = {}): string {
   }
 
   if (preferences) {
-    const dietary =
-      preferences.dietaryRestrictions.length > 0 ? preferences.dietaryRestrictions.join(", ") : "none";
-    const cuisines =
-      preferences.cuisinePreferences.length > 0
-        ? preferences.cuisinePreferences.join(", ")
-        : "no specific preferences";
-    const avoid =
-      preferences.avoidIngredients.length > 0 ? preferences.avoidIngredients.join(", ") : "none";
-
     const prefLines = [
-      `- Household size: ${preferences.householdSize} people`,
-      `- Dietary restrictions: ${dietary}`,
-      `- Favorite cuisines: ${cuisines}`,
-      `- Avoid: ${avoid}`,
-      ...(preferences.notes ? [`- Notes: ${preferences.notes}`] : [])
+      `- Household: ${preferences.householdSize} people.`,
+      `- Cooking rhythm: ${cookingLengthLabels[preferences.cookingLength] ?? formatLabel(preferences.cookingLength)}.`,
+      `- Dietary direction: ${preferences.dietaryTags.length > 0 ? formatList(preferences.dietaryTags) : "None specified"}.`,
+      `- Favorite cuisines: ${preferences.favoriteCuisines.length > 0 ? formatList(preferences.favoriteCuisines) : "None specified"}.`,
+      `- Avoid cuisines: ${preferences.avoidCuisines.length > 0 ? formatList(preferences.avoidCuisines) : "None specified"}.`,
+      `- Avoid ingredients: ${preferences.avoidIngredients.length > 0 ? preferences.avoidIngredients.join(", ") : "None specified"}.`,
+      `- Pantry staples (skip from grocery lists): ${preferences.pantryStaples.length > 0 ? preferences.pantryStaples.join(", ") : "None specified"}.`,
+      ...(preferences.planningNotes ? [`- Planning notes: ${preferences.planningNotes}`] : []),
+      `- Nutrition focus: ${preferences.nutritionTags.length > 0 ? formatList(preferences.nutritionTags) : "None specified"}.`,
+      `- Skill level: ${skillLevelLabels[preferences.skillLevel] ?? formatLabel(preferences.skillLevel)}. Budget: ${budgetLabels[preferences.budgetRange] ?? formatLabel(preferences.budgetRange)}.`,
+      `- Response style: ${replyLengthLabels[preferences.replyLength] ?? formatLabel(preferences.replyLength)} length, ${emojiUsageLabels[preferences.emojiUsage] ?? formatLabel(preferences.emojiUsage)} emoji.`,
+      `- Chef persona: ${chefPersonaLabels[preferences.chefPersona] ?? formatLabel(preferences.chefPersona)}.`,
+      `- AI behavior: auto-improve ${preferences.autoImproveChef ? "on" : "off"}, context awareness ${preferences.contextAwareness ? "on" : "off"}, proactive tips ${preferences.proactiveTips ? "on" : "off"}.`,
+      `- Seasonal awareness: ${preferences.seasonalAwareness ? `Enabled (${regionLabels[preferences.seasonalRegion] ?? formatLabel(preferences.seasonalRegion)})` : "Disabled"}.`,
+      `- Grocery planning defaults: auto-generate grocery ${preferences.autoGenerateGrocery ? "on" : "off"}, consolidate ingredients ${preferences.consolidateIngredients ? "on" : "off"}, plan length ${preferences.defaultPlanLength} days, grouping ${formatLabel(preferences.groceryGrouping)}.`,
+      `- Chat history: ${preferences.saveChatHistory ? "Saved across sessions" : "Do not persist"}.`
     ].join("\n");
 
     sections.push(`## Household Preferences\n${prefLines}`);
@@ -84,7 +202,7 @@ export function buildSystemPrompt(context: SystemPromptContext = {}): string {
   return [
     `You are Copilot Chef, a warm and knowledgeable AI meal-planning assistant. You help households plan meals, build grocery lists, suggest recipes, and make cooking feel approachable and enjoyable.`,
     ``,
-    `Your personality is friendly, practical, and encouraging — like a knowledgeable friend who loves food and wants to make weeknight cooking less stressful.`,
+    personaInstruction,
     ``,
     `## Your Capabilities`,
     `- Plan weekly meals tailored to dietary preferences and household size`,
@@ -104,10 +222,11 @@ export function buildSystemPrompt(context: SystemPromptContext = {}): string {
     `- Ask for clarification if date or meal type is ambiguous.`,
     ``,
     `## Response Style`,
-    `- Keep responses concise and conversational unless asked for detail`,
+    `- ${replyLengthInstruction}`,
+    `- ${emojiInstruction}`,
     `- Be specific with meal and ingredient recommendations — avoid vague suggestions`,
     `- For meal suggestions, briefly describe what makes the dish work`,
-    `- Use a warm, encouraging tone`,
+    `- Match the selected chef persona consistently without becoming theatrical or role-play heavy`,
     ``,
     contextBlock
   ]

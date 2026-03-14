@@ -74,14 +74,33 @@ model GroceryItem {
 }
 
 model UserPreference {
-  id                  String   @id @default("default")
-  dietaryRestrictions String?
-  householdSize       Int      @default(2)
-  cuisinePreferences  String?
-  avoidIngredients    String?
-  notes               String?
-  persistChatHistory  Boolean  @default(true)
-  updatedAt           DateTime @updatedAt
+  id                     String   @id @default("default")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  householdSize          Int      @default(2)
+  cookingLength          String   @default("weeknight")
+  dietaryTags            String   @default("")
+  favoriteCuisines       String   @default("")
+  avoidCuisines          String   @default("")
+  avoidIngredients       String   @default("[]")
+  pantryStaples          String   @default("[]")
+  planningNotes          String   @default("")
+  nutritionTags          String   @default("")
+  skillLevel             String   @default("home-cook")
+  budgetRange            String   @default("moderate")
+  chefPersona            String   @default("coach")
+  replyLength            String   @default("balanced")
+  emojiUsage             String   @default("occasional")
+  autoImproveChef        Boolean  @default(true)
+  contextAwareness       Boolean  @default(true)
+  seasonalAwareness      Boolean  @default(true)
+  seasonalRegion         String   @default("eastern-us")
+  proactiveTips          Boolean  @default(false)
+  autoGenerateGrocery    Boolean  @default(true)
+  consolidateIngredients Boolean  @default(true)
+  defaultPlanLength      String   @default("7")
+  groceryGrouping        String   @default("category")
+  saveChatHistory        Boolean  @default(true)
 }
 
 model ChatSession {

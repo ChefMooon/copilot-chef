@@ -77,7 +77,7 @@ vi.mock("@copilot-chef/core", () => {
       expiresAt: string;
     }>,
     messages: [] as Array<{ chatSessionId: string; role: "user" | "assistant"; content: string }>,
-    preferences: { persistChatHistory: true },
+    preferences: { saveChatHistory: true },
     meals: new Map<string, MockMeal>(),
     groceryLists: new Map<string, MockGroceryList>(),
   };
@@ -393,7 +393,7 @@ vi.mock("@copilot-chef/core", () => {
       state.actions = [];
       state.pending = [];
       state.messages = [];
-      state.preferences = { persistChatHistory: true };
+      state.preferences = { saveChatHistory: true };
       state.meals = new Map();
       state.groceryLists = new Map();
     },

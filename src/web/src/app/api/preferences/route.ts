@@ -11,6 +11,9 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      throw new Error("Expected a JSON object payload");
+    }
     const data = await preferenceService.updatePreferences(body);
     return NextResponse.json({ data });
   } catch (error) {
