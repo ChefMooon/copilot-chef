@@ -25,6 +25,11 @@
     background 150ms ease;
 }
 
+.fabIcon {
+  height: 20px;
+  width: 20px;
+}
+
 .fab:hover {
   transform: scale(1.08);
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.22);

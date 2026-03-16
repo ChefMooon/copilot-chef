@@ -29,7 +29,11 @@ export function AppShell({ children }: PropsWithChildren) {
     <ChatProvider>
       <header className={styles.header}>
         <Link className={styles.logo} href="/">
-          <span className={styles.logoIcon}>🍳</span>
+          <img
+            src="/chef-hat.svg"
+            alt="Chef hat"
+            className={styles.logoIcon}
+          />
           Copilot Chef
         </Link>
 
@@ -68,7 +72,11 @@ export function AppShell({ children }: PropsWithChildren) {
             href="/settings"
             title="Settings"
           >
-            ⚙️
+            <img
+              src="/cog.svg"
+              alt="Settings"
+              className={styles.settingsIcon}
+            />
           </Link>
         </div>
       </header>

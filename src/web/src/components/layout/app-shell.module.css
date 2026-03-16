@@ -22,7 +22,11 @@
 }
 
 .logoIcon {
-  font-size: 1.5rem;
+  width: 22px;
+  height: 22px;
+  display: inline-block;
+  vertical-align: middle;
+  transform: rotate(-12deg);
 }
 
 .navDesktop {
@@ -64,6 +68,12 @@
   background: rgba(255, 253, 248, 0.12);
   color: #fffdf8;
   transition: background 0.18s ease;
+}
+
+.settingsIcon {
+  width: 18px;
+  height: 18px;
+  color: #fffdf8;
 }
 
 .settingsButton:hover,

@@ -19,7 +19,11 @@ export function ChatWidget() {
           title="Chat with Copilot Chef"
           type="button"
         >
-          💬
+          <img
+            src="/chef-hat.svg"
+            alt="Chef hat"
+            className={styles.fabIcon}
+          />
         </button>
       )}
     </>

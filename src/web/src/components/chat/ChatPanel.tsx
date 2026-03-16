@@ -79,7 +79,11 @@ export function ChatPanel() {
       {/* Header */}
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <span className={styles.headerAvatar}>🤖</span>
+          <img
+            src="/chef-hat.svg"
+            alt="Chef hat"
+            className={styles.headerIcon}
+          />
           <span className={styles.headerTitle}>Copilot Chef</span>
         </div>
         <div className={styles.headerActions}>
@@ -90,7 +94,11 @@ export function ChatPanel() {
             title="Chat history"
             type="button"
           >
-            🕐
+            <img
+              src="/chat-history.svg"
+              alt="Chat history"
+              className={styles.chatHistoryIcon}
+            />
           </button>
           <button
             aria-label="New chat"
@@ -99,7 +107,11 @@ export function ChatPanel() {
             title="New chat"
             type="button"
           >
-            ✏️
+            <img
+              src="/new-chat.svg"
+              alt="New chat"
+              className={styles.newChatIcon}
+            />
           </button>
           {(["compact", "medium", "fullscreen"] as const).map((s) => (
             <button
