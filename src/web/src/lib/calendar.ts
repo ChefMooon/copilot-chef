@@ -36,6 +36,11 @@ export type EditableMeal = {
   ingredients: string[];
 };
 
+export type MealSlot = {
+  type: CalendarMealType;
+  meals: EditableMeal[];
+};
+
 export const TYPE_CONFIG: Record<
   CalendarMealType,
   { dot: string; bg: string; text: string; label: string }
@@ -128,13 +133,26 @@ export const isSameDay = (a: Date, b: Date) =>
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate();
 
+export const normalizeMealDate = (date: Date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0, 0);
+
 export const mealsForDay = (meals: EditableMeal[], date: Date) =>
   meals
     .filter((meal) => isSameDay(meal.date, date))
     .sort(
       (left, right) =>
-        MEAL_TYPES.indexOf(left.type) - MEAL_TYPES.indexOf(right.type)
+        MEAL_TYPES.indexOf(left.type) - MEAL_TYPES.indexOf(right.type) ||
+        left.name.localeCompare(right.name)
     );
+
+export const createMealSlots = (meals: EditableMeal[], date: Date): MealSlot[] => {
+  const dayMeals = mealsForDay(meals, date);
+
+  return MEAL_TYPES.map((type) => ({
+    type,
+    meals: dayMeals.filter((meal) => meal.type === type),
+  }));
+};
 
 export function getMonday(date: Date) {
   const monday = new Date(date);
@@ -189,7 +207,7 @@ export function createEmptyMeal(
     id: "",
     mealPlanId: null,
     name: "",
-    date,
+    date: normalizeMealDate(date),
     type,
     notes: "",
     ingredients: [],

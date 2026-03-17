@@ -14,9 +14,11 @@ import {
   fromCalendarMealType,
   MEAL_TYPES,
   MONTHS,
+  normalizeMealDate,
   toEditableMeal,
   toRangeByView,
   TYPE_CONFIG,
+  type CalendarMealType,
   type CalendarMeal,
   type EditableMeal,
 } from "@/lib/calendar";
@@ -76,14 +78,18 @@ export default function MealPlanPage() {
   const queryClient = useQueryClient();
 
   const dateRange = useMemo(() => toRangeByView(view, date), [view, date]);
-
-  const mealsQuery = useQuery({
-    queryKey: [
+  const mealsQueryKey = useMemo(
+    () => [
       "meals",
       view,
       dateRange.from.toISOString(),
       dateRange.to.toISOString(),
-    ],
+    ] as const,
+    [dateRange.from, dateRange.to, view]
+  );
+
+  const mealsQuery = useQuery({
+    queryKey: mealsQueryKey,
     queryFn: () =>
       fetchJson<{ data: CalendarMeal[] }>(
         `/api/meals?from=${encodeURIComponent(toIsoString(dateRange.from))}&to=${encodeURIComponent(
@@ -117,11 +123,42 @@ export default function MealPlanPage() {
     }
   };
 
+  const updateMealsCache = (
+    updater: (current: EditableMeal[]) => EditableMeal[]
+  ) => {
+    const previousMeals =
+      queryClient.getQueryData<EditableMeal[]>(mealsQueryKey) ?? [];
+
+    queryClient.setQueryData<EditableMeal[]>(mealsQueryKey, updater);
+    return previousMeals;
+  };
+
+  const patchMeal = async (
+    mealId: string,
+    changes: Partial<Pick<EditableMeal, "date" | "type">>
+  ) => {
+    const payload: { date?: string; mealType?: ReturnType<typeof fromCalendarMealType> } = {};
+
+    if (changes.date) {
+      payload.date = normalizeMealDate(changes.date).toISOString();
+    }
+
+    if (changes.type) {
+      payload.mealType = fromCalendarMealType(changes.type);
+    }
+
+    await fetchJson<{ data: CalendarMeal }>(`/api/meals/${mealId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  };
+
   const onSaveMeal = async (updatedMeal: EditableMeal) => {
+    const normalizedDate = normalizeMealDate(updatedMeal.date);
     const payload = {
       mealPlanId: updatedMeal.mealPlanId,
       name: updatedMeal.name,
-      date: updatedMeal.date.toISOString(),
+      date: normalizedDate.toISOString(),
       mealType: fromCalendarMealType(updatedMeal.type),
       notes: updatedMeal.notes,
       ingredients: updatedMeal.ingredients,
@@ -140,6 +177,109 @@ export default function MealPlanPage() {
     }
 
     await queryClient.invalidateQueries({ queryKey: ["meals"] });
+  };
+
+  const onMoveMeal = async (
+    meal: EditableMeal,
+    targetDate: Date,
+    targetType: CalendarMealType
+  ) => {
+    if (!meal.id) {
+      return;
+    }
+
+    const normalizedTargetDate = normalizeMealDate(targetDate);
+    const isSameSlot =
+      meal.type === targetType &&
+      meal.date.getFullYear() === normalizedTargetDate.getFullYear() &&
+      meal.date.getMonth() === normalizedTargetDate.getMonth() &&
+      meal.date.getDate() === normalizedTargetDate.getDate();
+
+    if (isSameSlot) {
+      return;
+    }
+
+    const previousMeals = updateMealsCache((current) =>
+      current.map((currentMeal) =>
+        currentMeal.id === meal.id
+          ? {
+              ...currentMeal,
+              date: normalizedTargetDate,
+              type: targetType,
+            }
+          : currentMeal
+      )
+    );
+
+    try {
+      await patchMeal(meal.id, {
+        date: normalizedTargetDate,
+        type: targetType,
+      });
+    } catch (error) {
+      queryClient.setQueryData(mealsQueryKey, previousMeals);
+      throw error;
+    } finally {
+      await queryClient.invalidateQueries({ queryKey: ["meals"] });
+    }
+  };
+
+  const onSwapMeals = async (draggedMeal: EditableMeal, targetMeal: EditableMeal) => {
+    if (!draggedMeal.id || !targetMeal.id || draggedMeal.id === targetMeal.id) {
+      return;
+    }
+
+    const draggedSourceDate = normalizeMealDate(draggedMeal.date);
+    const targetSourceDate = normalizeMealDate(targetMeal.date);
+    const sameSlot =
+      draggedMeal.type === targetMeal.type &&
+      draggedSourceDate.getFullYear() === targetSourceDate.getFullYear() &&
+      draggedSourceDate.getMonth() === targetSourceDate.getMonth() &&
+      draggedSourceDate.getDate() === targetSourceDate.getDate();
+
+    if (sameSlot) {
+      return;
+    }
+
+    const previousMeals = updateMealsCache((current) =>
+      current.map((currentMeal) => {
+        if (currentMeal.id === draggedMeal.id) {
+          return {
+            ...currentMeal,
+            date: targetSourceDate,
+            type: targetMeal.type,
+          };
+        }
+
+        if (currentMeal.id === targetMeal.id) {
+          return {
+            ...currentMeal,
+            date: draggedSourceDate,
+            type: draggedMeal.type,
+          };
+        }
+
+        return currentMeal;
+      })
+    );
+
+    try {
+      await Promise.all([
+        patchMeal(draggedMeal.id, {
+          date: targetSourceDate,
+          type: targetMeal.type,
+        }),
+        patchMeal(targetMeal.id, {
+          date: draggedSourceDate,
+          type: draggedMeal.type,
+        }),
+      ]);
+    } catch (error) {
+      queryClient.setQueryData(mealsQueryKey, previousMeals);
+      throw error;
+    } finally {
+      await queryClient.invalidateQueries({ queryKey: ["meals"] });
+    }
   };
 
   const onDeleteMeal = async (mealId: string) => {
@@ -224,6 +364,8 @@ export default function MealPlanPage() {
             date={date}
             meals={meals}
             onEdit={setEditMeal}
+            onMoveMeal={onMoveMeal}
+            onSwapMeals={onSwapMeals}
             setDate={setDate}
           />
         ) : null}
@@ -232,6 +374,8 @@ export default function MealPlanPage() {
             date={date}
             meals={meals}
             onEdit={setEditMeal}
+            onMoveMeal={onMoveMeal}
+            onSwapMeals={onSwapMeals}
             setDate={setDate}
           />
         ) : null}
