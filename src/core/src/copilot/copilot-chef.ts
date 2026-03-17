@@ -13,6 +13,8 @@ import { MealService } from "../services/meal-service";
 import { MealPlanService } from "../services/meal-plan-service";
 import { PersonaService } from "../services/persona-service";
 import { PreferenceService } from "../services/preference-service";
+import { RecipeService } from "../services/recipe-service";
+import { AIRecipeSaveSchema } from "../schemas/recipe-schemas";
 import { buildSystemPrompt, type SystemPromptContext } from "./system-prompt";
 
 export { buildSystemPrompt, type SystemPromptContext } from "./system-prompt";
@@ -68,6 +70,34 @@ const BUILT_IN_PERSONA_KEYS = new Set([
   "michelin",
 ]);
 
+const SAVE_RECIPE_INTENTS = [
+  /save this recipe/i,
+  /add this to my recipe book/i,
+  /save that/i,
+  /keep this one/i,
+];
+
+function hasSaveRecipeIntent(message: string) {
+  return SAVE_RECIPE_INTENTS.some((pattern) => pattern.test(message));
+}
+
+function parseJsonObject(text: string) {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    const first = text.indexOf("{");
+    const last = text.lastIndexOf("}");
+    if (first >= 0 && last > first) {
+      try {
+        return JSON.parse(text.slice(first, last + 1)) as unknown;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+}
+
 export class CopilotChef {
   /** Active SDK sessions keyed by their Copilot session ID. */
   private readonly sessions = new Map<string, CopilotSession>();
@@ -77,7 +107,8 @@ export class CopilotChef {
     private readonly mealService = new MealService(),
     private readonly groceryService = new GroceryService(),
     private readonly preferenceService = new PreferenceService(),
-    private readonly personaService = new PersonaService()
+    private readonly personaService = new PersonaService(),
+    private readonly recipeService = new RecipeService()
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -85,10 +116,11 @@ export class CopilotChef {
   // ---------------------------------------------------------------------------
 
   private async buildContext(): Promise<SystemPromptContext> {
-    const [mealPlan, groceryList, preferences] = await Promise.all([
+    const [mealPlan, groceryList, preferences, recipes] = await Promise.all([
       this.mealPlanService.getCurrentMealPlan(),
       this.groceryService.getCurrentGroceryList(),
       this.preferenceService.getPreferences(),
+      this.recipeService.listRecipes(),
     ]);
 
     let customPersonaPrompt: string | undefined;
@@ -103,7 +135,46 @@ export class CopilotChef {
       }
     }
 
-    return { mealPlan, groceryList, preferences, customPersonaPrompt };
+    return {
+      mealPlan,
+      groceryList,
+      preferences,
+      customPersonaPrompt,
+      recipeSummary: {
+        count: recipes.length,
+        recentTitles: recipes.slice(0, 3).map((recipe) => recipe.title),
+      },
+    };
+  }
+
+  private async extractRecipeAction(session: CopilotSession, message: string) {
+    const extractionPrompt = [
+      "The user asked to save a recipe from this conversation.",
+      "Extract a structured recipe object and return ONLY valid JSON.",
+      "If details are missing, infer reasonable defaults.",
+      "Required keys: title, description, servings, prepTime, cookTime, difficulty, ingredients, instructions, tags.",
+      "Each ingredient should be {name, quantity, unit, notes}.",
+      `User message: ${message}`,
+    ].join("\n");
+
+    const response = await session.sendAndWait({ prompt: extractionPrompt }, 60_000);
+    const text = response?.data?.content ?? "";
+    const parsed = parseJsonObject(text);
+    if (!parsed) {
+      return null;
+    }
+
+    const validated = AIRecipeSaveSchema.safeParse(parsed);
+    if (!validated.success) {
+      return null;
+    }
+
+    return {
+      domain: "recipe" as const,
+      type: "save_recipe" as const,
+      summary: `Prepared recipe draft: ${validated.data.title}`,
+      payload: validated.data,
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -251,10 +322,34 @@ export class CopilotChef {
     message: string,
     sessionId?: string,
     pageContext?: string
-  ): Promise<{ sessionId: string; stream: ReadableStream<Uint8Array> }> {
+  ): Promise<
+    | { sessionId: string; stream: ReadableStream<Uint8Array> }
+    | {
+        sessionId: string;
+        message: string;
+        action: {
+          domain: "recipe";
+          type: "save_recipe";
+          summary: string;
+          payload: unknown;
+        };
+      }
+  > {
     const { session, sessionId: activeId } =
       await this.ensureSession(sessionId);
     const encoder = new TextEncoder();
+
+    if (hasSaveRecipeIntent(message)) {
+      const action = await this.extractRecipeAction(session, message);
+      if (action) {
+        return {
+          sessionId: activeId,
+          message:
+            "I pulled the recipe details from our conversation. Want me to save it to your Recipe Book now?",
+          action,
+        };
+      }
+    }
 
     const prompt = pageContext
       ? `[Page Context]\n${pageContext}\n\n[User Message]\n${message}`

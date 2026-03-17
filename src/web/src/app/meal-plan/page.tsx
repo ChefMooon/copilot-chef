@@ -129,7 +129,9 @@ export default function MealPlanPage() {
     const previousMeals =
       queryClient.getQueryData<EditableMeal[]>(mealsQueryKey) ?? [];
 
-    queryClient.setQueryData<EditableMeal[]>(mealsQueryKey, updater);
+    queryClient.setQueryData<EditableMeal[]>(mealsQueryKey, (current) =>
+      updater(current ?? [])
+    );
     return previousMeals;
   };
 

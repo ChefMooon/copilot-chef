@@ -23,6 +23,8 @@ const stringFields = [
   "seasonalRegion",
   "defaultPlanLength",
   "groceryGrouping",
+  "defaultRecipeView",
+  "defaultUnitMode",
 ] as const;
 const booleanFields = [
   "autoImproveChef",
@@ -63,6 +65,8 @@ export type PreferencesPayload = {
   consolidateIngredients: boolean;
   defaultPlanLength: string;
   groceryGrouping: string;
+  defaultRecipeView: string;
+  defaultUnitMode: string;
   saveChatHistory: boolean;
 };
 
@@ -94,6 +98,8 @@ const DEFAULT_PREFERENCE_VALUES = {
   consolidateIngredients: true,
   defaultPlanLength: "7",
   groceryGrouping: "category",
+  defaultRecipeView: "basic",
+  defaultUnitMode: "cup",
   saveChatHistory: true,
 } satisfies Prisma.UserPreferenceCreateInput;
 
@@ -177,6 +183,8 @@ function serializePreferences(preferences: UserPreference): PreferencesPayload {
     consolidateIngredients: preferences.consolidateIngredients,
     defaultPlanLength: preferences.defaultPlanLength,
     groceryGrouping: preferences.groceryGrouping,
+    defaultRecipeView: preferences.defaultRecipeView,
+    defaultUnitMode: preferences.defaultUnitMode,
     saveChatHistory: preferences.saveChatHistory,
   };
 }

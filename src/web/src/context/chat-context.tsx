@@ -135,7 +135,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             message: string;
             choices?: ChatChoice[];
             action?: {
-              domain: "meal" | "grocery";
+              domain: "meal" | "grocery" | "recipe";
             };
           };
           if (payload.sessionId) setCopilotSessionId(payload.sessionId);
@@ -148,6 +148,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           if (payload.action?.domain === "grocery") {
             await queryClient.invalidateQueries({
               queryKey: ["grocery-lists"],
+            });
+          }
+          if (payload.action?.domain === "recipe") {
+            await queryClient.invalidateQueries({
+              queryKey: ["recipes"],
             });
           }
 

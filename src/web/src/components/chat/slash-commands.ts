@@ -48,4 +48,11 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     prompt:
       "Create a concise, category-organised shopping summary of my unchecked grocery items. Group by store section (produce, dairy, meat, etc.).",
   },
+  {
+    command: "/open-recipe-book",
+    label: "Open Recipe Book",
+    description: "Navigate to recipes and summarize saved items",
+    prompt:
+      "Open Recipe Book and give me a short summary of what is currently saved in my library.",
+  },
 ];

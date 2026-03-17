@@ -51,6 +51,19 @@ export type HomePageContext = {
   groceryCompletion: number;
 };
 
+export type RecipesPageContext = {
+  page: "recipes";
+  search: string;
+  origin: string;
+  totalRecipes: number;
+  filteredRecipes: number;
+  visibleRecipes: Array<{
+    id: string;
+    title: string;
+    origin: string;
+  }>;
+};
+
 export type MinimalPageContext = {
   page: "stats" | "settings";
 };
@@ -59,6 +72,7 @@ export type PageContext =
   | MealPlanPageContext
   | GroceryListPageContext
   | HomePageContext
+  | RecipesPageContext
   | MinimalPageContext;
 
 export function serializePageContext(ctx: PageContext): string {
@@ -123,6 +137,24 @@ export function serializePageContext(ctx: PageContext): string {
         ? ` Active grocery list: "${ctx.groceryListName}" (${ctx.groceryCompletion}% complete).`
         : " No active grocery list.";
       return `The user is on the Home page.${planPart}${listPart}`;
+    }
+    case "recipes": {
+      const listLines =
+        ctx.visibleRecipes.length > 0
+          ? ctx.visibleRecipes
+              .map((recipe) => `  - ${recipe.title} (${recipe.origin})`)
+              .join("\n")
+          : "  (no recipes in current filter)";
+
+      const searchText = ctx.search.trim() ? ` Search: "${ctx.search.trim()}".` : "";
+      const originText =
+        ctx.origin === "all" ? " Origin filter: all." : ` Origin filter: ${ctx.origin}.`;
+
+      return (
+        `The user is on the Recipes page.${searchText}${originText}\n` +
+        `Showing ${ctx.filteredRecipes} of ${ctx.totalRecipes} recipes.\n` +
+        `Visible recipes:\n${listLines}`
+      );
     }
     case "stats":
       return "The user is on the Stats page, viewing meal activity statistics.";

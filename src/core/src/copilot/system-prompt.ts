@@ -36,7 +36,13 @@ export type SystemPromptContext = {
     consolidateIngredients: boolean;
     defaultPlanLength: string;
     groceryGrouping: string;
+    defaultRecipeView: string;
+    defaultUnitMode: string;
     saveChatHistory: boolean;
+  } | null;
+  recipeSummary?: {
+    count: number;
+    recentTitles: string[];
   } | null;
   /** Optional free-form context string injected into the system prompt. */
   extraContext?: string;
@@ -143,6 +149,7 @@ export function buildSystemPrompt(context: SystemPromptContext = {}): string {
     mealPlan,
     groceryList,
     preferences,
+    recipeSummary,
     extraContext,
     customPersonaPrompt,
   } = context;
@@ -209,6 +216,16 @@ export function buildSystemPrompt(context: SystemPromptContext = {}): string {
     ].join("\n");
 
     sections.push(`## Household Preferences\n${prefLines}`);
+  }
+
+  if (recipeSummary) {
+    const recent =
+      recipeSummary.recentTitles.length > 0
+        ? recipeSummary.recentTitles.join(", ")
+        : "none yet";
+    sections.push(
+      `## Recipe Library\nUser has ${recipeSummary.count} recipes saved. Recent recipes: ${recent}.`
+    );
   }
 
   if (extraContext) {

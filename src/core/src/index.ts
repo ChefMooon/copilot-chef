@@ -18,17 +18,45 @@ export {
   type ChatJsonResponse,
 } from "./schemas/chat";
 export { getClient, resetClient, stopClient } from "./lib/copilot-client";
+export {
+  convertIngredient,
+  toBaseUnit,
+  fromMl,
+  fromGrams,
+  getUnitCategory,
+  type ConvertedQuantity,
+  type UnitCategory,
+  type UnitMode,
+} from "./lib/unit-converter";
+export {
+  normalizeIngredient,
+  normalizeIngredients,
+  type NormalizedIngredient,
+} from "./lib/ingredient-normalizer";
 export { ChatHistoryService } from "./services/chat-history-service";
 export { GroceryService } from "./services/grocery-service";
 export { MealLogService } from "./services/meal-log-service";
 export { MealService } from "./services/meal-service";
 export { MealPlanService } from "./services/meal-plan-service";
+export { RecipeService, type RecipeFilters } from "./services/recipe-service";
 export {
   PreferenceService,
   type PreferenceListField,
   type PreferencesPayload,
   type PreferenceUpdateInput,
 } from "./services/preference-service";
+export {
+  CreateRecipeInputSchema,
+  UpdateRecipeInputSchema,
+  IngestResultSchema,
+  RecipeExportJsonSchema,
+  AIRecipeSaveSchema,
+  type CreateRecipeInput,
+  type UpdateRecipeInput,
+  type RecipeExportJson,
+  type IngestResult,
+  type AIRecipeSave,
+} from "./schemas/recipe-schemas";
 export {
   PersonaService,
   type CustomPersonaPayload,

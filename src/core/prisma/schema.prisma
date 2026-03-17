@@ -100,7 +100,75 @@ model UserPreference {
   consolidateIngredients Boolean  @default(true)
   defaultPlanLength      String   @default("7")
   groceryGrouping        String   @default("category")
+  defaultRecipeView      String   @default("basic")
+  defaultUnitMode        String   @default("cup")
   saveChatHistory        Boolean  @default(true)
+}
+
+model Recipe {
+  id           String             @id @default(cuid())
+  title        String
+  description  String?
+  servings     Int                @default(2)
+  prepTime     Int?
+  cookTime     Int?
+  difficulty   String?
+  instructions String
+  sourceUrl    String?
+  sourceLabel  String?
+  origin       String             @default("manual")
+  rating       Int?
+  cookNotes    String?
+  lastMadeAt   DateTime?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  ingredients  RecipeIngredient[]
+  tags         RecipeTag[]
+  linkedFrom   RecipeLink[]       @relation("ParentRecipe")
+  linkedTo     RecipeLink[]       @relation("SubRecipe")
+
+  @@index([title])
+  @@index([origin])
+  @@index([sourceUrl])
+}
+
+model RecipeIngredient {
+  id       String  @id @default(cuid())
+  recipeId String
+  name     String
+  quantity Float?
+  unit     String?
+  notes    String?
+  order    Int     @default(0)
+
+  recipe   Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@index([recipeId, order])
+  @@index([name])
+}
+
+model RecipeTag {
+  id       String @id @default(cuid())
+  recipeId String
+  tag      String
+
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, tag])
+  @@index([tag])
+}
+
+model RecipeLink {
+  id          String @id @default(cuid())
+  parentId    String
+  subRecipeId String
+
+  parent      Recipe @relation("ParentRecipe", fields: [parentId], references: [id], onDelete: Cascade)
+  subRecipe   Recipe @relation("SubRecipe", fields: [subRecipeId], references: [id], onDelete: Restrict)
+
+  @@unique([parentId, subRecipeId])
+  @@index([subRecipeId])
 }
 
 model ChatSession {

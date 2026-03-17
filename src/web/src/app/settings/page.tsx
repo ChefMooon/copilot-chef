@@ -185,6 +185,17 @@ const groupingOptions = [
   { label: "Alphabetical", value: "alpha" },
 ];
 
+const recipeViewOptions = [
+  { label: "Basic", value: "basic" },
+  { label: "Detailed", value: "detailed" },
+  { label: "Cooking", value: "cooking" },
+];
+
+const recipeUnitOptions = [
+  { label: "Cup", value: "cup" },
+  { label: "Grams", value: "grams" },
+];
+
 type ArrayPreferenceField =
   | "dietaryTags"
   | "favoriteCuisines"
@@ -997,6 +1008,28 @@ export default function SettingsPage() {
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+          <div className={styles.twoColumn} style={{ marginTop: "1rem" }}>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Default recipe view</label>
+              <SegmentedControl
+                onChange={(value) =>
+                  void handleImmediateField("defaultRecipeView", value)
+                }
+                options={recipeViewOptions}
+                value={preferences.defaultRecipeView}
+              />
+            </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Default unit mode</label>
+              <SegmentedControl
+                onChange={(value) =>
+                  void handleImmediateField("defaultUnitMode", value)
+                }
+                options={recipeUnitOptions}
+                value={preferences.defaultUnitMode}
+              />
             </div>
           </div>
         </div>

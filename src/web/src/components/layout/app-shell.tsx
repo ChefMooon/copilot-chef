@@ -13,6 +13,7 @@ import styles from "./app-shell.module.css";
 const navigationItems = [
   { label: "Home", href: "/" },
   { label: "Meal Plan", href: "/meal-plan" },
+  { label: "Recipes", href: "/recipes" },
   { label: "Grocery List", href: "/grocery-list" },
   { label: "Stats", href: "/stats" },
 ];

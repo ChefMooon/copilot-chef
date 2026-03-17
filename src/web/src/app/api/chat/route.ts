@@ -1889,11 +1889,31 @@ export async function POST(request: Request) {
       });
     }
 
-    const { sessionId, stream } = await chef.chat(
+    const chefResponse = await chef.chat(
       parsed.message,
       parsed.sessionId ?? undefined,
       parsed.pageContext
     );
+
+    if ("action" in chefResponse) {
+      if (shouldPersist && activeChatSessionId) {
+        await historyService.addMessage(
+          activeChatSessionId,
+          "assistant",
+          chefResponse.message
+        );
+      }
+
+      return NextResponse.json({
+        sessionId: chefResponse.sessionId,
+        chatSessionId: activeChatSessionId,
+        message: chefResponse.message,
+        choices: [],
+        action: chefResponse.action,
+      });
+    }
+
+    const { sessionId, stream } = chefResponse;
 
     // Tee the stream: one branch for the client, one to capture and save the full response.
     const [clientStream, captureStream] = stream.tee();

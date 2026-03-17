@@ -214,8 +214,14 @@ export async function seedDatabase() {
   const existingPlans = await prisma.mealPlan.count();
   const existingPreferences = await prisma.userPreference.count();
   const existingLogs = await prisma.mealLog.count();
+  const existingRecipes = await prisma.recipe.count();
 
-  if (existingPlans > 0 || existingPreferences > 0 || existingLogs > 0) {
+  if (
+    existingPlans > 0 ||
+    existingPreferences > 0 ||
+    existingLogs > 0 ||
+    existingRecipes > 0
+  ) {
     return;
   }
 
@@ -286,7 +292,137 @@ export async function seedDatabase() {
       consolidateIngredients: true,
       defaultPlanLength: "7",
       groceryGrouping: "category",
+      defaultRecipeView: "basic",
+      defaultUnitMode: "cup",
       saveChatHistory: true,
+    },
+  });
+
+  const tomatoSauce = await prisma.recipe.create({
+    data: {
+      title: "Basic Tomato Sauce",
+      description: "A simple weeknight red sauce for pasta, meatballs, or pizza.",
+      servings: 4,
+      prepTime: 10,
+      cookTime: 30,
+      difficulty: "easy",
+      instructions: JSON.stringify([
+        "Heat olive oil in a saucepan over medium heat.",
+        "Add garlic and cook until fragrant, about 30 seconds.",
+        "Add crushed tomatoes, oregano, salt, and pepper.",
+        "Simmer for 25 minutes and finish with basil.",
+      ]),
+      origin: "manual",
+      ingredients: {
+        create: [
+          { name: "olive oil", quantity: 2, unit: "tbsp", order: 0 },
+          { name: "garlic", quantity: 3, unit: "clove", order: 1 },
+          { name: "crushed tomatoes", quantity: 28, unit: "oz", order: 2 },
+          { name: "oregano", quantity: 1, unit: "tsp", order: 3 },
+          { name: "basil", quantity: 0.25, unit: "cup", order: 4 },
+        ],
+      },
+      tags: {
+        create: [{ tag: "italian" }, { tag: "sauce" }, { tag: "dinner" }],
+      },
+    },
+  });
+
+  const chickpeaBowl = await prisma.recipe.create({
+    data: {
+      title: "Crispy Chickpea Grain Bowl",
+      description: "High-protein bowl with lemony tahini dressing.",
+      servings: 2,
+      prepTime: 15,
+      cookTime: 25,
+      difficulty: "medium",
+      instructions: JSON.stringify([
+        "Roast chickpeas and vegetables until crisp-tender.",
+        "Cook quinoa according to package instructions.",
+        "Whisk tahini, lemon juice, and water into a dressing.",
+        "Assemble bowls with quinoa, vegetables, chickpeas, and dressing.",
+      ]),
+      origin: "manual",
+      ingredients: {
+        create: [
+          { name: "chickpeas", quantity: 1, unit: "cup", order: 0 },
+          { name: "quinoa", quantity: 0.5, unit: "cup", order: 1 },
+          { name: "broccoli", quantity: 2, unit: "cup", order: 2 },
+          { name: "tahini", quantity: 2, unit: "tbsp", order: 3 },
+          { name: "lemon juice", quantity: 1, unit: "tbsp", order: 4 },
+        ],
+      },
+      tags: {
+        create: [
+          { tag: "vegetarian" },
+          { tag: "lunch" },
+          { tag: "high-protein" },
+        ],
+      },
+    },
+  });
+
+  await prisma.recipe.create({
+    data: {
+      title: "Weeknight Spaghetti",
+      description: "Fast spaghetti dinner built on a classic tomato sauce.",
+      servings: 4,
+      prepTime: 10,
+      cookTime: 20,
+      difficulty: "easy",
+      instructions: JSON.stringify([
+        "Boil salted water and cook spaghetti until al dente.",
+        "Warm tomato sauce and add a splash of pasta water.",
+        "Toss pasta with sauce and finish with parmesan.",
+      ]),
+      origin: "manual",
+      ingredients: {
+        create: [
+          { name: "spaghetti", quantity: 1, unit: "lb", order: 0 },
+          { name: "parmesan", quantity: 0.5, unit: "cup", order: 1 },
+        ],
+      },
+      tags: {
+        create: [
+          { tag: "dinner" },
+          { tag: "italian" },
+          { tag: "weeknight" },
+        ],
+      },
+      linkedFrom: {
+        create: [{ subRecipeId: tomatoSauce.id }],
+      },
+    },
+  });
+
+  await prisma.recipe.create({
+    data: {
+      title: "Sourdough Avocado Toast",
+      description: "Quick breakfast with citrus and chili flakes.",
+      servings: 2,
+      prepTime: 8,
+      cookTime: 5,
+      difficulty: "easy",
+      instructions: JSON.stringify([
+        "Toast the sourdough slices.",
+        "Mash avocado with lemon juice, salt, and pepper.",
+        "Spread on toast and top with chili flakes.",
+      ]),
+      origin: "manual",
+      ingredients: {
+        create: [
+          { name: "sourdough", quantity: 2, unit: "slice", order: 0 },
+          { name: "avocado", quantity: 1, unit: "piece", order: 1 },
+          { name: "lemon juice", quantity: 1, unit: "tsp", order: 2 },
+        ],
+      },
+      tags: {
+        create: [
+          { tag: "breakfast" },
+          { tag: "quick" },
+          { tag: "vegetarian" },
+        ],
+      },
     },
   });
 

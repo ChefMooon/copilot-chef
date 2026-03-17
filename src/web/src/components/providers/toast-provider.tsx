@@ -88,7 +88,7 @@ export function ToastProvider({ children }: PropsWithChildren) {
             ) : null}
           </Toast.Root>
         ))}
-        <Toast.Viewport className="fixed bottom-4 right-4 z-[100] flex max-w-full flex-col gap-3 outline-none" />
+        <Toast.Viewport className="fixed bottom-4 right-4 z-[600] flex max-w-full flex-col gap-3 outline-none" />
       </Toast.Provider>
     </ToastContext.Provider>
   );

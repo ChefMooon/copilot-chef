@@ -5,6 +5,7 @@ export const quickPromptSchema = z.enum([
   "New grocery list",
   "Suggest a dinner",
   "Add a meal",
+  "Open Recipe Book",
   "What's in season?",
   "Surprise me!",
 ]);
@@ -82,9 +83,10 @@ export const chatChoiceSchema = z.object({
 });
 
 export const chatActionResultSchema = z.object({
-  domain: z.enum(["meal", "grocery"]),
+  domain: z.enum(["meal", "grocery", "recipe"]),
   type: z.string(),
   summary: z.string(),
+  payload: z.unknown().optional(),
 });
 
 export const chatJsonResponseSchema = z.object({

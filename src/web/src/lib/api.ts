@@ -1,5 +1,7 @@
 import {
+  type CreateRecipeInput,
   type CustomPersonaPayload,
+  type RecipeExportJson,
   type CreatePersonaInput,
   type PreferenceUpdateInput,
   type PreferencesPayload,
@@ -7,6 +9,33 @@ import {
 
 export type SettingsPreferences = PreferencesPayload;
 export type { CustomPersonaPayload };
+
+export type RecipePayload = {
+  id: string;
+  title: string;
+  description: string | null;
+  servings: number;
+  prepTime: number | null;
+  cookTime: number | null;
+  difficulty: string | null;
+  instructions: string[];
+  sourceUrl: string | null;
+  sourceLabel: string | null;
+  origin: string;
+  rating: number | null;
+  cookNotes: string | null;
+  lastMadeAt: string | null;
+  ingredients: Array<{
+    id: string;
+    name: string;
+    quantity: number | null;
+    unit: string | null;
+    notes: string | null;
+    order: number;
+  }>;
+  tags: string[];
+  linkedSubRecipes: Array<{ id: string; title: string }>;
+};
 
 export type DetectedRegionPayload = {
   region: string | null;
@@ -140,5 +169,73 @@ export async function deletePersona(id: string): Promise<{ id: string }> {
       method: "DELETE",
     }
   );
+  return response.data;
+}
+
+export async function listRecipes(query?: string) {
+  const endpoint = query
+    ? `/api/recipes?query=${encodeURIComponent(query)}`
+    : "/api/recipes";
+  const response = await fetchJson<{ data: RecipePayload[] }>(endpoint);
+  return response.data;
+}
+
+export async function getRecipe(id: string) {
+  const response = await fetchJson<{ data: RecipePayload }>(`/api/recipes/${id}`);
+  return response.data;
+}
+
+export async function createRecipe(input: CreateRecipeInput) {
+  const response = await fetchJson<{ data: RecipePayload }>("/api/recipes", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+  return response.data;
+}
+
+export async function updateRecipe(id: string, input: Partial<CreateRecipeInput>) {
+  const response = await fetchJson<{ data: RecipePayload }>(`/api/recipes/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+  return response.data;
+}
+
+export async function deleteRecipe(id: string) {
+  return fetchJson<{ data: { id: string } }>(`/api/recipes/${id}`, {
+    method: "DELETE",
+  });
+}
+
+export async function duplicateRecipe(id: string) {
+  const response = await fetchJson<{ data: RecipePayload }>(
+    `/api/recipes/${id}/duplicate`,
+    { method: "POST", body: JSON.stringify({}) }
+  );
+  return response.data;
+}
+
+export async function ingestRecipe(url: string) {
+  const response = await fetchJson<{ data: unknown }>("/api/recipes/ingest", {
+    method: "POST",
+    body: JSON.stringify({ url }),
+  });
+  return response.data;
+}
+
+export async function exportRecipes(ids?: string[]) {
+  const endpoint =
+    ids && ids.length > 0
+      ? `/api/recipes/export?ids=${encodeURIComponent(ids.join(","))}`
+      : "/api/recipes/export";
+  const response = await fetchJson<{ data: RecipeExportJson }>(endpoint);
+  return response.data;
+}
+
+export async function importRecipes(payload: RecipeExportJson) {
+  const response = await fetchJson<{ data: unknown }>("/api/recipes/import", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
   return response.data;
 }

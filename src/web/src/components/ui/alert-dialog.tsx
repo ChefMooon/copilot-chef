@@ -17,10 +17,10 @@ function AlertDialogContent({
 }: AlertDialogPrimitive.AlertDialogContentProps) {
   return (
     <AlertDialogPortal>
-      <AlertDialogPrimitive.Overlay className="fixed inset-0 z-[90] bg-black/40 backdrop-blur-[1px]" />
+      <AlertDialogPrimitive.Overlay className="fixed inset-0 z-[102] bg-black/40 backdrop-blur-[1px]" />
       <AlertDialogPrimitive.Content
         className={cn(
-          "fixed left-1/2 top-1/2 z-[91] w-[min(92vw,460px)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-cream-dark bg-white p-6 shadow-lg",
+          "fixed left-1/2 top-1/2 z-[103] w-[min(92vw,460px)] -translate-x-1/2 -translate-y-1/2 rounded-card border border-cream-dark bg-white p-6 shadow-lg",
           className
         )}
         {...props}
