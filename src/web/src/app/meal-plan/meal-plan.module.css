@@ -1116,7 +1116,7 @@
 .confirmationOverlay {
   position: fixed;
   inset: 0;
-  z-index: 650;
+  z-index: 501;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1207,18 +1207,14 @@
   }
 
   .modalPanel {
-    border-radius: 14px 14px 0 0;
-    max-height: 92vh;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    max-width: 100%;
+    border-radius: 14px;
+    max-height: 90vh;
+    max-width: 520px;
   }
 
   .modalOverlay {
-    align-items: flex-end;
-    padding: 0;
+    align-items: center;
+    padding: 1rem;
   }
 
   .modalFooter {
@@ -1236,13 +1232,13 @@
   }
 
   .confirmationOverlay {
-    align-items: flex-end;
-    padding: 0;
+    align-items: center;
+    padding: 1rem;
   }
 
   .confirmationPanel {
-    max-width: 100%;
-    border-radius: 14px 14px 0 0;
-    padding-bottom: 1rem;
+    max-width: 380px;
+    border-radius: 14px;
+    padding-bottom: 1.1rem;
   }
 }

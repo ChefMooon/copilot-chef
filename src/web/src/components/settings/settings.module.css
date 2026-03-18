@@ -614,52 +614,81 @@
 .personaModalOverlay {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 500;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem;
   background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
 }
 
 .personaModalPanel {
   width: min(520px, 94vw);
   border-radius: 20px;
-  background: var(--cream);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+  background: var(--white);
+  border: 1px solid var(--cream-dark);
+  box-shadow: 0 24px 64px rgba(44, 36, 22, 0.26);
   display: grid;
 }
 
 .personaModalHeader {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 1.1rem 1.25rem;
-  border-bottom: 1px solid var(--border);
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--cream-dark);
+  background: linear-gradient(180deg, #fff9ee 0%, #fffdf8 100%);
+}
+
+.personaModalHeading {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.personaModalEyebrow {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--orange);
 }
 
 .personaModalTitle {
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: 1.2rem;
+  font-family: var(--font-lora), serif;
+  color: var(--text);
 }
 
 .personaModalClose {
-  border: 0;
-  background: transparent;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--cream-dark);
+  background: var(--cream);
   cursor: pointer;
   color: var(--text-muted);
-  font-size: 1.2rem;
-  padding: 0.2rem 0.4rem;
-  border-radius: 8px;
-  transition: background 0.15s;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .personaModalClose:hover {
-  background: rgba(122, 106, 88, 0.1);
+  background: var(--white);
+  border-color: var(--text-muted);
   color: var(--text);
 }
 
 .personaModalBody {
   padding: 1.25rem;
+  background: #fffdf9;
   display: grid;
   gap: 1rem;
 }
@@ -669,7 +698,8 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.25rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--cream-dark);
+  background: #fff9ef;
 }
 
 .personaModalFooterRight {
@@ -683,13 +713,21 @@
 }
 
 .personaFormLabel {
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
 .personaModalError {
-  color: #9d2b2b;
-  font-size: 0.88rem;
+  margin: 0;
+  color: #a0441a;
+  background: #fbefe9;
+  border: 1px solid #f1cbbd;
+  border-radius: 8px;
+  padding: 0.48rem 0.6rem;
+  font-size: 0.84rem;
 }
 
 .personaEmojiInput {
@@ -735,38 +773,41 @@
 }
 
 .personaModalBtnCancel {
-  padding: 0.6rem 1.1rem;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: transparent;
+  padding: 0.45rem 1rem;
+  border: 1.5px solid var(--cream-dark);
+  border-radius: 8px;
+  background: none;
   cursor: pointer;
   font-weight: 700;
   color: var(--text-muted);
   transition:
-    background 0.15s,
+    border-color 0.15s,
     color 0.15s;
 }
 
 .personaModalBtnCancel:hover {
-  background: rgba(122, 106, 88, 0.08);
+  border-color: var(--text-muted);
   color: var(--text);
 }
 
 .personaModalBtnDelete {
-  padding: 0.6rem 1.1rem;
-  border: 1px solid rgba(157, 43, 43, 0.3);
-  border-radius: 12px;
-  background: transparent;
+  padding: 0.42rem 0.9rem;
+  border: 1.5px solid #e9bca9;
+  border-radius: 8px;
+  background: #f6e5df;
   cursor: pointer;
   font-weight: 700;
-  color: #9d2b2b;
+  color: #a0441a;
   transition:
     background 0.15s,
-    border-color 0.15s;
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .personaModalBtnDelete:hover {
-  background: rgba(157, 43, 43, 0.08);
+  background: #efcdbf;
+  border-color: #ca8b6f;
+  color: #7a2f0d;
 }
 
 .personaModalBtnDelete:disabled {
@@ -775,18 +816,18 @@
 }
 
 .personaModalBtnSave {
-  padding: 0.6rem 1.25rem;
+  padding: 0.45rem 1.2rem;
   border: 0;
-  border-radius: 12px;
-  background: #2c4a1e;
-  color: #fff;
+  border-radius: 8px;
+  background: var(--orange);
+  color: #fffdf8;
   cursor: pointer;
   font-weight: 700;
-  transition: opacity 0.15s;
+  transition: background 0.15s;
 }
 
 .personaModalBtnSave:hover {
-  opacity: 0.88;
+  background: var(--orange-light);
 }
 
 .personaModalBtnSave:disabled {
