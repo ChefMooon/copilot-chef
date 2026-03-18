@@ -16,42 +16,26 @@ enum MealType {
   SNACK
 }
 
-model MealPlan {
-  id           String        @id @default(cuid())
-  name         String
-  startDate    DateTime
-  endDate      DateTime
-  isCurrent    Boolean       @default(false)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  meals        Meal[]
-  groceryLists GroceryList[]
-}
-
 model Meal {
   id              String    @id @default(cuid())
-  mealPlanId      String?
   name            String
-  date            DateTime  @default(now())
+  date            DateTime? @default(now())
   mealType        MealType
   notes           String?
   ingredientsJson String    @default("[]")
   createdAt       DateTime  @default(now())
-  mealPlan        MealPlan? @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
   logs            MealLog[]
 
-  @@index([mealPlanId, date])
+  @@index([date])
 }
 
 model GroceryList {
   id         String        @id @default(cuid())
-  mealPlanId String?
   name       String
   date       DateTime      @default(now())
   favourite  Boolean       @default(false)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
-  mealPlan   MealPlan?     @relation(fields: [mealPlanId], references: [id], onDelete: SetNull)
   items      GroceryItem[]
 
   @@index([date])

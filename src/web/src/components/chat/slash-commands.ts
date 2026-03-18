@@ -16,9 +16,9 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   {
     command: "/new-grocery-list",
     label: "New grocery list",
-    description: "Create a grocery list from the current meal plan",
+    description: "Create a grocery list from currently scheduled meals",
     prompt:
-      "Please generate a grocery list based on my current meal plan. Include all ingredients needed, organised by category.",
+      "Please generate a grocery list based on my current meals this week. Include all ingredients needed, organised by category.",
   },
   {
     command: "/suggest-meals",
@@ -32,14 +32,14 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     label: "Check pantry",
     description: "Review what I likely already have before shopping",
     prompt:
-      "Based on my meal plan and grocery list, what do I likely already have in my pantry? What should I check before shopping?",
+      "Based on my scheduled meals and grocery list, what do I likely already have in my pantry? What should I check before shopping?",
   },
   {
     command: "/nutrition",
     label: "Nutrition overview",
     description: "Get a nutritional summary of planned meals",
     prompt:
-      "Give me a rough nutritional overview of the meals currently in my plan. Are there any gaps or imbalances I should address?",
+      "Give me a rough nutritional overview of the meals currently on my schedule. Are there any gaps or imbalances I should address?",
   },
   {
     command: "/quick-shop",

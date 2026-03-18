@@ -455,8 +455,6 @@ export default function GroceryListPage() {
               name,
               date: new Date(`${date}T12:00:00`).toISOString(),
               favourite: false,
-              mealPlanId: null,
-              mealPlan: null,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
               checkedCount: 0,

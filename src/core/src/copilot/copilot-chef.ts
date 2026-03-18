@@ -10,7 +10,6 @@ import { z } from "zod";
 import { getClient } from "../lib/copilot-client";
 import { GroceryService } from "../services/grocery-service";
 import { MealService } from "../services/meal-service";
-import { MealPlanService } from "../services/meal-plan-service";
 import { PersonaService } from "../services/persona-service";
 import { PreferenceService } from "../services/preference-service";
 import { RecipeService } from "../services/recipe-service";
@@ -45,6 +44,20 @@ const listMealsArgsSchema = z
     to: z.string().optional(),
   })
   .optional();
+
+function getCurrentWeekRange() {
+  const now = new Date();
+  const monday = new Date(now);
+  const offset = (monday.getDay() + 6) % 7;
+  monday.setDate(monday.getDate() - offset);
+  monday.setHours(0, 0, 0, 0);
+
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+
+  return { from: monday.toISOString(), to: sunday.toISOString() };
+}
 
 function getModel(): string {
   return process.env["COPILOT_MODEL"] ?? COPILOT_DEFAULT_MODEL;
@@ -103,7 +116,6 @@ export class CopilotChef {
   private readonly sessions = new Map<string, CopilotSession>();
 
   constructor(
-    private readonly mealPlanService = new MealPlanService(),
     private readonly mealService = new MealService(),
     private readonly groceryService = new GroceryService(),
     private readonly preferenceService = new PreferenceService(),
@@ -116,8 +128,9 @@ export class CopilotChef {
   // ---------------------------------------------------------------------------
 
   private async buildContext(): Promise<SystemPromptContext> {
-    const [mealPlan, groceryList, preferences, recipes] = await Promise.all([
-      this.mealPlanService.getCurrentMealPlan(),
+    const { from, to } = getCurrentWeekRange();
+    const [meals, groceryList, preferences, recipes] = await Promise.all([
+      this.mealService.listMealsInRange(from, to),
       this.groceryService.getCurrentGroceryList(),
       this.preferenceService.getPreferences(),
       this.recipeService.listRecipes(),
@@ -136,7 +149,7 @@ export class CopilotChef {
     }
 
     return {
-      mealPlan,
+      meals,
       groceryList,
       preferences,
       customPersonaPrompt,
@@ -195,7 +208,7 @@ export class CopilotChef {
       streaming: true,
       tools: [
         defineTool("create_meal", {
-          description: "Create a meal entry in the user's meal plan calendar.",
+          description: "Create a meal entry in the user's meal calendar.",
           parameters: {
             type: "object",
             properties: {
@@ -235,7 +248,6 @@ export class CopilotChef {
           handler: async (rawArgs) => {
             const args = createMealArgsSchema.parse(rawArgs);
             const created = await this.mealService.createMeal({
-              mealPlanId: null,
               name: args.name,
               mealType: args.mealType,
               date: new Date(args.date).toISOString(),
@@ -246,12 +258,12 @@ export class CopilotChef {
             return {
               success: true,
               meal: created,
-              message: `Added ${created.name} for ${created.mealType.toLowerCase().replace("_", " ")} on ${new Date(created.date).toLocaleDateString()}.`,
+              message: `Added ${created.name} for ${created.mealType.toLowerCase().replace("_", " ")} on ${created.date ? new Date(created.date).toLocaleDateString() : "unscheduled"}.`,
             };
           },
         }),
         defineTool("list_meals", {
-          description: "List meals for the current meal plan context.",
+          description: "List meals for the current context.",
           parameters: {
             type: "object",
             properties: {
@@ -269,10 +281,11 @@ export class CopilotChef {
               return { count: meals.length, meals };
             }
 
-            const plan = await this.mealPlanService.getCurrentMealPlan();
+            const { from, to } = getCurrentWeekRange();
+            const meals = await this.mealService.listMealsInRange(from, to);
             return {
-              count: plan?.meals.length ?? 0,
-              meals: plan?.meals ?? [],
+              count: meals.length,
+              meals,
             };
           },
         }),
@@ -307,7 +320,7 @@ export class CopilotChef {
   /**
    * Send a message to Copilot Chef. On the first call (no sessionId), a new
    * Copilot SDK session is created with a dynamic system prompt built from the
-   * current meal plan, grocery list, and preferences.
+    * current meals, grocery list, and preferences.
    *
    * Returns the active sessionId and a ReadableStream of UTF-8 text tokens so
    * the caller can stream the response directly to the client.

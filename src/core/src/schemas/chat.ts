@@ -63,7 +63,6 @@ export const chatRequestSchema = z.object({
       }),
       z.object({
         page: z.literal("home"),
-        mealPlanName: z.string().nullable(),
         totalMeals: z.number(),
         groceryListName: z.string().nullable(),
         groceryCompletion: z.number(),

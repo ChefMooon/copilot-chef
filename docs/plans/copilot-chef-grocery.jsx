@@ -50,7 +50,7 @@ const MOCK_LISTS = [
     name: "This Week's Shop",
     date: d(0),
     favourite: true,
-    mealPlan: "Cozy Weeknight Plan",
+    scheduleLabel: "Cozy Weeknight Plan",
     items: [
       {
         id: 101,
@@ -139,7 +139,7 @@ const MOCK_LISTS = [
     name: "Weekend Brunch Prep",
     date: d(2),
     favourite: false,
-    mealPlan: "",
+    scheduleLabel: "",
     items: [
       {
         id: 201,
@@ -188,7 +188,7 @@ const MOCK_LISTS = [
     name: "Mid-week Top-up",
     date: d(3),
     favourite: true,
-    mealPlan: "Cozy Weeknight Plan",
+    scheduleLabel: "Cozy Weeknight Plan",
     items: [
       {
         id: 301,
@@ -227,7 +227,7 @@ const MOCK_LISTS = [
     name: "Next Week's Meals",
     date: d(6),
     favourite: false,
-    mealPlan: "Spring Refresh Plan",
+    scheduleLabel: "Spring Refresh Plan",
     items: [
       {
         id: 401,
@@ -276,7 +276,7 @@ const MOCK_LISTS = [
     name: "Party Snacks",
     date: d(10),
     favourite: false,
-    mealPlan: "",
+    scheduleLabel: "",
     items: [
       {
         id: 501,
@@ -540,8 +540,8 @@ function ListEditor({ list, onChange, onDelete, onShop }) {
           )}
           <div className="editor-header-meta">
             <span className="editor-date">📅 {fmtDate(list.date)}</span>
-            {list.mealPlan && (
-              <span className="editor-meal-plan-tag">🍽 {list.mealPlan}</span>
+            {list.scheduleLabel && (
+              <span className="editor-meal-plan-tag">🍽 {list.scheduleLabel}</span>
             )}
           </div>
         </div>
@@ -754,7 +754,7 @@ function NewListModal({ onClose, onCreate }) {
                 name: name.trim(),
                 date: new Date(date + "T12:00:00"),
                 favourite: false,
-                mealPlan: "",
+                scheduleLabel: "",
                 items: [],
               });
               onClose();
@@ -1159,8 +1159,8 @@ export default function GroceryPage() {
                       {isToday(l.date) ? "Today" : fmtDate(l.date)} ·{" "}
                       {l.items.length} items
                     </div>
-                    {l.mealPlan && (
-                      <div className="quick-card-meta">🍽 {l.mealPlan}</div>
+                    {l.scheduleLabel && (
+                      <div className="quick-card-meta">🍽 {l.scheduleLabel}</div>
                     )}
                     <div className="quick-card-progress">
                       <div

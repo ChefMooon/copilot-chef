@@ -11,18 +11,16 @@ type MealTypeValue =
 
 function serializeMeal(meal: {
   id: string;
-  mealPlanId: string | null;
   name: string;
-  date: Date;
+  date: Date | null;
   mealType: MealTypeValue;
   notes: string | null;
   ingredientsJson: string;
 }) {
   return {
     id: meal.id,
-    mealPlanId: meal.mealPlanId,
     name: meal.name,
-    date: meal.date.toISOString(),
+    date: meal.date?.toISOString() ?? null,
     mealType: meal.mealType,
     notes: meal.notes,
     ingredients: JSON.parse(meal.ingredientsJson) as string[],
@@ -58,9 +56,8 @@ export class MealService {
 
   async createMeal(input: {
     id?: string;
-    mealPlanId?: string | null;
     name: string;
-    date: string;
+    date?: string | null;
     mealType: MealTypeValue;
     notes?: string | null;
     ingredients?: string[];
@@ -70,9 +67,10 @@ export class MealService {
     const meal = await prisma.meal.create({
       data: {
         ...(input.id ? { id: input.id } : {}),
-        mealPlanId: input.mealPlanId ?? null,
         name: input.name,
-        date: new Date(input.date),
+        ...(input.date === undefined
+          ? {}
+          : { date: input.date === null ? null : new Date(input.date) }),
         mealType: input.mealType,
         notes: input.notes ?? null,
         ingredientsJson: JSON.stringify(input.ingredients ?? []),
@@ -85,9 +83,8 @@ export class MealService {
   async updateMeal(
     id: string,
     input: {
-      mealPlanId?: string | null;
       name?: string;
-      date?: string;
+      date?: string | null;
       mealType?: MealTypeValue;
       notes?: string | null;
       ingredients?: string[];
@@ -98,11 +95,10 @@ export class MealService {
     const meal = await prisma.meal.update({
       where: { id },
       data: {
-        ...(input.mealPlanId !== undefined
-          ? { mealPlanId: input.mealPlanId }
-          : {}),
         ...(input.name !== undefined ? { name: input.name } : {}),
-        ...(input.date !== undefined ? { date: new Date(input.date) } : {}),
+        ...(input.date !== undefined
+          ? { date: input.date === null ? null : new Date(input.date) }
+          : {}),
         ...(input.mealType !== undefined ? { mealType: input.mealType } : {}),
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
         ...(input.ingredients !== undefined
@@ -143,5 +139,21 @@ export class MealService {
       .map(([ingredient, count]) => ({ ingredient, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, limit);
+  }
+
+  async getMealCountInRange(from: string, to: string) {
+    await bootstrapDatabase();
+
+    const start = new Date(from);
+    const end = new Date(to);
+
+    return prisma.meal.count({
+      where: {
+        date: {
+          gte: start,
+          lte: end,
+        },
+      },
+    });
   }
 }

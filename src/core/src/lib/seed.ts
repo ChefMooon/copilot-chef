@@ -211,13 +211,13 @@ function buildMealLogs(referenceDate: Date) {
 }
 
 export async function seedDatabase() {
-  const existingPlans = await prisma.mealPlan.count();
+  const existingMeals = await prisma.meal.count();
   const existingPreferences = await prisma.userPreference.count();
   const existingLogs = await prisma.mealLog.count();
   const existingRecipes = await prisma.recipe.count();
 
   if (
-    existingPlans > 0 ||
+    existingMeals > 0 ||
     existingPreferences > 0 ||
     existingLogs > 0 ||
     existingRecipes > 0
@@ -227,32 +227,18 @@ export async function seedDatabase() {
 
   const today = startOfDay(new Date());
   const weekStart = addDays(today, -((today.getDay() + 6) % 7));
-  const weekEnd = addDays(weekStart, 6);
-
-  const mealPlan = await prisma.mealPlan.create({
-    data: {
-      name: "Cozy Weeknight Plan",
-      startDate: weekStart,
-      endDate: weekEnd,
-      isCurrent: true,
-      meals: {
-        create: sampleMeals.map((meal) => ({
-          name: meal.name,
-          date: addDays(weekStart, meal.dayOffset),
-          mealType: meal.mealType,
-          notes: meal.notes,
-          ingredientsJson: JSON.stringify(meal.ingredients),
-        })),
-      },
-    },
-    include: {
-      meals: true,
-    },
+  await prisma.meal.createMany({
+    data: sampleMeals.map((meal) => ({
+      name: meal.name,
+      date: addDays(weekStart, meal.dayOffset),
+      mealType: meal.mealType,
+      notes: meal.notes,
+      ingredientsJson: JSON.stringify(meal.ingredients),
+    })),
   });
 
   await prisma.groceryList.create({
     data: {
-      mealPlanId: mealPlan.id,
       name: "This Week's Shop",
       date: weekStart,
       favourite: true,

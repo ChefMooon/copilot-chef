@@ -30,7 +30,6 @@ export async function PATCH(
       name?: string;
       date?: string;
       favourite?: boolean;
-      mealPlanId?: string | null;
     };
 
     const data = await groceryService.updateGroceryList(id, body);

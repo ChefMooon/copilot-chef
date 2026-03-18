@@ -53,8 +53,6 @@ export type GroceryList = {
   name: string;
   date: string;
   favourite: boolean;
-  mealPlanId: string | null;
-  mealPlan: string | null;
   createdAt: string;
   updatedAt: string;
   checkedCount: number;

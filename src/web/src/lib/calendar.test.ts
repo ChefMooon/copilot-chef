@@ -11,7 +11,6 @@ describe("calendar helpers", () => {
       [
         {
           id: "breakfast-1",
-          mealPlanId: "plan-1",
           name: "Overnight Oats",
           date: new Date(2026, 2, 17, 12, 0, 0),
           type: "breakfast",
@@ -20,7 +19,6 @@ describe("calendar helpers", () => {
         },
         {
           id: "dinner-1",
-          mealPlanId: "plan-1",
           name: "Sheet Pan Salmon",
           date: new Date(2026, 2, 17, 12, 0, 0),
           type: "dinner",
@@ -29,7 +27,6 @@ describe("calendar helpers", () => {
         },
         {
           id: "other-day",
-          mealPlanId: "plan-1",
           name: "Ignore Me",
           date: otherDate,
           type: "lunch",

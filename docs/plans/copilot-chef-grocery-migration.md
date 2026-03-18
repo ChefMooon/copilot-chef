@@ -36,8 +36,6 @@ model GroceryList {
   name       String
   date       DateTime      // the shopping date; defaults to createdAt
   favourite  Boolean       @default(false)
-  mealPlanId Int?
-  mealPlan   MealPlan?     @relation(fields: [mealPlanId], references: [id])
   items      GroceryItem[]
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
@@ -72,7 +70,7 @@ Run `prisma migrate dev` after schema changes.
 | -------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `GET`    | `/api/grocery-lists`                   | Fetch all lists (with items included)                                                                      |
 | `POST`   | `/api/grocery-lists`                   | Create a new list                                                                                          |
-| `PATCH`  | `/api/grocery-lists/:id`               | Update list name, date, favourite, mealPlanId                                                              |
+| `PATCH`  | `/api/grocery-lists/:id`               | Update list name, date, favourite                                                                           |
 | `DELETE` | `/api/grocery-lists/:id`               | Delete a list and cascade-delete its items                                                                 |
 | `POST`   | `/api/grocery-lists/:id/items`         | Add an item to a list                                                                                      |
 | `PATCH`  | `/api/grocery-lists/:id/items/:itemId` | Update an item (any field)                                                                                 |

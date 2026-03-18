@@ -45,7 +45,6 @@ export type GroceryListPageContext = {
 
 export type HomePageContext = {
   page: "home";
-  mealPlanName: string | null;
   totalMeals: number;
   groceryListName: string | null;
   groceryCompletion: number;
@@ -130,9 +129,7 @@ export function serializePageContext(ctx: PageContext): string {
       );
     }
     case "home": {
-      const planPart = ctx.mealPlanName
-        ? ` Active meal plan: "${ctx.mealPlanName}" with ${ctx.totalMeals} meals.`
-        : " No active meal plan.";
+      const planPart = ` Meals currently scheduled this week: ${ctx.totalMeals}.`;
       const listPart = ctx.groceryListName
         ? ` Active grocery list: "${ctx.groceryListName}" (${ctx.groceryCompletion}% complete).`
         : " No active grocery list.";

@@ -1,9 +1,5 @@
 export type SystemPromptContext = {
-  mealPlan?: {
-    name: string;
-    totalMeals: number;
-    meals: Array<{ name: string; mealType: string; date: string }>;
-  } | null;
+  meals?: Array<{ name: string; mealType: string; date: string | null }> | null;
   groceryList?: {
     name: string;
     totalItems: number;
@@ -146,7 +142,7 @@ function formatList(values: string[]) {
 
 export function buildSystemPrompt(context: SystemPromptContext = {}): string {
   const {
-    mealPlan,
+    meals,
     groceryList,
     preferences,
     recipeSummary,
@@ -165,10 +161,11 @@ export function buildSystemPrompt(context: SystemPromptContext = {}): string {
 
   const sections: string[] = [];
 
-  if (mealPlan) {
-    const mealLines = mealPlan.meals
+  if (meals && meals.length > 0) {
+    const mealLines = meals
+      .filter((m) => m.date)
       .map((m) => {
-        const label = new Date(m.date).toLocaleDateString("en-US", {
+        const label = new Date(m.date as string).toLocaleDateString("en-US", {
           weekday: "long",
           month: "short",
           day: "numeric",
@@ -178,7 +175,7 @@ export function buildSystemPrompt(context: SystemPromptContext = {}): string {
       .join("\n");
 
     sections.push(
-      `## Current Meal Plan: "${mealPlan.name}"\n${mealPlan.totalMeals} meals planned this week:\n${mealLines}`
+      `## Current Meals\n${meals.length} meals scheduled this week:\n${mealLines || "  - No dated meals in this window."}`
     );
   }
 
@@ -245,7 +242,7 @@ export function buildSystemPrompt(context: SystemPromptContext = {}): string {
     `## Your Capabilities`,
     `- Plan weekly meals tailored to dietary preferences and household size`,
     `- Suggest individual recipes with consideration for prep time and effort`,
-    `- Generate and organize grocery lists from meal plans`,
+    `- Generate and organize grocery lists from scheduled meals`,
     `- Recommend seasonal ingredients and flavor pairings`,
     `- Help balance the week's prep load and minimize food waste`,
     `- Answer questions about cooking techniques, substitutions, and timing`,

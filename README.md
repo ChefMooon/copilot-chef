@@ -13,9 +13,9 @@ src/
 ## Implemented Phase 1 Scope
 
 - `src/core`
-  - Prisma SQLite schema for meal plans, meals, grocery lists, grocery items, user preferences, and meal logs
+  - Prisma SQLite schema for meals, grocery lists, grocery items, user preferences, and meal logs
   - Seeded local data for the MVP experience
-  - Service layer for meal plans, grocery lists, preferences, and meal activity
+  - Service layer for meals, grocery lists, preferences, and meal activity
   - `CopilotChef` chat orchestration with quick-prompt aware responses
 - `src/web`
   - Next.js App Router setup
@@ -28,7 +28,7 @@ src/
   - Slash commands for quick meal planning and grocery list actions
   - ChatContext for managing chat state, messages, and page context awareness
   - Basic Calendar, Meal Plan, Grocery List, Settings, and Stats pages ready for later customization
-  - API routes for chat, meal plans, grocery lists, preferences, and meal logs
+  - API routes for chat, meals, grocery lists, preferences, meal logs, and stats
 
 ## Getting Started
 
@@ -50,7 +50,7 @@ npm run db:generate
 # Create and initialize the SQLite database with schema
 npm run db:push
 
-# Seed the database with sample meal plans, preferences, and grocery lists
+# Seed the database with sample meals, preferences, and grocery lists
 npm run db:seed
 ```
 
@@ -88,7 +88,7 @@ The SQLite database is created at `src/core/prisma/copilot-chef.db` after runnin
 
 Seed data includes:
 
-- Sample meal plans with meals organized by day and meal type
+- Sample meals organized by day and meal type
 - User preferences (dietary restrictions, household size, cuisine preferences)
 - Sample grocery lists and items
 - Indexed lookups for efficient queries

@@ -11,9 +11,9 @@ import { cn } from "@/lib/utils";
 
 import styles from "./home-dashboard.module.css";
 
-type MealPlanPayload = {
-  id: string;
-  name: string;
+type MealSummaryPayload = {
+  from: string;
+  to: string;
   totalMeals: number;
 };
 
@@ -72,11 +72,11 @@ export function HomeDashboard() {
     text: string;
   } | null>(null);
 
-  const mealPlanQuery = useQuery({
-    queryKey: ["meal-plan", "current"],
+  const mealSummaryQuery = useQuery({
+    queryKey: ["stats", "meal-summary"],
     queryFn: () =>
-      fetchJson<{ data: MealPlanPayload | null }>(
-        "/api/meal-plans?current=1"
+      fetchJson<{ data: MealSummaryPayload }>(
+        "/api/stats/meal-summary"
       ).then((response) => response.data),
   });
 
@@ -117,13 +117,12 @@ export function HomeDashboard() {
     );
   }, [heatmapQuery.data?.monthStarts]);
 
-  const totalMeals = mealPlanQuery.data?.totalMeals ?? 0;
+  const totalMeals = mealSummaryQuery.data?.totalMeals ?? 0;
   const groceryList = groceryListQuery.data;
   const heatmap = heatmapQuery.data?.weeks ?? [];
 
   useChatPageContext({
     page: "home",
-    mealPlanName: mealPlanQuery.data?.name ?? null,
     totalMeals,
     groceryListName: groceryList?.name ?? null,
     groceryCompletion: groceryList?.completionPercentage ?? 0,

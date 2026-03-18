@@ -8,8 +8,6 @@ function serializeGroceryList(groceryList: {
   favourite: boolean;
   createdAt: Date;
   updatedAt: Date;
-  mealPlanId: string | null;
-  mealPlan: { name: string } | null;
   items: Array<{
     id: string;
     name: string;
@@ -31,8 +29,6 @@ function serializeGroceryList(groceryList: {
     favourite: groceryList.favourite,
     createdAt: groceryList.createdAt.toISOString(),
     updatedAt: groceryList.updatedAt.toISOString(),
-    mealPlanId: groceryList.mealPlanId,
-    mealPlan: groceryList.mealPlan?.name ?? null,
     checkedCount,
     totalItems: groceryList.items.length,
     completionPercentage:
@@ -60,7 +56,6 @@ type CreateListInput = {
   name: string;
   date?: string | Date;
   favourite?: boolean;
-  mealPlanId?: string;
   items?: Array<{
     name: string;
     qty?: string;
@@ -76,7 +71,6 @@ type UpdateListInput = {
   name?: string;
   date?: string | Date;
   favourite?: boolean;
-  mealPlanId?: string | null;
 };
 
 type CreateItemInput = {
@@ -101,7 +95,6 @@ type UpdateItemInput = {
 
 type GroceryListSnapshot = {
   id: string;
-  mealPlanId: string | null;
   name: string;
   date: string;
   favourite: boolean;
@@ -139,11 +132,6 @@ async function getListOrThrow(id: string) {
   const groceryList = await prisma.groceryList.findUnique({
     where: { id },
     include: {
-      mealPlan: {
-        select: {
-          name: true,
-        },
-      },
       items: true,
     },
   });
@@ -161,11 +149,6 @@ export class GroceryService {
 
     const groceryLists = await prisma.groceryList.findMany({
       include: {
-        mealPlan: {
-          select: {
-            name: true,
-          },
-        },
         items: true,
       },
       orderBy: [{ date: "asc" }, { updatedAt: "desc" }],
@@ -180,11 +163,6 @@ export class GroceryService {
     const groceryList = await prisma.groceryList.findUnique({
       where: { id },
       include: {
-        mealPlan: {
-          select: {
-            name: true,
-          },
-        },
         items: true,
       },
     });
@@ -197,11 +175,6 @@ export class GroceryService {
 
     const groceryList = await prisma.groceryList.findFirst({
       include: {
-        mealPlan: {
-          select: {
-            name: true,
-          },
-        },
         items: true,
       },
       orderBy: [{ date: "asc" }, { updatedAt: "desc" }],
@@ -218,7 +191,6 @@ export class GroceryService {
         name: input.name,
         date: toDate(input.date),
         favourite: input.favourite ?? false,
-        mealPlanId: input.mealPlanId,
         items: {
           create: (input.items ?? []).map((item, index) => ({
             name: item.name,
@@ -233,11 +205,6 @@ export class GroceryService {
         },
       },
       include: {
-        mealPlan: {
-          select: {
-            name: true,
-          },
-        },
         items: true,
       },
     });
@@ -252,7 +219,6 @@ export class GroceryService {
       name?: string;
       date?: Date;
       favourite?: boolean;
-      mealPlanId?: string | null;
     } = {};
 
     if (input.name !== undefined) {
@@ -264,19 +230,11 @@ export class GroceryService {
     if (input.favourite !== undefined) {
       data.favourite = input.favourite;
     }
-    if (input.mealPlanId !== undefined) {
-      data.mealPlanId = input.mealPlanId;
-    }
 
     const groceryList = await prisma.groceryList.update({
       where: { id },
       data,
       include: {
-        mealPlan: {
-          select: {
-            name: true,
-          },
-        },
         items: true,
       },
     });
@@ -418,7 +376,6 @@ export class GroceryService {
           id: snapshot.id,
         },
         data: {
-          mealPlanId: snapshot.mealPlanId,
           name: snapshot.name,
           date: new Date(snapshot.date),
           favourite: snapshot.favourite,
@@ -465,11 +422,6 @@ export class GroceryService {
       include: {
         groceryList: {
           include: {
-            mealPlan: {
-              select: {
-                name: true,
-              },
-            },
             items: true,
           },
         },

@@ -171,11 +171,6 @@ export function ListEditor({
               >
                 📅 {formatListDate(list.date)}
               </button>
-              {list.mealPlan ? (
-                <span className={styles.editorMealPlanTag}>
-                  🍽 {list.mealPlan}
-                </span>
-              ) : null}
             </div>
           </div>
           <div className={styles.editorHeaderActions}>

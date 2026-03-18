@@ -39,7 +39,7 @@ The project is structured as an **npm monorepo** with three packages sharing a c
 | ------------------ | ---------------------------------------------------------- |
 | GitHub Copilot SDK | AI orchestration and conversation                          |
 | Prisma             | TypeScript-native ORM                                      |
-| SQLite             | Local persistence (meal plans, grocery lists, preferences) |
+| SQLite             | Local persistence (meals, grocery lists, preferences) |
 | Zod                | Runtime schema validation for AI responses                 |
 
 ### Web Interface (`web/`)
@@ -68,17 +68,13 @@ The project is structured as an **npm monorepo** with three packages sharing a c
 
 ## Data Models
 
-### `MealPlan`
-
-Represents a weekly meal plan with a name, date range, and associated meals.
-
 ### `Meal`
 
 A single meal entry with a name, day of week, meal type (breakfast / lunch / dinner), and optional notes.
 
 ### `GroceryList`
 
-A generated grocery list tied to a meal plan, containing categorized items. Tracks name, creation date, and associated meal plan.
+A grocery list generated from scheduled meals or manually created. Contains categorized items and tracks name and dates.
 
 ### `GroceryItem`
 
@@ -90,7 +86,7 @@ Stored dietary preferences, restrictions, household size, and cuisine preference
 
 ### `MealLog`
 
-A daily log of meals that were actually cooked/eaten. Used to power the home dashboard **Meal Activity heatmap**. Each entry records a date, meal reference, and meal type. Distinct from `MealPlan` — this is the historical record of what was eaten, not just what was planned.
+A daily log of meals that were actually cooked/eaten. Used to power the home dashboard **Meal Activity heatmap**. Each entry records a date, meal reference, and meal type. This is the historical record of what was eaten, not just what was scheduled.
 
 ---
 
@@ -131,7 +127,7 @@ A daily log of meals that were actually cooked/eaten. Used to power the home das
   - `chat(message)` — send a message and return a structured response
   - `endSession()` — gracefully close the session
 - Build service layer:
-  - `MealPlanService` — CRUD for meal plans and meals
+  - `MealService` — CRUD for meals and date-range queries
   - `GroceryService` — generate, update, and export grocery lists
   - `PreferenceService` — read and write user preferences
   - `MealLogService` — record and query meal activity history for heatmap and stats
@@ -140,7 +136,7 @@ A daily log of meals that were actually cooked/eaten. Used to power the home das
 #### Step 1.3 — AI Prompt Design
 
 - System prompt that establishes "Copilot Chef" persona
-- Context injection — include user preferences and existing meal plan in every message
+- Context injection — include user preferences and currently scheduled meals in every message
 - **Quick Prompt support** — the following pre-defined prompts should have optimized handling:
   - "Plan this week"
   - "New grocery list"
@@ -149,9 +145,9 @@ A daily log of meals that were actually cooked/eaten. Used to power the home das
   - "What's in season?"
   - "Surprise me!"
 - Structured output prompts for:
-  - Generating a weekly meal plan
-  - Generating a grocery list from a meal plan
-  - Modifying an existing plan based on user feedback
+  - Generating a weekly meal schedule
+  - Generating a grocery list from scheduled meals
+  - Modifying scheduled meals based on user feedback
   - Answering one-off cooking or nutrition questions
 
 #### Step 1.4 — Next.js Web App
@@ -175,7 +171,7 @@ A daily log of meals that were actually cooked/eaten. Used to power the home das
 
 - Build API routes:
   - `/api/chat` — streaming AI chat
-  - `/api/meal-plans` — CRUD
+  - `/api/meals` — CRUD + date-range reads
   - `/api/grocery-lists` — CRUD
   - `/api/preferences` — read/write
   - `/api/meal-logs` — record and query meal activity

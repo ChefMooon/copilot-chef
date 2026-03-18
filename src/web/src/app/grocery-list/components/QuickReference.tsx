@@ -94,11 +94,6 @@ export function QuickReference({
                     {isToday(list.date) ? "Today" : formatListDate(list.date)} ·{" "}
                     {list.items.length} items
                   </div>
-                  {list.mealPlan ? (
-                    <div className={styles.quickCardMeta}>
-                      🍽 {list.mealPlan}
-                    </div>
-                  ) : null}
                   <div className={styles.quickCardProgress}>
                     <div
                       className={styles.quickCardFill}

@@ -431,7 +431,7 @@ A stacked list of toggle rows. Each row: label + description on the left, a togg
 | Field               | Label                     | Description                                                       | Default |
 | ------------------- | ------------------------- | ----------------------------------------------------------------- | ------- |
 | `autoImproveChef`   | Auto-improve chef         | Chef learns from your feedback and adjusts suggestions over time. | On      |
-| `contextAwareness`  | Context-aware suggestions | Include current meal plan and pantry when generating ideas.       | On      |
+| `contextAwareness`  | Context-aware suggestions | Include current meal schedule and pantry when generating ideas.   | On      |
 | `seasonalAwareness` | Seasonal awareness        | Prioritize ingredients that are in season in your region.         | On      |
 | `proactiveTips`     | Proactive tips            | Chef offers unprompted suggestions and cooking tips in chat.      | Off     |
 
@@ -475,7 +475,7 @@ Toggle rows followed by two selects in a grid.
 
 | Field                    | Label                           | Description                                                        | Default |
 | ------------------------ | ------------------------------- | ------------------------------------------------------------------ | ------- |
-| `autoGenerateGrocery`    | Auto-generate grocery list      | Automatically create a grocery list when a meal plan is finalized. | On      |
+| `autoGenerateGrocery`    | Auto-generate grocery list      | Automatically create a grocery list when a weekly schedule is set. | On      |
 | `consolidateIngredients` | Consolidate similar ingredients | Merge quantities of the same ingredient across multiple meals.     | On      |
 
 **Selects (two-column grid, rendered below the toggle rows with `margin-top: 1rem`):**
@@ -500,7 +500,7 @@ Right — Grocery list grouping (`groceryGrouping`): `By category` / `By meal` /
 
 2. **Export my data** — default style. On click: call `GET /api/preferences/export` which returns a JSON file download containing all preference fields and meal log data.
 
-3. **Reset all preferences** — default style. On click: open a shadcn `AlertDialog` with title "Reset all preferences?" and description "This will restore all settings to their defaults. Your meal plans and grocery lists will not be affected." On confirm: call `POST /api/preferences/reset`, then reload preferences via React Query `invalidateQueries`.
+3. **Reset all preferences** — default style. On click: open a shadcn `AlertDialog` with title "Reset all preferences?" and description "This will restore all settings to their defaults. Your meals and grocery lists will not be affected." On confirm: call `POST /api/preferences/reset`, then reload preferences via React Query `invalidateQueries`.
 
 > **Note:** `DELETE /api/chat/history` and `GET /api/preferences/export` and `POST /api/preferences/reset` are new API routes that must be implemented alongside this feature.
 

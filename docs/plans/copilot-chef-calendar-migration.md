@@ -52,8 +52,6 @@ model Meal {
   date        DateTime
   notes       String?           // add if missing
   ingredients String[]          // add if missing — store as JSON array
-  mealPlanId  Int
-  mealPlan    MealPlan @relation(fields: [mealPlanId], references: [id])
 }
 ```
 
@@ -68,7 +66,7 @@ Run `prisma migrate dev` after schema changes.
 | `POST`   | `/api/meals`           | Create a new meal                                    |
 | `DELETE` | `/api/meals/:id`       | Delete a meal                                        |
 
-The `GET` endpoint should accept `from` and `to` as ISO date strings and return all meals (across all meal plans) whose `date` falls within that range. This is what each view uses to load its data.
+The `GET` endpoint should accept `from` and `to` as ISO date strings and return all scheduled meals whose `date` falls within that range. This is what each view uses to load its data.
 
 ---
 

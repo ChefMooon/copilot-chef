@@ -38,7 +38,6 @@ type MealTypeValue =
 
 type GroceryListSnapshot = {
   id: string;
-  mealPlanId: string | null;
   name: string;
   date: string;
   favourite: boolean;
@@ -72,9 +71,8 @@ type MealForwardOp =
       op: "create";
       meal: {
         id: string;
-        mealPlanId: string | null;
         name: string;
-        date: string;
+        date: string | null;
         mealType: MealTypeValue;
         notes: string | null;
         ingredients: string[];
@@ -84,9 +82,8 @@ type MealForwardOp =
       op: "update";
       id: string;
       patch: {
-        mealPlanId?: string | null;
         name?: string;
-        date?: string;
+        date?: string | null;
         mealType?: MealTypeValue;
         notes?: string | null;
         ingredients?: string[];
@@ -188,8 +185,16 @@ function formatMealType(type: MealTypeValue) {
   return type.toLowerCase().replace("_", " ");
 }
 
-function toWeekdayName(iso: string) {
+function toWeekdayName(iso: string | null) {
+  if (!iso) {
+    return "unscheduled";
+  }
+
   return new Date(iso).toLocaleDateString("en-US", { weekday: "long" });
+}
+
+function toDateLabel(iso: string | null) {
+  return iso ? new Date(iso).toLocaleDateString() : "unscheduled";
 }
 
 function nextNights(count: number) {
@@ -207,7 +212,6 @@ function nextNights(count: number) {
 
 function snapshotFromList(list: {
   id: string;
-  mealPlanId: string | null;
   name: string;
   date: string;
   favourite: boolean;
@@ -225,7 +229,6 @@ function snapshotFromList(list: {
 }): GroceryListSnapshot {
   return {
     id: list.id,
-    mealPlanId: list.mealPlanId,
     name: list.name,
     date: list.date,
     favourite: list.favourite,
@@ -285,7 +288,6 @@ async function applyMealOps(payloadJson: string) {
       if (!existing) {
         await mealService.createMeal({
           id: op.meal.id,
-          mealPlanId: op.meal.mealPlanId,
           name: op.meal.name,
           date: op.meal.date,
           mealType: op.meal.mealType,
@@ -425,7 +427,6 @@ async function tryHandleMealCommand(
     }
 
     const created = await mealService.createMeal({
-      mealPlanId: null,
       name: mealName,
       date: resolvedDate.toISOString(),
       mealType,
@@ -438,7 +439,6 @@ async function tryHandleMealCommand(
         op: "create",
         meal: {
           id: created.id,
-          mealPlanId: created.mealPlanId,
           name: created.name,
           date: created.date,
           mealType: created.mealType,
@@ -454,14 +454,14 @@ async function tryHandleMealCommand(
         chatSessionId,
         domain: "meal",
         actionType: "add-meal",
-        summary: `Added ${created.name} for ${formatMealType(created.mealType)} ${new Date(created.date).toLocaleDateString()}`,
+        summary: `Added ${created.name} for ${formatMealType(created.mealType)} ${toDateLabel(created.date)}`,
         forwardJson: JSON.stringify({ ops: forwardOps }),
         inverseJson: JSON.stringify({ ops: inverseOps }),
       });
     }
 
     return {
-      message: `Added ${created.name} for ${formatMealType(created.mealType)} on ${new Date(created.date).toLocaleDateString()}.`,
+      message: `Added ${created.name} for ${formatMealType(created.mealType)} on ${toDateLabel(created.date)}.`,
       choices: [{ id: "undo", label: "Undo", prompt: "Undo" }],
       action: {
         domain: "meal",
@@ -561,7 +561,7 @@ async function tryHandleMealCommand(
     }
 
     return {
-      message: `Moved ${updated.name} to ${toWeekdayName(updated.date)} (${new Date(updated.date).toLocaleDateString()}).`,
+      message: `Moved ${updated.name} to ${toWeekdayName(updated.date)} (${toDateLabel(updated.date)}).`,
       choices: [{ id: "undo", label: "Undo", prompt: "Undo" }],
       action: {
         domain: "meal",
@@ -650,7 +650,7 @@ async function tryHandleMealCommand(
     }
 
     return {
-      message: `Moved ${updated.name} to ${toWeekdayName(updated.date)} (${new Date(updated.date).toLocaleDateString()}).`,
+      message: `Moved ${updated.name} to ${toWeekdayName(updated.date)} (${toDateLabel(updated.date)}).`,
       choices: [{ id: "undo", label: "Undo", prompt: "Undo" }],
       action: {
         domain: "meal",
@@ -794,7 +794,6 @@ async function tryHandleMealCommand(
         op: "create",
         meal: {
           id: before.id,
-          mealPlanId: before.mealPlanId,
           name: before.name,
           date: before.date,
           mealType: before.mealType,
@@ -816,7 +815,7 @@ async function tryHandleMealCommand(
     }
 
     return {
-      message: `Removed ${before.name} (${formatMealType(before.mealType)} on ${new Date(before.date).toLocaleDateString()}).`,
+      message: `Removed ${before.name} (${formatMealType(before.mealType)} on ${toDateLabel(before.date)}).`,
       choices: [{ id: "undo", label: "Undo", prompt: "Undo" }],
       action: {
         domain: "meal",
@@ -916,7 +915,6 @@ async function tryHandleMealCommand(
         mealType?: MealTypeValue;
       };
       const created = await mealService.createMeal({
-        mealPlanId: null,
         name: payload.name,
         date: dates[i],
         mealType: payload.mealType ?? "DINNER",
@@ -930,7 +928,6 @@ async function tryHandleMealCommand(
       op: "create",
       meal: {
         id: meal.id,
-        mealPlanId: meal.mealPlanId,
         name: meal.name,
         date: meal.date,
         mealType: meal.mealType,

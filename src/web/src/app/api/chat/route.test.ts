@@ -10,7 +10,6 @@ type MealTypeValue =
 
 type MockMeal = {
   id: string;
-  mealPlanId: string | null;
   name: string;
   date: string;
   mealType: MealTypeValue;
@@ -20,7 +19,6 @@ type MockMeal = {
 
 type MockGroceryList = {
   id: string;
-  mealPlanId: string | null;
   name: string;
   date: string;
   favourite: boolean;
@@ -260,7 +258,6 @@ vi.mock("@copilot-chef/core", () => {
   class MealService {
     async createMeal(input: {
       id?: string;
-      mealPlanId: string | null;
       name: string;
       date: string;
       mealType: MealTypeValue;
@@ -270,7 +267,6 @@ vi.mock("@copilot-chef/core", () => {
       const id = input.id ?? nextId("meal");
       const meal: MockMeal = {
         id,
-        mealPlanId: input.mealPlanId,
         name: input.name,
         date: input.date,
         mealType: input.mealType,
@@ -289,7 +285,6 @@ vi.mock("@copilot-chef/core", () => {
     async updateMeal(
       id: string,
       patch: {
-        mealPlanId?: string | null;
         name?: string;
         date?: string;
         mealType?: MealTypeValue;
@@ -609,7 +604,6 @@ describe("POST /api/chat command actions", () => {
     const core = await getCoreMock();
     core.__seedGroceryList({
       id: "list-1",
-      mealPlanId: null,
       name: "Weekend",
       date: "2026-03-14T12:00:00.000Z",
       favourite: false,
@@ -634,7 +628,6 @@ describe("POST /api/chat command actions", () => {
         page: "grocery-list",
         activeList: {
           id: "list-1",
-          mealPlanId: null,
           name: "Weekend",
           date: "2026-03-14T12:00:00.000Z",
           favourite: false,
@@ -680,7 +673,6 @@ describe("POST /api/chat command actions", () => {
     const tuesdayIso = "2026-03-17T12:00:00.000Z";
     core.__seedMeal({
       id: "meal-lunch-1",
-      mealPlanId: null,
       name: "Chicken Wrap",
       date: tuesdayIso,
       mealType: "LUNCH",
@@ -713,7 +705,6 @@ describe("POST /api/chat command actions", () => {
     const tuesdayIso = "2026-03-17T12:00:00.000Z";
     core.__seedMeal({
       id: "meal-dinner-1",
-      mealPlanId: null,
       name: "Pasta",
       date: tuesdayIso,
       mealType: "DINNER",
@@ -770,7 +761,6 @@ describe("POST /api/chat command actions", () => {
     const core = await getCoreMock();
     core.__seedGroceryList({
       id: "list-2",
-      mealPlanId: null,
       name: "Weekly",
       date: "2026-03-14T12:00:00.000Z",
       favourite: false,
@@ -804,7 +794,6 @@ describe("POST /api/chat command actions", () => {
       page: "grocery-list",
       activeList: {
         id: "list-2",
-        mealPlanId: null,
         name: "Weekly",
         date: "2026-03-14T12:00:00.000Z",
         favourite: false,

@@ -18,7 +18,6 @@ export type ApiMealType =
 
 export type CalendarMeal = {
   id: string;
-  mealPlanId: string | null;
   name: string;
   date: string;
   mealType: ApiMealType;
@@ -28,7 +27,6 @@ export type CalendarMeal = {
 
 export type EditableMeal = {
   id: string;
-  mealPlanId: string | null;
   name: string;
   date: Date;
   type: CalendarMealType;
@@ -103,7 +101,6 @@ export function fromCalendarMealType(
 export function toEditableMeal(meal: CalendarMeal): EditableMeal {
   return {
     id: meal.id,
-    mealPlanId: meal.mealPlanId,
     name: meal.name,
     date: new Date(meal.date),
     type: toCalendarMealType(meal.mealType),
@@ -205,7 +202,6 @@ export function createEmptyMeal(
 ): EditableMeal {
   return {
     id: "",
-    mealPlanId: null,
     name: "",
     date: normalizeMealDate(date),
     type,

@@ -6,7 +6,7 @@
 
 ## Overview
 
-The Recipe Book is a persistent library of recipes stored in the local SQLite database. Users can add recipes manually, ingest them from a URL, or generate them via the AI chat. Recipes can be tagged, searched, scaled, linked to sub-recipes, assigned to meal plans, and pushed to a grocery list. The feature spans `core` (data models, services, normalization) and `web` (pages, API routes, components).
+The Recipe Book is a persistent library of recipes stored in the local SQLite database. Users can add recipes manually, ingest them from a URL, or generate them via the AI chat. Recipes can be tagged, searched, scaled, linked to sub-recipes, scheduled into meals, and pushed to a grocery list. The feature spans `core` (data models, services, normalization) and `web` (pages, API routes, components).
 
 ---
 
@@ -527,7 +527,7 @@ All routes validate inputs with the Zod schemas from Step 4. Return consistent e
 - Prints using the currently active unit mode
 
 **Action bar:**
-- "Use in Meal Plan" — opens a day/slot picker from the current meal plan
+- "Use in Meal Plan" — opens a day/slot picker from the current meal schedule
 - "Add to Grocery List" — opens a picker: "New list" or select existing
 - "Send to Telegram" — one-click send using the user's default view style
 - "Duplicate & Edit" — calls `/api/recipes/[id]/duplicate`, then navigates to edit mode for the new copy

@@ -158,7 +158,6 @@ export default function MealPlanPage() {
   const onSaveMeal = async (updatedMeal: EditableMeal) => {
     const normalizedDate = normalizeMealDate(updatedMeal.date);
     const payload = {
-      mealPlanId: updatedMeal.mealPlanId,
       name: updatedMeal.name,
       date: normalizedDate.toISOString(),
       mealType: fromCalendarMealType(updatedMeal.type),

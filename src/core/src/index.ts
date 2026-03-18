@@ -37,7 +37,6 @@ export { ChatHistoryService } from "./services/chat-history-service";
 export { GroceryService } from "./services/grocery-service";
 export { MealLogService } from "./services/meal-log-service";
 export { MealService } from "./services/meal-service";
-export { MealPlanService } from "./services/meal-plan-service";
 export { RecipeService, type RecipeFilters } from "./services/recipe-service";
 export {
   PreferenceService,

@@ -34,7 +34,7 @@
 | `seasonalAwareness`      | Whether the AI considers seasonal ingredient availability                 |
 | `seasonalRegion`         | Geographic region used for seasonal awareness                             |
 | `proactiveTips`          | Whether the AI should offer unsolicited tips and suggestions              |
-| `autoGenerateGrocery`    | Whether to automatically generate a grocery list from meal plans          |
+| `autoGenerateGrocery`    | Whether to automatically generate a grocery list from scheduled meals      |
 | `consolidateIngredients` | Whether to merge duplicate ingredients across meals in a grocery list     |
 | `defaultPlanLength`      | Default number of days for a generated meal plan                          |
 | `groceryGrouping`        | How grocery list items are grouped (by category, meal, or alphabetically) |
