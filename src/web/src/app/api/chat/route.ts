@@ -15,6 +15,21 @@ const preferenceService = new PreferenceService();
 const groceryService = new GroceryService();
 const mealService = new MealService();
 
+const SESSION_TITLE_MAX_LENGTH = 72;
+
+function summarizeSessionTitleFromMessage(content: string) {
+  const normalized = content.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.length <= SESSION_TITLE_MAX_LENGTH) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, SESSION_TITLE_MAX_LENGTH - 3).trimEnd()}...`;
+}
+
 type GroceryPageContext = Extract<
   NonNullable<ReturnType<typeof chatRequestSchema.parse>["pageContextData"]>,
   { page: "grocery-list" }
@@ -1829,7 +1844,9 @@ export async function POST(request: Request) {
     let activeChatSessionId = parsed.chatSessionId;
     if (shouldPersist) {
       if (!activeChatSessionId) {
-        const newSession = await historyService.createSession();
+        const newSession = await historyService.createSession(
+          summarizeSessionTitleFromMessage(parsed.message) ?? undefined
+        );
         activeChatSessionId = newSession.id;
       }
       await historyService.addMessage(

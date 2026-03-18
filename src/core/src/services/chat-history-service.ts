@@ -3,6 +3,20 @@ import { prisma } from "../lib/prisma";
 
 const DEFAULT_PENDING_SUGGESTION_TTL_DAYS = 14;
 const DEFAULT_ACTION_HISTORY_LIMIT = 50;
+const SESSION_TITLE_MAX_LENGTH = 72;
+
+function summarizeSessionTitleFromMessage(content: string) {
+  const normalized = content.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.length <= SESSION_TITLE_MAX_LENGTH) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, SESSION_TITLE_MAX_LENGTH - 3).trimEnd()}...`;
+}
 
 function serializeSession(session: {
   id: string;
@@ -96,6 +110,39 @@ export class ChatHistoryService {
     const message = await prisma.chatMessage.create({
       data: { chatSessionId, role, content },
     });
+
+    if (role === "user") {
+      const session = await prisma.chatSession.findUnique({
+        where: { id: chatSessionId },
+        select: { title: true },
+      });
+
+      if (!session?.title) {
+        const firstUserMessage = await prisma.chatMessage.findFirst({
+          where: {
+            chatSessionId,
+            role: "user",
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        if (firstUserMessage?.id === message.id) {
+          const summarizedTitle = summarizeSessionTitleFromMessage(content);
+          if (summarizedTitle) {
+            await prisma.chatSession.update({
+              where: { id: chatSessionId },
+              data: { title: summarizedTitle },
+            });
+          }
+        }
+      }
+    }
+
     await prisma.chatSession.update({
       where: { id: chatSessionId },
       data: { updatedAt: new Date() },

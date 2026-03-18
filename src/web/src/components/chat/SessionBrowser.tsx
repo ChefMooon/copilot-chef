@@ -76,7 +76,7 @@ export function SessionBrowser() {
             >
               <div className={styles.sessionItemMain}>
                 <span className={styles.sessionItemTitle}>
-                  {session.title ?? "Chat session"}
+                  {session.title?.trim() || "Chat session"}
                 </span>
                 <span className={styles.sessionItemTime}>
                   {relativeTime(session.updatedAt)}
