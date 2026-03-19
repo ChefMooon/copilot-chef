@@ -28,6 +28,12 @@ export type ChatMessageWithChoices = {
   choices?: ChatChoice[];
 };
 
+export type PendingInputRequest = {
+  question: string;
+  choices: string[];
+  allowFreeform: boolean;
+};
+
 interface ChatContextValue {
   isOpen: boolean;
   size: ChatSize;
@@ -35,6 +41,7 @@ interface ChatContextValue {
   isTyping: boolean;
   streamingMessage: string;
   showSessionBrowser: boolean;
+  pendingInputRequest: PendingInputRequest | null;
   openChat: () => void;
   closeChat: () => void;
   setSize: (s: ChatSize) => void;
@@ -43,6 +50,7 @@ interface ChatContextValue {
   toggleSessionBrowser: () => void;
   loadSession: (chatSessionId: string) => Promise<void>;
   clearSession: () => void;
+  respondToInputRequest: (answer: string, wasFreeform: boolean) => void;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -57,6 +65,9 @@ const INITIAL_MESSAGE: ChatMessageWithChoices = {
   role: "assistant",
   text: "Hey Chef! I'm your Copilot. Ask me to plan meals, build a grocery list, suggest recipes, or swap anything on your plan. Type / to see available commands.",
 };
+
+/** Sentinel prefix that the backend injects for control events (e.g. ask_user). */
+const SENTINEL_PREFIX = "\x00COPILOT_CHEF_EVENT\x00";
 
 function getMinimalContextForPath(path: string): string {
   if (path === "/stats")
@@ -85,6 +96,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   >();
   const [chatSessionId, setChatSessionId] = useState<string | undefined>();
   const [showSessionBrowser, setShowSessionBrowser] = useState(false);
+  const [pendingInputRequest, setPendingInputRequest] =
+    useState<PendingInputRequest | null>(null);
 
   const pageContextRef = useRef<PageContext | null>(null);
   const lastSentPathRef = useRef<string>("");
@@ -182,19 +195,100 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let assistantText = "";
+        let sentinelBuffer = "";
+        const updatedDomains = new Set<"meal" | "grocery" | "recipe">();
         setIsTyping(false);
 
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
-          assistantText += decoder.decode(value, { stream: true });
-          setStreamingMessage(assistantText);
+
+          let chunk = decoder.decode(value, { stream: true });
+
+          // Buffer incomplete sentinel fragments across reads
+          if (sentinelBuffer) {
+            chunk = sentinelBuffer + chunk;
+            sentinelBuffer = "";
+          }
+
+          // Check for sentinel event(s) in the chunk
+          let sentinelIdx = chunk.indexOf(SENTINEL_PREFIX);
+          while (sentinelIdx >= 0) {
+            // Append any text before the sentinel
+            if (sentinelIdx > 0) {
+              assistantText += chunk.slice(0, sentinelIdx);
+              setStreamingMessage(assistantText);
+            }
+
+            const afterPrefix = chunk.slice(
+              sentinelIdx + SENTINEL_PREFIX.length
+            );
+            const closeBrace = afterPrefix.indexOf("}");
+            if (closeBrace < 0) {
+              // Incomplete sentinel — buffer remainder for next read
+              sentinelBuffer = chunk.slice(sentinelIdx);
+              chunk = "";
+              break;
+            }
+
+            const jsonStr = afterPrefix.slice(0, closeBrace + 1);
+            try {
+              const event = JSON.parse(jsonStr) as {
+                type: string;
+                question: string;
+                choices: string[];
+                allowFreeform: boolean;
+                domain?: string;
+              };
+              if (event.type === "input_request") {
+                setPendingInputRequest({
+                  question: event.question,
+                  choices: event.choices,
+                  allowFreeform: event.allowFreeform,
+                });
+              } else if (
+                event.type === "domain_update" &&
+                (event.domain === "meal" ||
+                  event.domain === "grocery" ||
+                  event.domain === "recipe")
+              ) {
+                updatedDomains.add(event.domain);
+              }
+            } catch {
+              // Malformed sentinel — skip
+            }
+
+            // Continue processing text after the sentinel
+            chunk = afterPrefix.slice(closeBrace + 1);
+            sentinelIdx = chunk.indexOf(SENTINEL_PREFIX);
+          }
+
+          if (chunk) {
+            assistantText += chunk;
+            setStreamingMessage(assistantText);
+          }
         }
         assistantText += decoder.decode();
 
+        if (updatedDomains.has("meal")) {
+          await queryClient.invalidateQueries({ queryKey: ["meals"] });
+        }
+        if (updatedDomains.has("grocery")) {
+          await queryClient.invalidateQueries({ queryKey: ["grocery-lists"] });
+        }
+        if (updatedDomains.has("recipe")) {
+          await queryClient.invalidateQueries({ queryKey: ["recipes"] });
+        }
+
+        const finalAssistantText = assistantText.trim()
+          ? assistantText.trim()
+          : updatedDomains.size > 0
+            ? "Done. I applied your update."
+            : "Done.";
+
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", text: assistantText.trim(), choices: [] },
+          { role: "assistant", text: finalAssistantText, choices: [] },
         ]);
         setStreamingMessage("");
       } catch {
@@ -244,9 +338,27 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setCopilotSessionId(undefined);
     setChatSessionId(undefined);
     setMessages([INITIAL_MESSAGE]);
+    setPendingInputRequest(null);
     lastSentPathRef.current = "";
     setShowSessionBrowser(false);
   }, []);
+
+  const respondToInputRequest = useCallback(
+    (answer: string, wasFreeform: boolean) => {
+      if (!copilotSessionId) return;
+      setPendingInputRequest(null);
+      fetch("/api/chat/respond-to-input", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: copilotSessionId,
+          answer,
+          wasFreeform,
+        }),
+      }).catch(console.error);
+    },
+    [copilotSessionId]
+  );
 
   return (
     <ChatContext.Provider
@@ -257,6 +369,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         isTyping,
         streamingMessage,
         showSessionBrowser,
+        pendingInputRequest,
         openChat: () => setIsOpen(true),
         closeChat: () => setIsOpen(false),
         setSize,
@@ -265,6 +378,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         toggleSessionBrowser: () => setShowSessionBrowser((prev) => !prev),
         loadSession,
         clearSession,
+        respondToInputRequest,
       }}
     >
       {children}

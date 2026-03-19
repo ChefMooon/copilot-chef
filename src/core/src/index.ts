@@ -33,6 +33,28 @@ export {
   normalizeIngredients,
   type NormalizedIngredient,
 } from "./lib/ingredient-normalizer";
+export {
+  normalizeText,
+  escapeRegex,
+  findMatchingItems,
+  buildItemChoices,
+  resolveRelativeDate,
+  normalizeMealType,
+  formatMealType,
+  toWeekdayName,
+  toDateLabel,
+  nextNights,
+  snapshotFromList,
+  serializeMealOps,
+  parseMealOps,
+  serializeSnapshot,
+  parseSnapshot,
+  type MealTypeValue,
+  type MealShape,
+  type MealForwardOp,
+  type GroceryListSnapshot,
+  type GrocerySnapshotItem,
+} from "./lib/chat-command-utils";
 export { ChatHistoryService } from "./services/chat-history-service";
 export { GroceryService } from "./services/grocery-service";
 export { MealLogService } from "./services/meal-log-service";

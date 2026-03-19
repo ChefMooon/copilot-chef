@@ -20,12 +20,14 @@ function summarizeSessionTitleFromMessage(content: string) {
 
 function serializeSession(session: {
   id: string;
+  copilotSessionId: string | null;
   title: string | null;
   createdAt: Date;
   updatedAt: Date;
 }) {
   return {
     id: session.id,
+    copilotSessionId: session.copilotSessionId,
     title: session.title,
     createdAt: session.createdAt.toISOString(),
     updatedAt: session.updatedAt.toISOString(),
@@ -99,6 +101,24 @@ export class ChatHistoryService {
       data: { title: title ?? null },
     });
     return serializeSession(session);
+  }
+
+  async setCopilotSessionId(chatSessionId: string, copilotSessionId: string) {
+    await bootstrapDatabase();
+    const session = await prisma.chatSession.update({
+      where: { id: chatSessionId },
+      data: { copilotSessionId },
+    });
+    return serializeSession(session);
+  }
+
+  async getCopilotSessionId(chatSessionId: string) {
+    await bootstrapDatabase();
+    const session = await prisma.chatSession.findUnique({
+      where: { id: chatSessionId },
+      select: { copilotSessionId: true },
+    });
+    return session?.copilotSessionId ?? null;
   }
 
   async addMessage(

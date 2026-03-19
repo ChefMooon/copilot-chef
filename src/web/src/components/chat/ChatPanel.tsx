@@ -21,6 +21,64 @@ const SIZE_LABELS: Record<ChatSize, string> = {
   fullscreen: "Fullscreen",
 };
 
+function QuestionCard({
+  question,
+  choices,
+  allowFreeform,
+  onAnswer,
+}: {
+  question: string;
+  choices: string[];
+  allowFreeform: boolean;
+  onAnswer: (answer: string, wasFreeform: boolean) => void;
+}) {
+  const [freeformValue, setFreeformValue] = useState("");
+  return (
+    <div className={styles.questionCard}>
+      <p className={styles.questionText}>{question}</p>
+      {choices.length > 0 && (
+        <div className={styles.inlineChoices}>
+          {choices.map((choice) => (
+            <button
+              className={styles.inlineChoiceBtn}
+              key={choice}
+              onClick={() => onAnswer(choice, false)}
+              type="button"
+            >
+              {choice}
+            </button>
+          ))}
+        </div>
+      )}
+      {allowFreeform && (
+        <div className={styles.inputRow}>
+          <input
+            autoFocus
+            className={styles.chatInput}
+            onChange={(e) => setFreeformValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && freeformValue.trim()) {
+                onAnswer(freeformValue.trim(), true);
+              }
+            }}
+            placeholder="Type your answer…"
+            type="text"
+            value={freeformValue}
+          />
+          <button
+            className={styles.sendBtn}
+            disabled={!freeformValue.trim()}
+            onClick={() => onAnswer(freeformValue.trim(), true)}
+            type="button"
+          >
+            ➤
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ChatPanel() {
   const {
     size,
@@ -33,6 +91,8 @@ export function ChatPanel() {
     closeChat,
     sendMessage,
     clearSession,
+    pendingInputRequest,
+    respondToInputRequest,
   } = useChatContext();
 
   const [input, setInput] = useState("");
@@ -182,6 +242,15 @@ export function ChatPanel() {
               </div>
             ) : null}
 
+            {pendingInputRequest ? (
+              <QuestionCard
+                allowFreeform={pendingInputRequest.allowFreeform}
+                choices={pendingInputRequest.choices}
+                onAnswer={respondToInputRequest}
+                question={pendingInputRequest.question}
+              />
+            ) : null}
+
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -216,7 +285,7 @@ export function ChatPanel() {
             <button
               aria-label="Send message"
               className={styles.sendBtn}
-              disabled={!input.trim() || isTyping}
+              disabled={!input.trim() || isTyping || !!pendingInputRequest}
               onClick={handleSend}
               type="button"
             >

@@ -25,6 +25,7 @@ const stringFields = [
   "groceryGrouping",
   "defaultRecipeView",
   "defaultUnitMode",
+  "reasoningEffort",
 ] as const;
 const booleanFields = [
   "autoImproveChef",
@@ -68,6 +69,7 @@ export type PreferencesPayload = {
   defaultRecipeView: string;
   defaultUnitMode: string;
   saveChatHistory: boolean;
+  reasoningEffort: string;
 };
 
 export type PreferenceUpdateInput = Partial<
@@ -101,6 +103,7 @@ const DEFAULT_PREFERENCE_VALUES = {
   defaultRecipeView: "basic",
   defaultUnitMode: "cup",
   saveChatHistory: true,
+  reasoningEffort: "",
 } satisfies Prisma.UserPreferenceCreateInput;
 
 function splitCsv(value: string) {
@@ -186,6 +189,7 @@ function serializePreferences(preferences: UserPreference): PreferencesPayload {
     defaultRecipeView: preferences.defaultRecipeView,
     defaultUnitMode: preferences.defaultUnitMode,
     saveChatHistory: preferences.saveChatHistory,
+    reasoningEffort: preferences.reasoningEffort,
   };
 }
 

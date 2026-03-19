@@ -423,6 +423,145 @@ vi.mock("@copilot-chef/core", () => {
     },
   };
 
+  function normalizeText(value: string) {
+    return value.trim().toLowerCase();
+  }
+
+  function escapeRegex(value: string) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function findMatchingItems<T extends { id: string; name: string }>(
+    items: T[],
+    phrase: string
+  ) {
+    const cleaned = normalizeText(phrase).replace(/^(the|a|an)\s+/, "");
+    if (!cleaned) return [];
+    const exact = items.filter((item) => normalizeText(item.name) === cleaned);
+    if (exact.length > 0) return exact;
+    return items.filter((item) => normalizeText(item.name).includes(cleaned));
+  }
+
+  function buildItemChoices<T extends { id: string; name: string }>(
+    items: T[],
+    promptBuilder: (name: string) => string
+  ) {
+    return items.slice(0, 6).map((item) => ({
+      id: item.id,
+      label: item.name,
+      prompt: promptBuilder(item.name),
+    }));
+  }
+
+  function resolveRelativeDate(input: string) {
+    const today = new Date();
+    const lower = normalizeText(input);
+    const normalized = lower
+      .replace(/[.!?,;:]+$/g, "")
+      .replace(/^on\s+/, "")
+      .replace(/^for\s+/, "");
+
+    if (
+      normalized === "today" ||
+      normalized === "tonight" ||
+      normalized === "this evening"
+    ) {
+      return today;
+    }
+
+    if (/^tomorrow(?:\s+(?:night|evening))?$/.test(normalized)) {
+      const next = new Date(today);
+      next.setDate(today.getDate() + 1);
+      return next;
+    }
+
+    const weekDays = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
+    const weekdayMatch = normalized.match(
+      /^(?:next\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)(?:\s+(?:night|evening))?$/
+    );
+    const dayKey = weekdayMatch?.[1] ?? normalized;
+    const dayIndex = weekDays.indexOf(dayKey);
+    if (dayIndex >= 0) {
+      const next = new Date(today);
+      const delta = (dayIndex - today.getDay() + 7) % 7;
+      next.setDate(today.getDate() + (delta === 0 ? 7 : delta));
+      return next;
+    }
+
+    const parsed = new Date(normalized);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function normalizeMealType(value: string): MealTypeValue | null {
+    const lower = normalizeText(value).replace(/\s+/g, " ");
+    if (lower === "breakfast") return "BREAKFAST";
+    if (lower === "morning snack") return "MORNING_SNACK";
+    if (lower === "lunch") return "LUNCH";
+    if (lower === "afternoon snack") return "AFTERNOON_SNACK";
+    if (lower === "dinner") return "DINNER";
+    if (lower === "snack") return "SNACK";
+    return null;
+  }
+
+  function formatMealType(type: MealTypeValue) {
+    return type.toLowerCase().replace("_", " ");
+  }
+
+  function toWeekdayName(iso: string | null) {
+    if (!iso) return "unscheduled";
+    return new Date(iso).toLocaleDateString("en-US", { weekday: "long" });
+  }
+
+  function toDateLabel(iso: string | null) {
+    return iso ? new Date(iso).toLocaleDateString() : "unscheduled";
+  }
+
+  function nextNights(count: number) {
+    const today = new Date();
+    const start = new Date(today);
+    start.setHours(12, 0, 0, 0);
+    const nights: string[] = [];
+    for (let i = 0; i < count; i += 1) {
+      const next = new Date(start);
+      next.setDate(start.getDate() + i);
+      nights.push(next.toISOString());
+    }
+    return nights;
+  }
+
+  function snapshotFromList(list: MockGroceryList) {
+    return cloneList(list);
+  }
+
+  function serializeMealOps(ops: unknown[]) {
+    return JSON.stringify({ ops });
+  }
+
+  function parseMealOps(payloadJson: string) {
+    const parsed = JSON.parse(payloadJson) as { ops?: unknown[] };
+    return parsed.ops ?? [];
+  }
+
+  function serializeSnapshot(snapshot: MockGroceryList) {
+    return JSON.stringify({ snapshot });
+  }
+
+  function parseSnapshot(payloadJson: string) {
+    const parsed = JSON.parse(payloadJson) as { snapshot?: MockGroceryList };
+    if (!parsed.snapshot) {
+      throw new Error("Invalid action snapshot payload");
+    }
+    return parsed.snapshot;
+  }
+
   return {
     CopilotChef,
     ChatHistoryService,
@@ -430,6 +569,21 @@ vi.mock("@copilot-chef/core", () => {
     GroceryService,
     MealService,
     chatRequestSchema,
+    normalizeText,
+    escapeRegex,
+    findMatchingItems,
+    buildItemChoices,
+    resolveRelativeDate,
+    normalizeMealType,
+    formatMealType,
+    toWeekdayName,
+    toDateLabel,
+    nextNights,
+    snapshotFromList,
+    serializeMealOps,
+    parseMealOps,
+    serializeSnapshot,
+    parseSnapshot,
     __resetMockState() {
       state.nextId = 1;
       state.sessions = [];
@@ -491,6 +645,7 @@ describe("POST /api/chat command actions", () => {
   beforeEach(async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-14T12:00:00.000Z"));
+    process.env.COPILOT_CHAT_ROUTE_FALLBACK_FIRST = "1";
     const core = await getCoreMock();
     core.__resetMockState();
   });

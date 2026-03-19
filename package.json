@@ -9,7 +9,9 @@
   "scripts": {
     "dev": "npm run dev --workspace @copilot-chef/web",
     "build": "npm run build --workspace @copilot-chef/core && npm run build --workspace @copilot-chef/web",
-    "test": "npm run test --workspace @copilot-chef/web",
+    "test": "npm run test --workspace @copilot-chef/core && npm run test --workspace @copilot-chef/web",
+    "test:core": "npm run test --workspace @copilot-chef/core",
+    "test:web": "npm run test --workspace @copilot-chef/web",
     "lint": "eslint .",
     "format": "prettier --write .",
     "db:generate": "npm run db:generate --workspace @copilot-chef/core",

@@ -1,19 +1,34 @@
 import {
-  ChatHistoryService,
-  CopilotChef,
-  GroceryService,
-  MealService,
-  PreferenceService,
   chatRequestSchema,
+  buildItemChoices,
+  escapeRegex,
+  findMatchingItems,
+  formatMealType,
+  nextNights,
+  normalizeMealType,
+  normalizeText,
+  parseMealOps,
+  parseSnapshot,
+  resolveRelativeDate,
+  serializeMealOps,
+  snapshotFromList,
+  toDateLabel,
+  toWeekdayName,
+  type GroceryListSnapshot,
+  type MealForwardOp,
+  type MealTypeValue,
 } from "@copilot-chef/core";
 import { NextResponse } from "next/server";
 
-// Module-level singletons — preserved for the lifetime of the Next.js process.
-const chef = new CopilotChef();
-const historyService = new ChatHistoryService();
-const preferenceService = new PreferenceService();
-const groceryService = new GroceryService();
-const mealService = new MealService();
+type ReasoningEffort = "low" | "medium" | "high" | "xhigh";
+
+import {
+  chef,
+  historyService,
+  preferenceService,
+  groceryService,
+  mealService,
+} from "@/lib/chat-singletons";
 
 const SESSION_TITLE_MAX_LENGTH = 72;
 
@@ -35,39 +50,10 @@ type GroceryPageContext = Extract<
   { page: "grocery-list" }
 >;
 
-type GroceryActiveList = NonNullable<GroceryPageContext["activeList"]>;
-type GroceryPageItem = GroceryActiveList["items"][number];
-
 type MealPlanPageContext = Extract<
   NonNullable<ReturnType<typeof chatRequestSchema.parse>["pageContextData"]>,
   { page: "meal-plan" }
 >;
-
-type MealTypeValue =
-  | "BREAKFAST"
-  | "MORNING_SNACK"
-  | "LUNCH"
-  | "AFTERNOON_SNACK"
-  | "DINNER"
-  | "SNACK";
-
-type GroceryListSnapshot = {
-  id: string;
-  name: string;
-  date: string;
-  favourite: boolean;
-  items: Array<{
-    id: string;
-    name: string;
-    qty: string | null;
-    unit: string | null;
-    category: string;
-    notes: string | null;
-    meal: string | null;
-    checked: boolean;
-    sortOrder: number;
-  }>;
-};
 
 type ChatChoice = { id: string; label: string; prompt: string };
 
@@ -80,186 +66,6 @@ type HandledChatAction = {
     summary: string;
   };
 };
-
-type MealForwardOp =
-  | {
-      op: "create";
-      meal: {
-        id: string;
-        name: string;
-        date: string | null;
-        mealType: MealTypeValue;
-        notes: string | null;
-        ingredients: string[];
-      };
-    }
-  | {
-      op: "update";
-      id: string;
-      patch: {
-        name?: string;
-        date?: string | null;
-        mealType?: MealTypeValue;
-        notes?: string | null;
-        ingredients?: string[];
-      };
-    }
-  | {
-      op: "delete";
-      id: string;
-    };
-
-function normalizeText(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function escapeRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function findMatchingItems(items: GroceryPageItem[], phrase: string) {
-  const cleaned = normalizeText(phrase).replace(/^(the|a|an)\s+/, "");
-  if (!cleaned) return [];
-
-  const exact = items.filter((item) => normalizeText(item.name) === cleaned);
-  if (exact.length > 0) return exact;
-
-  return items.filter((item) => normalizeText(item.name).includes(cleaned));
-}
-
-function buildItemChoices(
-  items: GroceryPageItem[],
-  promptBuilder: (name: string) => string
-) {
-  return items.slice(0, 6).map((item) => ({
-    id: item.id,
-    label: item.name,
-    prompt: promptBuilder(item.name),
-  }));
-}
-
-function resolveRelativeDate(input: string) {
-  const today = new Date();
-  const lower = normalizeText(input);
-  const normalized = lower
-    .replace(/[.!?,;:]+$/g, "")
-    .replace(/^on\s+/, "")
-    .replace(/^for\s+/, "");
-
-  if (
-    normalized === "today" ||
-    normalized === "tonight" ||
-    normalized === "this evening"
-  ) {
-    return today;
-  }
-
-  if (/^tomorrow(?:\s+(?:night|evening))?$/.test(normalized)) {
-    const next = new Date(today);
-    next.setDate(today.getDate() + 1);
-    return next;
-  }
-
-  const weekDays = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday",
-  ];
-  const weekdayMatch = normalized.match(
-    /^(?:next\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)(?:\s+(?:night|evening))?$/
-  );
-  const dayKey = weekdayMatch?.[1] ?? normalized;
-  const dayIndex = weekDays.indexOf(dayKey);
-  if (dayIndex >= 0) {
-    const next = new Date(today);
-    const delta = (dayIndex - today.getDay() + 7) % 7;
-    next.setDate(today.getDate() + (delta === 0 ? 7 : delta));
-    return next;
-  }
-
-  const parsed = new Date(normalized);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function normalizeMealType(value: string): MealTypeValue | null {
-  const lower = normalizeText(value).replace(/\s+/g, " ");
-  if (lower === "breakfast") return "BREAKFAST";
-  if (lower === "morning snack") return "MORNING_SNACK";
-  if (lower === "lunch") return "LUNCH";
-  if (lower === "afternoon snack") return "AFTERNOON_SNACK";
-  if (lower === "dinner") return "DINNER";
-  if (lower === "snack") return "SNACK";
-  return null;
-}
-
-function formatMealType(type: MealTypeValue) {
-  return type.toLowerCase().replace("_", " ");
-}
-
-function toWeekdayName(iso: string | null) {
-  if (!iso) {
-    return "unscheduled";
-  }
-
-  return new Date(iso).toLocaleDateString("en-US", { weekday: "long" });
-}
-
-function toDateLabel(iso: string | null) {
-  return iso ? new Date(iso).toLocaleDateString() : "unscheduled";
-}
-
-function nextNights(count: number) {
-  const today = new Date();
-  const start = new Date(today);
-  start.setHours(12, 0, 0, 0);
-  const nights: string[] = [];
-  for (let i = 0; i < count; i += 1) {
-    const next = new Date(start);
-    next.setDate(start.getDate() + i);
-    nights.push(next.toISOString());
-  }
-  return nights;
-}
-
-function snapshotFromList(list: {
-  id: string;
-  name: string;
-  date: string;
-  favourite: boolean;
-  items: Array<{
-    id: string;
-    name: string;
-    qty: string | null;
-    unit: string | null;
-    category: string;
-    notes: string | null;
-    meal: string | null;
-    checked: boolean;
-    sortOrder: number;
-  }>;
-}): GroceryListSnapshot {
-  return {
-    id: list.id,
-    name: list.name,
-    date: list.date,
-    favourite: list.favourite,
-    items: list.items.map((item) => ({
-      id: item.id,
-      name: item.name,
-      qty: item.qty,
-      unit: item.unit,
-      category: item.category,
-      notes: item.notes,
-      meal: item.meal,
-      checked: item.checked,
-      sortOrder: item.sortOrder,
-    })),
-  };
-}
 
 async function recordSnapshotAction(
   chatSessionId: string | undefined,
@@ -285,17 +91,11 @@ async function recordSnapshotAction(
 }
 
 async function applyActionSnapshot(payloadJson: string) {
-  const parsed = JSON.parse(payloadJson) as { snapshot?: GroceryListSnapshot };
-  if (!parsed.snapshot) {
-    throw new Error("Invalid action snapshot payload");
-  }
-
-  return groceryService.restoreGroceryListSnapshot(parsed.snapshot);
+  return groceryService.restoreGroceryListSnapshot(parseSnapshot(payloadJson));
 }
 
 async function applyMealOps(payloadJson: string) {
-  const parsed = JSON.parse(payloadJson) as { ops?: MealForwardOp[] };
-  const ops = parsed.ops ?? [];
+  const ops = parseMealOps(payloadJson);
 
   for (const op of ops) {
     if (op.op === "create") {
@@ -421,6 +221,113 @@ async function tryHandleMealCommand(
     };
   }
 
+  const cloneTomorrowMatch = text.match(
+    /^(?:create|add)\s+(?:a\s+new\s+)?(breakfast|morning\s+snack|lunch|afternoon\s+snack|dinner|snack)\b.+\b(?:for\s+)?tomorrow\b.*\bsame\s+as\s+today\b/i
+  );
+  if (cloneTomorrowMatch) {
+    const mealType = normalizeMealType(cloneTomorrowMatch[1]);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    if (!mealType) {
+      return {
+        message:
+          "I could not determine the meal type. Try: create a new breakfast entry for tomorrow that is the same as today.",
+        action: {
+          domain: "meal",
+          type: "clarify-clone-type",
+          summary: "Could not resolve meal type for clone command",
+        },
+      };
+    }
+
+    const todayMatches = context.meals.filter(
+      (meal) =>
+        normalizeMealType(meal.mealType) === mealType &&
+        new Date(meal.date).toDateString() === today.toDateString()
+    );
+
+    if (todayMatches.length === 0) {
+      return {
+        message: `I couldn't find a ${formatMealType(mealType)} meal for today to copy.`,
+        action: {
+          domain: "meal",
+          type: "clone-source-missing",
+          summary: "No source meal found for clone command",
+        },
+      };
+    }
+
+    if (todayMatches.length > 1) {
+      return {
+        message: `I found multiple ${formatMealType(mealType)} meals today. Which one should I copy to tomorrow?`,
+        choices: todayMatches.slice(0, 6).map((meal) => ({
+          id: meal.id,
+          label: meal.name,
+          prompt: `Move ${meal.name} to tomorrow`,
+        })),
+        action: {
+          domain: "meal",
+          type: "clarify-clone-source",
+          summary: "Multiple source meals found for clone command",
+        },
+      };
+    }
+
+    const source = await mealService.getMeal(todayMatches[0].id);
+    if (!source) {
+      return {
+        message: "That source meal no longer exists. Please refresh and try again.",
+        action: {
+          domain: "meal",
+          type: "clone-source-stale",
+          summary: "Source meal missing during clone command",
+        },
+      };
+    }
+
+    const created = await mealService.createMeal({
+      name: source.name,
+      date: tomorrow.toISOString(),
+      mealType: source.mealType,
+      notes: source.notes,
+      ingredients: source.ingredients,
+    });
+
+    if (chatSessionId) {
+      await historyService.recordAction({
+        chatSessionId,
+        domain: "meal",
+        actionType: "clone-meal-to-tomorrow",
+        summary: `Copied ${source.name} to tomorrow`,
+        forwardJson: serializeMealOps([
+          {
+            op: "create",
+            meal: {
+              id: created.id,
+              name: created.name,
+              date: created.date,
+              mealType: created.mealType,
+              notes: created.notes,
+              ingredients: created.ingredients,
+            },
+          },
+        ]),
+        inverseJson: serializeMealOps([{ op: "delete", id: created.id }]),
+      });
+    }
+
+    return {
+      message: `Copied ${created.name} to tomorrow (${toDateLabel(created.date)}).`,
+      choices: [{ id: "undo", label: "Undo", prompt: "Undo" }],
+      action: {
+        domain: "meal",
+        type: "clone-meal-to-tomorrow",
+        summary: `Copied meal ${created.name} to tomorrow`,
+      },
+    };
+  }
+
   const addMatch = text.match(
     /^(?:add)\s+(.+?)\s+for\s+(breakfast|morning\s+snack|lunch|afternoon\s+snack|dinner|snack)\s+(.+)$/i
   );
@@ -470,8 +377,8 @@ async function tryHandleMealCommand(
         domain: "meal",
         actionType: "add-meal",
         summary: `Added ${created.name} for ${formatMealType(created.mealType)} ${toDateLabel(created.date)}`,
-        forwardJson: JSON.stringify({ ops: forwardOps }),
-        inverseJson: JSON.stringify({ ops: inverseOps }),
+        forwardJson: serializeMealOps(forwardOps),
+        inverseJson: serializeMealOps(inverseOps),
       });
     }
 
@@ -570,8 +477,8 @@ async function tryHandleMealCommand(
         domain: "meal",
         actionType: "move-meal",
         summary: `Moved ${updated.name} to ${toWeekdayName(updated.date)}`,
-        forwardJson: JSON.stringify({ ops: forwardOps }),
-        inverseJson: JSON.stringify({ ops: inverseOps }),
+        forwardJson: serializeMealOps(forwardOps),
+        inverseJson: serializeMealOps(inverseOps),
       });
     }
 
@@ -659,8 +566,8 @@ async function tryHandleMealCommand(
         domain: "meal",
         actionType: "move-meal",
         summary: `Moved ${updated.name} to ${toWeekdayName(updated.date)}`,
-        forwardJson: JSON.stringify({ ops: forwardOps }),
-        inverseJson: JSON.stringify({ ops: inverseOps }),
+        forwardJson: serializeMealOps(forwardOps),
+        inverseJson: serializeMealOps(inverseOps),
       });
     }
 
@@ -739,8 +646,8 @@ async function tryHandleMealCommand(
         domain: "meal",
         actionType: "replace-meal",
         summary: `Replaced ${before.name} with ${updated.name}`,
-        forwardJson: JSON.stringify({ ops: forwardOps }),
-        inverseJson: JSON.stringify({ ops: inverseOps }),
+        forwardJson: serializeMealOps(forwardOps),
+        inverseJson: serializeMealOps(inverseOps),
       });
     }
 
@@ -960,8 +867,8 @@ async function tryHandleMealCommand(
       domain: "meal",
       actionType: "apply-pending-suggestions",
       summary: `Added ${createdMeals.length} dinners from pending suggestions`,
-      forwardJson: JSON.stringify({ ops: forwardOps }),
-      inverseJson: JSON.stringify({ ops: inverseOps }),
+      forwardJson: serializeMealOps(forwardOps),
+      inverseJson: serializeMealOps(inverseOps),
     });
 
     return {
@@ -1856,58 +1763,84 @@ export async function POST(request: Request) {
       );
     }
 
-    // Keep deterministic slash-style command handling ahead of SDK tool calls.
-    const mealHandled = await tryHandleMealCommand(
-      parsed.message,
-      parsed.pageContextData,
-      activeChatSessionId
+    const fallbackFirst = process.env["COPILOT_CHAT_ROUTE_FALLBACK_FIRST"] === "1";
+    const safeMealFallback = /\b(?:for\s+)?tomorrow\b.*\bsame\s+as\s+today\b/i.test(
+      parsed.message
     );
-    if (mealHandled) {
-      if (shouldPersist && activeChatSessionId) {
-        await historyService.addMessage(
-          activeChatSessionId,
-          "assistant",
-          mealHandled.message
+
+    if (fallbackFirst || safeMealFallback) {
+      const mealHandled = await tryHandleMealCommand(
+        parsed.message,
+        parsed.pageContextData,
+        activeChatSessionId
+      );
+      if (mealHandled) {
+        if (shouldPersist && activeChatSessionId) {
+          await historyService.addMessage(
+            activeChatSessionId,
+            "assistant",
+            mealHandled.message
+          );
+        }
+
+        console.info(
+          `[chat-route] fallback-hit: meal${safeMealFallback ? " (safe)" : ""}`
         );
+        return NextResponse.json({
+          sessionId: parsed.sessionId,
+          chatSessionId: activeChatSessionId,
+          message: mealHandled.message,
+          choices: mealHandled.choices ?? [],
+          action: mealHandled.action,
+        });
       }
 
-      return NextResponse.json({
-        sessionId: parsed.sessionId,
-        chatSessionId: activeChatSessionId,
-        message: mealHandled.message,
-        choices: mealHandled.choices ?? [],
-        action: mealHandled.action,
-      });
-    }
-
-    const handled = await tryHandleGroceryCommand(
-      parsed.message,
-      parsed.pageContextData,
-      activeChatSessionId
-    );
-    if (handled) {
-      if (shouldPersist && activeChatSessionId) {
-        await historyService.addMessage(
-          activeChatSessionId,
-          "assistant",
-          handled.message
+      if (fallbackFirst) {
+        const handled = await tryHandleGroceryCommand(
+          parsed.message,
+          parsed.pageContextData,
+          activeChatSessionId
         );
-      }
+        if (handled) {
+          if (shouldPersist && activeChatSessionId) {
+            await historyService.addMessage(
+              activeChatSessionId,
+              "assistant",
+              handled.message
+            );
+          }
 
-      return NextResponse.json({
-        sessionId: parsed.sessionId,
-        chatSessionId: activeChatSessionId,
-        message: handled.message,
-        choices: handled.choices ?? [],
-        action: handled.action,
-      });
+          console.info("[chat-route] fallback-hit: grocery");
+          return NextResponse.json({
+            sessionId: parsed.sessionId,
+            chatSessionId: activeChatSessionId,
+            message: handled.message,
+            choices: handled.choices ?? [],
+            action: handled.action,
+          });
+        }
+      }
     }
+
+    // Phase D — load persisted copilotSessionId; Phase E — pass reasoningEffort
+    let copilotSessionId = parsed.sessionId ?? undefined;
+    if (!copilotSessionId && activeChatSessionId) {
+      const persisted =
+        await historyService.getCopilotSessionId(activeChatSessionId);
+      if (persisted) copilotSessionId = persisted;
+    }
+
+    const reasoningEffort =
+      (prefs?.reasoningEffort as ReasoningEffort) || undefined;
 
     const chefResponse = await chef.chat(
       parsed.message,
-      parsed.sessionId ?? undefined,
-      parsed.pageContext
+      copilotSessionId,
+      parsed.pageContext,
+      reasoningEffort
     );
+
+    console.info("[chat-route] sdk-path");
 
     if ("action" in chefResponse) {
       if (shouldPersist && activeChatSessionId) {
@@ -1915,6 +1848,14 @@ export async function POST(request: Request) {
           activeChatSessionId,
           "assistant",
           chefResponse.message
+        );
+      }
+
+      // Persist copilotSessionId mapping
+      if (shouldPersist && activeChatSessionId) {
+        await historyService.setCopilotSessionId(
+          activeChatSessionId,
+          chefResponse.sessionId
         );
       }
 
@@ -1928,6 +1869,13 @@ export async function POST(request: Request) {
     }
 
     const { sessionId, stream } = chefResponse;
+
+    // Persist copilotSessionId mapping
+    if (shouldPersist && activeChatSessionId) {
+      historyService
+        .setCopilotSessionId(activeChatSessionId, sessionId)
+        .catch(console.error);
+    }
 
     // Tee the stream: one branch for the client, one to capture and save the full response.
     const [clientStream, captureStream] = stream.tee();

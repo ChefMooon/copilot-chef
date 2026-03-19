@@ -154,6 +154,13 @@ const replyLengthOptions = [
   { label: "Detailed", value: "detailed" },
 ];
 
+const reasoningEffortOptions = [
+  { label: "Default", value: "" },
+  { label: "Low", value: "low" },
+  { label: "Medium", value: "medium" },
+  { label: "High", value: "high" },
+];
+
 const emojiOptions = [
   { label: "Occasional", value: "occasional" },
   { label: "Frequent", value: "frequent" },
@@ -944,6 +951,16 @@ export default function SettingsPage() {
               onChange={(checked) =>
                 void handleImmediateField("proactiveTips", checked)
               }
+            />
+          </div>
+          <div className={styles.fieldGroup} style={{ marginTop: "0.5rem" }}>
+            <label className={styles.fieldLabel}>AI reasoning effort</label>
+            <SegmentedControl
+              onChange={(value) =>
+                void handleImmediateField("reasoningEffort", value)
+              }
+              options={reasoningEffortOptions}
+              value={preferences.reasoningEffort}
             />
           </div>
         </div>
