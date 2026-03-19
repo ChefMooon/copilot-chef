@@ -27,12 +27,20 @@ export function RecipeCard({
   const showMeta = hasDifficulty || hasPrepTime || hasCookTime || hasRating;
 
   return (
-    <article className="rounded-card border border-cream-dark bg-white p-3 shadow-sm sm:p-4">
-      <div className="mb-1.5 flex items-start justify-between gap-2">
-        <Link className="line-clamp-2 text-base font-semibold leading-tight text-text sm:text-lg" href={`/recipes/${recipe.id}`}>
+    <article className={`rounded-card border border-cream-dark bg-white p-3 shadow-sm transition-all sm:p-4 ${selected ? "ring-2 ring-green ring-offset-2" : ""}`}>
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        {onToggleSelect ? (
+          <input
+            checked={Boolean(selected)}
+            className="h-4 w-4 flex-shrink-0 rounded border-cream-dark text-green focus:ring-green"
+            onChange={() => onToggleSelect(recipe.id)}
+            type="checkbox"
+          />
+        ) : null}
+        <Link className="line-clamp-2 flex-1 text-base font-semibold leading-tight text-text sm:text-lg" href={`/recipes/${recipe.id}`}>
           {recipe.title}
         </Link>
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-shrink-0 items-center gap-1.5">
           {onEdit ? (
             <Button
               aria-label={`Edit ${recipe.title}`}
@@ -75,14 +83,6 @@ export function RecipeCard({
               </svg>
             </Button>
           ) : null}
-          {onToggleSelect ? (
-            <input
-              checked={Boolean(selected)}
-              className="h-4 w-4 rounded border-cream-dark text-green focus:ring-green"
-              onChange={() => onToggleSelect(recipe.id)}
-              type="checkbox"
-            />
-          ) : null}
         </div>
       </div>
       <SourceBadge origin={recipe.origin} sourceLabel={recipe.sourceLabel} />
@@ -90,11 +90,27 @@ export function RecipeCard({
         {recipe.description || "No description"}
       </p>
       {showMeta ? (
-        <div className="mt-2.5 flex flex-wrap gap-x-2.5 gap-y-1 text-[11px] font-medium text-text-muted sm:mt-3 sm:text-xs">
-          {hasDifficulty ? <span>{recipe.difficulty}</span> : null}
-          {hasPrepTime ? <span>Prep {recipe.prepTime}m</span> : null}
-          {hasCookTime ? <span>Cook {recipe.cookTime}m</span> : null}
-          {hasRating ? <span>★ {recipe.rating}</span> : null}
+        <div className="mt-2.5 flex flex-wrap gap-x-2.5 gap-y-1 text-[11px] font-medium sm:text-xs">
+          {hasDifficulty ? (
+            <span className="rounded-full bg-orange/15 px-2 py-1 text-orange">
+              {recipe.difficulty}
+            </span>
+          ) : null}
+          {hasPrepTime ? (
+            <span className="rounded-full bg-green-pale px-2 py-1 text-green">
+              Prep {recipe.prepTime}m
+            </span>
+          ) : null}
+          {hasCookTime ? (
+            <span className="rounded-full bg-orange/15 px-2 py-1 text-orange">
+              Cook {recipe.cookTime}m
+            </span>
+          ) : null}
+          {hasRating ? (
+            <span className="rounded-full bg-green-pale px-2 py-1 text-green">
+              ★ {recipe.rating}
+            </span>
+          ) : null}
         </div>
       ) : null}
     </article>
