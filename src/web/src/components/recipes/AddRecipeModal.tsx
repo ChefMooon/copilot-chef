@@ -89,6 +89,7 @@ export function AddRecipeModal({
   const { toast } = useToast();
   const overlayRef = useRef<HTMLDivElement>(null);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>({
     title: "",
     description: "",
@@ -401,12 +402,41 @@ export function AddRecipeModal({
                   <div className="space-y-1.5 sm:space-y-2">
                     {form.instructions.map((instruction, index) => (
                       <div
-                        className="group relative flex gap-1.5 rounded-btn border border-cream-dark bg-white p-2.5 sm:p-3"
-                        draggable
+                        className={`group relative flex gap-1.5 rounded-btn border transition ${
+                          draggedIndex === index
+                            ? "border-green-light bg-green/10"
+                            : "border-cream-dark bg-white"
+                        } p-2.5 sm:p-3`}
                         key={instruction.id}
-                        onDragOver={(e) => e.preventDefault()}
+                        onDragOver={(e) => {
+                          if (draggedIndex !== null && draggedIndex !== index) {
+                            e.preventDefault();
+                            e.currentTarget.style.borderTop = "2px solid #3b5e45";
+                          }
+                        }}
+                        onDragLeave={(e) => {
+                          e.currentTarget.style.borderTop = "";
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.style.borderTop = "";
+                          if (draggedIndex !== null && draggedIndex !== index) {
+                            const next = [...form.instructions];
+                            const [moved] = next.splice(draggedIndex, 1);
+                            next.splice(index, 0, moved);
+                            setField("instructions", next);
+                          }
+                          setDraggedIndex(null);
+                        }}
                       >
-                        <div className="flex flex-col gap-1 sm:gap-1.5">
+                        <div
+                          className="flex cursor-grab flex-col gap-1 active:cursor-grabbing sm:gap-1.5"
+                          draggable
+                          onDragStart={() => setDraggedIndex(index)}
+                          onDragEnd={() => setDraggedIndex(null)}
+                          title="Drag to reorder step"
+                        >
+                          <div className="flex h-7 w-7 items-center justify-center text-xs text-text-muted">⋮⋮</div>
                           <Button
                             className="h-7 w-7 p-0 text-xs opacity-0 transition group-hover:opacity-100"
                             disabled={index === 0}
