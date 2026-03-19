@@ -10,6 +10,12 @@ import { useToast } from "@/components/providers/toast-provider";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { type RecipePayload } from "@/lib/api";
+import {
+  type InstructionDraft,
+  createEmptyInstructionDraft,
+  instructionDraftsToPayload,
+  payloadToInstructionDrafts,
+} from "@/lib/recipe-instructions";
 
 type IngredientDraft = {
   id: string;
@@ -27,7 +33,7 @@ type FormState = {
   difficulty: string;
   rating: string;
   cookNotes: string;
-  instructionsText: string;
+  instructions: InstructionDraft[];
   tagsText: string;
   ingredients: IngredientDraft[];
 };
@@ -92,7 +98,7 @@ export function AddRecipeModal({
     difficulty: "",
     rating: "",
     cookNotes: "",
-    instructionsText: "",
+    instructions: [],
     tagsText: "",
     ingredients: [createEmptyIngredient()],
   });
@@ -119,7 +125,10 @@ export function AddRecipeModal({
       difficulty: initialRecipe?.difficulty ?? "",
       rating: initialRecipe?.rating != null ? String(initialRecipe.rating) : "",
       cookNotes: initialRecipe?.cookNotes ?? "",
-      instructionsText: initialRecipe?.instructions.join("\n") ?? "",
+      instructions:
+        initialRecipe?.instructions && initialRecipe.instructions.length > 0
+          ? payloadToInstructionDrafts(initialRecipe.instructions)
+          : [],
       tagsText: initialRecipe?.tags.join(", ") ?? "",
       ingredients: toIngredientDrafts(initialRecipe),
     });
@@ -155,13 +164,9 @@ export function AddRecipeModal({
     };
   }, [open, onClose]);
 
-  const instructionLines = useMemo(
-    () =>
-      form.instructionsText
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean),
-    [form.instructionsText]
+  const instructionList = useMemo(
+    () => instructionDraftsToPayload(form.instructions),
+    [form.instructions]
   );
 
   const hasAtLeastOneIngredient = form.ingredients.some(
@@ -174,7 +179,7 @@ export function AddRecipeModal({
       return;
     }
 
-    if (instructionLines.length === 0) {
+    if (instructionList.length === 0) {
       toast({ title: "Add at least one instruction step.", variant: "error" });
       return;
     }
@@ -189,7 +194,7 @@ export function AddRecipeModal({
       title: form.title.trim(),
       description: form.description.trim() || null,
       servings: Number.isFinite(parsedServings) && parsedServings > 0 ? parsedServings : 2,
-      instructions: instructionLines,
+      instructions: instructionList,
       ingredients: form.ingredients
         .map((ingredient, index) => ({
           name: ingredient.name.trim(),
@@ -367,14 +372,109 @@ export function AddRecipeModal({
 
             <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.06em] text-text-muted sm:text-sm sm:normal-case sm:tracking-normal">
-                Instructions (one step per line)
+                Instructions
               </label>
-              <Textarea
-                onChange={(event) => setField("instructionsText", event.target.value)}
-                placeholder={"Boil pasta\nSaute garlic\nToss and serve"}
-                rows={5}
-                value={form.instructionsText}
-              />
+              <div className="rounded-card border border-cream-dark bg-cream/70 p-3 sm:p-4">
+                <div className="mb-2.5 flex items-center justify-between sm:mb-3">
+                  <p className="text-xs font-medium text-text-muted">Steps</p>
+                  <Button
+                    className="h-8 px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm"
+                    onClick={() =>
+                      setField("instructions", [
+                        ...form.instructions,
+                        createEmptyInstructionDraft(),
+                      ])
+                    }
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    + Add Step
+                  </Button>
+                </div>
+
+                {form.instructions.length === 0 ? (
+                  <div className="rounded-btn border border-dashed border-cream-dark bg-white p-3 text-center">
+                    <p className="text-xs text-text-muted">No steps yet. Click "Add Step" to begin.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5 sm:space-y-2">
+                    {form.instructions.map((instruction, index) => (
+                      <div
+                        className="group relative flex gap-1.5 rounded-btn border border-cream-dark bg-white p-2.5 sm:p-3"
+                        draggable
+                        key={instruction.id}
+                        onDragOver={(e) => e.preventDefault()}
+                      >
+                        <div className="flex flex-col gap-1 sm:gap-1.5">
+                          <Button
+                            className="h-7 w-7 p-0 text-xs opacity-0 transition group-hover:opacity-100"
+                            disabled={index === 0}
+                            onClick={() => {
+                              const next = [...form.instructions];
+                              [next[index - 1], next[index]] = [next[index], next[index - 1]];
+                              setField("instructions", next);
+                            }}
+                            size="sm"
+                            title="Move step up"
+                            type="button"
+                            variant="ghost"
+                          >
+                            ▲
+                          </Button>
+                          <Button
+                            className="h-7 w-7 p-0 text-xs opacity-0 transition group-hover:opacity-100"
+                            disabled={index === form.instructions.length - 1}
+                            onClick={() => {
+                              const next = [...form.instructions];
+                              [next[index], next[index + 1]] = [next[index + 1], next[index]];
+                              setField("instructions", next);
+                            }}
+                            size="sm"
+                            title="Move step down"
+                            type="button"
+                            variant="ghost"
+                          >
+                            ▼
+                          </Button>
+                        </div>
+                        <div className="flex-1">
+                          <p className="mb-1.5 text-xs font-medium text-text-muted">Step {index + 1}</p>
+                          <Textarea
+                            className="resize-none min-h-16"
+                            onChange={(event) => {
+                              const nextValue = event.target.value;
+                              setField(
+                                "instructions",
+                                form.instructions.map((item) =>
+                                  item.id === instruction.id ? { ...item, text: nextValue } : item
+                                )
+                              );
+                            }}
+                            placeholder="Describe this step"
+                            value={instruction.text}
+                          />
+                        </div>
+                        <Button
+                          className="h-8 self-start px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
+                          disabled={form.instructions.length === 1}
+                          onClick={() => {
+                            setField(
+                              "instructions",
+                              form.instructions.filter((item) => item.id !== instruction.id)
+                            );
+                          }}
+                          size="sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="md:col-span-2">
