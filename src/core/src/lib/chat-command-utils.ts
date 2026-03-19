@@ -87,8 +87,16 @@ export function buildItemChoices<T extends NamedItem>(
   }));
 }
 
-export function resolveRelativeDate(input: string) {
+export function resolveRelativeDate(input: string): string | null {
   const today = new Date();
+    // Get today's date in UTC
+    const year = today.getUTCFullYear();
+    const month = today.getUTCMonth();
+    const dateOfMonth = today.getUTCDate();
+        
+    // Base date: today at noon UTC (fixed time for consistent comparisons)
+    const todayUTC = new Date(Date.UTC(year, month, dateOfMonth, 12, 0, 0, 0));
+
   const lower = normalizeText(input);
   const normalized = lower
     .replace(/[.!?,;:]+$/g, "")
@@ -100,13 +108,12 @@ export function resolveRelativeDate(input: string) {
     normalized === "tonight" ||
     normalized === "this evening"
   ) {
-    return today;
+      return todayUTC.toISOString();
   }
 
   if (/^tomorrow(?:\s+(?:night|evening))?$/.test(normalized)) {
-    const next = new Date(today);
-    next.setDate(today.getDate() + 1);
-    return next;
+      const tomorrow = new Date(Date.UTC(year, month, dateOfMonth + 1, 12, 0, 0, 0));
+      return tomorrow.toISOString();
   }
 
   const weekDays = [
@@ -124,14 +131,15 @@ export function resolveRelativeDate(input: string) {
   const dayKey = weekdayMatch?.[1] ?? normalized;
   const dayIndex = weekDays.indexOf(dayKey);
   if (dayIndex >= 0) {
-    const next = new Date(today);
-    const delta = (dayIndex - today.getDay() + 7) % 7;
-    next.setDate(today.getDate() + (delta === 0 ? 7 : delta));
-    return next;
+      const currentDayOfWeek = todayUTC.getUTCDay();
+      const delta = (dayIndex - currentDayOfWeek + 7) % 7;
+      const targetDateOfMonth = dateOfMonth + (delta === 0 ? 7 : delta);
+      const target = new Date(Date.UTC(year, month, targetDateOfMonth, 12, 0, 0, 0));
+      return target.toISOString();
   }
 
   const parsed = new Date(normalized);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+    return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
 export function normalizeMealType(value: string): MealTypeValue | null {

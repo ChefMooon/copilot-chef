@@ -17,14 +17,55 @@ function serializeMeal(meal: {
   notes: string | null;
   ingredientsJson: string;
 }) {
+  const serializedDate = meal.date
+    ? new Date(
+        Date.UTC(
+          meal.date.getUTCFullYear(),
+          meal.date.getUTCMonth(),
+          meal.date.getUTCDate(),
+          12,
+          0,
+          0,
+          0
+        )
+      ).toISOString()
+    : null;
+
   return {
     id: meal.id,
     name: meal.name,
-    date: meal.date?.toISOString() ?? null,
+    date: serializedDate,
     mealType: meal.mealType,
     notes: meal.notes,
     ingredients: JSON.parse(meal.ingredientsJson) as string[],
   };
+}
+
+function normalizeMealDateInput(input: string | null | undefined) {
+  if (input === undefined) {
+    return undefined;
+  }
+
+  if (input === null) {
+    return null;
+  }
+
+  const parsed = new Date(input);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`Invalid meal date: ${input}`);
+  }
+
+  return new Date(
+    Date.UTC(
+      parsed.getUTCFullYear(),
+      parsed.getUTCMonth(),
+      parsed.getUTCDate(),
+      12,
+      0,
+      0,
+      0
+    )
+  );
 }
 
 export class MealService {
@@ -64,13 +105,13 @@ export class MealService {
   }) {
     await bootstrapDatabase();
 
+    const normalizedDate = normalizeMealDateInput(input.date);
+
     const meal = await prisma.meal.create({
       data: {
         ...(input.id ? { id: input.id } : {}),
         name: input.name,
-        ...(input.date === undefined
-          ? {}
-          : { date: input.date === null ? null : new Date(input.date) }),
+        ...(normalizedDate === undefined ? {} : { date: normalizedDate }),
         mealType: input.mealType,
         notes: input.notes ?? null,
         ingredientsJson: JSON.stringify(input.ingredients ?? []),
@@ -92,13 +133,13 @@ export class MealService {
   ) {
     await bootstrapDatabase();
 
+    const normalizedDate = normalizeMealDateInput(input.date);
+
     const meal = await prisma.meal.update({
       where: { id },
       data: {
         ...(input.name !== undefined ? { name: input.name } : {}),
-        ...(input.date !== undefined
-          ? { date: input.date === null ? null : new Date(input.date) }
-          : {}),
+        ...(normalizedDate !== undefined ? { date: normalizedDate } : {}),
         ...(input.mealType !== undefined ? { mealType: input.mealType } : {}),
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
         ...(input.ingredients !== undefined

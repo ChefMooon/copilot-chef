@@ -177,7 +177,7 @@ export default function MealPlanPage() {
       });
     }
 
-    await queryClient.invalidateQueries({ queryKey: ["meals"] });
+    await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
   };
 
   const onMoveMeal = async (
@@ -221,7 +221,7 @@ export default function MealPlanPage() {
       queryClient.setQueryData(mealsQueryKey, previousMeals);
       throw error;
     } finally {
-      await queryClient.invalidateQueries({ queryKey: ["meals"] });
+      await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
     }
   };
 
@@ -279,7 +279,7 @@ export default function MealPlanPage() {
       queryClient.setQueryData(mealsQueryKey, previousMeals);
       throw error;
     } finally {
-      await queryClient.invalidateQueries({ queryKey: ["meals"] });
+      await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
     }
   };
 
@@ -288,7 +288,7 @@ export default function MealPlanPage() {
       method: "DELETE",
     });
 
-    await queryClient.invalidateQueries({ queryKey: ["meals"] });
+    await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
   };
 
   const onResuggest = async (meal: EditableMeal) => {

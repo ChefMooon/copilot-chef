@@ -350,7 +350,7 @@ async function tryHandleMealCommand(
 
     const created = await mealService.createMeal({
       name: mealName,
-      date: resolvedDate.toISOString(),
+      date: resolvedDate,
       mealType,
       notes: null,
       ingredients: [],
@@ -417,13 +417,13 @@ async function tryHandleMealCommand(
     const matches = context.meals.filter((meal) => {
       return (
         normalizeMealType(meal.mealType) === mealType &&
-        new Date(meal.date).toDateString() === fromDate.toDateString()
+        new Date(meal.date).toDateString() === new Date(fromDate).toDateString()
       );
     });
 
     if (matches.length === 0) {
       return {
-        message: `I couldn't find a ${formatMealType(mealType)} meal on ${fromDate.toLocaleDateString()} in the current view.`,
+        message: `I couldn't find a ${formatMealType(mealType)} meal on ${new Date(fromDate).toLocaleDateString()} in the current view.`,
         action: {
           domain: "meal",
           type: "move-not-found",
@@ -434,7 +434,7 @@ async function tryHandleMealCommand(
 
     if (matches.length > 1) {
       return {
-        message: `I found multiple ${formatMealType(mealType)} meals on ${fromDate.toLocaleDateString()}. Which one should I move?`,
+        message: `I found multiple ${formatMealType(mealType)} meals on ${new Date(fromDate).toLocaleDateString()}. Which one should I move?`,
         choices: matches.slice(0, 6).map((meal) => ({
           id: meal.id,
           label: meal.name,
@@ -462,7 +462,7 @@ async function tryHandleMealCommand(
     }
 
     const updated = await mealService.updateMeal(selected.id, {
-      date: toDate.toISOString(),
+      date: toDate,
     });
     const forwardOps: MealForwardOp[] = [
       { op: "update", id: selected.id, patch: { date: updated.date } },
@@ -551,7 +551,7 @@ async function tryHandleMealCommand(
     }
 
     const updated = await mealService.updateMeal(candidates[0].id, {
-      date: toDate.toISOString(),
+      date: toDate,
     });
     const forwardOps: MealForwardOp[] = [
       { op: "update", id: updated.id, patch: { date: updated.date } },
@@ -605,11 +605,11 @@ async function tryHandleMealCommand(
     const matches = context.meals.filter(
       (meal) =>
         normalizeMealType(meal.mealType) === mealType &&
-        new Date(meal.date).toDateString() === date.toDateString()
+        new Date(meal.date).toDateString() === new Date(date).toDateString()
     );
     if (matches.length === 0) {
       return {
-        message: `I couldn't find a ${formatMealType(mealType)} meal on ${date.toLocaleDateString()} in the current view.`,
+        message: `I couldn't find a ${formatMealType(mealType)} meal on ${new Date(date).toLocaleDateString()} in the current view.`,
         action: {
           domain: "meal",
           type: "replace-not-found",
@@ -684,11 +684,11 @@ async function tryHandleMealCommand(
     const matches = context.meals.filter(
       (meal) =>
         normalizeMealType(meal.mealType) === mealType &&
-        new Date(meal.date).toDateString() === date.toDateString()
+        new Date(meal.date).toDateString() === new Date(date).toDateString()
     );
     if (matches.length === 0) {
       return {
-        message: `I couldn't find a ${formatMealType(mealType)} meal on ${date.toLocaleDateString()} in the current view.`,
+        message: `I couldn't find a ${formatMealType(mealType)} meal on ${new Date(date).toLocaleDateString()} in the current view.`,
         action: {
           domain: "meal",
           type: "remove-not-found",
@@ -1310,20 +1310,20 @@ async function tryHandleGroceryCommand(
     }
 
     const updatedList = await groceryService.updateGroceryList(activeList.id, {
-      date: resolvedDate.toISOString(),
+      date: resolvedDate,
     });
     await recordSnapshotAction(chatSessionId, {
       actionType: "set-list-date",
-      summary: `Set ${updatedList.name} date to ${resolvedDate.toLocaleDateString()}`,
+      summary: `Set ${updatedList.name} date to ${new Date(resolvedDate).toLocaleDateString()}`,
       before: snapshotFromList(beforeList),
       after: snapshotFromList(updatedList),
     });
     return {
-      message: `Set ${activeList.name} for ${resolvedDate.toLocaleDateString()}.`,
+      message: `Set ${activeList.name} for ${new Date(resolvedDate).toLocaleDateString()}.`,
       action: {
         domain: "grocery",
         type: "set-list-date",
-        summary: `Updated grocery list date to ${resolvedDate.toISOString()}`,
+        summary: `Updated grocery list date to ${resolvedDate}`,
       },
     };
   }

@@ -297,17 +297,34 @@ const MUTATION_TOOL_DOMAINS: Record<string, "meal" | "grocery" | "recipe"> = {
 };
 
 function resolveToolDate(input: string) {
-  const parsed = new Date(input);
+  const normalizedInput = input.trim();
+  const toUtcNoonIso = (date: Date) =>
+    new Date(
+      Date.UTC(
+        date.getUTCFullYear(),
+        date.getUTCMonth(),
+        date.getUTCDate(),
+        12,
+        0,
+        0,
+        0
+      )
+    ).toISOString();
+
+  const parsed = new Date(normalizedInput);
   if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toISOString();
+    return toUtcNoonIso(parsed);
   }
 
-  const relative = resolveRelativeDate(input);
+  const relative = resolveRelativeDate(normalizedInput);
   if (relative) {
-    return relative.toISOString();
+    const relativeParsed = new Date(relative);
+    if (!Number.isNaN(relativeParsed.getTime())) {
+      return toUtcNoonIso(relativeParsed);
+    }
   }
 
-  throw new Error(`Unable to parse date: ${input}`);
+  throw new Error(`Unable to parse date: ${normalizedInput}`);
 }
 
 function hasSaveRecipeIntent(message: string) {
@@ -381,14 +398,19 @@ export class CopilotChef {
     }
   ) {
     if (!chatSessionId) return;
-    await this.historyService.recordAction({
-      chatSessionId,
-      domain: "meal",
-      actionType: input.actionType,
-      summary: input.summary,
-      forwardJson: serializeMealOps(input.forwardOps),
-      inverseJson: serializeMealOps(input.inverseOps),
-    });
+    try {
+      await this.historyService.recordAction({
+        chatSessionId,
+        domain: "meal",
+        actionType: input.actionType,
+        summary: input.summary,
+        forwardJson: serializeMealOps(input.forwardOps),
+        inverseJson: serializeMealOps(input.inverseOps),
+      });
+    } catch (error) {
+      // Keep the primary tool action successful even if undo history persistence fails.
+      console.warn("[CopilotChef] Failed to record meal action history", error);
+    }
   }
 
   private async recordGrocerySnapshotAction(

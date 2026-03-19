@@ -159,10 +159,65 @@ describe("CopilotChef SDK tool handlers", () => {
         name: "Pancakes",
         mealType: "BREAKFAST",
         ingredients: ["eggs"],
+        date: expect.stringContaining("2026-03-19"),
       })
     );
     expect(services.historyService.recordAction).toHaveBeenCalled();
     expect(result).toMatchObject({ success: true });
+  });
+
+  it("create_meal normalizes date-only input to noon UTC", async () => {
+    const { chef, services } = createChef();
+    services.mealService.createMeal.mockResolvedValue({
+      id: "meal-2",
+      name: "Lemon Ricotta Pancakes",
+      date: "2026-03-20T12:00:00.000Z",
+      mealType: "BREAKFAST",
+      notes: null,
+      ingredients: [],
+    });
+
+    const tool = getToolMap(chef).get("create_meal");
+    await tool?.handler({
+      name: "Lemon Ricotta Pancakes",
+      mealType: "BREAKFAST",
+      date: "2026-03-20",
+      ingredients: [],
+      chatSessionId: "chat-1",
+    });
+
+    expect(services.mealService.createMeal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        date: "2026-03-20T12:00:00.000Z",
+      })
+    );
+  });
+
+  it("create_meal normalizes midnight UTC ISO input to noon UTC", async () => {
+    const { chef, services } = createChef();
+    services.mealService.createMeal.mockResolvedValue({
+      id: "meal-3",
+      name: "Lemon Ricotta Pancakes",
+      date: "2026-03-20T12:00:00.000Z",
+      mealType: "BREAKFAST",
+      notes: null,
+      ingredients: [],
+    });
+
+    const tool = getToolMap(chef).get("create_meal");
+    await tool?.handler({
+      name: "Lemon Ricotta Pancakes",
+      mealType: "BREAKFAST",
+      date: "2026-03-20T00:00:00.000Z",
+      ingredients: [],
+      chatSessionId: "chat-1",
+    });
+
+    expect(services.mealService.createMeal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        date: "2026-03-20T12:00:00.000Z",
+      })
+    );
   });
 
   it("list_meals returns meals for explicit range", async () => {

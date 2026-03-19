@@ -156,16 +156,23 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             setChatSessionId(payload.chatSessionId);
 
           if (payload.action?.domain === "meal") {
-            await queryClient.invalidateQueries({ queryKey: ["meals"] });
+            await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+            await queryClient.refetchQueries({
+              queryKey: ["meals"],
+              exact: false,
+              type: "active",
+            });
           }
           if (payload.action?.domain === "grocery") {
             await queryClient.invalidateQueries({
               queryKey: ["grocery-lists"],
+              exact: false,
             });
           }
           if (payload.action?.domain === "recipe") {
             await queryClient.invalidateQueries({
               queryKey: ["recipes"],
+              exact: false,
             });
           }
 
@@ -271,13 +278,29 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         assistantText += decoder.decode();
 
         if (updatedDomains.has("meal")) {
-          await queryClient.invalidateQueries({ queryKey: ["meals"] });
+          await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+          await queryClient.refetchQueries({
+            queryKey: ["meals"],
+            exact: false,
+            type: "active",
+          });
         }
         if (updatedDomains.has("grocery")) {
-          await queryClient.invalidateQueries({ queryKey: ["grocery-lists"] });
+          await queryClient.invalidateQueries({ queryKey: ["grocery-lists"], exact: false });
         }
         if (updatedDomains.has("recipe")) {
-          await queryClient.invalidateQueries({ queryKey: ["recipes"] });
+          await queryClient.invalidateQueries({ queryKey: ["recipes"], exact: false });
+        }
+
+        // Fallback: if we're on Meal Plan and got a non-error assistant response,
+        // force revalidation even when domain_update sentinels are missing.
+        if (pathname === "/meal-plan" && updatedDomains.size === 0) {
+          await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+          await queryClient.refetchQueries({
+            queryKey: ["meals"],
+            exact: false,
+            type: "active",
+          });
         }
 
         const finalAssistantText = assistantText.trim()
