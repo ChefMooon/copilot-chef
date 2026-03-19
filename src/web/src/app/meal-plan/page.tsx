@@ -28,6 +28,7 @@ import {
 import { fetchJson } from "@/lib/api";
 import { useChatPageContext } from "@/context/chat-context";
 import { useToast } from "@/components/providers/toast-provider";
+import { useMealUndoRedo } from "./use-meal-undo-redo";
 
 type CalView = "day" | "week" | "month";
 
@@ -99,7 +100,8 @@ export default function MealPlanPage() {
   const [trashDeleteError, setTrashDeleteError] = useState<string | undefined>();
   const deletedMealRef = useRef<DeletedMealSnapshot | null>(null);
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { toast, dismissAll, setDragging } = useToast();
+  const { recordAction, discardLast, undo, redo } = useMealUndoRedo();
 
   const dateRange = useMemo(() => toRangeByView(view, date), [view, date]);
   const mealsQueryKey = useMemo(
@@ -145,11 +147,13 @@ export default function MealPlanPage() {
 
       if (isMealCard) {
         setIsDraggingMeal(true);
+        setDragging(true);
       }
     };
 
     const handleDragFinish = () => {
       setIsDraggingMeal(false);
+      setDragging(false);
     };
 
     window.addEventListener("dragstart", handleDragStart);
@@ -161,7 +165,43 @@ export default function MealPlanPage() {
       window.removeEventListener("dragend", handleDragFinish);
       window.removeEventListener("drop", handleDragFinish);
     };
-  }, [view]);
+  }, [view, setDragging]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (editMeal || trashPendingMeal) return;
+
+      const active = document.activeElement;
+      if (
+        active instanceof HTMLElement &&
+        (active.tagName === "INPUT" ||
+          active.tagName === "TEXTAREA" ||
+          active.isContentEditable)
+      ) {
+        return;
+      }
+
+      const mod = e.ctrlKey || e.metaKey;
+      const isUndo = mod && e.key.toLowerCase() === "z" && !e.shiftKey;
+      const isRedo =
+        mod &&
+        (e.key.toLowerCase() === "y" ||
+          (e.key.toLowerCase() === "z" && e.shiftKey));
+
+      if (isUndo) {
+        e.preventDefault();
+        deletedMealRef.current = null;
+        dismissAll();
+        undo();
+      } else if (isRedo) {
+        e.preventDefault();
+        redo();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [editMeal, trashPendingMeal, undo, redo]);
 
   useChatPageContext({
     page: "meal-plan",
@@ -234,9 +274,21 @@ export default function MealPlanPage() {
         body: JSON.stringify(payload),
       });
     } else {
-      await fetchJson<{ data: CalendarMeal }>("/api/meals", {
+      const response = await fetchJson<{ data: CalendarMeal }>("/api/meals", {
         method: "POST",
         body: JSON.stringify(payload),
+      });
+      recordAction({
+        type: "add",
+        mealId: response.data.id,
+        snapshot: {
+          name: payload.name,
+          date: payload.date,
+          mealType: payload.mealType,
+          notes: payload.notes || null,
+          ingredients: payload.ingredients ?? [],
+        },
+        summary: `Added ${payload.name}`,
       });
     }
 
@@ -279,6 +331,15 @@ export default function MealPlanPage() {
       await patchMeal(meal.id, {
         date: normalizedTargetDate,
         type: targetType,
+      });
+      recordAction({
+        type: "move",
+        mealId: meal.id,
+        fromDate: normalizeMealDate(meal.date).toISOString(),
+        fromType: fromCalendarMealType(meal.type),
+        toDate: normalizedTargetDate.toISOString(),
+        toType: fromCalendarMealType(targetType),
+        summary: `Moved ${meal.name}`,
       });
     } catch (error) {
       queryClient.setQueryData(mealsQueryKey, previousMeals);
@@ -338,6 +399,16 @@ export default function MealPlanPage() {
           type: draggedMeal.type,
         }),
       ]);
+      recordAction({
+        type: "swap",
+        meal1Id: draggedMeal.id,
+        meal1Date: draggedSourceDate.toISOString(),
+        meal1Type: fromCalendarMealType(draggedMeal.type),
+        meal2Id: targetMeal.id,
+        meal2Date: targetSourceDate.toISOString(),
+        meal2Type: fromCalendarMealType(targetMeal.type),
+        summary: `Swapped ${draggedMeal.name} and ${targetMeal.name}`,
+      });
     } catch (error) {
       queryClient.setQueryData(mealsQueryKey, previousMeals);
       throw error;
@@ -387,6 +458,7 @@ export default function MealPlanPage() {
           deletedMealRef.current = null;
           try {
             await createMealFromSnapshot(mealToRestore);
+            discardLast("delete");
             toast({
               title: `Restored ${mealToRestore.name}`,
               duration: 5_000,
@@ -408,6 +480,18 @@ export default function MealPlanPage() {
     await deleteMealById(mealId);
 
     if (mealToDelete) {
+      recordAction({
+        type: "delete",
+        mealId,
+        snapshot: {
+          name: mealToDelete.name,
+          date: normalizeMealDate(mealToDelete.date).toISOString(),
+          mealType: fromCalendarMealType(mealToDelete.type),
+          notes: mealToDelete.notes || null,
+          ingredients: [...mealToDelete.ingredients],
+        },
+        summary: `Deleted ${mealToDelete.name}`,
+      });
       showUndoDeleteToast(toDeletedMealSnapshot(mealToDelete));
     }
   };
@@ -435,6 +519,18 @@ export default function MealPlanPage() {
 
     try {
       await deleteMealById(trashPendingMeal.id);
+      recordAction({
+        type: "delete",
+        mealId: trashPendingMeal.id,
+        snapshot: {
+          name: snapshot.name,
+          date: normalizeMealDate(snapshot.date).toISOString(),
+          mealType: fromCalendarMealType(snapshot.type),
+          notes: snapshot.notes || null,
+          ingredients: [...snapshot.ingredients],
+        },
+        summary: `Deleted ${snapshot.name}`,
+      });
       setTrashPendingMeal(null);
       showUndoDeleteToast(snapshot);
     } catch (error) {

@@ -38,12 +38,15 @@ type ToastContextValue = {
       onClick: () => void | Promise<void>;
     };
   }) => void;
+  dismissAll: () => void;
+  setDragging: (isDragging: boolean) => void;
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function ToastProvider({ children }: PropsWithChildren) {
   const [items, setItems] = useState<ToastItem[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const timersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
 
   const removeToast = useCallback((id: number) => {
@@ -99,14 +102,32 @@ export function ToastProvider({ children }: PropsWithChildren) {
     [removeToast]
   );
 
-  const value = useMemo(() => ({ toast }), [toast]);
+  const dismissAll = useCallback(() => {
+    for (const timer of timersRef.current.values()) {
+      clearTimeout(timer);
+    }
+    timersRef.current.clear();
+    setItems([]);
+  }, []);
+
+  const setDragging = useCallback((dragging: boolean) => {
+    setIsDragging(dragging);
+  }, []);
+
+  const value = useMemo(
+    () => ({ toast, dismissAll, setDragging }),
+    [toast, dismissAll, setDragging]
+  );
 
   return (
     <ToastContext.Provider value={value}>
       {children}
       <div
         aria-live="polite"
-        className="fixed bottom-4 left-4 z-[600] flex max-w-full flex-col gap-3 outline-none"
+        className={cn(
+          "fixed left-4 z-[600] flex max-w-full flex-col gap-3 outline-none transition-all duration-200",
+          isDragging ? "bottom-24" : "bottom-4"
+        )}
         role="region"
       >
         {items.map((item) => (
