@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { DayView } from "./components/DayView";
+import { DeleteConfirmationModal } from "./components/DeleteConfirmationModal";
 import { EditModal } from "./components/EditModal";
 import { MonthView } from "./components/MonthView";
+import { TrashDropZone } from "./components/TrashDropZone";
 import { WeekView } from "./components/WeekView";
 import styles from "./meal-plan.module.css";
 
@@ -25,8 +27,24 @@ import {
 
 import { fetchJson } from "@/lib/api";
 import { useChatPageContext } from "@/context/chat-context";
+import { useToast } from "@/components/providers/toast-provider";
 
 type CalView = "day" | "week" | "month";
+
+type DeletedMealSnapshot = Pick<
+  EditableMeal,
+  "name" | "date" | "type" | "notes" | "ingredients"
+>;
+
+function toDeletedMealSnapshot(meal: EditableMeal): DeletedMealSnapshot {
+  return {
+    name: meal.name,
+    date: meal.date,
+    type: meal.type,
+    notes: meal.notes,
+    ingredients: [...meal.ingredients],
+  };
+}
 
 function toIsoString(date: Date) {
   return date.toISOString();
@@ -75,7 +93,13 @@ export default function MealPlanPage() {
   }, []);
   const [date, setDate] = useState(() => new Date());
   const [editMeal, setEditMeal] = useState<EditableMeal | null>(null);
+  const [isDraggingMeal, setIsDraggingMeal] = useState(false);
+  const [trashPendingMeal, setTrashPendingMeal] = useState<EditableMeal | null>(null);
+  const [isTrashDeleting, setIsTrashDeleting] = useState(false);
+  const [trashDeleteError, setTrashDeleteError] = useState<string | undefined>();
+  const deletedMealRef = useRef<DeletedMealSnapshot | null>(null);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const dateRange = useMemo(() => toRangeByView(view, date), [view, date]);
   const mealsQueryKey = useMemo(
@@ -99,6 +123,45 @@ export default function MealPlanPage() {
   });
 
   const meals = mealsQuery.data ?? [];
+
+  useEffect(() => {
+    if (view === "month") {
+      setIsDraggingMeal(false);
+    }
+
+    const handleDragStart = (event: DragEvent) => {
+      if (view === "month") {
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+
+      const isMealCard =
+        target.closest(`.${styles.timelineMealCard}`) ||
+        target.closest(`.${styles.weekSlotMealCard}`);
+
+      if (isMealCard) {
+        setIsDraggingMeal(true);
+      }
+    };
+
+    const handleDragFinish = () => {
+      setIsDraggingMeal(false);
+    };
+
+    window.addEventListener("dragstart", handleDragStart);
+    window.addEventListener("dragend", handleDragFinish);
+    window.addEventListener("drop", handleDragFinish);
+
+    return () => {
+      window.removeEventListener("dragstart", handleDragStart);
+      window.removeEventListener("dragend", handleDragFinish);
+      window.removeEventListener("drop", handleDragFinish);
+    };
+  }, [view]);
 
   useChatPageContext({
     page: "meal-plan",
@@ -283,12 +346,106 @@ export default function MealPlanPage() {
     }
   };
 
-  const onDeleteMeal = async (mealId: string) => {
+  const deleteMealById = async (mealId: string) => {
     await fetchJson<{ data: { id: string } }>(`/api/meals/${mealId}`, {
       method: "DELETE",
     });
 
     await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+  };
+
+  const createMealFromSnapshot = async (snapshot: DeletedMealSnapshot) => {
+    await fetchJson<{ data: CalendarMeal }>("/api/meals", {
+      method: "POST",
+      body: JSON.stringify({
+        name: snapshot.name,
+        date: normalizeMealDate(snapshot.date).toISOString(),
+        mealType: fromCalendarMealType(snapshot.type),
+        notes: snapshot.notes ? snapshot.notes : null,
+        ingredients: snapshot.ingredients,
+      }),
+    });
+
+    await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+  };
+
+  const showUndoDeleteToast = (snapshot: DeletedMealSnapshot) => {
+    deletedMealRef.current = snapshot;
+
+    toast({
+      title: `Deleted ${snapshot.name}`,
+      description: "The meal was removed from your plan.",
+      duration: 30_000,
+      action: {
+        label: "Undo",
+        onClick: async () => {
+          const mealToRestore = deletedMealRef.current;
+          if (!mealToRestore) {
+            return;
+          }
+
+          deletedMealRef.current = null;
+          try {
+            await createMealFromSnapshot(mealToRestore);
+            toast({
+              title: `Restored ${mealToRestore.name}`,
+              duration: 5_000,
+            });
+          } catch {
+            toast({
+              title: "Unable to restore meal",
+              description: "Please try adding the meal again.",
+              variant: "error",
+            });
+          }
+        },
+      },
+    });
+  };
+
+  const onDeleteMeal = async (mealId: string) => {
+    const mealToDelete = meals.find((entry) => entry.id === mealId);
+    await deleteMealById(mealId);
+
+    if (mealToDelete) {
+      showUndoDeleteToast(toDeletedMealSnapshot(mealToDelete));
+    }
+  };
+
+  const onTrashDropMeal = (mealId: string) => {
+    const meal = meals.find((entry) => entry.id === mealId);
+    if (!meal) {
+      return;
+    }
+
+    setTrashDeleteError(undefined);
+    setTrashPendingMeal(meal);
+    setIsDraggingMeal(false);
+  };
+
+  const onConfirmTrashDelete = async () => {
+    if (!trashPendingMeal?.id) {
+      return;
+    }
+
+    setIsTrashDeleting(true);
+    setTrashDeleteError(undefined);
+
+    const snapshot = toDeletedMealSnapshot(trashPendingMeal);
+
+    try {
+      await deleteMealById(trashPendingMeal.id);
+      setTrashPendingMeal(null);
+      showUndoDeleteToast(snapshot);
+    } catch (error) {
+      setTrashDeleteError(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete meal. Please try again."
+      );
+    } finally {
+      setIsTrashDeleting(false);
+    }
   };
 
   const onResuggest = async (meal: EditableMeal) => {
@@ -390,6 +547,11 @@ export default function MealPlanPage() {
         ) : null}
       </div>
 
+      <TrashDropZone
+        visible={isDraggingMeal}
+        onDropMeal={onTrashDropMeal}
+      />
+
       <div className={styles.legend}>
         {MEAL_TYPES.map((type) => (
           <div className={styles.legendItem} key={type}>
@@ -409,6 +571,24 @@ export default function MealPlanPage() {
           onDelete={onDeleteMeal}
           onResuggest={onResuggest}
           onSave={onSaveMeal}
+        />
+      ) : null}
+
+      {trashPendingMeal ? (
+        <DeleteConfirmationModal
+          mealName={trashPendingMeal.name}
+          isOpen
+          isLoading={isTrashDeleting}
+          error={trashDeleteError}
+          onConfirm={onConfirmTrashDelete}
+          onCancel={() => {
+            if (isTrashDeleting) {
+              return;
+            }
+
+            setTrashDeleteError(undefined);
+            setTrashPendingMeal(null);
+          }}
         />
       ) : null}
 

@@ -315,6 +315,76 @@
   color: var(--green);
 }
 
+.trashZone {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 420;
+  width: min(320px, calc(100vw - 2rem));
+  border: 1px solid #d5b8ab;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff9f7 0%, #fdf1ec 100%);
+  box-shadow: 0 14px 40px rgba(72, 44, 30, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 0.72rem;
+  padding: 0.8rem 0.95rem;
+  color: #8a3718;
+  transform: translateY(22px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+
+.trashZoneVisible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.trashZoneActive {
+  border-color: #ba5430;
+  box-shadow: 0 18px 44px rgba(128, 47, 17, 0.28);
+  background: linear-gradient(180deg, #ffece5 0%, #fbd7c8 100%);
+  animation: trashZonePulse 1.15s ease-in-out infinite;
+}
+
+.trashZoneIcon {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(160, 68, 26, 0.12);
+  flex-shrink: 0;
+}
+
+.trashZoneIcon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.trashZoneLabel {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@keyframes trashZonePulse {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-1px) scale(1.01);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
 .btnAddSlot {
   font-size: 0.75rem;
   font-weight: 700;
@@ -614,6 +684,11 @@
 
   .weekBoard {
     min-width: 900px;
+  }
+
+  .trashZone {
+    bottom: 0.8rem;
+    left: 0.8rem;
   }
 }
 
@@ -1240,5 +1315,11 @@
     max-width: 380px;
     border-radius: 14px;
     padding-bottom: 1.1rem;
+  }
+
+  .trashZone {
+    width: calc(100vw - 1.5rem);
+    left: 0.75rem;
+    bottom: 0.75rem;
   }
 }

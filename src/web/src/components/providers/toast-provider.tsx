@@ -1,11 +1,12 @@
 "use client";
 
-import * as Toast from "@radix-ui/react-toast";
 import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from "react";
@@ -19,6 +20,11 @@ type ToastItem = {
   title: string;
   description?: string;
   variant: ToastVariant;
+  duration: number;
+  action?: {
+    label: string;
+    onClick: () => void | Promise<void>;
+  };
 };
 
 type ToastContextValue = {
@@ -26,6 +32,11 @@ type ToastContextValue = {
     title: string;
     description?: string;
     variant?: ToastVariant;
+    duration?: number;
+    action?: {
+      label: string;
+      onClick: () => void | Promise<void>;
+    };
   }) => void;
 };
 
@@ -33,63 +44,119 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function ToastProvider({ children }: PropsWithChildren) {
   const [items, setItems] = useState<ToastItem[]>([]);
+  const timersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
+
+  const removeToast = useCallback((id: number) => {
+    const timer = timersRef.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      timersRef.current.delete(id);
+    }
+
+    setItems((current) => current.filter((entry) => entry.id !== id));
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      for (const timer of timersRef.current.values()) {
+        clearTimeout(timer);
+      }
+      timersRef.current.clear();
+    };
+  }, []);
 
   const toast = useCallback(
     (input: {
       title: string;
       description?: string;
       variant?: ToastVariant;
+      duration?: number;
+      action?: {
+        label: string;
+        onClick: () => void | Promise<void>;
+      };
     }) => {
+      const id = Date.now() + Math.floor(Math.random() * 1000);
+      const duration = input.duration ?? 3200;
+
       setItems((current) => [
         ...current,
         {
-          id: Date.now() + Math.floor(Math.random() * 1000),
+          id,
           title: input.title,
           description: input.description,
           variant: input.variant ?? "default",
+          duration,
+          action: input.action,
         },
       ]);
+
+      const timer = setTimeout(() => {
+        removeToast(id);
+      }, duration);
+      timersRef.current.set(id, timer);
     },
-    []
+    [removeToast]
   );
 
   const value = useMemo(() => ({ toast }), [toast]);
 
   return (
     <ToastContext.Provider value={value}>
-      <Toast.Provider swipeDirection="right">
-        {children}
+      {children}
+      <div
+        aria-live="polite"
+        className="fixed bottom-4 left-4 z-[600] flex max-w-full flex-col gap-3 outline-none"
+        role="region"
+      >
         {items.map((item) => (
-          <Toast.Root
+          <div
             className={cn(
-              "grid w-[min(360px,calc(100vw-2rem))] gap-1 rounded-card border bg-white px-4 py-3 shadow-lg",
+              "relative grid w-[min(360px,calc(100vw-2rem))] gap-1 rounded-card border bg-white px-4 py-3 pr-10 shadow-lg",
               item.variant === "error"
                 ? "border-red-200 text-red-900"
                 : "border-green/10 text-text"
             )}
-            duration={3200}
+            data-duration={item.duration}
             key={item.id}
-            onOpenChange={(open) => {
-              if (!open) {
-                setItems((current) =>
-                  current.filter((entry) => entry.id !== item.id)
-                );
-              }
-            }}
-            open
+            role="status"
           >
-            <Toast.Title className="text-sm font-bold">
-              {item.title}
-            </Toast.Title>
+            <button
+              aria-label="Close toast"
+              className="absolute right-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded text-text-muted transition-colors hover:bg-black/5 hover:text-text"
+              onClick={() => {
+                removeToast(item.id);
+              }}
+              type="button"
+            >
+              x
+            </button>
+            <p className="text-sm font-bold">{item.title}</p>
             {item.description ? (
-              <Toast.Description className="text-sm text-text-muted">
-                {item.description}
-              </Toast.Description>
+              <p className="text-sm text-text-muted">{item.description}</p>
             ) : null}
-          </Toast.Root>
+            {item.action ? (
+              <button
+                className="relative mt-1 inline-flex h-8 min-w-20 items-center justify-center overflow-hidden rounded-md border border-green/35 bg-green-pale px-2.5 text-xs font-bold text-green transition-colors hover:bg-green hover:text-white"
+                onClick={() => {
+                  removeToast(item.id);
+                  void item.action?.onClick();
+                }}
+                type="button"
+              >
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute bottom-0 left-0 h-0.5 w-full origin-left scale-x-0 bg-green/45"
+                  style={{
+                    animation: `toast-progress-fill ${item.duration}ms linear forwards`,
+                  }}
+                />
+                <span className="relative z-10 text-center">{item.action.label}</span>
+              </button>
+            ) : null}
+          </div>
         ))}
-        <Toast.Viewport className="fixed bottom-4 right-4 z-[600] flex max-w-full flex-col gap-3 outline-none" />
-      </Toast.Provider>
+      </div>
     </ToastContext.Provider>
   );
 }

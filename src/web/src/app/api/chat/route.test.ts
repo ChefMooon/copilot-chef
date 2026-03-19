@@ -852,7 +852,10 @@ describe("POST /api/chat command actions", () => {
 
     expect(json.action).toMatchObject({ domain: "meal", type: "move-meal" });
     const moved = core.__getMockState().meals.get("meal-lunch-1");
-    expect(moved?.date).toBe(nextWeekdayIso("2026-03-14T12:00:00.000Z", 5));
+    const movedDateIso = moved?.date
+      ? new Date(moved.date).toISOString()
+      : undefined;
+    expect(movedDateIso).toBe(nextWeekdayIso("2026-03-14T12:00:00.000Z", 5));
   });
 
   it("replaces and removes meals from natural language commands", async () => {

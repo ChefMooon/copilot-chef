@@ -66,3 +66,13 @@ textarea {
 ::selection {
   background: rgba(197, 98, 42, 0.18);
 }
+
+@keyframes toast-progress-fill {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}

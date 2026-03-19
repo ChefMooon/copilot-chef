@@ -81,7 +81,9 @@ export function DeleteConfirmationModal({
       Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
 
     const initialTarget =
-      panel.querySelector<HTMLElement>("[autofocus]") ?? getFocusable()[0] ?? panel;
+      panel.querySelector<HTMLElement>("[data-autofocus='true']") ??
+      getFocusable()[0] ??
+      panel;
     initialTarget.focus();
 
     const tabHandler = (event: KeyboardEvent) => {
@@ -155,7 +157,6 @@ export function DeleteConfirmationModal({
         <div className={styles.confirmationActions}>
           <button
             className={styles.btnGhost}
-            autoFocus
             onClick={onCancel}
             type="button"
             disabled={isLoading}
@@ -164,6 +165,7 @@ export function DeleteConfirmationModal({
           </button>
           <button
             className={styles.btnDelete}
+            data-autofocus="true"
             onClick={onConfirm}
             type="button"
             disabled={isLoading}

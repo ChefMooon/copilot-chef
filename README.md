@@ -92,3 +92,23 @@ Seed data includes:
 - User preferences (dietary restrictions, household size, cuisine preferences)
 - Sample grocery lists and items
 - Indexed lookups for efficient queries
+
+## Meal Plan Delete UX
+
+- Dragging a meal in Day or Week view shows a bottom-left trash drop zone.
+- Dropping on trash opens a confirmation modal focused on Delete Meal (Enter confirms).
+- Deleting from either trash flow or edit modal shows an Undo toast for 30 seconds.
+- After Undo restores the meal, the "Restored ..." confirmation toast lasts 5 seconds.
+
+## UI Tests For Modals And Toasts
+
+Run web package tests:
+
+```bash
+npm run test --workspace @copilot-chef/web
+```
+
+New UI-focused tests:
+
+- `src/web/src/app/meal-plan/components/DeleteConfirmationModal.test.ts`
+- `src/web/src/components/providers/toast-provider.test.ts`

@@ -2,6 +2,21 @@
 
 ## Quick Reference
 
+### Meal Plan Modal And Toast Behavior
+
+| Behavior | Description |
+| --- | --- |
+| Delete confirmation focus | Delete confirmation modal focuses Delete Meal on open so keyboard Enter confirms by default |
+| Delete undo toast | Delete actions from meal plan show Undo toast for 30 seconds |
+| Restored toast duration | The success toast after restoring a meal is 5 seconds |
+
+### Related UI Tests
+
+| Test File | Coverage |
+| --- | --- |
+| `src/web/src/app/meal-plan/components/DeleteConfirmationModal.test.ts` | Focus behavior and Escape cancel behavior |
+| `src/web/src/components/providers/toast-provider.test.ts` | Toast rendering, custom duration handling, and action callback |
+
 ### Environment Variables
 
 | Name                          | Description                                         |
