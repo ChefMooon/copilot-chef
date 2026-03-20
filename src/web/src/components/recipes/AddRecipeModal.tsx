@@ -21,6 +21,7 @@ type IngredientDraft = {
   id: string;
   name: string;
   amount: string;
+  notes: string;
   unit: "g" | "ml" | "cups" | "tbsp" | "tsp" | "oz" | "lb" | "count";
 };
 
@@ -51,6 +52,7 @@ function createEmptyIngredient(): IngredientDraft {
     id: crypto.randomUUID(),
     name: "",
     amount: "",
+    notes: "",
     unit: "g",
   };
 }
@@ -74,6 +76,7 @@ function toIngredientDrafts(recipe?: RecipePayload | null): IngredientDraft[] {
         typeof ingredient.quantity === "number" && Number.isFinite(ingredient.quantity)
           ? String(ingredient.quantity)
           : "",
+      notes: ingredient.notes ?? "",
       unit,
     };
   });
@@ -204,7 +207,7 @@ export function AddRecipeModal({
               ? Number.parseFloat(ingredient.amount.trim())
               : null,
           unit: ingredient.unit,
-          notes: null,
+          notes: ingredient.notes.trim() || null,
           order: index,
         }))
         .filter((ingredient) => ingredient.name.length > 0),
@@ -610,6 +613,22 @@ export function AddRecipeModal({
                   >
                     Remove
                   </Button>
+
+                  <div className="md:col-span-4">
+                    <Input
+                      onChange={(event) => {
+                        const nextValue = event.target.value;
+                        setField(
+                          "ingredients",
+                          form.ingredients.map((item) =>
+                            item.id === ingredient.id ? { ...item, notes: nextValue } : item
+                          )
+                        );
+                      }}
+                      placeholder="Notes (optional)"
+                      value={ingredient.notes}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

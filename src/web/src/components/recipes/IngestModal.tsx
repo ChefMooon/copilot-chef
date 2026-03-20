@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { type IngestResult } from "@copilot-chef/core";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ingestRecipe } from "@/lib/api";
@@ -12,7 +14,7 @@ const FOCUSABLE_SELECTOR =
 
 type IngestModalProps = {
   onClose: () => void;
-  onDraft: (draft: unknown) => void;
+  onDraft: (draft: IngestResult) => void | Promise<void>;
 };
 
 export function IngestModal({ onClose, onDraft }: IngestModalProps) {
@@ -119,7 +121,7 @@ export function IngestModal({ onClose, onDraft }: IngestModalProps) {
     setError(null);
     try {
       const data = await ingestRecipe(url);
-      onDraft(data);
+      await onDraft(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Import failed");
     } finally {

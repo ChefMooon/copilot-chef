@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { load } from "cheerio";
 
 import { prisma } from "../lib/prisma";
 import { bootstrapDatabase } from "../lib/bootstrap";
@@ -26,6 +27,21 @@ import {
 } from "../schemas/recipe-schemas";
 
 const execFileAsync = promisify(execFile);
+
+function buildDefuddleCommand(url: string) {
+  const defuddleArgs = ["defuddle", "parse", url, "--json", "--markdown"];
+  if (process.platform === "win32") {
+    return {
+      command: "cmd.exe",
+      args: ["/d", "/s", "/c", "npx", ...defuddleArgs],
+    };
+  }
+
+  return {
+    command: "npx",
+    args: defuddleArgs,
+  };
+}
 
 type SerializedRecipeIngredient = {
   id: string;
@@ -98,6 +114,22 @@ function compactString(value: string | null | undefined) {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function compactMultilineString(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => collapseWhitespace(line))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return normalized.length > 0 ? normalized : null;
 }
 
 function uniqueCaseInsensitive(values: string[]) {
@@ -254,6 +286,428 @@ function sectionLines(markdown: string, sectionNames: string[]) {
   }
 
   return output;
+}
+
+function collapseWhitespace(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+function stripWrappingParentheses(value: string) {
+  return value.replace(/^\(/, "").replace(/\)$/, "").trim();
+}
+
+function uniqueLines(lines: string[]) {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const line of lines) {
+    const normalized = collapseWhitespace(line);
+    if (!normalized) {
+      continue;
+    }
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    result.push(normalized);
+  }
+  return result;
+}
+
+function uniqueBlocks(blocks: string[]) {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const block of blocks) {
+    const trimmed = block.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const key = collapseWhitespace(trimmed).toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    result.push(trimmed);
+  }
+
+  return result;
+}
+
+function splitBulletLikeText(value: string) {
+  const normalized = collapseWhitespace(value);
+  if (!normalized) {
+    return [];
+  }
+
+  const hasInlineBulletDelimiter =
+    /[•●▪◦]/.test(normalized) || /(?:^|\s)[-–—]\s*(?=[A-Z(0-9])/.test(normalized);
+
+  const normalizedBullets = normalized
+    .replace(/\s*[•●▪◦]\s*/g, "\n")
+    .replace(/(?:^|\s)[-–—]\s*(?=[A-Z(0-9])/g, "\n");
+
+  const bulletSegments = normalizedBullets
+    .split("\n")
+    .map((segment) => collapseWhitespace(segment))
+    .filter((segment) => segment.length > 0);
+
+  if (!hasInlineBulletDelimiter || bulletSegments.length <= 1) {
+    return [normalized];
+  }
+
+  return bulletSegments.map((segment) => {
+    const withoutMarker = segment.replace(/^[-*]\s+/, "").trim();
+    const deglued = collapseWhitespace(
+      withoutMarker
+        .replace(/^Notes(?=[A-Z])/i, "")
+        .replace(/^(Add-ins|Pan note|Storing)(?=[A-Z])/i, "$1 ")
+    );
+    return deglued.length > 0 ? `- ${deglued}` : "";
+  }).filter((segment) => segment.length > 0);
+}
+
+function selectRecipeNoteContainers(
+  allContainers: unknown[],
+  isContainedBy: (outer: unknown, inner: unknown) => boolean,
+  getTextLength: (element: unknown) => number
+) {
+  const nonNested = allContainers.filter(
+    (candidate) =>
+      !allContainers.some(
+        (other) => other !== candidate && isContainedBy(other, candidate)
+      )
+  );
+
+  if (nonNested.length > 0) {
+    return nonNested;
+  }
+
+  const sortedByText = [...allContainers].sort(
+    (a, b) => getTextLength(b) - getTextLength(a)
+  );
+  return sortedByText.slice(0, 1);
+}
+
+function formatCookNotesFromContainer(
+  getText: (element: unknown) => string,
+  getTagName: (element: unknown) => string,
+  elements: unknown[]
+) {
+  const sections: string[] = [];
+  let activeHeading = "";
+  let activeLines: string[] = [];
+
+  const flushSection = () => {
+    const body = uniqueLines(activeLines).join("\n");
+    if (!body) {
+      activeHeading = "";
+      activeLines = [];
+      return;
+    }
+
+    if (activeHeading) {
+      sections.push(`${activeHeading}\n${body}`);
+    } else {
+      sections.push(body);
+    }
+
+    activeHeading = "";
+    activeLines = [];
+  };
+
+  for (const element of elements) {
+    const tag = getTagName(element);
+    const text = collapseWhitespace(getText(element));
+    if (!text) {
+      continue;
+    }
+
+    if (/^h[1-6]$/.test(tag)) {
+      flushSection();
+      activeHeading = text;
+      continue;
+    }
+
+    if (tag === "li") {
+      const bulletLines = splitBulletLikeText(text)
+        .map((line) =>
+          collapseWhitespace(
+            line
+              .replace(/^[-*]\s+/, "")
+              .replace(/^Notes(?=[A-Z])/i, "")
+              .replace(/^(Add-ins|Pan note|Storing)(?=[A-Z])/i, "$1 ")
+          )
+        )
+        .filter((line) => line.length > 0)
+        .map((line) => `- ${line}`);
+
+      activeLines.push(...bulletLines);
+      continue;
+    }
+
+    const bulletLines = splitBulletLikeText(text);
+    activeLines.push(...bulletLines);
+  }
+
+  flushSection();
+  return uniqueBlocks(sections).join("\n\n");
+}
+
+function formatCookNotesText(value: string) {
+  const normalized = collapseWhitespace(value);
+  if (!normalized) {
+    return "";
+  }
+
+  const explicitLines = value
+    .split(/\r?\n+/)
+    .map((line) => collapseWhitespace(line))
+    .filter((line) => line.length > 0)
+    .flatMap((line) => splitBulletLikeText(line));
+  const dedupedExplicitLines = uniqueLines(explicitLines);
+
+  if (dedupedExplicitLines.some((line) => line.startsWith("- "))) {
+    return dedupedExplicitLines.join("\n");
+  }
+
+  const sentences = normalized
+    .split(/(?<=[.!?])\s+(?=[A-Z])/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  const normalizedSentences = sentences
+    .map((line) =>
+      collapseWhitespace(
+        line
+          .replace(/^Notes(?=[A-Z])/i, "")
+          .replace(/^(Add-ins|Pan note|Storing)(?=[A-Z])/i, "$1 ")
+      )
+    )
+    .filter((line) => line.length > 0);
+
+  if (normalizedSentences.length >= 3) {
+    return normalizedSentences.map((line) => `- ${line}`).join("\n");
+  }
+
+  return normalizedSentences.join(" ") || normalized;
+}
+
+export function parseIngredientLinesFromHtml(html: string) {
+  const $ = load(html);
+  const ingredientHeadings = $("h1,h2,h3,h4,h5,h6")
+    .filter((_, element) => {
+      const heading = collapseWhitespace($(element).text()).toLowerCase();
+      return heading === "ingredients" || heading.includes("ingredients");
+    });
+
+  if (!ingredientHeadings.length) {
+    return [];
+  }
+
+  const scoreList = (lines: string[]) => {
+    let score = 0;
+    for (const line of lines) {
+      if (/[\d¼½¾⅓⅔⅛⅜⅝⅞]/.test(line)) {
+        score += 2;
+      }
+      if (/\b(cup|cups|teaspoon|teaspoons|tablespoon|tablespoons|oz|ounce|ounces|g|gram|grams|kg|ml|l)\b/i.test(line)) {
+        score += 1;
+      }
+      if (line.length <= 100) {
+        score += 1;
+      }
+    }
+    return score;
+  };
+
+  const parseList = (listElement: any) => {
+    const ingredientLines: string[] = [];
+
+    listElement.children("li").each((_: any, liElement: any) => {
+      const directSpans = $(liElement).children("span");
+      const contentSpans = directSpans.slice(1);
+
+      if (!contentSpans.length) {
+        const fallback = collapseWhitespace($(liElement).text());
+        if (fallback) {
+          ingredientLines.push(fallback);
+        }
+        return;
+      }
+
+      const amountUnitSpan = contentSpans.eq(0);
+      const amountUnitParts = amountUnitSpan.children("span");
+
+      let amount = "";
+      let unit = "";
+      if (amountUnitParts.length >= 2) {
+        amount = collapseWhitespace(amountUnitParts.eq(0).text());
+        unit = collapseWhitespace(amountUnitParts.eq(1).text());
+      } else {
+        const fallbackAmountUnit = collapseWhitespace(amountUnitSpan.text());
+        const [firstToken, ...rest] = fallbackAmountUnit.split(" ");
+        amount = firstToken ?? "";
+        unit = rest.join(" ").trim();
+      }
+
+      const metricCandidate = stripWrappingParentheses(
+        collapseWhitespace(contentSpans.eq(1).text())
+      );
+      const hasMetricCandidate =
+        Boolean(metricCandidate) &&
+        /[\d¼½¾⅓⅔⅛⅜⅝⅞]/.test(metricCandidate) &&
+        /\b(g|gram|grams|kg|ml|l)\b/i.test(metricCandidate);
+
+      const nameIndex = hasMetricCandidate ? 2 : 1;
+      const name = collapseWhitespace(contentSpans.eq(nameIndex).text());
+      const notes = collapseWhitespace(contentSpans.eq(nameIndex + 1).text());
+
+      const ingredientLine = [amount, unit, name, notes]
+        .filter((part) => part.length > 0)
+        .join(" ")
+        .trim();
+
+      if (ingredientLine) {
+        ingredientLines.push(ingredientLine);
+      }
+    });
+
+    return ingredientLines;
+  };
+
+  const candidates: Array<{ lines: string[]; score: number }> = [];
+  ingredientHeadings.each((_, heading) => {
+    const headingNode = $(heading);
+    const nextLists = headingNode.nextAll("ul").slice(0, 3);
+    nextLists.each((__, listNode) => {
+      const lines = parseList($(listNode));
+      if (lines.length > 0) {
+        candidates.push({ lines, score: scoreList(lines) });
+      }
+    });
+
+    const nearestContainer = headingNode.closest("section, article, div");
+    nearestContainer.find("ul").slice(0, 3).each((__, listNode) => {
+      const lines = parseList($(listNode));
+      if (lines.length > 0) {
+        candidates.push({ lines, score: scoreList(lines) });
+      }
+    });
+  });
+
+  if (candidates.length === 0) {
+    return [];
+  }
+
+  candidates.sort((a, b) => b.score - a.score || b.lines.length - a.lines.length);
+  return candidates[0].lines;
+}
+
+export function parseCookNotesFromHtml(html: string) {
+  const $ = load(html);
+
+  const noteContainers = selectRecipeNoteContainers(
+    $(
+      ".wprm-recipe-notes-container, .wprm-recipe-notes, [class*='recipe-notes'], [id*='recipe-notes']"
+    ).toArray(),
+    (outer, inner) => $(outer as never).find(inner as never).length > 0,
+    (element) => collapseWhitespace($(element as never).text()).length
+  );
+
+  const byRecipeNoteContainer = uniqueBlocks(
+    noteContainers
+      .map((element) => {
+        const container = $(element as never);
+        let contentNodes = container
+          .find("h1,h2,h3,h4,h5,h6,p,li")
+          .toArray();
+
+        if (contentNodes.length === 0) {
+          contentNodes = container
+            .find("div")
+            .toArray()
+            .filter(
+              (node) =>
+                $(node).find("h1,h2,h3,h4,h5,h6,p,li,div").length === 0
+            );
+        }
+
+        const sectioned = formatCookNotesFromContainer(
+          (node) => $(node as never).text(),
+          (node) => ((node as { tagName?: string }).tagName ?? "").toLowerCase(),
+          contentNodes
+        );
+
+        return sectioned || formatCookNotesText(container.text());
+      })
+      .filter((text) => text.length >= 25)
+  );
+
+  if (byRecipeNoteContainer.length > 0) {
+    return byRecipeNoteContainer.join("\n\n");
+  }
+
+  const notesHeadings = $("h1,h2,h3,h4,h5,h6").filter((_, element) =>
+    /\bnotes\b/i.test(collapseWhitespace($(element).text()))
+  );
+
+  const candidates: string[] = [];
+  notesHeadings.each((_, headingElement) => {
+    const heading = $(headingElement);
+    const lines: string[] = [];
+    let sibling = heading.next();
+    let guard = 0;
+
+    while (sibling.length > 0 && guard < 20) {
+      const tag = (sibling.get(0)?.tagName ?? "").toLowerCase();
+      const text = collapseWhitespace(sibling.text());
+      guard += 1;
+
+      if (/^h[12]$/.test(tag) && text) {
+        break;
+      }
+
+      if (
+        text &&
+        !/^(nutrition|frequently asked questions|comments?)$/i.test(text)
+      ) {
+        lines.push(tag === "li" ? `- ${text}` : text);
+      }
+
+      sibling = sibling.next();
+    }
+
+    const combined = uniqueLines(lines).join("\n\n");
+    if (combined.length >= 25) {
+      candidates.push(combined);
+    }
+  });
+
+  candidates.sort((a, b) => b.length - a.length);
+  return candidates[0] ?? null;
+}
+
+async function fetchRecipeHtml(url: string) {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
+          "(KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return response.text();
+  } catch {
+    return null;
+  }
 }
 
 function lineToStringQuantity(value: number | null) {
@@ -573,9 +1027,10 @@ export class RecipeService {
     let description = "";
 
     try {
+      const defuddle = buildDefuddleCommand(cleanedUrl);
       const result = await execFileAsync(
-        "npx",
-        ["defuddle", "parse", cleanedUrl, "--json", "--markdown"],
+        defuddle.command,
+        defuddle.args,
         {
           timeout: 45000,
           maxBuffer: 1024 * 1024 * 8,
@@ -620,9 +1075,23 @@ export class RecipeService {
       };
     }
 
-    const ingredientLines = sectionLines(markdown, ["ingredient"]);
+    const recipeHtml = await fetchRecipeHtml(cleanedUrl);
+    const ingredientLinesFromHtml = recipeHtml
+      ? parseIngredientLinesFromHtml(recipeHtml)
+      : [];
+    const ingredientLines =
+      ingredientLinesFromHtml.length > 0
+        ? ingredientLinesFromHtml
+        : sectionLines(markdown, ["ingredient"]);
     const instructions = sectionLines(markdown, ["instruction", "direction", "method"]);
     const normalized = normalizeIngredients(ingredientLines);
+    const hasSeeNoteReference = normalized.some((ingredient) =>
+      /see note/i.test(ingredient.notes ?? "")
+    );
+    const cookNotes =
+      hasSeeNoteReference && recipeHtml
+        ? compactMultilineString(parseCookNotesFromHtml(recipeHtml))
+        : null;
 
     return {
       duplicate: false,
@@ -633,6 +1102,7 @@ export class RecipeService {
         prepTime: null,
         cookTime: null,
         difficulty: null,
+        cookNotes,
         instructions: instructions.length > 0 ? instructions : ["Review and edit steps before saving."],
         sourceUrl: cleanedUrl,
         sourceLabel,

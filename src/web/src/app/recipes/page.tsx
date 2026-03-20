@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  confirmIngestRecipe,
   createRecipe,
   deleteRecipe,
   exportRecipes,
@@ -78,6 +79,13 @@ export default function RecipesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteRecipe,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: recipesKey });
+    },
+  });
+
+  const confirmIngestMutation = useMutation({
+    mutationFn: confirmIngestRecipe,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: recipesKey });
     },
@@ -253,9 +261,11 @@ export default function RecipesPage() {
       {showIngest ? (
         <IngestModal
           onClose={() => setShowIngest(false)}
-          onDraft={(draft) => {
+          onDraft={async (draft) => {
+            if (!draft.duplicate) {
+              await confirmIngestMutation.mutateAsync(draft.recipe);
+            }
             setShowIngest(false);
-            console.log("Ingest draft", draft);
           }}
         />
       ) : null}

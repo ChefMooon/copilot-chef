@@ -1,6 +1,7 @@
 import {
   type CreateRecipeInput,
   type CustomPersonaPayload,
+  type IngestResult,
   type RecipeExportJson,
   type CreatePersonaInput,
   type PreferenceUpdateInput,
@@ -215,11 +216,25 @@ export async function duplicateRecipe(id: string) {
   return response.data;
 }
 
-export async function ingestRecipe(url: string) {
-  const response = await fetchJson<{ data: unknown }>("/api/recipes/ingest", {
+export async function ingestRecipe(url: string): Promise<IngestResult> {
+  const response = await fetchJson<{ data: IngestResult }>("/api/recipes/ingest", {
     method: "POST",
     body: JSON.stringify({ url }),
   });
+  return response.data;
+}
+
+export async function confirmIngestRecipe(
+  draft: CreateRecipeInput
+): Promise<RecipePayload> {
+  const response = await fetchJson<{ data: RecipePayload }>(
+    "/api/recipes/ingest/confirm",
+    {
+      method: "POST",
+      body: JSON.stringify(draft),
+    }
+  );
+
   return response.data;
 }
 

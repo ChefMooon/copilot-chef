@@ -235,7 +235,7 @@ export function RecipeDetail({
           <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-text-muted">
             Cook Notes
           </p>
-          <p className="mt-2 text-[0.92rem] leading-relaxed text-text">
+          <p className="mt-2 whitespace-pre-line text-[0.92rem] leading-relaxed text-text">
             {recipeData.cookNotes}
           </p>
         </section>
