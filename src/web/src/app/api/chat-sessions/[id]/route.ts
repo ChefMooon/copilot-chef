@@ -1,7 +1,7 @@
 import { ChatHistoryService } from "@copilot-chef/core";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { MachineAuthError, requireCallerIdentity } from "@/lib/machine-auth";
+import { MachineAuthError, requireMachineCallerIdentity } from "@/lib/machine-auth";
 
 const historyService = new ChatHistoryService();
 
@@ -10,7 +10,7 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const identity = requireCallerIdentity(request);
+    const identity = requireMachineCallerIdentity(request);
     const { id } = await context.params;
     const data = await historyService.getSession(identity.callerId, id);
     if (!data) {
@@ -33,7 +33,7 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const identity = requireCallerIdentity(request);
+    const identity = requireMachineCallerIdentity(request);
     const { id } = await context.params;
     const data = await historyService.deleteSession(identity.callerId, id);
     if (!data) {

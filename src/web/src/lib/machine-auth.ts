@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "node:crypto";
+
 export type CallerIdentity = {
   callerId: string;
   source?: string;
@@ -24,6 +26,18 @@ type TokenIdentity = {
 
 function parseEnabled(value: string | undefined) {
   return value === "1" || value === "true";
+}
+
+function isDefaultWebIdentity(identity: CallerIdentity) {
+  return identity.callerId === DEFAULT_WEB_CALLER_ID;
+}
+
+function tokenMatches(input: string, configured: string) {
+  if (input.length !== configured.length) {
+    return false;
+  }
+
+  return timingSafeEqual(Buffer.from(input), Buffer.from(configured));
 }
 
 function parseBearerToken(authorizationHeader: string | null) {
@@ -92,7 +106,9 @@ function resolveIdentityFromToken(token: string | null) {
   }
 
   const configuredTokens = parseTokenMappingsFromEnv();
-  const identity = configuredTokens.find((entry) => entry.token === token);
+  const identity = configuredTokens.find((entry) =>
+    tokenMatches(token, entry.token)
+  );
   if (!identity) {
     return null;
   }
@@ -128,4 +144,17 @@ export function requireCallerIdentity(request: Request): CallerIdentity {
     callerId: DEFAULT_WEB_CALLER_ID,
     source: DEFAULT_WEB_SOURCE,
   };
+}
+
+export function requireMachineCallerIdentity(request: Request): CallerIdentity {
+  const identity = requireCallerIdentity(request);
+  const strictMachineRoutes = parseEnabled(
+    process.env["PA_MACHINE_STRICT_ROUTES"]
+  );
+
+  if (strictMachineRoutes && isDefaultWebIdentity(identity)) {
+    throw new MachineAuthError(401, "Unauthorized machine request");
+  }
+
+  return identity;
 }

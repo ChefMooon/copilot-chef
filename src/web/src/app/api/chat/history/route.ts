@@ -1,13 +1,13 @@
 import { ChatHistoryService } from "@copilot-chef/core";
 import { NextResponse } from "next/server";
 
-import { MachineAuthError, requireCallerIdentity } from "@/lib/machine-auth";
+import { MachineAuthError, requireMachineCallerIdentity } from "@/lib/machine-auth";
 
 const historyService = new ChatHistoryService();
 
 export async function DELETE(request: Request) {
   try {
-    const identity = requireCallerIdentity(request);
+    const identity = requireMachineCallerIdentity(request);
     const data = await historyService.clearHistory(identity.callerId);
     return NextResponse.json({ data });
   } catch (error) {

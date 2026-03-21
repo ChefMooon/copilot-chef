@@ -1,13 +1,13 @@
 import { ChatHistoryService } from "@copilot-chef/core";
 import { NextResponse } from "next/server";
 
-import { MachineAuthError, requireCallerIdentity } from "@/lib/machine-auth";
+import { MachineAuthError, requireMachineCallerIdentity } from "@/lib/machine-auth";
 
 const historyService = new ChatHistoryService();
 
 export async function GET(request: Request) {
   try {
-    const identity = requireCallerIdentity(request);
+    const identity = requireMachineCallerIdentity(request);
     const data = await historyService.listSessions(identity.callerId);
     return NextResponse.json({ data });
   } catch (error) {
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const identity = requireCallerIdentity(request);
+    const identity = requireMachineCallerIdentity(request);
     const body = await request.json().catch(() => ({}));
     const data = await historyService.createSession(identity.callerId, body.title);
     return NextResponse.json({ data }, { status: 201 });

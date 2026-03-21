@@ -31,6 +31,7 @@ describe("chat sessions API auth and ownership", () => {
     delete process.env.PA_MACHINE_AUTH_ENABLED;
     delete process.env.PA_MACHINE_AUTH_TOKEN;
     delete process.env.PA_MACHINE_AUTH_TOKENS;
+    delete process.env.PA_MACHINE_STRICT_ROUTES;
   });
 
   afterEach(() => {
@@ -40,6 +41,16 @@ describe("chat sessions API auth and ownership", () => {
   it("rejects unauthenticated list requests when machine auth is enabled", async () => {
     vi.stubEnv("PA_MACHINE_AUTH_ENABLED", "1");
     vi.stubEnv("PA_MACHINE_AUTH_TOKEN", "secret-token");
+
+    const route = await getRouteModule();
+    const response = await route.GET(new Request("http://localhost/api/chat-sessions"));
+
+    expect(response.status).toBe(401);
+    expect(listSessionsMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects list requests without bearer token when strict machine routes are enabled", async () => {
+    vi.stubEnv("PA_MACHINE_STRICT_ROUTES", "1");
 
     const route = await getRouteModule();
     const response = await route.GET(new Request("http://localhost/api/chat-sessions"));

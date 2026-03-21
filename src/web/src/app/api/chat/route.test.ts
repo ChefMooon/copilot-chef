@@ -690,8 +690,26 @@ describe("POST /api/chat command actions", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-14T12:00:00.000Z"));
     process.env.COPILOT_CHAT_ROUTE_FALLBACK_FIRST = "1";
+    delete process.env.PA_MACHINE_AUTH_ENABLED;
+    delete process.env.PA_MACHINE_AUTH_TOKEN;
+    delete process.env.PA_MACHINE_AUTH_TOKENS;
+    delete process.env.PA_MACHINE_STRICT_ROUTES;
     const core = await getCoreMock();
     core.__resetMockState();
+  });
+
+  it("rejects requests without bearer token when strict machine routes are enabled", async () => {
+    vi.stubEnv("PA_MACHINE_STRICT_ROUTES", "1");
+
+    const route = await import("./route");
+    const response = await route.POST(
+      buildRequest({
+        message: "Add Grilled Cheese for lunch today",
+        pageContextData: { page: "meal-plan", meals: [] },
+      })
+    );
+
+    expect(response.status).toBe(401);
   });
 
   it("creates a meal from an add command", async () => {
@@ -712,6 +730,22 @@ describe("POST /api/chat command actions", () => {
     const created = Array.from(state.meals.values())[0];
     expect(created.name).toBe("Grilled Cheese");
     expect(created.mealType).toBe("LUNCH");
+  });
+
+  it("returns expected stream headers on sdk streaming responses", async () => {
+    const route = await import("./route");
+    const response = await route.POST(
+      buildRequest({
+        message: "Tell me what to cook this week",
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type") ?? "").toContain("text/plain");
+    expect(response.headers.get("x-session-id")).toBe("copilot-session");
+    expect(response.headers.get("x-chat-session-id")).toBeTruthy();
+    expect(response.headers.get("x-request-id")).toBeTruthy();
+    expect(await response.text()).toContain("mock response");
   });
 
   it("returns deterministic JSON when responseMode is json", async () => {

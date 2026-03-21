@@ -7,6 +7,7 @@ This document defines the current machine-facing contract for authenticated PA c
 Machine endpoints use bearer token auth and caller identity mapping.
 
 - `PA_MACHINE_AUTH_ENABLED`: `1` or `true` to require machine auth.
+- `PA_MACHINE_STRICT_ROUTES`: `1` or `true` to require bearer identity on machine routes and disallow `web-default` fallback.
 - `PA_MACHINE_AUTH_TOKENS`: comma-separated token mappings in this format:
   - `token=callerId[:source]`
   - Example: `token-a=max-pa:max-assistant,token-b=ops-bot:automation`
@@ -90,3 +91,4 @@ Behavior:
   - `npm run db:push`
   - `npm run db:generate`
 - Existing sessions default to `ownerId = web-default` unless explicitly backfilled.
+- Operational smoke checks and rollback steps are documented in [docs/pa-machine-runbook.md](docs/pa-machine-runbook.md).

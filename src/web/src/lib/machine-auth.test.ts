@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { MachineAuthError, requireCallerIdentity } from "./machine-auth";
+import {
+  MachineAuthError,
+  requireCallerIdentity,
+  requireMachineCallerIdentity,
+} from "./machine-auth";
 
 describe("machine auth", () => {
   beforeEach(() => {
@@ -10,6 +14,7 @@ describe("machine auth", () => {
     delete process.env.PA_MACHINE_AUTH_TOKENS;
     delete process.env.PA_MACHINE_CALLER_ID;
     delete process.env.PA_MACHINE_SOURCE;
+    delete process.env.PA_MACHINE_STRICT_ROUTES;
   });
 
   afterEach(() => {
@@ -78,5 +83,31 @@ describe("machine auth", () => {
         "PA_MACHINE_AUTH_TOKENS contains an invalid token mapping"
       )
     );
+  });
+
+  it("rejects default web fallback identity on strict machine routes", () => {
+    vi.stubEnv("PA_MACHINE_STRICT_ROUTES", "1");
+
+    const request = new Request("http://localhost/api/chat");
+
+    expect(() => requireMachineCallerIdentity(request)).toThrowError(
+      new MachineAuthError(401, "Unauthorized machine request")
+    );
+  });
+
+  it("allows mapped token identity on strict machine routes", () => {
+    vi.stubEnv("PA_MACHINE_STRICT_ROUTES", "1");
+    vi.stubEnv("PA_MACHINE_AUTH_TOKENS", "token-1=max-pa:max-assistant");
+
+    const request = new Request("http://localhost/api/chat", {
+      headers: {
+        Authorization: "Bearer token-1",
+      },
+    });
+
+    expect(requireMachineCallerIdentity(request)).toEqual({
+      callerId: "max-pa",
+      source: "max-assistant",
+    });
   });
 });

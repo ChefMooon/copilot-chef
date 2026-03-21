@@ -29,7 +29,7 @@ import {
   groceryService,
   mealService,
 } from "@/lib/chat-singletons";
-import { MachineAuthError, requireCallerIdentity } from "@/lib/machine-auth";
+import { MachineAuthError, requireMachineCallerIdentity } from "@/lib/machine-auth";
 
 const SESSION_TITLE_MAX_LENGTH = 72;
 type ResponseMode = "auto" | "json" | "stream";
@@ -1806,7 +1806,7 @@ export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
 
   try {
-    const identity = requireCallerIdentity(request);
+    const identity = requireMachineCallerIdentity(request);
     const ownerId = identity.callerId;
 
     const body = await request.json();

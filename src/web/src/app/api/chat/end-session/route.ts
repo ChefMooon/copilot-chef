@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { chef, historyService } from "@/lib/chat-singletons";
-import { MachineAuthError, requireCallerIdentity } from "@/lib/machine-auth";
+import { MachineAuthError, requireMachineCallerIdentity } from "@/lib/machine-auth";
 
 const bodySchema = z.object({
   sessionId: z.string().min(1),
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
 
   try {
-    const identity = requireCallerIdentity(request);
+    const identity = requireMachineCallerIdentity(request);
     const body = await request.json();
     const parsed = bodySchema.parse(body);
 
