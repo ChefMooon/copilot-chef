@@ -68,6 +68,7 @@ vi.mock("@copilot-chef/core", () => {
   const state = {
     nextId: 1,
     sessions: [] as Array<{ id: string; createdAt: string }>,
+    copilotSessionIds: new Map<string, string>(),
     actions: [] as MockAction[],
     pending: [] as Array<{
       id: string;
@@ -138,6 +139,43 @@ vi.mock("@copilot-chef/core", () => {
       content: string
     ) {
       state.messages.push({ chatSessionId, role, content });
+    }
+
+    async getSession(ownerId: string, chatSessionId: string) {
+      const session = state.sessions.find((entry) => entry.id === chatSessionId);
+      if (!session) {
+        return null;
+      }
+
+      return {
+        id: session.id,
+        copilotSessionId: state.copilotSessionIds.get(chatSessionId) ?? null,
+        messages: state.messages
+          .filter((entry) => entry.chatSessionId === chatSessionId)
+          .map((entry, index) => ({
+            id: `msg-${index + 1}`,
+            chatSessionId,
+            role: entry.role,
+            content: entry.content,
+            createdAt: new Date().toISOString(),
+          })),
+      };
+    }
+
+    async setCopilotSessionId(
+      ownerId: string,
+      chatSessionId: string,
+      copilotSessionId: string
+    ) {
+      state.copilotSessionIds.set(chatSessionId, copilotSessionId);
+      return {
+        id: chatSessionId,
+        copilotSessionId,
+      };
+    }
+
+    async getCopilotSessionId(ownerId: string, chatSessionId: string) {
+      return state.copilotSessionIds.get(chatSessionId) ?? null;
     }
 
     async recordAction(input: {
@@ -419,6 +457,7 @@ vi.mock("@copilot-chef/core", () => {
     parse(input: unknown) {
       return input as {
         message: string;
+        responseMode?: "auto" | "json" | "stream";
         sessionId?: string;
         chatSessionId?: string;
         pageContext?: string;
@@ -591,6 +630,7 @@ vi.mock("@copilot-chef/core", () => {
     __resetMockState() {
       state.nextId = 1;
       state.sessions = [];
+      state.copilotSessionIds = new Map();
       state.actions = [];
       state.pending = [];
       state.messages = [];
@@ -672,6 +712,47 @@ describe("POST /api/chat command actions", () => {
     const created = Array.from(state.meals.values())[0];
     expect(created.name).toBe("Grilled Cheese");
     expect(created.mealType).toBe("LUNCH");
+  });
+
+  it("returns deterministic JSON when responseMode is json", async () => {
+    const route = await import("./route");
+    const response = await route.POST(
+      buildRequest({
+        message: "Tell me what to cook this week",
+        responseMode: "json",
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type") ?? "").toContain(
+      "application/json"
+    );
+
+    const json = (await response.json()) as {
+      message: string;
+      sessionId: string;
+      requestId: string;
+    };
+    expect(json.message).toContain("mock response");
+    expect(json.sessionId).toBe("copilot-session");
+    expect(typeof json.requestId).toBe("string");
+    expect(json.requestId.length).toBeGreaterThan(0);
+  });
+
+  it("honors explicit stream mode on fallback responses", async () => {
+    const route = await import("./route");
+    const response = await route.POST(
+      buildRequest({
+        message: "Add Grilled Cheese for lunch today",
+        responseMode: "stream",
+        pageContextData: { page: "meal-plan", meals: [] },
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type") ?? "").toContain("text/plain");
+    expect(response.headers.get("x-request-id")).toBeTruthy();
+    expect(await response.text()).toContain("Added Grilled Cheese");
   });
 
   it("accepts tonight and trailing punctuation in add commands", async () => {

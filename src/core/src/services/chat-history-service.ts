@@ -177,6 +177,21 @@ export class ChatHistoryService {
     return session?.copilotSessionId ?? null;
   }
 
+  async clearCopilotSessionId(ownerId: string, chatSessionId: string) {
+    await bootstrapDatabase();
+    const resolvedOwnerId = normalizeOwnerId(ownerId);
+    const ownedSessionId = await this.requireOwnedSessionId(
+      resolvedOwnerId,
+      chatSessionId
+    );
+
+    const session = await prisma.chatSession.update({
+      where: { id: ownedSessionId },
+      data: { copilotSessionId: null },
+    });
+    return serializeSession(session);
+  }
+
   async getSessionOwnerId(chatSessionId: string) {
     await bootstrapDatabase();
     const session = await prisma.chatSession.findUnique({

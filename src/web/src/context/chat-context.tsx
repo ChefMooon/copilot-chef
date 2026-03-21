@@ -368,19 +368,31 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   const respondToInputRequest = useCallback(
     (answer: string, wasFreeform: boolean) => {
-      if (!copilotSessionId) return;
-      setPendingInputRequest(null);
+      if (!copilotSessionId || !chatSessionId) return;
+
+      const currentPending = pendingInputRequest;
       fetch("/api/chat/respond-to-input", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionId: copilotSessionId,
+          chatSessionId,
           answer,
           wasFreeform,
         }),
-      }).catch(console.error);
+      })
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error(`Failed to resolve input request (${response.status})`);
+          }
+          setPendingInputRequest(null);
+        })
+        .catch((error) => {
+          setPendingInputRequest(currentPending ?? null);
+          console.error(error);
+        });
     },
-    [copilotSessionId]
+    [chatSessionId, copilotSessionId, pendingInputRequest]
   );
 
   return (

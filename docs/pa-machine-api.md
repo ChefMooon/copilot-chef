@@ -1,4 +1,4 @@
-# PA Machine API Contract (Slice 1)
+# PA Machine API Contract (Slice 2)
 
 This document defines the current machine-facing contract for authenticated PA calls.
 
@@ -24,6 +24,7 @@ When machine auth is disabled, requests without bearer auth are treated as:
 
 - `POST /api/chat`
 - `POST /api/chat/respond-to-input`
+- `POST /api/chat/end-session`
 - `GET /api/chat-sessions`
 - `POST /api/chat-sessions`
 - `GET /api/chat-sessions/:id`
@@ -44,6 +45,7 @@ All session and action operations are filtered by owner identity. If a caller re
 `POST /api/chat` request body (existing contract):
 
 - `message` (required)
+- `responseMode` (optional): `auto` | `json` | `stream`
 - `sessionId` (optional)
 - `chatSessionId` (optional)
 - `pageContext` (optional)
@@ -52,9 +54,35 @@ All session and action operations are filtered by owner identity. If a caller re
 Response modes:
 
 - JSON action response with `sessionId` and optional `chatSessionId`
+- If `responseMode=json`, SDK text output is returned as JSON with `message`
 - Streaming text response with headers:
   - `x-session-id`
   - `x-chat-session-id` (when available)
+  - `x-request-id`
+
+## Input Request Lifecycle
+
+`POST /api/chat/respond-to-input` body:
+
+- `sessionId` (required): Copilot session id to resolve
+- `chatSessionId` (required): owner-scoped app session id
+- `answer` (required)
+- `wasFreeform` (required)
+
+The route verifies that `chatSessionId` belongs to the caller and is mapped to `sessionId` before resolving the pending input request.
+
+## Session End Control
+
+`POST /api/chat/end-session` body:
+
+- `sessionId` (required)
+- `chatSessionId` (required)
+
+Behavior:
+
+- Verifies caller ownership and session mapping
+- Ends the in-memory Copilot session
+- Clears persisted `copilotSessionId` mapping for that chat session
 
 ## Notes
 

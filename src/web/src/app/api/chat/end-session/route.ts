@@ -7,8 +7,6 @@ import { MachineAuthError, requireCallerIdentity } from "@/lib/machine-auth";
 const bodySchema = z.object({
   sessionId: z.string().min(1),
   chatSessionId: z.string().min(1),
-  answer: z.string().min(1),
-  wasFreeform: z.boolean(),
 });
 
 export async function POST(request: NextRequest) {
@@ -23,22 +21,38 @@ export async function POST(request: NextRequest) {
       identity.callerId,
       parsed.chatSessionId
     );
-    if (!session || session.copilotSessionId !== parsed.sessionId) {
+    if (!session) {
       return NextResponse.json(
         { error: "Session not found", requestId },
         { status: 404 }
       );
     }
 
-    console.info("[chat-respond-to-input] resolve", {
+    if (session.copilotSessionId && session.copilotSessionId !== parsed.sessionId) {
+      return NextResponse.json(
+        { error: "Session not found", requestId },
+        { status: 404 }
+      );
+    }
+
+    if (!session.copilotSessionId) {
+      return NextResponse.json({ ok: true, requestId, alreadyEnded: true });
+    }
+
+    const ended = await chef.endSession(parsed.sessionId);
+    await historyService.clearCopilotSessionId(
+      identity.callerId,
+      parsed.chatSessionId
+    );
+
+    console.info("[chat-end-session] ended", {
       requestId,
       callerId: identity.callerId,
       sessionId: parsed.sessionId,
       chatSessionId: parsed.chatSessionId,
     });
 
-    chef.resolveInputRequest(parsed.sessionId, parsed.answer, parsed.wasFreeform);
-    return NextResponse.json({ ok: true, requestId });
+    return NextResponse.json({ ok: true, requestId, endedAt: ended.endedAt });
   } catch (error) {
     if (error instanceof MachineAuthError) {
       return NextResponse.json(
@@ -48,7 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     const message =
-      error instanceof Error ? error.message : "Unable to resolve input request";
+      error instanceof Error ? error.message : "Unable to end session";
     return NextResponse.json({ error: message, requestId }, { status: 400 });
   }
 }

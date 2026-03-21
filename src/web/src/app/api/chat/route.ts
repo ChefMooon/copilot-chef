@@ -32,6 +32,49 @@ import {
 import { MachineAuthError, requireCallerIdentity } from "@/lib/machine-auth";
 
 const SESSION_TITLE_MAX_LENGTH = 72;
+type ResponseMode = "auto" | "json" | "stream";
+
+async function readTextFromStream(stream: ReadableStream<Uint8Array>) {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let fullText = "";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    fullText += decoder.decode(value, { stream: true });
+  }
+  fullText += decoder.decode();
+
+  return fullText;
+}
+
+function makeTextStreamResponse(input: {
+  message: string;
+  sessionId?: string;
+  chatSessionId?: string;
+  requestId: string;
+}) {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(encoder.encode(input.message));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Cache-Control": "no-store",
+      "Content-Type": "text/plain; charset=utf-8",
+      "x-request-id": input.requestId,
+      ...(input.sessionId ? { "x-session-id": input.sessionId } : {}),
+      ...(input.chatSessionId
+        ? { "x-chat-session-id": input.chatSessionId }
+        : {}),
+    },
+  });
+}
 
 function summarizeSessionTitleFromMessage(content: string) {
   const normalized = content.replace(/\s+/g, " ").trim();
@@ -1760,26 +1803,53 @@ async function tryHandleGroceryCommand(
 }
 
 export async function POST(request: Request) {
+  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+
   try {
     const identity = requireCallerIdentity(request);
     const ownerId = identity.callerId;
 
     const body = await request.json();
     const parsed = chatRequestSchema.parse(body);
+    const responseMode = parsed.responseMode as ResponseMode;
+
+    console.info("[chat-route] request", {
+      requestId,
+      callerId: ownerId,
+      responseMode,
+      sessionId: parsed.sessionId,
+      chatSessionId: parsed.chatSessionId,
+    });
 
     // Check history persistence preference before calling Copilot.
     const prefs = await preferenceService.getPreferences();
     const shouldPersist = prefs?.saveChatHistory ?? true;
 
     let activeChatSessionId = parsed.chatSessionId;
-    if (shouldPersist) {
-      if (!activeChatSessionId) {
-        const newSession = await historyService.createSession(
-          ownerId,
-          summarizeSessionTitleFromMessage(parsed.message) ?? undefined
+    if (activeChatSessionId) {
+      const ownedSession = await historyService.getSession(
+        ownerId,
+        activeChatSessionId
+      );
+      if (!ownedSession) {
+        return NextResponse.json(
+          { error: "Session not found", requestId },
+          { status: 404 }
         );
-        activeChatSessionId = newSession.id;
       }
+    }
+
+    // Keep a session handle for ownership-bound follow-up APIs even when
+    // message persistence is disabled.
+    if (!activeChatSessionId) {
+      const newSession = await historyService.createSession(
+        ownerId,
+        summarizeSessionTitleFromMessage(parsed.message) ?? undefined
+      );
+      activeChatSessionId = newSession.id;
+    }
+
+    if (shouldPersist && activeChatSessionId) {
       await historyService.addMessage(
         ownerId,
         activeChatSessionId,
@@ -1813,12 +1883,22 @@ export async function POST(request: Request) {
         console.info(
           `[chat-route] fallback-hit: meal${safeMealFallback ? " (safe)" : ""}`
         );
+        if (responseMode === "stream") {
+          return makeTextStreamResponse({
+            message: mealHandled.message,
+            sessionId: parsed.sessionId,
+            chatSessionId: activeChatSessionId,
+            requestId,
+          });
+        }
+
         return NextResponse.json({
           sessionId: parsed.sessionId,
           chatSessionId: activeChatSessionId,
           message: mealHandled.message,
           choices: mealHandled.choices ?? [],
           action: mealHandled.action,
+          requestId,
         });
       }
 
@@ -1840,12 +1920,22 @@ export async function POST(request: Request) {
           }
 
           console.info("[chat-route] fallback-hit: grocery");
+          if (responseMode === "stream") {
+            return makeTextStreamResponse({
+              message: handled.message,
+              sessionId: parsed.sessionId,
+              chatSessionId: activeChatSessionId,
+              requestId,
+            });
+          }
+
           return NextResponse.json({
             sessionId: parsed.sessionId,
             chatSessionId: activeChatSessionId,
             message: handled.message,
             choices: handled.choices ?? [],
             action: handled.action,
+            requestId,
           });
         }
       }
@@ -1881,13 +1971,22 @@ export async function POST(request: Request) {
         );
       }
 
-      // Persist copilotSessionId mapping
-      if (shouldPersist && activeChatSessionId) {
+      // Persist copilotSessionId mapping for owner-bound lifecycle routes.
+      if (activeChatSessionId) {
         await historyService.setCopilotSessionId(
           ownerId,
           activeChatSessionId,
           chefResponse.sessionId
         );
+      }
+
+      if (responseMode === "stream") {
+        return makeTextStreamResponse({
+          message: chefResponse.message,
+          sessionId: chefResponse.sessionId,
+          chatSessionId: activeChatSessionId,
+          requestId,
+        });
       }
 
       return NextResponse.json({
@@ -1896,16 +1995,15 @@ export async function POST(request: Request) {
         message: chefResponse.message,
         choices: [],
         action: chefResponse.action,
+        requestId,
       });
     }
 
     const { sessionId, stream } = chefResponse;
 
     // Persist copilotSessionId mapping
-    if (shouldPersist && activeChatSessionId) {
-      historyService
-        .setCopilotSessionId(ownerId, activeChatSessionId, sessionId)
-        .catch(console.error);
+    if (activeChatSessionId) {
+      await historyService.setCopilotSessionId(ownerId, activeChatSessionId, sessionId);
     }
 
     // Tee the stream: one branch for the client, one to capture and save the full response.
@@ -1913,15 +2011,7 @@ export async function POST(request: Request) {
 
     const snapshotId = activeChatSessionId;
     (async () => {
-      const reader = captureStream.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        fullText += decoder.decode(value, { stream: true });
-      }
-      fullText += decoder.decode();
+      const fullText = await readTextFromStream(captureStream);
       if (shouldPersist && snapshotId) {
         await historyService.addMessage(
           ownerId,
@@ -1932,11 +2022,23 @@ export async function POST(request: Request) {
       }
     })().catch(console.error);
 
+    if (responseMode === "json") {
+      const message = (await readTextFromStream(clientStream)).trim();
+      return NextResponse.json({
+        sessionId,
+        chatSessionId: activeChatSessionId,
+        message,
+        choices: [],
+        requestId,
+      });
+    }
+
     return new Response(clientStream, {
       headers: {
         "Cache-Control": "no-store",
         "Content-Type": "text/plain; charset=utf-8",
         "x-session-id": sessionId,
+        "x-request-id": requestId,
         ...(activeChatSessionId
           ? { "x-chat-session-id": activeChatSessionId }
           : {}),
@@ -1944,7 +2046,10 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof MachineAuthError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.message, requestId },
+        { status: error.status }
+      );
     }
 
     const message =
@@ -1954,6 +2059,6 @@ export async function POST(request: Request) {
         ? error.stack
         : undefined;
 
-    return NextResponse.json({ error: message, stack }, { status: 400 });
+    return NextResponse.json({ error: message, stack, requestId }, { status: 400 });
   }
 }

@@ -12,6 +12,7 @@ export const quickPromptSchema = z.enum([
 
 export const chatRequestSchema = z.object({
   message: z.string().min(1),
+  responseMode: z.enum(["auto", "json", "stream"]).default("auto"),
   sessionId: z.string().optional(),
   pageContext: z.string().optional(),
   pageContextData: z
