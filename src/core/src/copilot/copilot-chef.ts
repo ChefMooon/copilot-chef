@@ -42,6 +42,7 @@ interface UserInputRequest {
 
 /** Default model — override by setting COPILOT_MODEL in your environment. */
 export const COPILOT_DEFAULT_MODEL = "gpt-4o-mini";
+const DEFAULT_CHAT_OWNER_ID = "web-default";
 
 const mealTypeSchema = z.enum([
   "BREAKFAST",
@@ -388,6 +389,15 @@ export class CopilotChef {
       .catch(() => {});
   }
 
+  private async resolveChatOwnerId(chatSessionId?: string) {
+    if (!chatSessionId) {
+      return DEFAULT_CHAT_OWNER_ID;
+    }
+
+    const ownerId = await this.historyService.getSessionOwnerId(chatSessionId);
+    return ownerId ?? DEFAULT_CHAT_OWNER_ID;
+  }
+
   private async recordMealAction(
     chatSessionId: string | undefined,
     input: {
@@ -399,7 +409,9 @@ export class CopilotChef {
   ) {
     if (!chatSessionId) return;
     try {
+      const ownerId = await this.resolveChatOwnerId(chatSessionId);
       await this.historyService.recordAction({
+        ownerId,
         chatSessionId,
         domain: "meal",
         actionType: input.actionType,
@@ -423,7 +435,9 @@ export class CopilotChef {
     }
   ) {
     if (!chatSessionId || !input.before || !input.after) return;
+    const ownerId = await this.resolveChatOwnerId(chatSessionId);
     await this.historyService.recordAction({
+      ownerId,
       chatSessionId,
       domain: "grocery",
       actionType: input.actionType,
@@ -471,7 +485,12 @@ export class CopilotChef {
   }
 
   private async undoAction(chatSessionId: string, domain?: "meal" | "grocery") {
-    const action = await this.historyService.getLatestUndoAction(chatSessionId, domain);
+    const ownerId = await this.resolveChatOwnerId(chatSessionId);
+    const action = await this.historyService.getLatestUndoAction(
+      ownerId,
+      chatSessionId,
+      domain
+    );
     if (!action) {
       return {
         success: false,
@@ -486,7 +505,7 @@ export class CopilotChef {
     } else if (action.domain === "grocery") {
       await this.applyActionSnapshot(action.inverseJson);
     }
-    await this.historyService.markActionUndone(action.id);
+    await this.historyService.markActionUndone(ownerId, action.id);
 
     return {
       success: true,
@@ -499,7 +518,12 @@ export class CopilotChef {
   }
 
   private async redoAction(chatSessionId: string, domain?: "meal" | "grocery") {
-    const action = await this.historyService.getLatestRedoAction(chatSessionId, domain);
+    const ownerId = await this.resolveChatOwnerId(chatSessionId);
+    const action = await this.historyService.getLatestRedoAction(
+      ownerId,
+      chatSessionId,
+      domain
+    );
     if (!action) {
       return {
         success: false,
@@ -514,7 +538,7 @@ export class CopilotChef {
     } else if (action.domain === "grocery") {
       await this.applyActionSnapshot(action.forwardJson);
     }
-    await this.historyService.markActionRedone(action.id);
+    await this.historyService.markActionRedone(ownerId, action.id);
 
     return {
       success: true,
@@ -927,6 +951,7 @@ export class CopilotChef {
         },
         handler: async (rawArgs) => {
           const args = suggestMealsArgsSchema.parse(rawArgs);
+          const ownerId = await this.resolveChatOwnerId(args.chatSessionId);
           const pool = [
             "Lemon Herb Chicken Bowls",
             "Creamy Tomato Pasta",
@@ -944,6 +969,7 @@ export class CopilotChef {
           await Promise.all(
             picks.map((name, index) =>
               this.historyService.addPendingSuggestion({
+                ownerId,
                 chatSessionId: args.chatSessionId,
                 domain: "meal",
                 title: name,
@@ -976,8 +1002,14 @@ export class CopilotChef {
         },
         handler: async (rawArgs) => {
           const args = applyPendingMealsArgsSchema.parse(rawArgs);
+          const ownerId = await this.resolveChatOwnerId(args.chatSessionId);
           const count = Math.max(1, Math.min(args.count, args.nights ?? args.count));
-          const suggestions = (await this.historyService.listPendingSuggestions(args.chatSessionId))
+          const suggestions = (
+            await this.historyService.listPendingSuggestions(
+              ownerId,
+              args.chatSessionId
+            )
+          )
             .filter((entry) => entry.domain === "meal")
             .slice(0, count)
             .reverse();

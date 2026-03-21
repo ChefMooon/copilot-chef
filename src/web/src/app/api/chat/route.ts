@@ -29,6 +29,7 @@ import {
   groceryService,
   mealService,
 } from "@/lib/chat-singletons";
+import { MachineAuthError, requireCallerIdentity } from "@/lib/machine-auth";
 
 const SESSION_TITLE_MAX_LENGTH = 72;
 
@@ -69,6 +70,7 @@ type HandledChatAction = {
 
 async function recordSnapshotAction(
   chatSessionId: string | undefined,
+  ownerId: string,
   input: {
     actionType: string;
     summary: string;
@@ -81,6 +83,7 @@ async function recordSnapshotAction(
   }
 
   await historyService.recordAction({
+    ownerId,
     chatSessionId,
     domain: "grocery",
     actionType: input.actionType,
@@ -130,7 +133,8 @@ async function applyMealOps(payloadJson: string) {
 async function tryHandleMealCommand(
   message: string,
   pageContextData?: unknown,
-  chatSessionId?: string
+  chatSessionId?: string,
+  ownerId?: string
 ): Promise<HandledChatAction | null> {
   if (!pageContextData || typeof pageContextData !== "object") return null;
   const context = pageContextData as MealPlanPageContext;
@@ -152,6 +156,7 @@ async function tryHandleMealCommand(
     }
 
     const action = await historyService.getLatestUndoAction(
+      ownerId ?? "web-default",
       chatSessionId,
       "meal"
     );
@@ -167,7 +172,7 @@ async function tryHandleMealCommand(
     }
 
     await applyMealOps(action.inverseJson);
-    await historyService.markActionUndone(action.id);
+    await historyService.markActionUndone(ownerId ?? "web-default", action.id);
 
     return {
       message: `Undid: ${action.summary}`,
@@ -193,6 +198,7 @@ async function tryHandleMealCommand(
     }
 
     const action = await historyService.getLatestRedoAction(
+      ownerId ?? "web-default",
       chatSessionId,
       "meal"
     );
@@ -208,7 +214,7 @@ async function tryHandleMealCommand(
     }
 
     await applyMealOps(action.forwardJson);
-    await historyService.markActionRedone(action.id);
+    await historyService.markActionRedone(ownerId ?? "web-default", action.id);
 
     return {
       message: `Redid: ${action.summary}`,
@@ -296,6 +302,7 @@ async function tryHandleMealCommand(
 
     if (chatSessionId) {
       await historyService.recordAction({
+        ownerId: ownerId ?? "web-default",
         chatSessionId,
         domain: "meal",
         actionType: "clone-meal-to-tomorrow",
@@ -373,6 +380,7 @@ async function tryHandleMealCommand(
 
     if (chatSessionId) {
       await historyService.recordAction({
+        ownerId: ownerId ?? "web-default",
         chatSessionId,
         domain: "meal",
         actionType: "add-meal",
@@ -473,6 +481,7 @@ async function tryHandleMealCommand(
 
     if (chatSessionId) {
       await historyService.recordAction({
+        ownerId: ownerId ?? "web-default",
         chatSessionId,
         domain: "meal",
         actionType: "move-meal",
@@ -562,6 +571,7 @@ async function tryHandleMealCommand(
 
     if (chatSessionId) {
       await historyService.recordAction({
+        ownerId: ownerId ?? "web-default",
         chatSessionId,
         domain: "meal",
         actionType: "move-meal",
@@ -642,6 +652,7 @@ async function tryHandleMealCommand(
 
     if (chatSessionId) {
       await historyService.recordAction({
+        ownerId: ownerId ?? "web-default",
         chatSessionId,
         domain: "meal",
         actionType: "replace-meal",
@@ -727,6 +738,7 @@ async function tryHandleMealCommand(
 
     if (chatSessionId) {
       await historyService.recordAction({
+        ownerId: ownerId ?? "web-default",
         chatSessionId,
         domain: "meal",
         actionType: "remove-meal",
@@ -772,6 +784,7 @@ async function tryHandleMealCommand(
     await Promise.all(
       picks.map((name, index) =>
         historyService.addPendingSuggestion({
+          ownerId: ownerId ?? "web-default",
           chatSessionId,
           domain: "meal",
           title: name,
@@ -809,7 +822,10 @@ async function tryHandleMealCommand(
     const nights = Number.parseInt(usePendingMatch[2], 10);
     const count = Math.max(1, Math.min(requested, nights));
     const suggestions = (
-      await historyService.listPendingSuggestions(chatSessionId)
+      await historyService.listPendingSuggestions(
+        ownerId ?? "web-default",
+        chatSessionId
+      )
     )
       .filter((entry) => entry.domain === "meal")
       .slice(0, count)
@@ -863,6 +879,7 @@ async function tryHandleMealCommand(
     }));
 
     await historyService.recordAction({
+      ownerId: ownerId ?? "web-default",
       chatSessionId,
       domain: "meal",
       actionType: "apply-pending-suggestions",
@@ -888,7 +905,8 @@ async function tryHandleMealCommand(
 async function tryHandleGroceryCommand(
   message: string,
   pageContextData?: unknown,
-  chatSessionId?: string
+  chatSessionId?: string,
+  ownerId?: string
 ): Promise<HandledChatAction | null> {
   if (!pageContextData || typeof pageContextData !== "object") return null;
   const context = pageContextData as GroceryPageContext;
@@ -911,6 +929,7 @@ async function tryHandleGroceryCommand(
     }
 
     const action = await historyService.getLatestUndoAction(
+      ownerId ?? "web-default",
       chatSessionId,
       "grocery"
     );
@@ -926,7 +945,7 @@ async function tryHandleGroceryCommand(
     }
 
     await applyActionSnapshot(action.inverseJson);
-    await historyService.markActionUndone(action.id);
+    await historyService.markActionUndone(ownerId ?? "web-default", action.id);
 
     return {
       message: `Undid: ${action.summary}`,
@@ -952,6 +971,7 @@ async function tryHandleGroceryCommand(
     }
 
     const action = await historyService.getLatestRedoAction(
+      ownerId ?? "web-default",
       chatSessionId,
       "grocery"
     );
@@ -967,7 +987,7 @@ async function tryHandleGroceryCommand(
     }
 
     await applyActionSnapshot(action.forwardJson);
-    await historyService.markActionRedone(action.id);
+    await historyService.markActionRedone(ownerId ?? "web-default", action.id);
 
     return {
       message: `Redid: ${action.summary}`,
@@ -1008,7 +1028,7 @@ async function tryHandleGroceryCommand(
     const updatedList = await groceryService.createGroceryItem(activeList.id, {
       name: itemName,
     });
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "add-item",
       summary: `Added ${itemName} to ${updatedList.name}`,
       before: snapshotFromList(beforeList),
@@ -1079,7 +1099,7 @@ async function tryHandleGroceryCommand(
       item.id,
       { checked: true }
     );
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "check-item",
       summary: `Checked ${item.name}`,
       before: snapshotFromList(beforeList),
@@ -1128,7 +1148,7 @@ async function tryHandleGroceryCommand(
       item.id,
       { checked: false }
     );
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "uncheck-item",
       summary: `Unchecked ${item.name}`,
       before: snapshotFromList(beforeList),
@@ -1184,7 +1204,7 @@ async function tryHandleGroceryCommand(
       activeList.id,
       item.id
     );
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "remove-item",
       summary: `Removed ${item.name} from ${updatedList.name}`,
       before: snapshotFromList(beforeList),
@@ -1213,7 +1233,7 @@ async function tryHandleGroceryCommand(
     const updatedList = await groceryService.updateGroceryList(activeList.id, {
       name: nextName,
     });
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "rename-list",
       summary: `Renamed grocery list to ${nextName}`,
       before: snapshotFromList(beforeList),
@@ -1242,7 +1262,7 @@ async function tryHandleGroceryCommand(
     const updatedList = await groceryService.updateGroceryList(activeList.id, {
       favourite: true,
     });
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "favorite-list",
       summary: `Favorited ${updatedList.name}`,
       before: snapshotFromList(beforeList),
@@ -1271,7 +1291,7 @@ async function tryHandleGroceryCommand(
     const updatedList = await groceryService.updateGroceryList(activeList.id, {
       favourite: false,
     });
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "unfavorite-list",
       summary: `Unfavorited ${updatedList.name}`,
       before: snapshotFromList(beforeList),
@@ -1312,7 +1332,7 @@ async function tryHandleGroceryCommand(
     const updatedList = await groceryService.updateGroceryList(activeList.id, {
       date: resolvedDate,
     });
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "set-list-date",
       summary: `Set ${updatedList.name} date to ${new Date(resolvedDate).toLocaleDateString()}`,
       before: snapshotFromList(beforeList),
@@ -1362,7 +1382,7 @@ async function tryHandleGroceryCommand(
       item.id,
       { qty }
     );
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "update-item-qty",
       summary: `Set ${item.name} qty to ${qty}`,
       before: snapshotFromList(beforeList),
@@ -1413,7 +1433,7 @@ async function tryHandleGroceryCommand(
       item.id,
       { unit }
     );
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "update-item-unit",
       summary: `Set ${item.name} unit to ${unit}`,
       before: snapshotFromList(beforeList),
@@ -1466,7 +1486,7 @@ async function tryHandleGroceryCommand(
       item.id,
       { category }
     );
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "update-item-category",
       summary: `Moved ${item.name} to ${category}`,
       before: snapshotFromList(beforeList),
@@ -1517,7 +1537,7 @@ async function tryHandleGroceryCommand(
       item.id,
       { name: nextName }
     );
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "rename-item",
       summary: `Renamed ${item.name} to ${nextName}`,
       before: snapshotFromList(beforeList),
@@ -1572,7 +1592,7 @@ async function tryHandleGroceryCommand(
       activeList.id,
       ordered
     );
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "manual-reorder",
       summary: `Moved ${matches[0].name} to top`,
       before: snapshotFromList(beforeList),
@@ -1628,7 +1648,7 @@ async function tryHandleGroceryCommand(
       activeList.id,
       ordered
     );
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "manual-reorder",
       summary: `Put ${firstMatches[0].name} first and ${secondMatches[0].name} second`,
       before: snapshotFromList(beforeList),
@@ -1664,7 +1684,7 @@ async function tryHandleGroceryCommand(
       activeList.id,
       ordered
     );
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: "reorder-by-category",
       summary: `Reordered ${updatedList.name} by category`,
       before: snapshotFromList(beforeList),
@@ -1718,7 +1738,7 @@ async function tryHandleGroceryCommand(
     if (!updatedList) {
       throw new Error("Grocery list not found");
     }
-    await recordSnapshotAction(chatSessionId, {
+    await recordSnapshotAction(chatSessionId, ownerId ?? "web-default", {
       actionType: checked ? "bulk-check" : "bulk-uncheck",
       summary: `${checked ? "Checked" : "Unchecked"} ${matches.length} ${categoryLabel} items`,
       before: snapshotFromList(beforeList),
@@ -1741,6 +1761,9 @@ async function tryHandleGroceryCommand(
 
 export async function POST(request: Request) {
   try {
+    const identity = requireCallerIdentity(request);
+    const ownerId = identity.callerId;
+
     const body = await request.json();
     const parsed = chatRequestSchema.parse(body);
 
@@ -1752,11 +1775,13 @@ export async function POST(request: Request) {
     if (shouldPersist) {
       if (!activeChatSessionId) {
         const newSession = await historyService.createSession(
+          ownerId,
           summarizeSessionTitleFromMessage(parsed.message) ?? undefined
         );
         activeChatSessionId = newSession.id;
       }
       await historyService.addMessage(
+        ownerId,
         activeChatSessionId,
         "user",
         parsed.message
@@ -1772,11 +1797,13 @@ export async function POST(request: Request) {
       const mealHandled = await tryHandleMealCommand(
         parsed.message,
         parsed.pageContextData,
-        activeChatSessionId
+        activeChatSessionId,
+        ownerId
       );
       if (mealHandled) {
         if (shouldPersist && activeChatSessionId) {
           await historyService.addMessage(
+            ownerId,
             activeChatSessionId,
             "assistant",
             mealHandled.message
@@ -1799,11 +1826,13 @@ export async function POST(request: Request) {
         const handled = await tryHandleGroceryCommand(
           parsed.message,
           parsed.pageContextData,
-          activeChatSessionId
+          activeChatSessionId,
+          ownerId
         );
         if (handled) {
           if (shouldPersist && activeChatSessionId) {
             await historyService.addMessage(
+              ownerId,
               activeChatSessionId,
               "assistant",
               handled.message
@@ -1826,7 +1855,7 @@ export async function POST(request: Request) {
     let copilotSessionId = parsed.sessionId ?? undefined;
     if (!copilotSessionId && activeChatSessionId) {
       const persisted =
-        await historyService.getCopilotSessionId(activeChatSessionId);
+        await historyService.getCopilotSessionId(ownerId, activeChatSessionId);
       if (persisted) copilotSessionId = persisted;
     }
 
@@ -1845,6 +1874,7 @@ export async function POST(request: Request) {
     if ("action" in chefResponse) {
       if (shouldPersist && activeChatSessionId) {
         await historyService.addMessage(
+          ownerId,
           activeChatSessionId,
           "assistant",
           chefResponse.message
@@ -1854,6 +1884,7 @@ export async function POST(request: Request) {
       // Persist copilotSessionId mapping
       if (shouldPersist && activeChatSessionId) {
         await historyService.setCopilotSessionId(
+          ownerId,
           activeChatSessionId,
           chefResponse.sessionId
         );
@@ -1873,7 +1904,7 @@ export async function POST(request: Request) {
     // Persist copilotSessionId mapping
     if (shouldPersist && activeChatSessionId) {
       historyService
-        .setCopilotSessionId(activeChatSessionId, sessionId)
+        .setCopilotSessionId(ownerId, activeChatSessionId, sessionId)
         .catch(console.error);
     }
 
@@ -1893,6 +1924,7 @@ export async function POST(request: Request) {
       fullText += decoder.decode();
       if (shouldPersist && snapshotId) {
         await historyService.addMessage(
+          ownerId,
           snapshotId,
           "assistant",
           fullText.trim()
@@ -1911,6 +1943,10 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    if (error instanceof MachineAuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     const message =
       error instanceof Error ? error.message : "Unable to handle chat request";
     const stack =

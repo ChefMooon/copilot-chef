@@ -74,6 +74,7 @@ function createServices() {
   };
 
   const historyService = {
+    getSessionOwnerId: vi.fn().mockResolvedValue("web-default"),
     recordAction: vi.fn(),
     getLatestUndoAction: vi.fn(),
     getLatestRedoAction: vi.fn(),
@@ -660,7 +661,10 @@ describe("CopilotChef SDK tool handlers", () => {
       domain: "meal",
     });
 
-    expect(services.historyService.markActionUndone).toHaveBeenCalledWith("action-1");
+    expect(services.historyService.markActionUndone).toHaveBeenCalledWith(
+      "web-default",
+      "action-1"
+    );
     expect(result).toMatchObject({ success: true, domain: "meal" });
   });
 
@@ -688,7 +692,10 @@ describe("CopilotChef SDK tool handlers", () => {
       domain: "grocery",
     });
 
-    expect(services.historyService.markActionRedone).toHaveBeenCalledWith("action-1");
+    expect(services.historyService.markActionRedone).toHaveBeenCalledWith(
+      "web-default",
+      "action-1"
+    );
     expect(result).toMatchObject({ success: true, domain: "grocery" });
   });
 

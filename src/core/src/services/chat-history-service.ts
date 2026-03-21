@@ -4,6 +4,12 @@ import { prisma } from "../lib/prisma";
 const DEFAULT_PENDING_SUGGESTION_TTL_DAYS = 14;
 const DEFAULT_ACTION_HISTORY_LIMIT = 50;
 const SESSION_TITLE_MAX_LENGTH = 72;
+const DEFAULT_OWNER_ID = "web-default";
+
+function normalizeOwnerId(ownerId?: string) {
+  const normalized = ownerId?.trim();
+  return normalized && normalized.length > 0 ? normalized : DEFAULT_OWNER_ID;
+}
 
 function summarizeSessionTitleFromMessage(content: string) {
   const normalized = content.replace(/\s+/g, " ").trim();
@@ -95,52 +101,118 @@ function serializePendingSuggestion(suggestion: {
 }
 
 export class ChatHistoryService {
-  async createSession(title?: string) {
+  private async findOwnedSessionId(ownerId: string, chatSessionId: string) {
+    const session = await prisma.chatSession.findFirst({
+      where: { id: chatSessionId, ownerId },
+      select: { id: true },
+    });
+
+    return session?.id ?? null;
+  }
+
+  private async requireOwnedSessionId(ownerId: string, chatSessionId: string) {
+    const sessionId = await this.findOwnedSessionId(ownerId, chatSessionId);
+
+    if (!sessionId) {
+      throw new Error("Session not found");
+    }
+
+    return sessionId;
+  }
+
+  private async resolveOwnedActionId(ownerId: string, actionId: string) {
+    const action = await prisma.chatAction.findFirst({
+      where: {
+        id: actionId,
+        chatSession: {
+          ownerId,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!action) {
+      throw new Error("Action not found");
+    }
+
+    return action.id;
+  }
+
+  async createSession(ownerId: string, title?: string) {
     await bootstrapDatabase();
     const session = await prisma.chatSession.create({
-      data: { title: title ?? null },
+      data: { ownerId: normalizeOwnerId(ownerId), title: title ?? null },
     });
     return serializeSession(session);
   }
 
-  async setCopilotSessionId(chatSessionId: string, copilotSessionId: string) {
+  async setCopilotSessionId(
+    ownerId: string,
+    chatSessionId: string,
+    copilotSessionId: string
+  ) {
     await bootstrapDatabase();
+    const resolvedOwnerId = normalizeOwnerId(ownerId);
+    const ownedSessionId = await this.requireOwnedSessionId(
+      resolvedOwnerId,
+      chatSessionId
+    );
+
     const session = await prisma.chatSession.update({
-      where: { id: chatSessionId },
+      where: { id: ownedSessionId },
       data: { copilotSessionId },
     });
     return serializeSession(session);
   }
 
-  async getCopilotSessionId(chatSessionId: string) {
+  async getCopilotSessionId(ownerId: string, chatSessionId: string) {
     await bootstrapDatabase();
-    const session = await prisma.chatSession.findUnique({
-      where: { id: chatSessionId },
+    const session = await prisma.chatSession.findFirst({
+      where: {
+        id: chatSessionId,
+        ownerId: normalizeOwnerId(ownerId),
+      },
       select: { copilotSessionId: true },
     });
     return session?.copilotSessionId ?? null;
   }
 
+  async getSessionOwnerId(chatSessionId: string) {
+    await bootstrapDatabase();
+    const session = await prisma.chatSession.findUnique({
+      where: { id: chatSessionId },
+      select: { ownerId: true },
+    });
+    return session?.ownerId ?? null;
+  }
+
   async addMessage(
+    ownerId: string,
     chatSessionId: string,
     role: "user" | "assistant",
     content: string
   ) {
     await bootstrapDatabase();
+    const resolvedOwnerId = normalizeOwnerId(ownerId);
+    const ownedSessionId = await this.requireOwnedSessionId(
+      resolvedOwnerId,
+      chatSessionId
+    );
+
     const message = await prisma.chatMessage.create({
-      data: { chatSessionId, role, content },
+      data: { chatSessionId: ownedSessionId, role, content },
     });
 
     if (role === "user") {
       const session = await prisma.chatSession.findUnique({
-        where: { id: chatSessionId },
+        where: { id: ownedSessionId },
         select: { title: true },
       });
 
       if (!session?.title) {
         const firstUserMessage = await prisma.chatMessage.findFirst({
           where: {
-            chatSessionId,
+            chatSessionId: ownedSessionId,
             role: "user",
           },
           orderBy: {
@@ -155,7 +227,7 @@ export class ChatHistoryService {
           const summarizedTitle = summarizeSessionTitleFromMessage(content);
           if (summarizedTitle) {
             await prisma.chatSession.update({
-              where: { id: chatSessionId },
+              where: { id: ownedSessionId },
               data: { title: summarizedTitle },
             });
           }
@@ -164,19 +236,31 @@ export class ChatHistoryService {
     }
 
     await prisma.chatSession.update({
-      where: { id: chatSessionId },
+      where: { id: ownedSessionId },
       data: { updatedAt: new Date() },
     });
     return serializeMessage(message);
   }
 
-  async pruneExpiredPendingSuggestions(chatSessionId?: string) {
+  async pruneExpiredPendingSuggestions(ownerId: string, chatSessionId?: string) {
     await bootstrapDatabase();
 
+    const resolvedOwnerId = normalizeOwnerId(ownerId);
     const now = new Date();
     const deleted = await prisma.chatPendingSuggestion.deleteMany({
       where: {
-        ...(chatSessionId ? { chatSessionId } : {}),
+        ...(chatSessionId
+          ? {
+              chatSessionId,
+              chatSession: {
+                ownerId: resolvedOwnerId,
+              },
+            }
+          : {
+              chatSession: {
+                ownerId: resolvedOwnerId,
+              },
+            }),
         expiresAt: {
           lt: now,
         },
@@ -187,6 +271,7 @@ export class ChatHistoryService {
   }
 
   async addPendingSuggestion(input: {
+    ownerId: string;
     chatSessionId: string;
     domain: string;
     title: string;
@@ -195,12 +280,18 @@ export class ChatHistoryService {
   }) {
     await bootstrapDatabase();
 
+    const resolvedOwnerId = normalizeOwnerId(input.ownerId);
+    const ownedSessionId = await this.requireOwnedSessionId(
+      resolvedOwnerId,
+      input.chatSessionId
+    );
+
     const ttlDays = input.ttlDays ?? DEFAULT_PENDING_SUGGESTION_TTL_DAYS;
     const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
 
     const suggestion = await prisma.chatPendingSuggestion.create({
       data: {
-        chatSessionId: input.chatSessionId,
+        chatSessionId: ownedSessionId,
         domain: input.domain,
         title: input.title,
         payloadJson: input.payloadJson,
@@ -209,21 +300,31 @@ export class ChatHistoryService {
     });
 
     await prisma.chatSession.update({
-      where: { id: input.chatSessionId },
+      where: { id: ownedSessionId },
       data: { updatedAt: new Date() },
     });
 
-    await this.pruneExpiredPendingSuggestions(input.chatSessionId);
+    await this.pruneExpiredPendingSuggestions(resolvedOwnerId, ownedSessionId);
     return serializePendingSuggestion(suggestion);
   }
 
-  async listPendingSuggestions(chatSessionId: string) {
+  async listPendingSuggestions(ownerId: string, chatSessionId: string) {
     await bootstrapDatabase();
-    await this.pruneExpiredPendingSuggestions(chatSessionId);
+    const resolvedOwnerId = normalizeOwnerId(ownerId);
+    const ownedSessionId = await this.findOwnedSessionId(
+      resolvedOwnerId,
+      chatSessionId
+    );
+
+    if (!ownedSessionId) {
+      return [];
+    }
+
+    await this.pruneExpiredPendingSuggestions(resolvedOwnerId, ownedSessionId);
 
     const suggestions = await prisma.chatPendingSuggestion.findMany({
       where: {
-        chatSessionId,
+        chatSessionId: ownedSessionId,
         expiresAt: {
           gte: new Date(),
         },
@@ -237,6 +338,7 @@ export class ChatHistoryService {
   }
 
   async recordAction(input: {
+    ownerId: string;
     chatSessionId: string;
     domain: string;
     actionType: string;
@@ -247,10 +349,16 @@ export class ChatHistoryService {
   }) {
     await bootstrapDatabase();
 
+    const resolvedOwnerId = normalizeOwnerId(input.ownerId);
+    const ownedSessionId = await this.requireOwnedSessionId(
+      resolvedOwnerId,
+      input.chatSessionId
+    );
+
     // New action invalidates redo stack.
     await prisma.chatAction.deleteMany({
       where: {
-        chatSessionId: input.chatSessionId,
+        chatSessionId: ownedSessionId,
         undoneAt: {
           not: null,
         },
@@ -259,7 +367,7 @@ export class ChatHistoryService {
 
     const action = await prisma.chatAction.create({
       data: {
-        chatSessionId: input.chatSessionId,
+        chatSessionId: ownedSessionId,
         domain: input.domain,
         actionType: input.actionType,
         summary: input.summary,
@@ -271,7 +379,7 @@ export class ChatHistoryService {
     const historyLimit = input.historyLimit ?? DEFAULT_ACTION_HISTORY_LIMIT;
     const stale = await prisma.chatAction.findMany({
       where: {
-        chatSessionId: input.chatSessionId,
+        chatSessionId: ownedSessionId,
       },
       orderBy: {
         createdAt: "desc",
@@ -293,18 +401,31 @@ export class ChatHistoryService {
     }
 
     await prisma.chatSession.update({
-      where: { id: input.chatSessionId },
+      where: { id: ownedSessionId },
       data: { updatedAt: new Date() },
     });
 
     return serializeAction(action);
   }
 
-  async getLatestUndoAction(chatSessionId: string, domain?: string) {
+  async getLatestUndoAction(
+    ownerId: string,
+    chatSessionId: string,
+    domain?: string
+  ) {
     await bootstrapDatabase();
+    const ownedSessionId = await this.findOwnedSessionId(
+      normalizeOwnerId(ownerId),
+      chatSessionId
+    );
+
+    if (!ownedSessionId) {
+      return null;
+    }
+
     const action = await prisma.chatAction.findFirst({
       where: {
-        chatSessionId,
+        chatSessionId: ownedSessionId,
         ...(domain ? { domain } : {}),
         undoneAt: null,
       },
@@ -316,11 +437,24 @@ export class ChatHistoryService {
     return action ? serializeAction(action) : null;
   }
 
-  async getLatestRedoAction(chatSessionId: string, domain?: string) {
+  async getLatestRedoAction(
+    ownerId: string,
+    chatSessionId: string,
+    domain?: string
+  ) {
     await bootstrapDatabase();
+    const ownedSessionId = await this.findOwnedSessionId(
+      normalizeOwnerId(ownerId),
+      chatSessionId
+    );
+
+    if (!ownedSessionId) {
+      return null;
+    }
+
     const action = await prisma.chatAction.findFirst({
       where: {
-        chatSessionId,
+        chatSessionId: ownedSessionId,
         ...(domain ? { domain } : {}),
         undoneAt: {
           not: null,
@@ -332,28 +466,38 @@ export class ChatHistoryService {
     return action ? serializeAction(action) : null;
   }
 
-  async markActionUndone(actionId: string) {
+  async markActionUndone(ownerId: string, actionId: string) {
     await bootstrapDatabase();
+    const ownedActionId = await this.resolveOwnedActionId(
+      normalizeOwnerId(ownerId),
+      actionId
+    );
+
     const action = await prisma.chatAction.update({
-      where: { id: actionId },
+      where: { id: ownedActionId },
       data: { undoneAt: new Date() },
     });
     return serializeAction(action);
   }
 
-  async markActionRedone(actionId: string) {
+  async markActionRedone(ownerId: string, actionId: string) {
     await bootstrapDatabase();
+    const ownedActionId = await this.resolveOwnedActionId(
+      normalizeOwnerId(ownerId),
+      actionId
+    );
+
     const action = await prisma.chatAction.update({
-      where: { id: actionId },
+      where: { id: ownedActionId },
       data: { undoneAt: null },
     });
     return serializeAction(action);
   }
 
-  async getSession(id: string) {
+  async getSession(ownerId: string, id: string) {
     await bootstrapDatabase();
-    const session = await prisma.chatSession.findUnique({
-      where: { id },
+    const session = await prisma.chatSession.findFirst({
+      where: { id, ownerId: normalizeOwnerId(ownerId) },
       include: { messages: { orderBy: { createdAt: "asc" } } },
     });
     if (!session) {
@@ -365,9 +509,10 @@ export class ChatHistoryService {
     };
   }
 
-  async listSessions(limit = 20) {
+  async listSessions(ownerId: string, limit = 20) {
     await bootstrapDatabase();
     const sessions = await prisma.chatSession.findMany({
+      where: { ownerId: normalizeOwnerId(ownerId) },
       orderBy: { updatedAt: "desc" },
       take: limit,
       include: {
@@ -385,22 +530,36 @@ export class ChatHistoryService {
     }));
   }
 
-  async deleteSession(id: string) {
+  async deleteSession(ownerId: string, id: string) {
     await bootstrapDatabase();
-    await prisma.chatSession.delete({ where: { id } });
+    const deleted = await prisma.chatSession.deleteMany({
+      where: { id, ownerId: normalizeOwnerId(ownerId) },
+    });
+
+    if (deleted.count === 0) {
+      return null;
+    }
+
     return { id };
   }
 
-  async clearHistory() {
+  async clearHistory(ownerId: string) {
     await bootstrapDatabase();
-    const deleted = await prisma.chatSession.deleteMany();
+    const deleted = await prisma.chatSession.deleteMany({
+      where: { ownerId: normalizeOwnerId(ownerId) },
+    });
     return { count: deleted.count };
   }
 
-  async updateSessionTitle(id: string, title: string) {
+  async updateSessionTitle(ownerId: string, id: string, title: string) {
     await bootstrapDatabase();
+    const ownedSessionId = await this.requireOwnedSessionId(
+      normalizeOwnerId(ownerId),
+      id
+    );
+
     const session = await prisma.chatSession.update({
-      where: { id },
+      where: { id: ownedSessionId },
       data: { title },
     });
     return serializeSession(session);

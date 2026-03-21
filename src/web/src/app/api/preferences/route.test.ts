@@ -127,6 +127,10 @@ import { POST as resetPost } from "./reset/route";
 describe("preferences routes", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+    delete process.env.PA_MACHINE_AUTH_ENABLED;
+    delete process.env.PA_MACHINE_AUTH_TOKEN;
+    delete process.env.PA_MACHINE_AUTH_TOKENS;
   });
 
   it("returns the expanded preferences payload", async () => {
@@ -220,7 +224,11 @@ describe("preferences routes", () => {
   });
 
   it("clears chat history through the dedicated route", async () => {
-    const response = await deleteChatHistory();
+    const response = await deleteChatHistory(
+      new Request("http://localhost/api/chat/history", {
+        method: "DELETE",
+      })
+    );
     const payload = (await response.json()) as { data: { count: number } };
 
     expect(payload.data.count).toBe(2);

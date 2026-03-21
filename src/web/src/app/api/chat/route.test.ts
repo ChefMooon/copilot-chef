@@ -141,6 +141,7 @@ vi.mock("@copilot-chef/core", () => {
     }
 
     async recordAction(input: {
+      ownerId?: string;
       chatSessionId: string;
       domain: "meal" | "grocery";
       actionType: string;
@@ -172,6 +173,7 @@ vi.mock("@copilot-chef/core", () => {
     }
 
     async getLatestUndoAction(
+      ownerId: string,
       chatSessionId: string,
       domain: "meal" | "grocery"
     ) {
@@ -187,6 +189,7 @@ vi.mock("@copilot-chef/core", () => {
     }
 
     async getLatestRedoAction(
+      ownerId: string,
       chatSessionId: string,
       domain: "meal" | "grocery"
     ) {
@@ -201,14 +204,14 @@ vi.mock("@copilot-chef/core", () => {
       return action ?? null;
     }
 
-    async markActionUndone(actionId: string) {
+    async markActionUndone(ownerId: string, actionId: string) {
       const action = state.actions.find((entry) => entry.id === actionId);
       if (action) {
         action.undoneAt = nowIso();
       }
     }
 
-    async markActionRedone(actionId: string) {
+    async markActionRedone(ownerId: string, actionId: string) {
       const action = state.actions.find((entry) => entry.id === actionId);
       if (action) {
         action.undoneAt = null;
@@ -216,6 +219,7 @@ vi.mock("@copilot-chef/core", () => {
     }
 
     async addPendingSuggestion(input: {
+      ownerId?: string;
       chatSessionId: string;
       domain: "meal" | "grocery";
       title: string;
@@ -235,7 +239,7 @@ vi.mock("@copilot-chef/core", () => {
       });
     }
 
-    async listPendingSuggestions(chatSessionId: string) {
+    async listPendingSuggestions(ownerId: string, chatSessionId: string) {
       const now = Date.now();
       return state.pending
         .filter((entry) => entry.chatSessionId === chatSessionId)

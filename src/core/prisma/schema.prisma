@@ -158,6 +158,7 @@ model RecipeLink {
 
 model ChatSession {
   id                 String                @id @default(cuid())
+  ownerId            String                @default("web-default")
   copilotSessionId   String?
   title              String?
   createdAt          DateTime              @default(now())
@@ -165,6 +166,8 @@ model ChatSession {
   messages           ChatMessage[]
   actions            ChatAction[]
   pendingSuggestions ChatPendingSuggestion[]
+
+  @@index([ownerId, updatedAt])
 }
 
 model ChatMessage {

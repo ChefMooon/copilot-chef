@@ -1,19 +1,37 @@
 import { ChatHistoryService } from "@copilot-chef/core";
 import { NextResponse } from "next/server";
 
+import { MachineAuthError, requireCallerIdentity } from "@/lib/machine-auth";
+
 const historyService = new ChatHistoryService();
 
-export async function GET() {
-  const data = await historyService.listSessions();
-  return NextResponse.json({ data });
+export async function GET(request: Request) {
+  try {
+    const identity = requireCallerIdentity(request);
+    const data = await historyService.listSessions(identity.callerId);
+    return NextResponse.json({ data });
+  } catch (error) {
+    if (error instanceof MachineAuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
+    const message =
+      error instanceof Error ? error.message : "Unable to list sessions";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
 }
 
 export async function POST(request: Request) {
   try {
+    const identity = requireCallerIdentity(request);
     const body = await request.json().catch(() => ({}));
-    const data = await historyService.createSession(body.title);
+    const data = await historyService.createSession(identity.callerId, body.title);
     return NextResponse.json({ data }, { status: 201 });
   } catch (error) {
+    if (error instanceof MachineAuthError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
+
     return NextResponse.json(
       {
         error:
