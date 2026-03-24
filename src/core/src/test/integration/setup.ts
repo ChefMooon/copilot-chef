@@ -7,9 +7,10 @@
  */
 import { inject } from "vitest";
 
-const testDbUrl = inject<string>("TEST_DB_URL");
+const getInjected = inject as unknown as (key: string) => unknown;
+const testDbUrl = getInjected("TEST_DB_URL");
 
-if (testDbUrl) {
+if (typeof testDbUrl === "string" && testDbUrl.length > 0) {
   process.env.DATABASE_URL = testDbUrl;
 
   // Clear any cached Prisma client set by a previous test file in the same

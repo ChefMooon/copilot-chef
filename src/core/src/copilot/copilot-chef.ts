@@ -385,8 +385,16 @@ export class CopilotChef {
     const encoder = new TextEncoder();
     const payload = JSON.stringify(event);
     state.writer
-      .write(encoder.encode(`${SENTINEL_PREFIX}${payload}`))
+      .write(encoder.encode(`${SENTINEL_PREFIX}${payload}\n`))
       .catch(() => {});
+  }
+
+  private toSerializableToolResult(value: unknown) {
+    try {
+      return JSON.parse(JSON.stringify(value)) as unknown;
+    } catch {
+      return null;
+    }
   }
 
   private async resolveChatOwnerId(chatSessionId?: string) {
@@ -1459,7 +1467,7 @@ export class CopilotChef {
 
         if (state?.writer) {
           state.writer
-            .write(encoder.encode(`${SENTINEL_PREFIX}${sentinel}`))
+            .write(encoder.encode(`${SENTINEL_PREFIX}${sentinel}\n`))
             .catch(() => {});
         }
 
@@ -1496,6 +1504,8 @@ export class CopilotChef {
             this.emitSentinel(sessionId, {
               type: "domain_update",
               domain,
+              toolName: input.toolName,
+              toolResult: this.toSerializableToolResult(input.toolResult),
             });
           }
         },

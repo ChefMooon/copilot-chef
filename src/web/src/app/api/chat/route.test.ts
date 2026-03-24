@@ -62,6 +62,7 @@ type CoreMockModule = {
   __seedMeal: (meal: MockMeal) => void;
   __seedGroceryList: (list: MockGroceryList) => void;
   __getMockState: () => MockState;
+  __setStreamChunks: (chunks: string[]) => void;
 };
 
 vi.mock("@copilot-chef/core", () => {
@@ -85,8 +86,20 @@ vi.mock("@copilot-chef/core", () => {
       content: string;
     }>,
     preferences: { saveChatHistory: true },
+    pendingInputBySession: new Map<
+      string,
+      {
+        requestId: string;
+        question: string;
+        choices: string[];
+        allowFreeform: boolean;
+        retryCount: number;
+      }
+    >(),
+    sessionStateBySession: new Map<string, string>(),
     meals: new Map<string, MockMeal>(),
     groceryLists: new Map<string, MockGroceryList>(),
+    streamChunks: ["mock response"],
   };
 
   const nowIso = () => new Date().toISOString();
@@ -112,7 +125,9 @@ vi.mock("@copilot-chef/core", () => {
         sessionId: "copilot-session",
         stream: new ReadableStream<Uint8Array>({
           start(controller) {
-            controller.enqueue(new TextEncoder().encode("mock response"));
+            for (const chunk of state.streamChunks) {
+              controller.enqueue(new TextEncoder().encode(chunk));
+            }
             controller.close();
           },
         }),
@@ -176,6 +191,61 @@ vi.mock("@copilot-chef/core", () => {
 
     async getCopilotSessionId(ownerId: string, chatSessionId: string) {
       return state.copilotSessionIds.get(chatSessionId) ?? null;
+    }
+
+    async getPendingInputState(ownerId: string, chatSessionId: string) {
+      return {
+        state: state.sessionStateBySession.get(chatSessionId) ?? "idle",
+        pendingInput: state.pendingInputBySession.get(chatSessionId) ?? null,
+      };
+    }
+
+    async setPendingInputState(
+      ownerId: string,
+      chatSessionId: string,
+      input: {
+        requestId: string;
+        question: string;
+        choices?: string[];
+        allowFreeform?: boolean;
+      }
+    ) {
+      state.pendingInputBySession.set(chatSessionId, {
+        requestId: input.requestId,
+        question: input.question,
+        choices: input.choices ?? [],
+        allowFreeform: input.allowFreeform ?? true,
+        retryCount: 0,
+      });
+      state.sessionStateBySession.set(chatSessionId, "waiting_for_input");
+      return { id: chatSessionId, state: "waiting_for_input" };
+    }
+
+    async clearPendingInputState(ownerId: string, chatSessionId: string) {
+      state.pendingInputBySession.delete(chatSessionId);
+      state.sessionStateBySession.set(chatSessionId, "idle");
+      return { id: chatSessionId, state: "idle" };
+    }
+
+    async setSessionState(ownerId: string, chatSessionId: string, value: string) {
+      state.sessionStateBySession.set(chatSessionId, value);
+      return { id: chatSessionId, state: value };
+    }
+
+    async markPendingInputAttempt(
+      ownerId: string,
+      chatSessionId: string,
+      input: { state?: string; incrementRetry?: boolean }
+    ) {
+      if (input.state) {
+        state.sessionStateBySession.set(chatSessionId, input.state);
+      }
+      const pending = state.pendingInputBySession.get(chatSessionId);
+      if (pending && input.incrementRetry) {
+        pending.retryCount += 1;
+        state.pendingInputBySession.set(chatSessionId, pending);
+      }
+      return { id: chatSessionId };
     }
 
     async recordAction(input: {
@@ -637,6 +707,7 @@ vi.mock("@copilot-chef/core", () => {
       state.preferences = { saveChatHistory: true };
       state.meals = new Map();
       state.groceryLists = new Map();
+      state.streamChunks = ["mock response"];
     },
     __seedMeal(meal: MockMeal) {
       state.meals.set(meal.id, cloneMeal(meal));
@@ -651,6 +722,9 @@ vi.mock("@copilot-chef/core", () => {
         actions: state.actions,
         messages: state.messages,
       };
+    },
+    __setStreamChunks(chunks: string[]) {
+      state.streamChunks = [...chunks];
     },
   };
 });
@@ -771,6 +845,37 @@ describe("POST /api/chat command actions", () => {
     expect(json.sessionId).toBe("copilot-session");
     expect(typeof json.requestId).toBe("string");
     expect(json.requestId.length).toBeGreaterThan(0);
+  });
+
+  it("returns structured responseData for meal mutations from sdk sentinel events", async () => {
+    const core = await getCoreMock();
+    core.__setStreamChunks([
+      '\x00COPILOT_CHEF_EVENT\x00{"type":"domain_update","domain":"meal","toolName":"update_meal","toolResult":{"success":true,"meal":{"id":"meal-77","name":"Ramen","date":"2026-03-25T12:00:00.000Z","mealType":"DINNER","notes":null,"ingredients":["noodles"]}}}\n',
+    ]);
+
+    const route = await import("./route");
+    const response = await route.POST(
+      buildRequest({
+        message: "Update meal",
+        responseMode: "json",
+      })
+    );
+
+    const json = (await response.json()) as {
+      message: string;
+      status: string;
+      responseData?: {
+        meal?: { id: string; name: string };
+        mealPlan?: { meal?: { id: string; name: string } };
+      };
+    };
+
+    expect(response.status).toBe(200);
+    expect(json.status).toBe("ok");
+    expect(json.message).toBe("");
+    expect(json.responseData?.meal?.id).toBe("meal-77");
+    expect(json.responseData?.meal?.name).toBe("Ramen");
+    expect(json.responseData?.mealPlan?.meal?.id).toBe("meal-77");
   });
 
   it("honors explicit stream mode on fallback responses", async () => {

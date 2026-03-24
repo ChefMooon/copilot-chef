@@ -156,18 +156,36 @@ model RecipeLink {
   @@index([subRecipeId])
 }
 
+enum ChatSessionState {
+  idle
+  waiting_for_input
+  completing_input
+  completed
+  failed
+}
+
 model ChatSession {
-  id                 String                @id @default(cuid())
-  ownerId            String                @default("web-default")
-  copilotSessionId   String?
-  title              String?
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
-  messages           ChatMessage[]
-  actions            ChatAction[]
-  pendingSuggestions ChatPendingSuggestion[]
+  id                    String                @id @default(cuid())
+  ownerId               String                @default("web-default")
+  copilotSessionId      String?
+  title                 String?
+  state                 ChatSessionState      @default(idle)
+  pendingInputRequestId String?
+  pendingQuestion       String?
+  pendingChoicesJson    String?
+  pendingAllowFreeform  Boolean               @default(true)
+  pendingRequestedAt    DateTime?
+  pendingRetryCount     Int                   @default(0)
+  pendingLastErrorCode  String?
+  pendingLastRequestId  String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  messages              ChatMessage[]
+  actions               ChatAction[]
+  pendingSuggestions    ChatPendingSuggestion[]
 
   @@index([ownerId, updatedAt])
+  @@index([ownerId, state, updatedAt])
 }
 
 model ChatMessage {

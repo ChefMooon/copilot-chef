@@ -29,9 +29,11 @@ export type ChatMessageWithChoices = {
 };
 
 export type PendingInputRequest = {
+  requestId: string;
   question: string;
   choices: string[];
   allowFreeform: boolean;
+  retryCount: number;
 };
 
 interface ChatContextValue {
@@ -50,7 +52,7 @@ interface ChatContextValue {
   toggleSessionBrowser: () => void;
   loadSession: (chatSessionId: string) => Promise<void>;
   clearSession: () => void;
-  respondToInputRequest: (answer: string, wasFreeform: boolean) => void;
+  respondToInputRequest: (answer: string, wasFreeform: boolean) => Promise<void>;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
@@ -110,6 +112,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     async (text: string) => {
       if (!text.trim()) return;
 
+      // Guard against out-of-band sends while waiting for required input.
+      if (pendingInputRequest) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            text: "Please answer the active follow-up question before sending a new message.",
+            choices: [],
+          },
+        ]);
+        return;
+      }
+
       setMessages((prev) => [...prev, { role: "user", text }]);
       setIsTyping(true);
       setStreamingMessage("");
@@ -147,6 +162,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             chatSessionId?: string;
             message: string;
             choices?: ChatChoice[];
+            status?: "ok" | "needs_input";
+            needsInput?: {
+              requestId: string;
+              question: string;
+              choices: string[];
+              allowFreeform: boolean;
+              retryCount?: number;
+            };
             action?: {
               domain: "meal" | "grocery" | "recipe";
             };
@@ -174,6 +197,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               queryKey: ["recipes"],
               exact: false,
             });
+          }
+
+          if (payload.needsInput) {
+            setPendingInputRequest({
+              requestId: payload.needsInput.requestId,
+              question: payload.needsInput.question,
+              choices: payload.needsInput.choices,
+              allowFreeform: payload.needsInput.allowFreeform,
+              retryCount: payload.needsInput.retryCount ?? 0,
+            });
+          } else {
+            setPendingInputRequest(null);
           }
 
           setIsTyping(false);
@@ -249,9 +284,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               };
               if (event.type === "input_request") {
                 setPendingInputRequest({
+                  requestId: crypto.randomUUID(),
                   question: event.question,
                   choices: event.choices,
                   allowFreeform: event.allowFreeform,
+                  retryCount: 0,
                 });
               } else if (
                 event.type === "domain_update" &&
@@ -327,7 +364,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         ]);
       }
     },
-    [pathname, copilotSessionId, chatSessionId, queryClient]
+    [pathname, copilotSessionId, chatSessionId, pendingInputRequest, queryClient]
   );
 
   const loadSession = useCallback(async (id: string) => {
@@ -337,11 +374,30 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       const { data } = (await response.json()) as {
         data: {
           id: string;
+          copilotSessionId: string | null;
+          pendingInput: {
+            requestId: string;
+            question: string;
+            choices: string[];
+            allowFreeform: boolean;
+            retryCount: number;
+          } | null;
           messages: Array<{ role: "user" | "assistant"; content: string }>;
         };
       };
       setChatSessionId(data.id);
-      setCopilotSessionId(undefined);
+      setCopilotSessionId(data.copilotSessionId ?? undefined);
+      setPendingInputRequest(
+        data.pendingInput
+          ? {
+              requestId: data.pendingInput.requestId,
+              question: data.pendingInput.question,
+              choices: data.pendingInput.choices,
+              allowFreeform: data.pendingInput.allowFreeform,
+              retryCount: data.pendingInput.retryCount,
+            }
+          : null
+      );
       lastSentPathRef.current = "";
       setMessages([
         INITIAL_MESSAGE,
@@ -367,30 +423,72 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const respondToInputRequest = useCallback(
-    (answer: string, wasFreeform: boolean) => {
-      if (!copilotSessionId || !chatSessionId) return;
+    async (answer: string, wasFreeform: boolean) => {
+      if (!copilotSessionId || !chatSessionId) {
+        return;
+      }
 
       const currentPending = pendingInputRequest;
-      fetch("/api/chat/respond-to-input", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: copilotSessionId,
-          chatSessionId,
-          answer,
-          wasFreeform,
-        }),
-      })
-        .then(async (response) => {
-          if (!response.ok) {
-            throw new Error(`Failed to resolve input request (${response.status})`);
+      const maxRetries = 3;
+      let attemptedReset = false;
+
+      for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+        try {
+          const response = await fetch("/api/chat/respond-to-input", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sessionId: copilotSessionId,
+              chatSessionId,
+              answer,
+              wasFreeform,
+            }),
+          });
+
+          if (response.ok) {
+            setPendingInputRequest(null);
+            return;
           }
-          setPendingInputRequest(null);
-        })
-        .catch((error) => {
+
+          if (response.status === 401 || response.status === 403) {
+            throw new Error("Authentication failed while resolving your input.");
+          }
+
+          if (response.status === 404 && !attemptedReset) {
+            attemptedReset = true;
+            setCopilotSessionId(undefined);
+            continue;
+          }
+
+          if ((response.status === 429 || response.status >= 500) && attempt < maxRetries) {
+            const backoffMs = 250 * 2 ** attempt;
+            await new Promise((resolve) => setTimeout(resolve, backoffMs));
+            continue;
+          }
+
+          throw new Error(`Failed to resolve input request (${response.status})`);
+        } catch (error) {
+          if (attempt < maxRetries) {
+            const backoffMs = 250 * 2 ** attempt;
+            await new Promise((resolve) => setTimeout(resolve, backoffMs));
+            continue;
+          }
+
           setPendingInputRequest(currentPending ?? null);
-          console.error(error);
-        });
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: "assistant",
+              text:
+                error instanceof Error
+                  ? error.message
+                  : "I couldn't process that response right now. Please try again.",
+              choices: [],
+            },
+          ]);
+          return;
+        }
+      }
     },
     [chatSessionId, copilotSessionId, pendingInputRequest]
   );

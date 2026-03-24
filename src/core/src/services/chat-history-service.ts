@@ -6,6 +6,24 @@ const DEFAULT_ACTION_HISTORY_LIMIT = 50;
 const SESSION_TITLE_MAX_LENGTH = 72;
 const DEFAULT_OWNER_ID = "web-default";
 
+export type ChatSessionState =
+  | "idle"
+  | "waiting_for_input"
+  | "completing_input"
+  | "completed"
+  | "failed";
+
+type PendingInputState = {
+  requestId: string;
+  question: string;
+  choices: string[];
+  allowFreeform: boolean;
+  requestedAt: string;
+  retryCount: number;
+  lastErrorCode: string | null;
+  lastRequestId: string | null;
+};
+
 function normalizeOwnerId(ownerId?: string) {
   const normalized = ownerId?.trim();
   return normalized && normalized.length > 0 ? normalized : DEFAULT_OWNER_ID;
@@ -24,10 +42,61 @@ function summarizeSessionTitleFromMessage(content: string) {
   return `${normalized.slice(0, SESSION_TITLE_MAX_LENGTH - 3).trimEnd()}...`;
 }
 
+function parsePendingChoices(raw: string | null): string[] {
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return parsed.filter((value): value is string => typeof value === "string");
+  } catch {
+    return [];
+  }
+}
+
+function serializePendingInputState(session: {
+  pendingInputRequestId: string | null;
+  pendingQuestion: string | null;
+  pendingChoicesJson: string | null;
+  pendingAllowFreeform: boolean;
+  pendingRequestedAt: Date | null;
+  pendingRetryCount: number;
+  pendingLastErrorCode: string | null;
+  pendingLastRequestId: string | null;
+}) {
+  if (!session.pendingInputRequestId || !session.pendingQuestion) {
+    return null;
+  }
+
+  return {
+    requestId: session.pendingInputRequestId,
+    question: session.pendingQuestion,
+    choices: parsePendingChoices(session.pendingChoicesJson),
+    allowFreeform: session.pendingAllowFreeform,
+    requestedAt: session.pendingRequestedAt?.toISOString() ?? new Date().toISOString(),
+    retryCount: session.pendingRetryCount,
+    lastErrorCode: session.pendingLastErrorCode,
+    lastRequestId: session.pendingLastRequestId,
+  } satisfies PendingInputState;
+}
+
 function serializeSession(session: {
   id: string;
   copilotSessionId: string | null;
   title: string | null;
+  state: ChatSessionState;
+  pendingInputRequestId: string | null;
+  pendingQuestion: string | null;
+  pendingChoicesJson: string | null;
+  pendingAllowFreeform: boolean;
+  pendingRequestedAt: Date | null;
+  pendingRetryCount: number;
+  pendingLastErrorCode: string | null;
+  pendingLastRequestId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }) {
@@ -35,6 +104,8 @@ function serializeSession(session: {
     id: session.id,
     copilotSessionId: session.copilotSessionId,
     title: session.title,
+    state: session.state,
+    pendingInput: serializePendingInputState(session),
     createdAt: session.createdAt.toISOString(),
     updatedAt: session.updatedAt.toISOString(),
   };
@@ -190,6 +261,162 @@ export class ChatHistoryService {
       data: { copilotSessionId: null },
     });
     return serializeSession(session);
+  }
+
+  async setSessionState(
+    ownerId: string,
+    chatSessionId: string,
+    state: ChatSessionState
+  ) {
+    await bootstrapDatabase();
+    const resolvedOwnerId = normalizeOwnerId(ownerId);
+    const ownedSessionId = await this.requireOwnedSessionId(
+      resolvedOwnerId,
+      chatSessionId
+    );
+
+    const session = await prisma.chatSession.update({
+      where: { id: ownedSessionId },
+      data: { state },
+    });
+    return serializeSession(session);
+  }
+
+  async setPendingInputState(
+    ownerId: string,
+    chatSessionId: string,
+    input: {
+      requestId: string;
+      question: string;
+      choices?: string[];
+      allowFreeform?: boolean;
+      requestedAt?: Date;
+      lastRequestId?: string;
+    }
+  ) {
+    await bootstrapDatabase();
+    const resolvedOwnerId = normalizeOwnerId(ownerId);
+    const ownedSessionId = await this.requireOwnedSessionId(
+      resolvedOwnerId,
+      chatSessionId
+    );
+
+    const session = await prisma.chatSession.update({
+      where: { id: ownedSessionId },
+      data: {
+        state: "waiting_for_input",
+        pendingInputRequestId: input.requestId,
+        pendingQuestion: input.question,
+        pendingChoicesJson: JSON.stringify(input.choices ?? []),
+        pendingAllowFreeform: input.allowFreeform ?? true,
+        pendingRequestedAt: input.requestedAt ?? new Date(),
+        pendingRetryCount: 0,
+        pendingLastErrorCode: null,
+        pendingLastRequestId: input.lastRequestId ?? null,
+      },
+    });
+
+    return serializeSession(session);
+  }
+
+  async markPendingInputAttempt(
+    ownerId: string,
+    chatSessionId: string,
+    input: {
+      requestId?: string;
+      errorCode?: string | null;
+      incrementRetry?: boolean;
+      state?: ChatSessionState;
+    }
+  ) {
+    await bootstrapDatabase();
+    const resolvedOwnerId = normalizeOwnerId(ownerId);
+    const ownedSessionId = await this.requireOwnedSessionId(
+      resolvedOwnerId,
+      chatSessionId
+    );
+
+    const current = await prisma.chatSession.findUnique({
+      where: { id: ownedSessionId },
+      select: { pendingRetryCount: true },
+    });
+
+    const session = await prisma.chatSession.update({
+      where: { id: ownedSessionId },
+      data: {
+        ...(input.state ? { state: input.state } : {}),
+        ...(input.requestId !== undefined
+          ? { pendingLastRequestId: input.requestId }
+          : {}),
+        ...(input.errorCode !== undefined
+          ? { pendingLastErrorCode: input.errorCode }
+          : {}),
+        ...(input.incrementRetry
+          ? { pendingRetryCount: (current?.pendingRetryCount ?? 0) + 1 }
+          : {}),
+      },
+    });
+
+    return serializeSession(session);
+  }
+
+  async clearPendingInputState(ownerId: string, chatSessionId: string) {
+    await bootstrapDatabase();
+    const resolvedOwnerId = normalizeOwnerId(ownerId);
+    const ownedSessionId = await this.requireOwnedSessionId(
+      resolvedOwnerId,
+      chatSessionId
+    );
+
+    const session = await prisma.chatSession.update({
+      where: { id: ownedSessionId },
+      data: {
+        state: "idle",
+        pendingInputRequestId: null,
+        pendingQuestion: null,
+        pendingChoicesJson: null,
+        pendingAllowFreeform: true,
+        pendingRequestedAt: null,
+        pendingRetryCount: 0,
+        pendingLastErrorCode: null,
+        pendingLastRequestId: null,
+      },
+    });
+
+    return serializeSession(session);
+  }
+
+  async getPendingInputState(ownerId: string, chatSessionId: string) {
+    await bootstrapDatabase();
+    const session = await prisma.chatSession.findFirst({
+      where: {
+        id: chatSessionId,
+        ownerId: normalizeOwnerId(ownerId),
+      },
+      select: {
+        state: true,
+        pendingInputRequestId: true,
+        pendingQuestion: true,
+        pendingChoicesJson: true,
+        pendingAllowFreeform: true,
+        pendingRequestedAt: true,
+        pendingRetryCount: true,
+        pendingLastErrorCode: true,
+        pendingLastRequestId: true,
+      },
+    });
+
+    if (!session) {
+      return null;
+    }
+
+    return {
+      state: session.state,
+      pendingInput:
+        session.state === "waiting_for_input"
+          ? serializePendingInputState(session)
+          : null,
+    };
   }
 
   async getSessionOwnerId(chatSessionId: string) {

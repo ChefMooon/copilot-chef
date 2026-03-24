@@ -32,7 +32,32 @@ import {
 import { MachineAuthError, requireMachineCallerIdentity } from "@/lib/machine-auth";
 
 const SESSION_TITLE_MAX_LENGTH = 72;
+const SENTINEL_PREFIX = "\x00COPILOT_CHEF_EVENT\x00";
 type ResponseMode = "auto" | "json" | "stream";
+
+type PendingInputPayload = {
+  requestId: string;
+  question: string;
+  choices: string[];
+  allowFreeform: boolean;
+};
+
+type DomainUpdatePayload = {
+  domain: "meal" | "grocery" | "recipe";
+  toolName?: string;
+  toolResult?: unknown;
+};
+
+type ParsedStreamContent = {
+  text: string;
+  pendingInput: PendingInputPayload | null;
+  domainUpdates: DomainUpdatePayload[];
+};
+
+type ParsedSentinel = {
+  event: Record<string, unknown>;
+  cursor: number;
+};
 
 async function readTextFromStream(stream: ReadableStream<Uint8Array>) {
   const reader = stream.getReader();
@@ -47,6 +72,182 @@ async function readTextFromStream(stream: ReadableStream<Uint8Array>) {
   fullText += decoder.decode();
 
   return fullText;
+}
+
+function parseSentinel(raw: string, start: number): ParsedSentinel | null {
+  const newlineIndex = raw.indexOf("\n", start);
+  if (newlineIndex >= 0) {
+    const candidate = raw.slice(start, newlineIndex).trim();
+    try {
+      return {
+        event: JSON.parse(candidate) as Record<string, unknown>,
+        cursor: newlineIndex + 1,
+      };
+    } catch {
+      // Fall back to balanced-brace parse for non-delimited payloads.
+    }
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  let began = false;
+
+  for (let i = start; i < raw.length; i += 1) {
+    const ch = raw[i];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (ch === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (ch === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (ch === "{") {
+      depth += 1;
+      began = true;
+      continue;
+    }
+
+    if (ch === "}") {
+      depth -= 1;
+      if (began && depth === 0) {
+        const candidate = raw.slice(start, i + 1);
+        try {
+          return {
+            event: JSON.parse(candidate) as Record<string, unknown>,
+            cursor: i + 1,
+          };
+        } catch {
+          return null;
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+function buildResponseData(domainUpdates: DomainUpdatePayload[]) {
+  if (domainUpdates.length === 0) {
+    return undefined;
+  }
+
+  const lastMealUpdate = [...domainUpdates]
+    .reverse()
+    .find((update) => update.domain === "meal");
+  const result = lastMealUpdate?.toolResult;
+
+  if (!result || typeof result !== "object") {
+    return {
+      domainUpdates,
+    };
+  }
+
+  const toolResult = result as {
+    meal?: unknown;
+    meals?: unknown;
+    id?: unknown;
+    success?: unknown;
+  };
+
+  return {
+    domainUpdates,
+    meal: toolResult.meal,
+    meals: toolResult.meals,
+    deletedMealId: typeof toolResult.id === "string" ? toolResult.id : undefined,
+    success: toolResult.success,
+    // Compatibility field for Archie integrations expecting mealPlan payloads.
+    mealPlan:
+      toolResult.meal !== undefined
+        ? { meal: toolResult.meal }
+        : Array.isArray(toolResult.meals)
+          ? { meals: toolResult.meals }
+          : undefined,
+    result,
+  };
+}
+
+function parseStreamContent(raw: string): ParsedStreamContent {
+  let text = "";
+  let pendingInput: PendingInputPayload | null = null;
+  const domainUpdates: DomainUpdatePayload[] = [];
+  let cursor = 0;
+
+  while (cursor < raw.length) {
+    const sentinelIdx = raw.indexOf(SENTINEL_PREFIX, cursor);
+    if (sentinelIdx < 0) {
+      text += raw.slice(cursor);
+      break;
+    }
+
+    if (sentinelIdx > cursor) {
+      text += raw.slice(cursor, sentinelIdx);
+    }
+
+    const parsedSentinel = parseSentinel(
+      raw,
+      sentinelIdx + SENTINEL_PREFIX.length
+    );
+    if (!parsedSentinel) {
+      break;
+    }
+
+    try {
+      const event = parsedSentinel.event as {
+        type?: string;
+        question?: string;
+        choices?: string[];
+        allowFreeform?: boolean;
+        domain?: "meal" | "grocery" | "recipe";
+        toolName?: string;
+        toolResult?: unknown;
+      };
+
+      if (event.type === "input_request" && typeof event.question === "string") {
+        pendingInput = {
+          requestId: crypto.randomUUID(),
+          question: event.question,
+          choices: Array.isArray(event.choices)
+            ? event.choices.filter((choice): choice is string => typeof choice === "string")
+            : [],
+          allowFreeform: event.allowFreeform ?? true,
+        };
+      }
+
+      if (
+        event.type === "domain_update" &&
+        (event.domain === "meal" ||
+          event.domain === "grocery" ||
+          event.domain === "recipe")
+      ) {
+        domainUpdates.push({
+          domain: event.domain,
+          toolName: event.toolName,
+          toolResult: event.toolResult,
+        });
+      }
+    } catch {
+      // Skip malformed sentinel payloads.
+    }
+
+    cursor = parsedSentinel.cursor;
+  }
+
+  return { text, pendingInput, domainUpdates };
 }
 
 function makeTextStreamResponse(input: {
@@ -1804,6 +2005,14 @@ async function tryHandleGroceryCommand(
 
 export async function POST(request: Request) {
   const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  const startedAt = Date.now();
+
+  let responseStatus = 500;
+  const retries = 0;
+  let hadPendingInput = false;
+  let responseMode: ResponseMode = "auto";
+  let hasSessionId = false;
+  let hasChatSessionId = false;
 
   try {
     const identity = requireMachineCallerIdentity(request);
@@ -1811,14 +2020,15 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const parsed = chatRequestSchema.parse(body);
-    const responseMode = parsed.responseMode as ResponseMode;
+    responseMode = parsed.responseMode as ResponseMode;
+    hasSessionId = Boolean(parsed.sessionId);
+    hasChatSessionId = Boolean(parsed.chatSessionId);
 
     console.info("[chat-route] request", {
       requestId,
-      callerId: ownerId,
       responseMode,
-      sessionId: parsed.sessionId,
-      chatSessionId: parsed.chatSessionId,
+      hasSessionId,
+      hasChatSessionId,
     });
 
     // Check history persistence preference before calling Copilot.
@@ -1832,6 +2042,7 @@ export async function POST(request: Request) {
         activeChatSessionId
       );
       if (!ownedSession) {
+        responseStatus = 404;
         return NextResponse.json(
           { error: "Session not found", requestId },
           { status: 404 }
@@ -1847,6 +2058,31 @@ export async function POST(request: Request) {
         summarizeSessionTitleFromMessage(parsed.message) ?? undefined
       );
       activeChatSessionId = newSession.id;
+      hasChatSessionId = true;
+    }
+
+    if (activeChatSessionId) {
+      const pendingState = await historyService.getPendingInputState(
+        ownerId,
+        activeChatSessionId
+      );
+
+      if (
+        pendingState?.state === "waiting_for_input" &&
+        pendingState.pendingInput
+      ) {
+        hadPendingInput = true;
+        responseStatus = 200;
+        return NextResponse.json({
+          sessionId: parsed.sessionId,
+          chatSessionId: activeChatSessionId,
+          message: pendingState.pendingInput.question,
+          choices: [],
+          status: "needs_input",
+          needsInput: pendingState.pendingInput,
+          requestId,
+        });
+      }
     }
 
     if (shouldPersist && activeChatSessionId) {
@@ -1884,6 +2120,7 @@ export async function POST(request: Request) {
           `[chat-route] fallback-hit: meal${safeMealFallback ? " (safe)" : ""}`
         );
         if (responseMode === "stream") {
+          responseStatus = 200;
           return makeTextStreamResponse({
             message: mealHandled.message,
             sessionId: parsed.sessionId,
@@ -1892,6 +2129,7 @@ export async function POST(request: Request) {
           });
         }
 
+        responseStatus = 200;
         return NextResponse.json({
           sessionId: parsed.sessionId,
           chatSessionId: activeChatSessionId,
@@ -1921,6 +2159,7 @@ export async function POST(request: Request) {
 
           console.info("[chat-route] fallback-hit: grocery");
           if (responseMode === "stream") {
+            responseStatus = 200;
             return makeTextStreamResponse({
               message: handled.message,
               sessionId: parsed.sessionId,
@@ -1929,6 +2168,7 @@ export async function POST(request: Request) {
             });
           }
 
+          responseStatus = 200;
           return NextResponse.json({
             sessionId: parsed.sessionId,
             chatSessionId: activeChatSessionId,
@@ -1946,7 +2186,10 @@ export async function POST(request: Request) {
     if (!copilotSessionId && activeChatSessionId) {
       const persisted =
         await historyService.getCopilotSessionId(ownerId, activeChatSessionId);
-      if (persisted) copilotSessionId = persisted;
+      if (persisted) {
+        copilotSessionId = persisted;
+        hasSessionId = true;
+      }
     }
 
     const reasoningEffort =
@@ -1978,9 +2221,12 @@ export async function POST(request: Request) {
           activeChatSessionId,
           chefResponse.sessionId
         );
+        await historyService.clearPendingInputState(ownerId, activeChatSessionId);
+        hasSessionId = true;
       }
 
       if (responseMode === "stream") {
+        responseStatus = 200;
         return makeTextStreamResponse({
           message: chefResponse.message,
           sessionId: chefResponse.sessionId,
@@ -1989,6 +2235,7 @@ export async function POST(request: Request) {
         });
       }
 
+      responseStatus = 200;
       return NextResponse.json({
         sessionId: chefResponse.sessionId,
         chatSessionId: activeChatSessionId,
@@ -2004,6 +2251,8 @@ export async function POST(request: Request) {
     // Persist copilotSessionId mapping
     if (activeChatSessionId) {
       await historyService.setCopilotSessionId(ownerId, activeChatSessionId, sessionId);
+      await historyService.setSessionState(ownerId, activeChatSessionId, "completed");
+      hasSessionId = true;
     }
 
     // Tee the stream: one branch for the client, one to capture and save the full response.
@@ -2012,27 +2261,46 @@ export async function POST(request: Request) {
     const snapshotId = activeChatSessionId;
     (async () => {
       const fullText = await readTextFromStream(captureStream);
-      if (shouldPersist && snapshotId) {
-        await historyService.addMessage(
-          ownerId,
-          snapshotId,
-          "assistant",
-          fullText.trim()
-        );
+      const parsedStream = parseStreamContent(fullText);
+
+      if (snapshotId && parsedStream.pendingInput) {
+        hadPendingInput = true;
+        await historyService.setPendingInputState(ownerId, snapshotId, {
+          ...parsedStream.pendingInput,
+          lastRequestId: requestId,
+        });
+      } else if (snapshotId) {
+        await historyService.clearPendingInputState(ownerId, snapshotId);
+      }
+
+      const assistantText =
+        parsedStream.text.trim() || parsedStream.pendingInput?.question || "";
+      if (shouldPersist && snapshotId && assistantText) {
+        await historyService.addMessage(ownerId, snapshotId, "assistant", assistantText);
       }
     })().catch(console.error);
 
     if (responseMode === "json") {
-      const message = (await readTextFromStream(clientStream)).trim();
+      const parsedStream = parseStreamContent(await readTextFromStream(clientStream));
+      const responseData = buildResponseData(parsedStream.domainUpdates);
+      if (parsedStream.pendingInput) {
+        hadPendingInput = true;
+      }
+
+      responseStatus = 200;
       return NextResponse.json({
         sessionId,
         chatSessionId: activeChatSessionId,
-        message,
+        message: parsedStream.text.trim() || parsedStream.pendingInput?.question || "",
         choices: [],
+        status: parsedStream.pendingInput ? "needs_input" : "ok",
+        ...(responseData ? { responseData } : {}),
+        ...(parsedStream.pendingInput ? { needsInput: parsedStream.pendingInput } : {}),
         requestId,
       });
     }
 
+    responseStatus = 200;
     return new Response(clientStream, {
       headers: {
         "Cache-Control": "no-store",
@@ -2046,6 +2314,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof MachineAuthError) {
+      responseStatus = error.status;
       return NextResponse.json(
         { error: error.message, requestId },
         { status: error.status }
@@ -2059,6 +2328,19 @@ export async function POST(request: Request) {
         ? error.stack
         : undefined;
 
+    responseStatus = 400;
     return NextResponse.json({ error: message, stack, requestId }, { status: 400 });
+  } finally {
+    console.info("[chat-route] outcome", {
+      requestId,
+      endpoint: "/api/chat",
+      statusCode: responseStatus,
+      responseMode,
+      latencyMs: Date.now() - startedAt,
+      retries,
+      hadPendingInput,
+      hasSessionId,
+      hasChatSessionId,
+    });
   }
 }

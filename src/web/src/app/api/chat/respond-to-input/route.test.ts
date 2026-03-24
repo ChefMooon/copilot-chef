@@ -3,6 +3,9 @@ import { NextRequest } from "next/server";
 
 const resolveInputRequestMock = vi.fn();
 const getSessionMock = vi.fn();
+const clearPendingInputStateMock = vi.fn();
+const markPendingInputAttemptMock = vi.fn();
+const setSessionStateMock = vi.fn();
 
 vi.mock("@/lib/chat-singletons", () => ({
   chef: {
@@ -10,6 +13,9 @@ vi.mock("@/lib/chat-singletons", () => ({
   },
   historyService: {
     getSession: getSessionMock,
+    clearPendingInputState: clearPendingInputStateMock,
+    markPendingInputAttempt: markPendingInputAttemptMock,
+    setSessionState: setSessionStateMock,
   },
 }));
 
@@ -32,6 +38,9 @@ describe("POST /api/chat/respond-to-input", () => {
     vi.unstubAllEnvs();
     resolveInputRequestMock.mockReset();
     getSessionMock.mockReset();
+    clearPendingInputStateMock.mockReset();
+    markPendingInputAttemptMock.mockReset();
+    setSessionStateMock.mockReset();
 
     delete process.env.PA_MACHINE_AUTH_ENABLED;
     delete process.env.PA_MACHINE_AUTH_TOKEN;
@@ -79,6 +88,7 @@ describe("POST /api/chat/respond-to-input", () => {
 
     expect(response.status).toBe(404);
     expect(getSessionMock).toHaveBeenCalledWith("max-pa", "chat-1");
+    expect(clearPendingInputStateMock).toHaveBeenCalledWith("max-pa", "chat-1");
     expect(resolveInputRequestMock).not.toHaveBeenCalled();
   });
 
@@ -103,6 +113,7 @@ describe("POST /api/chat/respond-to-input", () => {
     );
 
     expect(response.status).toBe(404);
+    expect(clearPendingInputStateMock).toHaveBeenCalledWith("max-pa", "chat-1");
     expect(resolveInputRequestMock).not.toHaveBeenCalled();
   });
 
@@ -127,6 +138,12 @@ describe("POST /api/chat/respond-to-input", () => {
     );
 
     expect(response.status).toBe(200);
+    expect(markPendingInputAttemptMock).toHaveBeenCalledWith("max-pa", "chat-1", {
+      requestId: expect.any(String),
+      state: "completing_input",
+    });
     expect(resolveInputRequestMock).toHaveBeenCalledWith("copilot-1", "yes", true);
+    expect(clearPendingInputStateMock).toHaveBeenCalledWith("max-pa", "chat-1");
+    expect(setSessionStateMock).toHaveBeenCalledWith("max-pa", "chat-1", "completed");
   });
 });

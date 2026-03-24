@@ -310,7 +310,6 @@ describe("stack operations", () => {
     ];
 
     // Simulate redo of add: pop → re-create (new ID "def") → rebind
-    const action = redo.pop()!;
     // Note: redo is a stack, so pop gives last element. But in the hook,
     // the add action would be at the end of redo after undo. Let's re-arrange:
     redo.length = 0;
