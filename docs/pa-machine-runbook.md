@@ -109,3 +109,30 @@ Use `requestId` from response body/headers to correlate server logs.
 - Verify smoke tests.
 - Enable `PA_MACHINE_STRICT_ROUTES=1`.
 - Re-run smoke tests before production promotion.
+
+## Post-Restart Verification
+
+After a process restart, existing `chatSessionId → copilotSessionId` mappings
+are preserved in the database. Use the session probe endpoint to confirm the
+mapping is intact before asking the PA to continue a conversation.
+
+```bash
+curl -sS "$BASE_URL/api/session-probe?chatSessionId=<chatSessionId>" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Status values:**
+
+| Status | Meaning |
+|---|---|
+| `resumable` | Mapping found; next `chat()` will attempt `resumeSession` |
+| `disconnected` | Session was explicitly ended — start a new conversation |
+| `not_found` | Session not owned by this caller or ID is wrong |
+
+**Typical restart sequence:**
+
+1. Restart the process.
+2. Probe each active `chatSessionId` via the endpoint above.
+3. If `resumable`, send the next message normally — the server will call `resumeSession` automatically.
+4. If `disconnected`, start a new `/api/chat` conversation and update your stored IDs.
+5. If `not_found`, verify the token maps to the same `callerId` as when the session was created.

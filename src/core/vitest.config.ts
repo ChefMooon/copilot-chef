@@ -6,5 +6,7 @@ export default defineConfig({
     include: ["src/**/*.test.ts"],
     clearMocks: true,
     restoreMocks: true,
+    globalSetup: ["src/test/integration/global-setup.ts"],
+    setupFiles: ["src/test/integration/setup.ts"],
   },
 });
