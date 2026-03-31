@@ -26,10 +26,13 @@ Primary automated suite:
 
 - [src/core/src/copilot/copilot-chef.tools.test.ts](../src/core/src/copilot/copilot-chef.tools.test.ts)
 
-Existing related suites:
+Related core suites:
 
-- [src/web/src/app/api/chat/route.test.ts](../src/web/src/app/api/chat/route.test.ts)
-- [src/web/src/app/api/preferences/route.test.ts](../src/web/src/app/api/preferences/route.test.ts)
+- [src/core/src/copilot/copilot-chef.session.test.ts](../src/core/src/copilot/copilot-chef.session.test.ts)
+- [src/core/src/test/integration/pa-happy-path.test.ts](../src/core/src/test/integration/pa-happy-path.test.ts)
+- [src/shared/src/config/__tests__/loader.test.ts](../src/shared/src/config/__tests__/loader.test.ts)
+
+> Note: The route-level tests previously in `src/web/src/app/api/` were removed as part of the Next.js → Hono migration. Server route tests for `@copilot-chef/server` have not yet been written.
 
 ## Command Matrix
 

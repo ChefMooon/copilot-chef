@@ -4,14 +4,24 @@
   "private": true,
   "workspaces": [
     "src/core",
-    "src/web"
+    "src/shared",
+    "src/server",
+    "src/client"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @copilot-chef/web",
-    "build": "npm run build --workspace @copilot-chef/core && npm run build --workspace @copilot-chef/web",
-    "test": "npm run test --workspace @copilot-chef/core && npm run test --workspace @copilot-chef/web",
+    "dev": "npm run dev:all",
+    "dev:server": "npm run dev --workspace @copilot-chef/server",
+    "dev:client": "npm run dev --workspace @copilot-chef/client",
+    "dev:all": "concurrently \"npm:dev:server\" \"npm:dev:client\"",
+    "build": "npm run build --workspace @copilot-chef/shared && npm run build --workspace @copilot-chef/core && npm run build --workspace @copilot-chef/server && npm run build --workspace @copilot-chef/client",
+    "build:shared": "npm run build --workspace @copilot-chef/shared",
+    "build:server": "npm run build --workspace @copilot-chef/server",
+    "build:client": "npm run build --workspace @copilot-chef/client",
+    "test": "npm run test --workspace @copilot-chef/core && npm run test --workspace @copilot-chef/shared && npm run test --workspace @copilot-chef/server && npm run test --workspace @copilot-chef/client",
     "test:core": "npm run test --workspace @copilot-chef/core",
-    "test:web": "npm run test --workspace @copilot-chef/web",
+    "test:shared": "npm run test --workspace @copilot-chef/shared",
+    "test:server": "npm run test --workspace @copilot-chef/server",
+    "test:client": "npm run test --workspace @copilot-chef/client",
     "lint": "eslint .",
     "format": "prettier --write .",
     "db:generate": "npm run db:generate --workspace @copilot-chef/core",
@@ -21,6 +31,7 @@
   "devDependencies": {
     "@eslint/js": "^9.24.0",
     "@types/node": "^22.14.0",
+    "concurrently": "^9.2.1",
     "eslint": "^9.24.0",
     "eslint-config-next": "^15.2.4",
     "eslint-config-prettier": "^10.1.1",

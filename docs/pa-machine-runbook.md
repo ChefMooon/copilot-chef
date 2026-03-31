@@ -23,7 +23,7 @@ Recommended production baseline:
 Set variables first:
 
 ```bash
-BASE_URL="http://localhost:3000"
+BASE_URL="http://localhost:3001"
 TOKEN="<machine-token>"
 REQ_ID="smoke-$(date +%s)"
 ```

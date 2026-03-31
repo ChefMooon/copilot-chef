@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build shared
+        run: npm run build --workspace @copilot-chef/shared
+
+      - name: Build core
+        run: npm run build --workspace @copilot-chef/core
+
+      - name: Build server
+        run: npm run build --workspace @copilot-chef/server
+
+      - name: Build client (Vite only)
+        run: npm run build --workspace @copilot-chef/client
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test shared
+        run: npm run test --workspace @copilot-chef/shared
+
+      - name: Test core
+        run: npm run test --workspace @copilot-chef/core
+
+      - name: Test server
+        run: npm run test:server
+
+      - name: Test client
+        run: npm run test:client

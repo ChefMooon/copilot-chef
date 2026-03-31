@@ -12,19 +12,16 @@
 
 ### Related UI Tests
 
-| Test File | Coverage |
-| --- | --- |
-| `src/web/src/app/meal-plan/components/DeleteConfirmationModal.test.ts` | Focus behavior and Escape cancel behavior |
-| `src/web/src/components/providers/toast-provider.test.ts` | Toast rendering, custom duration handling, and action callback |
+These behaviors are validated through manual smoke testing. Automated UI-level tests for modals and toasts have not been ported from the removed `src/web` package. See [docs/developer-guide.md](developer-guide.md) for how to add new Vitest tests to `@copilot-chef/client`.
 
 ### Environment Variables
 
 | Name                          | Description                                         |
 | ----------------------------- | --------------------------------------------------- |
-| `DATABASE_URL`                | SQLite database file path                           |
-| `NEXT_PUBLIC_APP_NAME`        | Application display name shown in the UI            |
-| `COPILOT_MODEL`               | AI model identifier used for chat                   |
-| `NEXT_PUBLIC_PERSONA_ENABLED` | Feature flag to enable the chef persona selector UI |
+| `DATABASE_URL`                | SQLite database file path (backward-compat; prefer `COPILOT_CHEF_DATABASE_URL`) |
+| `COPILOT_CHEF_DATABASE_URL`   | SQLite database file path (preferred env override)  |
+| `COPILOT_CHEF_SERVER_PORT`    | Override server port (default: 3001)                |
+| `COPILOT_MODEL`               | AI model identifier used for chat (default: `gpt-4o-mini`) |
 
 ### User Preferences
 
@@ -63,46 +60,46 @@
 
 #### `DATABASE_URL`
 
-- **Implemented:** Yes
-- **Default:** `file:./src/core/prisma/copilot-chef.db`
+- **Implemented:** Yes (backward-compat fallback; prefer `COPILOT_CHEF_DATABASE_URL`)
+- **Default:** `file:./data/copilot-chef.db`
 - **Affects:** Prisma client configuration; all database reads and writes
 
-#### `NEXT_PUBLIC_APP_NAME`
+#### `COPILOT_CHEF_DATABASE_URL`
 
 - **Implemented:** Yes
-- **Default:** `"Copilot Chef"`
-- **Affects:** `src/web/src/app/layout.tsx` — page title and metadata
+- **Default:** `file:./data/copilot-chef.db`
+- **Affects:** Overrides `database.url` in `copilot-chef-server.toml`; takes precedence over bare `DATABASE_URL`
+
+#### `COPILOT_CHEF_SERVER_PORT`
+
+- **Implemented:** Yes
+- **Default:** `3001`
+- **Affects:** Overrides `server.port` in `copilot-chef-server.toml`
 
 #### `COPILOT_MODEL`
 
 - **Implemented:** Yes
 - **Default:** `gpt-4o-mini`
-- **Affects:** `src/web/src/app/api/chat/route.ts` — model used for all AI completions
-
-#### `NEXT_PUBLIC_PERSONA_ENABLED`
-
-- **Implemented:** Yes (feature flag)
-- **Default:** `"false"`
-- **Affects:** `src/web/src/app/settings/page.tsx` — controls whether the chef persona selector is interactive or shown with a "Coming soon" badge. Persona values persist and inject into the system prompt regardless of this flag.
+- **Affects:** `src/server/src/index.ts` — model passed to the GitHub Copilot SDK for all AI completions. Can also be set via `auth.copilot_model` in `copilot-chef-server.toml`.
 
 ---
 
 ### User Preferences
 
-All preferences are stored in the `UserPreference` Prisma model (`src/core/prisma/schema.prisma`) and managed by `src/core/src/services/preference-service.ts`. They are exposed via the `/api/preferences` route and rendered in `src/web/src/app/settings/page.tsx`.
+All preferences are stored in the `UserPreference` Prisma model (`src/core/prisma/schema.prisma`) and managed by `src/core/src/services/preference-service.ts`. They are exposed via the `/api/preferences` route and rendered in `src/client/src/pages/settings.tsx`.
 
 #### `householdSize`
 
 - **Implemented:** Yes
 - **Default:** `2`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Household card, range slider 1–8), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Household card, range slider 1–8), system prompt context
 
 #### `cookingLength`
 
 - **Implemented:** Yes
 - **Default:** `"weeknight"`
 - **Options:** `quick`, `weeknight`, `relaxed`, `weekend`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Household card, select dropdown), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Household card, select dropdown), system prompt context
 
 #### `dietaryTags`
 
@@ -110,41 +107,41 @@ All preferences are stored in the `UserPreference` Prisma model (`src/core/prism
 - **Default:** `""` (empty)
 - **Format:** Comma-separated string (e.g. `"vegan,gluten-free"`)
 - **Options:** Pescatarian, Vegetarian, Vegan, Omnivore, Keto, Paleo, Gluten-free, Dairy-free, Halal, Kosher
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Dietary Direction card, tag cloud), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Dietary Direction card, tag cloud), system prompt context
 
 #### `favoriteCuisines`
 
 - **Implemented:** Yes
 - **Default:** `""` (empty)
 - **Format:** Comma-separated string
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Cuisines card, tag cloud — mutually exclusive with `avoidCuisines`), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Cuisines card, tag cloud — mutually exclusive with `avoidCuisines`), system prompt context
 
 #### `avoidCuisines`
 
 - **Implemented:** Yes
 - **Default:** `""` (empty)
 - **Format:** Comma-separated string
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Cuisines card, tag cloud — mutually exclusive with `favoriteCuisines`), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Cuisines card, tag cloud — mutually exclusive with `favoriteCuisines`), system prompt context
 
 #### `avoidIngredients`
 
 - **Implemented:** Yes
 - **Default:** `"[]"`
 - **Format:** JSON array of strings
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Avoid & Pantry card, draggable chip list), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Avoid & Pantry card, draggable chip list), system prompt context
 
 #### `pantryStaples`
 
 - **Implemented:** Yes
 - **Default:** `"[]"`
 - **Format:** JSON array of strings
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Avoid & Pantry card, draggable chip list), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Avoid & Pantry card, draggable chip list), system prompt context
 
 #### `planningNotes`
 
 - **Implemented:** Yes
 - **Default:** `""` (empty)
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Planning Notes card, textarea with 600ms debounce), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Planning Notes card, textarea with 600ms debounce), system prompt context
 
 #### `nutritionTags`
 
@@ -152,102 +149,102 @@ All preferences are stored in the `UserPreference` Prisma model (`src/core/prism
 - **Default:** `""` (empty)
 - **Format:** Comma-separated string
 - **Options:** Balanced, High protein, Low carb, Low sodium, Low calorie, Anti-inflammatory, Gut health, Heart-healthy
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Nutrition Focus card, tag cloud), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Nutrition Focus card, tag cloud), system prompt context
 
 #### `skillLevel`
 
 - **Implemented:** Yes
 - **Default:** `"home-cook"`
 - **Options:** `beginner`, `home-cook`, `confident`, `advanced`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Skill & Budget card, select dropdown), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Skill & Budget card, select dropdown), system prompt context
 
 #### `budgetRange`
 
 - **Implemented:** Yes
 - **Default:** `"moderate"`
 - **Options:** `budget`, `moderate`, `premium`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Skill & Budget card, select dropdown), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Skill & Budget card, select dropdown), system prompt context
 
 #### `chefPersona`
 
-- **Implemented:** Yes (UI gated by `NEXT_PUBLIC_PERSONA_ENABLED`)
+- **Implemented:** Yes
 - **Default:** `"coach"`
 - **Options:** `coach`, `scientist`, `entertainer`, `minimalist`, `professor`, `michelin`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Chef Personality card, persona grid), `src/core/src/copilot/system-prompt.ts` (maps to persona instruction injected at prompt start)
+- **Affects:** `preference-service.ts`, `settings.tsx` (Chef Personality card, persona grid), `src/core/src/copilot/system-prompt.ts` (maps to persona instruction injected at prompt start)
 
 #### `replyLength`
 
 - **Implemented:** Yes
 - **Default:** `"balanced"`
 - **Options:** `concise`, `balanced`, `detailed`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Response Style card, segmented control), `src/core/src/copilot/system-prompt.ts` (injects length instruction)
+- **Affects:** `preference-service.ts`, `settings.tsx` (Response Style card, segmented control), `src/core/src/copilot/system-prompt.ts` (injects length instruction)
 
 #### `emojiUsage`
 
 - **Implemented:** Yes
 - **Default:** `"occasional"`
 - **Options:** `none`, `occasional`, `frequent`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Response Style card, segmented control), `src/core/src/copilot/system-prompt.ts` (injects emoji instruction)
+- **Affects:** `preference-service.ts`, `settings.tsx` (Response Style card, segmented control), `src/core/src/copilot/system-prompt.ts` (injects emoji instruction)
 
 #### `autoImproveChef`
 
 - **Implemented:** Yes
 - **Default:** `true`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (AI Behavior card, toggle switch), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (AI Behavior card, toggle switch), system prompt context
 
 #### `contextAwareness`
 
 - **Implemented:** Yes
 - **Default:** `true`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (AI Behavior card, toggle switch), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (AI Behavior card, toggle switch), system prompt context
 
 #### `seasonalAwareness`
 
 - **Implemented:** Yes
 - **Default:** `true`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (AI Behavior card, toggle switch), system prompt context. When enabled, reveals the `seasonalRegion` selector.
+- **Affects:** `preference-service.ts`, `settings.tsx` (AI Behavior card, toggle switch), system prompt context. When enabled, reveals the `seasonalRegion` selector.
 
 #### `seasonalRegion`
 
 - **Implemented:** Yes
 - **Default:** `"eastern-us"`
 - **Options:** Northern US / Canada, Eastern US, Southern US, Western US / Pacific, Western Europe, Mediterranean, East Asia, South Asia, Australia / NZ, Southern hemisphere
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (AI Behavior card, conditional select dropdown), `src/web/src/app/api/preferences/detect-region/route.ts` (auto-detect endpoint), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (AI Behavior card, conditional select dropdown), `src/server/src/routes/preferences.ts` (auto-detect endpoint), system prompt context
 
 #### `proactiveTips`
 
 - **Implemented:** Yes
 - **Default:** `false`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (AI Behavior card, toggle switch), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (AI Behavior card, toggle switch), system prompt context
 
 #### `autoGenerateGrocery`
 
 - **Implemented:** Yes
 - **Default:** `true`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Grocery & Planning card, toggle switch), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Grocery & Planning card, toggle switch), system prompt context
 
 #### `consolidateIngredients`
 
 - **Implemented:** Yes
 - **Default:** `true`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Grocery & Planning card, toggle switch), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Grocery & Planning card, toggle switch), system prompt context
 
 #### `defaultPlanLength`
 
 - **Implemented:** Yes
 - **Default:** `"7"`
 - **Options:** `"3"`, `"7"`, `"14"`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Grocery & Planning card, select dropdown), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Grocery & Planning card, select dropdown), system prompt context
 
 #### `groceryGrouping`
 
 - **Implemented:** Yes
 - **Default:** `"category"`
 - **Options:** `category`, `meal`, `alpha`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Grocery & Planning card, select dropdown), system prompt context
+- **Affects:** `preference-service.ts`, `settings.tsx` (Grocery & Planning card, select dropdown), system prompt context
 
 #### `saveChatHistory`
 
 - **Implemented:** Yes
 - **Default:** `true`
-- **Affects:** `preference-service.ts`, `settings/page.tsx` (Data & Privacy card, toggle switch), `src/core/src/services/chat-history-service.ts`
+- **Affects:** `preference-service.ts`, `settings.tsx` (Data & Privacy card, toggle switch), `src/core/src/services/chat-history-service.ts`

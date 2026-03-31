@@ -1,0 +1,74 @@
+name: Release Server
+
+on:
+  push:
+    tags:
+      - "server-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release Server
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build shared
+        run: npm run build --workspace @copilot-chef/shared
+
+      - name: Build core
+        run: npm run build --workspace @copilot-chef/core
+
+      - name: Build server
+        run: npm run build --workspace @copilot-chef/server
+
+      - name: Test server
+        run: npm run test:server
+        env:
+          DATABASE_URL: "file:./test.db"
+
+      - name: Pack server
+        working-directory: src/server
+        run: npm pack --pack-destination ../../dist
+
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#server-v}" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Server ${{ github.ref_name }}"
+          body: |
+            ## copilot-chef-server ${{ steps.version.outputs.version }}
+
+            ### Installation
+
+            ```bash
+            npm install -g copilot-chef-server@${{ steps.version.outputs.version }}
+            ```
+
+            Or download the tarball below and install locally:
+
+            ```bash
+            npm install -g ./copilot-chef-server-${{ steps.version.outputs.version }}.tgz
+            ```
+
+            ### What's Changed
+
+            See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+          files: dist/copilot-chef-server-*.tgz
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}

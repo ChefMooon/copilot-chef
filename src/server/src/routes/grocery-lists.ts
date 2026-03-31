@@ -1,0 +1,163 @@
+import { Hono } from "hono";
+import { groceryService } from "../services.js";
+
+export const groceryListsRoutes = new Hono();
+
+groceryListsRoutes.get("/grocery-lists", async (c) => {
+  const currentOnly = c.req.query("current") === "1";
+  const data = currentOnly
+    ? await groceryService.getCurrentGroceryList()
+    : await groceryService.listGroceryLists();
+  return c.json({ data });
+});
+
+groceryListsRoutes.post("/grocery-lists", async (c) => {
+  try {
+    const body = await c.req.json();
+    const data = await groceryService.createGroceryList(body);
+    return c.json({ data }, 201);
+  } catch (error) {
+    return c.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Unable to create grocery list",
+      },
+      400
+    );
+  }
+});
+
+groceryListsRoutes.get("/grocery-lists/:id", async (c) => {
+  const id = c.req.param("id");
+  const data = await groceryService.getGroceryList(id);
+  if (!data) {
+    return c.json({ error: "Grocery list not found" }, 404);
+  }
+  return c.json({ data });
+});
+
+groceryListsRoutes.patch("/grocery-lists/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const body = (await c.req.json()) as {
+      name?: string;
+      date?: string;
+      favourite?: boolean;
+    };
+    const data = await groceryService.updateGroceryList(id, body);
+    return c.json({ data });
+  } catch (error) {
+    return c.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Unable to update grocery list",
+      },
+      400
+    );
+  }
+});
+
+groceryListsRoutes.delete("/grocery-lists/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const data = await groceryService.deleteGroceryList(id);
+    return c.json({ data });
+  } catch (error) {
+    return c.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Unable to delete grocery list",
+      },
+      400
+    );
+  }
+});
+
+// Items
+groceryListsRoutes.post("/grocery-lists/:id/items", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const body = (await c.req.json()) as {
+      name: string;
+      qty?: string;
+      unit?: string;
+      category?: string;
+      notes?: string;
+      meal?: string;
+      checked?: boolean;
+    };
+    const data = await groceryService.createGroceryItem(id, body);
+    return c.json({ data }, 201);
+  } catch (error) {
+    return c.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Unable to create grocery item",
+      },
+      400
+    );
+  }
+});
+
+groceryListsRoutes.patch("/grocery-lists/:id/items/:itemId", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const itemId = c.req.param("itemId");
+    const body = (await c.req.json()) as {
+      name?: string;
+      qty?: string | null;
+      unit?: string | null;
+      category?: string;
+      notes?: string | null;
+      meal?: string | null;
+      checked?: boolean;
+    };
+    const data = await groceryService.updateGroceryItem(id, itemId, body);
+    return c.json({ data });
+  } catch (error) {
+    return c.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Unable to update grocery item",
+      },
+      400
+    );
+  }
+});
+
+groceryListsRoutes.delete("/grocery-lists/:id/items/:itemId", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const itemId = c.req.param("itemId");
+    const data = await groceryService.deleteGroceryItem(id, itemId);
+    return c.json({ data });
+  } catch (error) {
+    return c.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Unable to delete grocery item",
+      },
+      400
+    );
+  }
+});
+
+groceryListsRoutes.post("/grocery-lists/:id/reorder", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const body = (await c.req.json()) as { itemIds: string[] };
+    if (!Array.isArray(body.itemIds)) {
+      throw new Error("itemIds must be an array");
+    }
+    const data = await groceryService.reorderGroceryItems(id, body.itemIds);
+    return c.json({ data });
+  } catch (error) {
+    return c.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Unable to reorder grocery items",
+      },
+      400
+    );
+  }
+});

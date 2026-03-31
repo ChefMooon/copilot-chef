@@ -76,8 +76,8 @@ export function findMatchingItems<T extends NamedItem>(items: T[], phrase: strin
   return items.filter((item) => normalizeText(item.name).includes(cleaned));
 }
 
-export function buildItemChoices<T extends NamedItem>(
-  items: T[],
+export function buildItemChoices(
+  items: NamedItem[],
   promptBuilder: (name: string) => string
 ) {
   return items.slice(0, 6).map((item) => ({

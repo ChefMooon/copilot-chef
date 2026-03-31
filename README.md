@@ -1,90 +1,91 @@
 # Copilot Chef
 
-Copilot Chef is a Phase 1 meal-planning MVP built as a small monorepo inside `src/`. It includes a Prisma-backed core package, a Next.js web app, a styled landing page based on the provided prototype, and placeholder routes for the remaining Phase 1 screens.
+An AI-powered meal-planning application built as a **Hono API server + Tauri desktop client** monorepo.
 
-## Workspace Layout
+## Architecture
 
-```text
-src/
-  core/   Shared Prisma models, seed data, services, and CopilotChef orchestration
-  web/    Next.js App Router UI with Tailwind tokens, shadcn-style primitives, and custom CSS modules
+```
+src/core/     @copilot-chef/core    Prisma/SQLite, domain services, CopilotChef AI
+src/shared/   @copilot-chef/shared  Shared types, config schemas, API path constants
+src/server/   @copilot-chef/server  Hono API server + copilot-chef-server CLI
+src/client/   @copilot-chef/client  Tauri + Vite + React desktop app
+data/                               SQLite database file (gitignored)
 ```
 
-## Implemented Phase 1 Scope
+See [docs/architecture.md](docs/architecture.md) for a detailed breakdown.
 
-- `src/core`
-  - Prisma SQLite schema for meals, grocery lists, grocery items, user preferences, and meal logs
-  - Seeded local data for the MVP experience
-  - Service layer for meals, grocery lists, preferences, and meal activity
-  - `CopilotChef` chat orchestration with quick-prompt aware responses
-- `src/web`
-  - Next.js App Router setup
-  - Tailwind token config matching the Copilot Chef style guide
-  - shadcn-style `Button`, `Input`, and `Textarea` primitives
-  - Custom CSS modules for the header shell and landing page chat/heatmap layouts
-  - Home landing page based on the provided prototype
-  - **Chat interface** with ChatPanel, ChatWidget, SlashCommandMenu, and session management
-  - Inline choice buttons for guided assistant responses
-  - Slash commands for quick meal planning and grocery list actions
-  - ChatContext for managing chat state, messages, and page context awareness
-  - Basic Calendar, Meal Plan, Grocery List, Settings, and Stats pages ready for later customization
-  - API routes for chat, meals, grocery lists, preferences, meal logs, and stats
-
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+
-- npm
-- GitHub Copilot CLI (for authentication; run `copilot login` before starting the dev server)
+- Node.js 20+, npm 10+
+- Rust stable + Tauri CLI v2 (for the desktop client)
+- `copilot login` (authenticates the GitHub Copilot SDK)
 
-### Initial Setup
+### Setup
 
 ```bash
-# Install dependencies across all workspaces
 npm install
+npm run db:push        # create the SQLite database
+npm run db:generate    # generate the Prisma client
+npm run db:seed        # seed sample data
+copilot login          # authenticate GitHub Copilot
+```
 
-# Generate Prisma client
-npm run db:generate
+Create a minimal server config:
 
-# Create and initialize the SQLite database with schema
-npm run db:push
+```toml
+# copilot-chef-server.toml
+[server]
+port = 3001
+host = "127.0.0.1"
 
-# Seed the database with sample meals, preferences, and grocery lists
+[database]
+url = "file:./data/copilot-chef.db"
+
+[auth]
+tokens = []
+
+[cors]
+origins = ["tauri://localhost", "http://localhost:5173"]
+```
+
+### Run
+
+```bash
+npm run dev:all        # start server (:3001) + Vite dev server (:5173) together
+npm run dev:server     # server only
+npm run dev:client     # Vite only
+```
+
+Open the desktop window:
+
+```bash
+cd src/client && npx tauri dev
+```
+
+## Commands
+
+```bash
+npm run build          # build all packages
+npm run test           # run all tests
+npm run lint
+npm run format
+npm run db:push        # apply schema changes to SQLite
+npm run db:generate    # regenerate Prisma client after schema change
 npm run db:seed
 ```
 
-### Run The Development Server
+## Documentation
 
-```bash
-npm run dev
-```
+- [Architecture](docs/architecture.md) — packages, data flow, chat streaming, auth, update system, SQLite
+- [Developer Guide](docs/developer-guide.md) — setup, adding features, testing, releases
 
-This starts the Next.js dev server from `src/web` on `http://localhost:3000`.
-
-**Note:** Ensure you have run `copilot login` before starting the dev server to authenticate with the GitHub Copilot SDK.
-
-### Build for Production
-
-```bash
-npm run build
-```
-
-Compiles both `src/core` (TypeScript) and `src/web` (Next.js) into optimized dist/build directories.
-
-## Configuration
-
-### Environment Variables
-
-- **Root `.env.example`**: Documents global app configuration (DATABASE_URL, NEXT_PUBLIC_APP_NAME, COPILOT_MODEL)
-- **`src/core/.env`**: Used by Prisma CLI for database operations
-- **`src/web/.env.local`** (create if needed): Override `COPILOT_MODEL` for the web app; Next.js reads this automatically
-
-For testing with a different Copilot model, set `COPILOT_MODEL` in `src/web/.env.local` (e.g., `COPILOT_MODEL=gpt-4-turbo`).
+To override the AI model, set `COPILOT_MODEL` as an environment variable or via `auth.copilot_model` in `copilot-chef-server.toml` (e.g., `COPILOT_MODEL=gpt-4o`).
 
 ### Database
 
-The SQLite database is created at `src/core/prisma/copilot-chef.db` after running `npm run db:push` and `npm run db:seed`.
+The SQLite database is created at `data/copilot-chef.db` (configured via `database.url` in `copilot-chef-server.toml`) after running `npm run db:push` and `npm run db:seed`.
 
 Seed data includes:
 
@@ -100,15 +101,21 @@ Seed data includes:
 - Deleting from either trash flow or edit modal shows an Undo toast for 30 seconds.
 - After Undo restores the meal, the "Restored ..." confirmation toast lasts 5 seconds.
 
-## UI Tests For Modals And Toasts
+## Testing
 
-Run web package tests:
+Run all tests:
 
 ```bash
-npm run test --workspace @copilot-chef/web
+npm run test
 ```
 
-New UI-focused tests:
+Per-package:
 
-- `src/web/src/app/meal-plan/components/DeleteConfirmationModal.test.ts`
-- `src/web/src/components/providers/toast-provider.test.ts`
+```bash
+npm run test:core
+npm run test:shared
+npm run test:server
+npm run test:client
+```
+
+All packages use [Vitest](https://vitest.dev). See [docs/developer-guide.md](docs/developer-guide.md) for patterns and mocking conventions.
