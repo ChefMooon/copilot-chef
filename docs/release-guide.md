@@ -123,6 +123,23 @@ Wait for CI to go green before tagging.
 
 ## Releasing the Server
 
+### Local Packaging Helper (Recommended)
+
+From the repo root, run:
+
+```bash
+npm run release:server:pack
+```
+
+This command always runs the correct local packaging flow in dependency order:
+
+1. Build `@copilot-chef/shared`
+2. Build `@copilot-chef/core`
+3. Build `@copilot-chef/server` (bundled release artifact)
+4. Pack the server tarball into `src/server/`
+
+Use this before creating or testing a server release tag to ensure the artifact format matches CI.
+
 ### 1. Tag and push
 
 ```bash

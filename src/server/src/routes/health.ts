@@ -3,12 +3,15 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join, dirname } from "node:path";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const currentDir =
+  typeof __dirname !== "undefined"
+    ? __dirname
+    : dirname(fileURLToPath(import.meta.url));
 
 function readVersion(): string {
   try {
     const pkg = JSON.parse(
-      readFileSync(join(__dirname, "../../package.json"), "utf-8")
+      readFileSync(join(currentDir, "../../package.json"), "utf-8")
     ) as { version?: string };
     return pkg.version ?? "unknown";
   } catch {

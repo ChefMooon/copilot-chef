@@ -7,7 +7,10 @@ let client: CopilotClient | undefined;
 let startPromise: Promise<CopilotClient> | undefined;
 
 function getCliPath(): string {
-  const moduleDir = dirname(fileURLToPath(import.meta.url));
+  const moduleDir =
+    typeof __dirname !== "undefined"
+      ? __dirname
+      : dirname(fileURLToPath(import.meta.url));
   const initCwd = process.env["INIT_CWD"];
   const candidates = [
     initCwd

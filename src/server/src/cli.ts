@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { loadServerConfig } from "@copilot-chef/shared";
 import { bootstrapDatabase } from "@copilot-chef/core";
 import { createApp } from "./app.js";
@@ -8,11 +7,14 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const currentDir =
+  typeof __dirname !== "undefined"
+    ? __dirname
+    : dirname(fileURLToPath(import.meta.url));
 
 function getVersion(): string {
   try {
-    const pkg = JSON.parse(readFileSync(join(__dirname, "../../package.json"), "utf8")) as { version: string };
+    const pkg = JSON.parse(readFileSync(join(currentDir, "../package.json"), "utf8")) as { version: string };
     return pkg.version ?? "unknown";
   } catch {
     return "unknown";
