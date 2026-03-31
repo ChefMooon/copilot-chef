@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Generate Prisma client
+        run: npm run db:generate --workspace @copilot-chef/core
+
       - name: Build shared
         run: npm run build --workspace @copilot-chef/shared
 
@@ -41,7 +44,7 @@ jobs:
 
       - name: Pack server
         working-directory: src/server
-        run: npm pack --pack-destination ../../dist
+        run: mkdir -p ../../dist && npm pack --pack-destination ../../dist
 
       - name: Get version from tag
         id: version
