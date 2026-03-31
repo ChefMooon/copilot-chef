@@ -6,8 +6,6 @@
 |---|---|---|
 | Node.js | >= 20.x | https://nodejs.org |
 | npm | >= 10.x | Ships with Node.js |
-| Rust toolchain | stable >= 1.75 | `rustup` from https://rustup.rs |
-| Tauri CLI v2 | ^2 | `cargo install tauri-cli --version "^2"` |
 | GitHub Copilot CLI | any | `copilot login` (auth only) |
 
 ---
@@ -16,11 +14,12 @@
 
 ```
 copilot-chef/
-├── src/core/      @copilot-chef/core    Prisma schema, domain services, CopilotChef AI
-├── src/shared/    @copilot-chef/shared  Shared types, config schemas, API constants
-├── src/server/    @copilot-chef/server  Hono API server, CLI, update logic
-├── src/client/    @copilot-chef/client  Tauri + Vite + React desktop app
-├── data/                               SQLite database file (gitignored)
+├── src/main/      Electron main process, IPC, embedded Hono server
+├── src/preload/   Electron contextBridge surface
+├── src/renderer/  React UI
+├── src/shared/    Shared types, config schemas, API constants
+├── prisma/        Prisma schema
+├── resources/     Icons and packaged app resources
 ├── docs/
 │   ├── architecture.md                 How the system works
 │   └── developer-guide.md              This file
@@ -46,121 +45,63 @@ npm run db:generate
 # 4. Seed sample data
 npm run db:seed
 
-# 5. Create a default server config (edit as needed)
-cat > copilot-chef-server.toml << 'EOF'
-[server]
-port = 3001
-host = "127.0.0.1"
-log_level = "info"
-
-[database]
-url = "file:./data/copilot-chef.db"
-
-[auth]
-tokens = []
-copilot_model = "gpt-4o-mini"
-
-[updates]
-check_on_startup = false
-
-[cors]
-origins = ["tauri://localhost", "http://localhost:5173"]
-EOF
-
-# 6. Authenticate with GitHub Copilot (required for chat to work)
+# 5. Authenticate with GitHub Copilot (required for chat to work)
 copilot login
 ```
 
-> **Note**: `data/` is gitignored. The SQLite file is created in your working directory and never committed.
+> **Note**: The Electron app creates its SQLite database under the app user data directory at runtime. The Prisma schema still lives in `prisma/schema.prisma`.
 
 ---
 
 ## 4. Running in Development
 
-### Start everything (recommended)
+### Start the Electron app
 
 ```bash
-npm run dev:all
+npm run dev
 ```
 
-This launches the Hono server (`:3001`) and the Vite dev server (`:5173`) concurrently using `concurrently`.
+This starts the Electron main process, preload bundle, and renderer with `electron-vite` hot reload.
 
-### Start individually
+### Build a production bundle
 
 ```bash
-npm run dev:server   # Hono server only (tsx watch, hot-reloads on save)
-npm run dev:client   # Vite dev server only (browser at http://localhost:5173)
+npm run build
 ```
 
-Use individual starts when debugging one layer or when the other is already running.
-
-### Open the Tauri desktop window
+### Build a Windows installer
 
 ```bash
-cd src/client
-npx tauri dev
+npm run build:win
 ```
-
-This runs the Vite dev server internally and opens a native window. Requires the Hono server to already be running.
 
 ---
 
 ## 5. Configuration
 
-### Server config file
+The desktop app primarily uses Electron settings storage plus environment variables.
 
-`copilot-chef-server.toml` (searched in CWD, then app data dir, then home dir):
+Important runtime settings are stored in the app settings file managed by `src/main/settings/store.ts`.
 
-```toml
-[server]
-port = 3001
-host = "127.0.0.1"          # "0.0.0.0" to expose on LAN
-log_level = "info"
+Key settings:
 
-[database]
-url = "file:./data/copilot-chef.db"
-
-[auth]
-tokens = ["your-api-key"]   # empty list = no auth required (dev only)
-copilot_model = "gpt-4o-mini"
-
-[updates]
-check_on_startup = true
-
-[cors]
-origins = ["tauri://localhost", "http://localhost:5173"]
-```
-
-### Client config file
-
-`copilot-chef-client.toml` in the Tauri app data directory:
-
-- If the file is missing or invalid on first launch, the client automatically recreates it using defaults.
-
-```toml
-[connection]
-serverUrl = "http://localhost:3001"
-apiKey = ""
-autoLaunchServer = false  # set true to spawn server automatically
-serverBinaryPath = ""
-
-[updates]
-checkOnStartup = true
-
-[ui]
-theme = "system"
-```
+- `server_mode`: `local` or `remote`
+- `server_port`: local embedded server port
+- `remote_server_url`: remote API URL when using remote mode
+- `remote_api_key`: bearer token for remote mode
+- `app_close_to_tray`: whether closing hides to tray
+- `copilot_model`: Copilot model override
 
 ### Environment variable overrides
 
-Environment variables override TOML values. Useful for CI and Docker.
+Useful environment variables:
 
 | Variable | Maps to |
 |---|---|
-| `COPILOT_CHEF_SERVER_PORT` | `server.port` |
-| `COPILOT_CHEF_DATABASE_URL` | `database.url` |
-| `DATABASE_URL` | `database.url` (backward-compat) |
-| `COPILOT_MODEL` | `auth.copilot_model` |
+| `COPILOT_CHEF_DATABASE_URL` | Prisma datasource override |
+| `COPILOT_MODEL` | Copilot model override |
+| `PA_MACHINE_AUTH_ENABLED` | Enables PA/machine auth middleware |
+| `PA_MACHINE_AUTH_TOKENS` | Machine auth token mappings |
 
 ---
 
@@ -174,16 +115,16 @@ schema change → service method → server route → client page/component
 
 ### New database model
 
-1. Add model to `src/core/prisma/schema.prisma`
+1. Add model to `prisma/schema.prisma`
 2. Run `npm run db:push` (applies schema to SQLite)
 3. Run `npm run db:generate` (regenerates Prisma client)
-4. Create a service in `src/core/src/services/` following the pattern below
-5. Export from `src/core/src/index.ts`
+4. Create or update a service in `src/main/server/services/`
+5. Export it from `src/main/server/services.ts` if needed
 
 **Service pattern** (every method follows this):
 ```ts
 async getItems(): Promise<Item[]> {
-  await bootstrap();
+  await bootstrapDatabase();
   const rows = await prisma.item.findMany();
   return rows.map(serialize);
 }
@@ -191,29 +132,21 @@ async getItems(): Promise<Item[]> {
 
 ### New API route
 
-Create `src/server/src/routes/<resource>.ts`:
+Create `src/main/server/routes/<resource>.ts`:
 
 ```ts
 import { Hono } from "hono";
-import { MyService } from "@copilot-chef/core";
+import { myService } from "../services";
 
-const service = new MyService();
 export const myRoutes = new Hono();
 
 myRoutes.get("/my-resource", async (c) => {
-  const data = await service.getAll();
+  const data = await myService.getAll();
   return c.json(data);
-});
-
-myRoutes.post("/my-resource", async (c) => {
-  const body = await c.req.json();
-  // validate with Zod, call service, return
-  const created = await service.create(body);
-  return c.json(created, 201);
 });
 ```
 
-Register it in `src/server/src/app.ts`:
+Register it in `src/main/server/app.ts`:
 ```ts
 import { myRoutes } from "./routes/my-resource.js";
 app.route("/api", myRoutes);
@@ -221,9 +154,9 @@ app.route("/api", myRoutes);
 
 ### New client page
 
-1. Create `src/client/src/pages/my-page.tsx`
-2. Add a route in `src/client/src/router.tsx`
-3. Add a nav link in `src/client/src/components/layout/app-shell.tsx`
+1. Create `src/renderer/pages/my-page.tsx`
+2. Add a route in `src/renderer/router.tsx`
+3. Add navigation in `src/renderer/components/layout/`
 
 ```tsx
 // pages/my-page.tsx
@@ -241,7 +174,7 @@ export default function MyPage() {
 
 ### New chat slash command
 
-Add to `src/client/src/components/chat/slash-commands.ts`:
+Add to `src/renderer/components/chat/slash-commands.ts`:
 
 ```ts
 {
@@ -262,92 +195,53 @@ For commands requiring special client-side processing (e.g., navigation), extend
 # Run all tests
 npm run test
 
-# Per-package
-npm run test:core
-npm run test:shared
-npm run test:server
-npm run test:client
-
 # Single test file
-cd src/server && npx vitest run src/routes/__tests__/meals.test.ts
+npx vitest run src/main/server/copilot/copilot-chef.tools.test.ts
 ```
 
-Tests use [Vitest](https://vitest.dev). Mock Prisma and fetch using `vi.mock()`. See existing tests in `src/server/src/routes/__tests__/` and `src/client/src/test/` for patterns.
+Tests use [Vitest](https://vitest.dev). Current test coverage lives primarily under `src/main/server/` and `src/shared/config/__tests__/`.
 
 ---
 
 ## 8. Database Changes
 
 ```bash
-# After editing src/core/prisma/schema.prisma:
+# After editing prisma/schema.prisma:
 npm run db:push       # apply schema change to SQLite (no migration files)
 npm run db:generate   # regenerate Prisma client
 ```
 
 > **Never skip `db:generate` after `db:push`.** Stale Prisma clients produce runtime type errors that look like import errors.
 
-If you need to reset the database entirely:
-
-```bash
-rm data/copilot-chef.db data/copilot-chef.db-wal data/copilot-chef.db-shm
-npm run db:push
-npm run db:seed
-```
+If you need to reset a local dev database, remove the SQLite file from the app data directory or point `COPILOT_CHEF_DATABASE_URL` at a fresh file and rerun setup.
 
 ---
 
-## 9. Database Backup
-
-Safe backup (WAL is checkpointed first):
+## 9. Building
 
 ```bash
-copilot-chef-server db backup ./backups/copilot-chef-$(date +%Y%m%d).db
-```
-
-Manual backup (also safe after a WAL checkpoint):
-
-```bash
-copilot-chef-server db status    # verify WAL is checkpointed
-cp data/copilot-chef.db backups/copilot-chef.db
-```
-
----
-
-## 10. Building
-
-```bash
-# Build all TypeScript packages
 npm run build
-
-# Build individual packages
-npm run build:shared
-npm run build:server
-npm run build:client    # Vite build (JS/CSS bundle only)
-
-# Build Tauri desktop installer (requires Rust + Tauri CLI)
-cd src/client
-npx tauri build
+npm run build:win
 ```
 
-The Tauri installer is output to `src/client/src-tauri/target/release/bundle/`.
+Packaged Windows artifacts are emitted by Electron Builder under the build output directory used during packaging.
 
----
 
-## 11. Debugging
+## 10. Debugging
 
 ### Server logs
 
-The Hono logger middleware prints every request to stdout. Start with `npm run dev:server` and watch the terminal.
+The embedded Hono server runs inside the Electron main process. Start with `npm run dev` and watch the Electron terminal output.
 
 ```
-[server] listening on http://127.0.0.1:3001
+[copilot-chef] server started on http://localhost:3001
 GET /api/health  200  4ms
 POST /api/chat   200  1234ms
 ```
 
-### Tauri DevTools
+### Electron DevTools
 
-Press `F12` inside the Tauri window (dev builds only) to open Chromium DevTools. Network tab shows all API requests including streaming chat.
+Press `F12` in the Electron window during development to open Chromium DevTools. The Network tab shows renderer requests to the embedded server.
 
 ### Copilot auth issues
 
@@ -356,37 +250,18 @@ Run `copilot login` and verify with `copilot auth status`. The SDK reads credent
 ### SQLite lock issues
 
 If the server fails to start with `SQLITE_BUSY` or lock errors:
-- Check for stale `.db-wal` or `.db-shm` files
-- Ensure no other process has the database file open
-- The server is the only process that should open `data/copilot-chef.db`
+- Ensure no other process is holding the app database file open.
+- Check any custom `COPILOT_CHEF_DATABASE_URL` override you are using.
+- Let the Electron app own the SQLite connection; the renderer should never touch the database directly.
 
----
 
-## 12. Release Process
+## 11. Release Process
 
-### Server release
-
-```bash
-git tag server-v1.2.0
-git push origin server-v1.2.0
-```
-
-GitHub Actions (`release-server.yml`) builds, tests, packs, and uploads the `.tgz` to GitHub Releases.
-
-### Client release
+### Desktop app release
 
 ```bash
-git tag client-v1.2.0
-git push origin client-v1.2.0
+git tag v1.2.0
+git push origin v1.2.0
 ```
 
-GitHub Actions (`release-client.yml`) builds Tauri installers for Windows, macOS, and Linux and uploads them to GitHub Releases. The Tauri updater plugin uses these assets.
-
-### Combined release (breaking API changes)
-
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-Create the GitHub Release manually and attach assets from both the server and client release workflows.
+GitHub Actions (`release-client.yml`) rebuilds the app, reruns lint and tests as a validation gate, and then packages and publishes the Windows Electron installer.

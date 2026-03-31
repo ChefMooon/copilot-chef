@@ -1,3 +1,5 @@
+> Historical note: This document is retained as planning history. It may describe intermediate migration work rather than the current app structure. See `docs/architecture.md` and `docs/developer-guide.md` for the current implementation.
+
 # Copilot SDK Full-Surface Upgrade Plan
 
 > Handoff plan for an implementation agent. Finish the Copilot SDK upgrade by closing session-parity gaps and moving route-only chat capabilities into first-class SDK tools.

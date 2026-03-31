@@ -1,3 +1,5 @@
+> Historical note: This migration plan is retained for design history only. It documents the abandoned Next.js to Hono plus Tauri migration path and no longer reflects the current Electron app layout or release process. See `docs/architecture.md`, `docs/developer-guide.md`, and `docs/release-guide.md` for the current source of truth.
+
 # Server-Client Architecture Migration Plan (v2 — SQLite)
 
 > This document is a complete migration guide for restructuring Copilot Chef from a Next.js fullstack app into a standalone Hono API server + Tauri v2 desktop client, using **SQLite** (with WAL mode) as the database.
@@ -16,7 +18,7 @@ SQLite is often dismissed for "multi-user" scenarios, but the architecture of th
 
 3. **Read-heavy workload**: Viewing meal plans, browsing recipes, and loading grocery lists are all reads. SQLite in WAL mode allows unlimited concurrent readers alongside a single writer with zero contention.
 
-4. **Zero infrastructure**: No database server to install, configure, back up, or version-manage. `DATABASE_URL=file:./data/copilot-chef.db` — that's the entire setup. The database file can be copied, moved, or backed up by simply copying a single file.
+4. **Zero infrastructure**: No database server to install, configure, back up, or version-manage. The app defaults to `file:./data/copilot-chef.db` with no env setup required. The database file can be copied, moved, or backed up by simply copying a single file.
 
 ### SQLite Concurrency Protections (Applied in Phase 0)
 
@@ -265,7 +267,7 @@ Phase 1 (Shared Package)
 
 ### Prerequisites
 
-- [ ] User has a `DATABASE_URL` pointing to a SQLite file (or will set one)
+- [ ] No database env var required (defaults to `file:./data/copilot-chef.db`)
 
 ### Step 0.1: Set Prisma schema provider to SQLite
 
@@ -274,7 +276,7 @@ Set the datasource in `src/core/prisma/schema.prisma`:
 ```prisma
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = env("COPILOT_CHEF_DATABASE_URL")
 }
 ```
 
@@ -292,7 +294,7 @@ Review the schema for anything that needs adjusting for SQLite compatibility:
 
 Replace `src/core/src/lib/prisma.ts` with a version that:
 
-1. Validates `DATABASE_URL` is set and is a `file:` URL
+1. Uses `COPILOT_CHEF_DATABASE_URL` if provided, otherwise defaults to `file:./data/copilot-chef.db`
 2. Configures WAL mode and performance PRAGMAs after client initialization
 3. Keeps the existing global singleton pattern
 
@@ -303,16 +305,13 @@ const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClient;
 };
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL is not set. Set it to a SQLite file path, e.g. file:./data/copilot-chef.db"
-  );
-}
+const databaseUrl =
+  process.env.COPILOT_CHEF_DATABASE_URL ?? "file:./data/copilot-chef.db";
 
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    datasourceUrl: process.env.DATABASE_URL,
+    datasourceUrl: databaseUrl,
     log:
       process.env.NODE_ENV === "development"
         ? ["warn", "error"]
@@ -337,19 +336,13 @@ if (process.env.NODE_ENV !== "production") {
 }
 ```
 
-### Step 0.4: Update DATABASE_URL in env files
+### Step 0.4: Optional env overrides (only if custom path is needed)
 
-Update all `.env` files to use SQLite file paths:
+No `.env` file is required for the default SQLite path.
 
-**Root `.env`**:
-```
-DATABASE_URL="file:./src/core/prisma/copilot-chef.db"
-```
+If a custom path is needed, set one of:
 
-**`src/core/.env`**:
-```
-DATABASE_URL="file:./prisma/copilot-chef.db"
-```
+- `COPILOT_CHEF_DATABASE_URL=file:./custom.db`
 
 ### Step 0.5: Review bootstrap.ts and seed.ts
 
@@ -375,7 +368,7 @@ Run `npm run test` to verify all core and web tests still pass with SQLite.
 
 - [ ] Prisma schema uses `provider = "sqlite"`
 - [ ] `prisma.ts` sets WAL mode, busy_timeout, synchronous, and foreign_keys PRAGMAs
-- [ ] `DATABASE_URL` points to a SQLite file in all `.env` files
+- [ ] Database connection works with default `file:./data/copilot-chef.db` or an explicit override
 - [ ] `npm run db:push` succeeds against SQLite
 - [ ] `npm run db:generate` succeeds
 - [ ] `npm run db:seed` populates data
@@ -421,7 +414,7 @@ const ServerConfigSchema = z.object({
     logLevel: z.enum(["debug", "info", "warn", "error"]).default("info"),
   }),
   database: z.object({
-    url: z.string(), // file:./data/copilot-chef.db
+    url: z.string().default("file:./data/copilot-chef.db"),
   }),
   auth: z.object({
     tokens: z.array(z.string()).default([]),
@@ -463,7 +456,6 @@ const ClientConfigSchema = z.object({
 - `loadClientConfig(configPath?)` — same pattern
 - Config file search order: explicit path → CWD → app data dir → home dir
 - Env var mapping: `COPILOT_CHEF_SERVER_PORT` → `server.port`, `COPILOT_CHEF_DATABASE_URL` → `database.url`, etc.
-- Falls back to `.env` `DATABASE_URL` for backward compatibility
 
 ### Step 1.4: API contract types
 
@@ -1200,7 +1192,6 @@ theme = "system"           # system | light | dark
 | `COPILOT_CHEF_SERVER_HOST` | `server.host` | Server |
 | `COPILOT_CHEF_SERVER_LOG_LEVEL` | `server.logLevel` | Server |
 | `COPILOT_CHEF_DATABASE_URL` | `database.url` | Server |
-| `DATABASE_URL` | `database.url` (fallback) | Server (backward compat) |
 | `COPILOT_CHEF_AUTH_TOKENS` | `auth.tokens` (comma-separated) | Server |
 | `COPILOT_CHEF_COPILOT_MODEL` | `auth.copilotModel` | Server |
 | `COPILOT_CHEF_CLIENT_SERVER_URL` | `connection.serverUrl` | Client |
@@ -1268,6 +1259,6 @@ This section documents why SQLite was chosen and when to reconsider.
 | **Max database size** | 281 TB | Unlimited (practical) |
 | **Full-text search** | FTS5 extension (not needed yet) | Built-in `tsvector` |
 | **Deployment** | Nothing to deploy — file lives next to server | Separate service to manage |
-| **Migration path** | Change Prisma `provider` to `"postgresql"`, adjust `DATABASE_URL` | — |
+| **Migration path** | Change Prisma `provider` to `"postgresql"`, adjust `COPILOT_CHEF_DATABASE_URL` | — |
 
 For a LAN meal planning app with <10 simultaneous users and <100 writes/minute, SQLite is more than sufficient and dramatically simpler to set up and maintain.

@@ -1,3 +1,5 @@
+> Historical note: This research document is retained for architectural history. It captures an earlier future-state proposal centered on a Tauri client and should not be treated as the current source of truth. See `docs/architecture.md`, `docs/developer-guide.md`, and `docs/release-guide.md` for the current Electron app.
+
 # Future Architecture for Copilot Chef
 
 ## Status
@@ -136,7 +138,7 @@ The current repository already has most of the backend shape in place:
 - Core services live in `src/core`
 - API routes live in `src/web/src/app/api`
 - Copilot session state is managed in the backend process
-- The database is already driven by `DATABASE_URL`
+- The database already defaults to `file:./data/copilot-chef.db` (with optional env overrides)
 - Browser-only preferences are already isolated to local storage
 
 That means the main work ahead is packaging and extraction, not a rewrite of the domain model.

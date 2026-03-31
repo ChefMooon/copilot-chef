@@ -2,32 +2,28 @@
 
 ## 1. System Overview
 
-Copilot Chef is a meal-planning application structured as a **four-package npm monorepo**. The architecture separates concerns cleanly: a shared contract layer, a standalone API server, a desktop client, and the core domain logic.
+Copilot Chef is a meal-planning Electron desktop application. The architecture separates the Electron main process, preload bridge, React renderer, and shared contract layer.
 
 ```
 ┌────────────────────────────────────────────────────────────┐
-│  Tauri Desktop Client  (React + React Router)              │
-│  src/client/   @copilot-chef/client                        │
+│  Electron Renderer  (React + React Router)                │
+│  src/renderer/                                             │
 └──────────────────────────┬─────────────────────────────────┘
-                           │ HTTP  (Authorization: Bearer <key>)
+                           │ HTTP to embedded local server
                            ▼
 ┌────────────────────────────────────────────────────────────┐
-│  Hono API Server  (Node.js)                                │
-│  src/server/   @copilot-chef/server                        │
+│  Electron Main Process                                     │
+│  src/main/                                                 │
 │                                                            │
-│  ┌─────────────┐  ┌──────────────────────────────────┐    │
-│  │auth middleware│  │ route handlers  (meals, grocery, │    │
-│  └─────────────┘  │ recipes, chat, stats, …)         │    │
-│                   └──────────────┬───────────────────┘    │
-│                                  │                         │
-│  ┌───────────────────────────────▼──────────────────────┐ │
-│  │  @copilot-chef/core  (Prisma services, CopilotChef) │ │
-│  └───────────────────────────────┬──────────────────────┘ │
-│                                  │                         │
-│                           ┌──────▼──────┐                  │
-│                           │  SQLite     │                  │
-│                           │  (WAL mode) │                  │
-│                           └─────────────┘                  │
+│  ┌───────────────┐  ┌──────────────────────────────────┐  │
+│  │ IPC handlers  │  │ Embedded Hono server             │  │
+│  │ settings/app  │  │ routes, auth, chat, meals, etc.  │  │
+│  └───────────────┘  └──────────────┬───────────────────┘  │
+│                                    │                       │
+│                             ┌──────▼──────┐                │
+│                             │  SQLite     │                │
+│                             │  (WAL mode) │                │
+│                             └─────────────┘                │
 └────────────────────────────────────────────────────────────┘
 
                            ▲
@@ -43,12 +39,12 @@ The PA (personal assistant) and any other machine callers reach the same Hono se
 
 | Package | Path | Responsibilities |
 |---|---|---|
-| `@copilot-chef/core` | `src/core/` | Prisma schema, all domain service classes, `CopilotChef` AI orchestration, `bootstrap()`, `seed()` |
-| `@copilot-chef/shared` | `src/shared/` | Shared types, Zod schemas, API path constants, server + client config schemas, TOML config loaders |
-| `@copilot-chef/server` | `src/server/` | Hono app, all API route handlers, auth middleware, CLI (`copilot-chef-server`), update-check logic |
-| `@copilot-chef/client` | `src/client/` | Tauri + Vite + React desktop app, React Router pages, client config loading, server connection manager, Tauri update plugin |
+| Main process | `src/main/` | Electron lifecycle, tray, IPC, embedded Hono server, settings storage, updater integration |
+| Preload | `src/preload/` | Safe contextBridge API exposed to the renderer |
+| Renderer | `src/renderer/` | React pages, components, routing, API client, connection handling |
+| Shared | `src/shared/` | Shared types, Zod schemas, API path constants, config helpers |
 
-`src/web/` (Next.js) was the original fullstack package and has been removed.
+The old Tauri and Next.js package layout has been removed.
 
 ---
 
@@ -112,26 +108,12 @@ The sentinel parser extracts these from the raw text stream without buffering. N
 
 Both server and client use TOML configuration files with environment variable overrides.
 
-### Server: `copilot-chef-server.toml`
+The app uses two configuration paths:
 
-Resolution order (first found wins):
-1. Explicit `--config` CLI flag
-2. `./copilot-chef-server.toml` (CWD)
-3. App data directory
-4. Home directory
+1. Electron settings stored under the user data directory through `src/main/settings/store.ts`.
+2. Environment variable overrides consumed by the embedded server and shared config loader.
 
-Environment variable overrides use the `COPILOT_CHEF_` prefix:
-
-| Env Var | Config Key |
-|---|---|
-| `COPILOT_CHEF_SERVER_PORT` | `server.port` |
-| `COPILOT_CHEF_SERVER_HOST` | `server.host` |
-| `COPILOT_CHEF_DATABASE_URL` | `database.url` |
-| `DATABASE_URL` | `database.url` (backward-compat fallback) |
-
-### Client: `copilot-chef-client.toml`
-
-Stored in the Tauri app data directory via `@tauri-apps/plugin-fs`. If the file is missing or invalid on first launch, the app loads defaults and recreates the file automatically.
+Important environment variables include `COPILOT_CHEF_DATABASE_URL`, `COPILOT_MODEL`, and the `PA_MACHINE_*` auth variables.
 
 ---
 
@@ -139,9 +121,9 @@ Stored in the Tauri app data directory via `@tauri-apps/plugin-fs`. If the file 
 
 ### Client API key
 
-All HTTP requests from the desktop client include `Authorization: Bearer <api-key>`. The key is configured in `copilot-chef-client.toml` and validated against `config.auth.tokens` in the server config.
+In local embedded mode, the main process generates a per-session auth token and passes it to the renderer over IPC. The renderer then includes that token in its HTTP requests to the embedded server.
 
-`GET /api/health` is public — no token required.
+In remote mode, the renderer uses the configured remote URL and API key from settings.
 
 ### PA machine auth
 
@@ -155,25 +137,18 @@ Routes that require machine identity use `requireMachineCallerIdentity` middlewa
 
 ## 7. Update System
 
-Server and client use **separate release tags** in the same GitHub repository.
+The desktop app release currently uses a single `v{semver}` tag in the same GitHub repository.
 
 | Component | Tag format | Example |
 |---|---|---|
-| Server | `server-v{semver}` | `server-v1.2.0` |
-| Client | `client-v{semver}` | `client-v1.2.0` |
-| Combined | `v{semver}` | `v1.0.0` |
-
-### Server updates
-
-- On startup (if `config.updates.checkOnStartup`): `checkForUpdate()` fetches the GitHub Releases API, filters for `server-v*` tags, compares semver, and logs a notice if a newer version is available.
-- `copilot-chef-server update` — downloads and installs the latest release tarball, then prints a restart instruction. Auto-restart is intentionally not implemented.
+| Desktop app | `v{semver}` | `v1.2.0` |
 
 ### Client updates
 
-- Powered by `@tauri-apps/plugin-updater` with endpoint pointing to GitHub Releases.
+- Powered by `electron-updater` against the GitHub publish target defined in `package.json`.
 - On startup: silent check; notification badge shown if update available.
 - Settings page: "Check for Updates" button, current version, "Install & Restart" action.
-- Binary is signed; Tauri verifies the signature before installing.
+- Release metadata is published through Electron Builder.
 
 ---
 
@@ -210,7 +185,7 @@ This checkpoints the WAL first (`PRAGMA wal_checkpoint(TRUNCATE)`), then copies 
 
 ## 9. Connection Model
 
-The client requires an active server connection. Offline mode is not supported.
+The renderer requires an active server connection. In local mode that server runs in the same Electron process; in remote mode it targets a configured external server.
 
 `lib/connection.ts` exports `useServerConnection()` which:
 

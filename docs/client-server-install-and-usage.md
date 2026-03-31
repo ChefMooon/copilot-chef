@@ -2,22 +2,14 @@
 
 This guide explains how to install, configure, run, and use both parts of Copilot Chef:
 - Server: Hono API service
-- Client: React/Tauri desktop app (and Vite dev UI)
+- Client: Electron desktop app with a React renderer
 
 ## 1. Prerequisites
 
 Install these first:
 - Node.js 20+
 - npm 10+
-- Rust stable (required for Tauri desktop client)
-- Tauri CLI v2
 - GitHub Copilot CLI authentication (`copilot login`)
-
-Recommended install commands:
-
-```bash
-cargo install tauri-cli --version "^2"
-```
 
 Then authenticate Copilot:
 
@@ -64,7 +56,7 @@ copilot_model = "gpt-4o-mini"
 check_on_startup = false
 
 [cors]
-origins = ["tauri://localhost", "http://localhost:5173"]
+origins = ["http://localhost:5173"]
 ```
 
 Notes:
@@ -83,50 +75,27 @@ The server listens on `http://127.0.0.1:3001` by default.
 
 ## 6. Run the Client
 
-You have two ways to run the client.
-
-### Option A: Vite web client (fastest for UI development)
-
-From the repository root:
+Run the desktop app from the repository root:
 
 ```bash
-npm run dev:client
+npm run dev
 ```
 
-Open `http://localhost:5173`.
-
-### Option B: Tauri desktop app
-
-From `src/client`:
-
-```bash
-npm run tauri dev
-```
-
-Important:
-- Start the server first (`npm run dev:server`), unless you have enabled auto-launch in client settings.
+This starts Electron and the renderer dev server together.
 
 ## 7. Run Client and Server Together
 
-From the repository root:
-
-```bash
-npm run dev:all
-```
-
-This starts:
-- Server on port 3001
-- Vite client on port 5173
+The Electron app starts the embedded local server automatically when `server_mode` is `local`.
 
 ## 8. Configure Client Connection
 
-The client stores config in `copilot-chef-client.toml` in the app data directory.
+The app stores connection settings in the Electron settings file under the user data directory.
 
-Connection fields:
-- `connection.serverUrl` (default: `http://localhost:3001`)
-- `connection.apiKey` (must match a server auth token when tokens are enabled)
-- `connection.autoLaunchServer` (default: `true`)
-- `connection.serverBinaryPath` (optional explicit path to server binary)
+Connection-related settings include:
+- `server_mode`
+- `server_port`
+- `remote_server_url`
+- `remote_api_key`
 
 If the UI cannot connect:
 - Verify server is running.
@@ -138,23 +107,10 @@ If the UI cannot connect:
 1. Start server:
 
 ```bash
-npm run dev:server
+npm run dev
 ```
 
-2. Start client:
-
-```bash
-npm run dev:client
-```
-
-or desktop:
-
-```bash
-cd src/client
-npm run tauri dev
-```
-
-3. Use the app:
+2. Use the app:
 - Meal Plan: schedule meals by date/week/month.
 - Grocery List: track and complete shopping items.
 - Recipes: browse and manage recipes.
@@ -167,9 +123,10 @@ From the repository root:
 
 ```bash
 npm run build
+npm run build:win
 ```
 
-This builds all workspace packages.
+This builds the production app bundle and, with `build:win`, the Windows installer.
 
 ## 11. Common Issues
 
@@ -206,13 +163,9 @@ Fix:
 ## 12. Useful Commands Reference
 
 ```bash
-npm run dev:all
-npm run dev:server
-npm run dev:client
+npm run dev
 npm run build
 npm run test
-npm run test:server
-npm run test:client
 npm run db:push
 npm run db:generate
 npm run db:seed

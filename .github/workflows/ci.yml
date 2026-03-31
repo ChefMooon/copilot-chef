@@ -6,10 +6,19 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Build & Test
     runs-on: ubuntu-latest
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: 1
 
     steps:
       - uses: actions/checkout@v4
@@ -21,34 +30,16 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Generate Prisma client
-        run: npm run db:generate --workspace @copilot-chef/core
+        run: npm run db:generate
 
-      - name: Build shared
-        run: npm run build --workspace @copilot-chef/shared
-
-      - name: Build core
-        run: npm run build --workspace @copilot-chef/core
-
-      - name: Build server
-        run: npm run build --workspace @copilot-chef/server
-
-      - name: Build client (Vite only)
-        run: npm run build --workspace @copilot-chef/client
+      - name: Build app
+        run: npm run build
 
       - name: Lint
         run: npm run lint
 
-      - name: Test shared
-        run: npm run test --workspace @copilot-chef/shared
-
-      - name: Test core
-        run: npm run test --workspace @copilot-chef/core
-
-      - name: Test server
-        run: npm run test:server
-
-      - name: Test client
-        run: npm run test:client
+      - name: Test
+        run: npm run test

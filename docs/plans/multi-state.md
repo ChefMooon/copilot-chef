@@ -1,3 +1,5 @@
+> Historical note: This document is retained as integration research history. It may describe assumptions from earlier surrounding systems and is not the current source of truth for the Electron app.
+
 **Multi-Turn State Machine Adoption Report (For Copilot-Chef Integration)**
 
 **Purpose**

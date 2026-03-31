@@ -3,22 +3,19 @@ name: Release Client
 on:
   push:
     tags:
-      - "client-v*"
+      - "v*"
 
 permissions:
   contents: write
 
-jobs:
-  release:
-    name: Build & Release Client (${{ matrix.platform }})
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: windows-latest
-            args: ""
+concurrency:
+  group: release-client-${{ github.ref }}
+  cancel-in-progress: false
 
-    runs-on: ${{ matrix.platform }}
+jobs:
+  release-windows:
+    name: Build, Validate & Release (Windows)
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -29,47 +26,23 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
-
-      - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Generate Prisma client
-        run: npm run db:generate --workspace @copilot-chef/core
+        run: npm run db:generate
 
-      - name: Build shared
-        run: npm run build --workspace @copilot-chef/shared
+      - name: Build app
+        run: npm run build
 
-      - name: Build core
-        run: npm run build --workspace @copilot-chef/core
+      - name: Lint
+        run: npm run lint
 
-      - name: Build client (Tauri)
-        uses: tauri-apps/tauri-action@v0
+      - name: Test
+        run: npm run test
+
+      - name: Package & publish Windows release
+        run: npx electron-builder --win --publish always
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          projectPath: src/client
-          tagName: ${{ github.ref_name }}
-          releaseName: "Client ${{ github.ref_name }}"
-          releaseBody: |
-            ## Copilot Chef Client ${{ github.ref_name }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-            Download the installer for your platform below.
-
-            **Note**: The desktop client requires a running copilot-chef-server instance.
-            See the [developer guide](https://github.com/${{ github.repository }}/blob/main/docs/developer-guide.md)
-            for setup instructions.
-          releaseDraft: false
-          prerelease: ${{ contains(github.ref_name, '-') }}
-          args: ${{ matrix.args }}

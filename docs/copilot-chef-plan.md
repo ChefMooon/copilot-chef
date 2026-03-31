@@ -115,7 +115,7 @@ A daily log of meals that were actually cooked/eaten. Used to power the home das
 - Initialize npm workspaces with `core`, `web`, and `cli` packages
 - Configure shared `tsconfig.base.json`
 - Set up ESLint and Prettier across all packages
-- Add `.env.example` with required environment variables (database path)
+- Add `.env.example` with optional environment variable overrides
 - Note: Copilot CLI authentication is required via `copilot login` instead of storing a token in the env file
 
 #### Step 1.2 — Core Package
@@ -267,8 +267,9 @@ The home dashboard heatmap is a core UI element and must be implemented precisel
 # Copilot CLI: authenticate locally with the Copilot CLI instead of using an env token
 # Run `copilot login` to authenticate the CLI before using the app
 
-# Database
-DATABASE_URL=file:./copilot-chef.db
+# Database URL defaults to file:./data/copilot-chef.db (no env var required)
+# Optional overrides:
+# COPILOT_CHEF_DATABASE_URL=file:./custom.db
 
 # Telegram (Phase 3 only)
 TELEGRAM_BOT_TOKEN=
@@ -287,8 +288,7 @@ cd copilot-chef
 # Install dependencies across all workspaces
 npm install
 
-# Set up environment variables
-cp .env.example .env
+# Optional: create .env only if you want to override defaults
 
 # Run database migrations
 npm run db:migrate

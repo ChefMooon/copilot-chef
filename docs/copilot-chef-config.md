@@ -18,7 +18,6 @@ These behaviors are validated through manual smoke testing. Automated UI-level t
 
 | Name                          | Description                                         |
 | ----------------------------- | --------------------------------------------------- |
-| `DATABASE_URL`                | SQLite database file path (backward-compat; prefer `COPILOT_CHEF_DATABASE_URL`) |
 | `COPILOT_CHEF_DATABASE_URL`   | SQLite database file path (preferred env override)  |
 | `COPILOT_CHEF_SERVER_PORT`    | Override server port (default: 3001)                |
 | `COPILOT_MODEL`               | AI model identifier used for chat (default: `gpt-4o-mini`) |
@@ -58,17 +57,11 @@ These behaviors are validated through manual smoke testing. Automated UI-level t
 
 ### Environment Variables
 
-#### `DATABASE_URL`
-
-- **Implemented:** Yes (backward-compat fallback; prefer `COPILOT_CHEF_DATABASE_URL`)
-- **Default:** `file:./data/copilot-chef.db`
-- **Affects:** Prisma client configuration; all database reads and writes
-
 #### `COPILOT_CHEF_DATABASE_URL`
 
 - **Implemented:** Yes
 - **Default:** `file:./data/copilot-chef.db`
-- **Affects:** Overrides `database.url` in `copilot-chef-server.toml`; takes precedence over bare `DATABASE_URL`
+- **Affects:** Overrides `database.url` in `copilot-chef-server.toml`
 
 #### `COPILOT_CHEF_SERVER_PORT`
 

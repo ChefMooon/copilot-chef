@@ -1,3 +1,5 @@
+> Historical note: This document is retained as design history. It may describe earlier UI and state-management assumptions and should not override the current implementation docs.
+
 # Meal Plan Undo/Redo
 
 ## Overview
