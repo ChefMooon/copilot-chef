@@ -1,6 +1,15 @@
 # Copilot Chef
 
-An AI-powered meal-planning application built as a **Hono API server + Tauri desktop client** monorepo.
+An AI-powered meal-planning desktop application built as a **Hono API server + Tauri desktop client** monorepo.
+
+## Features
+
+- **Meal plan** — day, week, and month calendar views with drag-and-drop rescheduling and undo
+- **Grocery list** — categorized checklist with completion progress tracking
+- **Recipe book** — search, filter, and view full recipe details
+- **Stats dashboard** — meal heatmap, cuisine and meal-type breakdowns, weekly trends
+- **Settings** — dietary preferences, household size, cuisine preferences, AI persona selection, reply-length control
+- **AI chat** — floating chat panel with streaming responses, slash commands, inline choice buttons, and session history; context-aware of the current page and your kitchen state
 
 ## Architecture
 
@@ -32,19 +41,23 @@ npm run db:seed        # seed sample data
 copilot login          # authenticate GitHub Copilot
 ```
 
-Create a minimal server config:
+Create a server config file at `copilot-chef-server.toml`:
 
 ```toml
-# copilot-chef-server.toml
 [server]
 port = 3001
 host = "127.0.0.1"
+log_level = "info"
 
 [database]
 url = "file:./data/copilot-chef.db"
 
 [auth]
-tokens = []
+tokens = []                  # empty = no auth required (dev only)
+copilot_model = "gpt-4o-mini"
+
+[updates]
+check_on_startup = false
 
 [cors]
 origins = ["tauri://localhost", "http://localhost:5173"]
@@ -58,17 +71,18 @@ npm run dev:server     # server only
 npm run dev:client     # Vite only
 ```
 
-Open the desktop window:
+Open the Tauri desktop window:
 
 ```bash
 cd src/client && npx tauri dev
 ```
 
+> The Hono server must be running before opening the desktop window.
+
 ## Commands
 
 ```bash
 npm run build          # build all packages
-npm run test           # run all tests
 npm run lint
 npm run format
 npm run db:push        # apply schema changes to SQLite
@@ -87,31 +101,12 @@ To override the AI model, set `COPILOT_MODEL` as an environment variable or via 
 
 The SQLite database is created at `data/copilot-chef.db` (configured via `database.url` in `copilot-chef-server.toml`) after running `npm run db:push` and `npm run db:seed`.
 
-Seed data includes:
-
-- Sample meals organized by day and meal type
-- User preferences (dietary restrictions, household size, cuisine preferences)
-- Sample grocery lists and items
-- Indexed lookups for efficient queries
-
-## Meal Plan Delete UX
-
-- Dragging a meal in Day or Week view shows a bottom-left trash drop zone.
-- Dropping on trash opens a confirmation modal focused on Delete Meal (Enter confirms).
-- Deleting from either trash flow or edit modal shows an Undo toast for 30 seconds.
-- After Undo restores the meal, the "Restored ..." confirmation toast lasts 5 seconds.
+Seed data includes sample meals, user preferences, grocery lists, and recipes.
 
 ## Testing
 
-Run all tests:
-
 ```bash
-npm run test
-```
-
-Per-package:
-
-```bash
+npm run test           # all packages
 npm run test:core
 npm run test:shared
 npm run test:server
