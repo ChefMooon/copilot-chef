@@ -111,6 +111,14 @@ export async function startServer(): Promise<ServerInfo> {
   // Generate random auth token for this session
   serverToken = randomBytes(32).toString("hex");
 
+  // Allow dev-only .env override for seed toggle.
+  const seedOverride =
+    process.env["COPILOT_CHEF_SEED_DATABASE"] ??
+    readEnvOverrideFromFile("COPILOT_CHEF_SEED_DATABASE");
+  if (seedOverride !== undefined) {
+    process.env["COPILOT_CHEF_SEED_DATABASE"] = seedOverride;
+  }
+
   // Compute DB path and set env
   const dbUrl = resolveDbPath();
   process.env["COPILOT_CHEF_DATABASE_URL"] = dbUrl;
