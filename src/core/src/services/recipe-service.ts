@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { load } from "cheerio";
+import { load, type Cheerio, type Element } from "cheerio";
 
 import { prisma } from "../lib/prisma";
 import { bootstrapDatabase } from "../lib/bootstrap";
@@ -523,10 +523,10 @@ export function parseIngredientLinesFromHtml(html: string) {
     return score;
   };
 
-  const parseList = (listElement: any) => {
+  const parseList = (listElement: Cheerio<Element>) => {
     const ingredientLines: string[] = [];
 
-    listElement.children("li").each((_: any, liElement: any) => {
+    listElement.children("li").each((_: number, liElement: Element) => {
       const directSpans = $(liElement).children("span");
       const contentSpans = directSpans.slice(1);
 

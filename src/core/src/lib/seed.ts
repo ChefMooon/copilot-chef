@@ -314,7 +314,7 @@ export async function seedDatabase() {
     },
   });
 
-  const chickpeaBowl = await prisma.recipe.create({
+  await prisma.recipe.create({
     data: {
       title: "Crispy Chickpea Grain Bowl",
       description: "High-protein bowl with lemony tahini dressing.",

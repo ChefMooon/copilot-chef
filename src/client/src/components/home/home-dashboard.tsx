@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 import { useMemo, useState } from "react";
 
-import { Button } from "@/components/ui/button";
 import { useChatPageContext } from "@/context/chat-context";
 import { fetchJson } from "@/lib/api";
 import { cn } from "@/lib/utils";

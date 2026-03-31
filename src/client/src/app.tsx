@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from "react-router";
+import { Outlet } from "react-router";
 import { useEffect, useState } from "react";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
@@ -26,7 +26,6 @@ async function checkForClientUpdate() {
 
 function AppContent({ config }: { config: ClientConfig }) {
   const { status, retry } = useServerConnection(config.connection.serverUrl);
-  const location = useLocation();
 
   return (
     <>

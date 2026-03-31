@@ -122,7 +122,7 @@ preferencesRoutes.get("/preferences/detect-region", async (c) => {
   }
 });
 
-preferencesRoutes.get("/preferences/export", async (c) => {
+preferencesRoutes.get("/preferences/export", async () => {
   const [preferences, mealLogs] = await Promise.all([
     preferenceService.getPreferences(),
     mealLogService.listAll(),
