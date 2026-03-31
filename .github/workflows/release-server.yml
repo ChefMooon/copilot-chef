@@ -21,9 +21,10 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Generate Prisma client
         run: npm run db:generate --workspace @copilot-chef/core
@@ -50,6 +51,15 @@ jobs:
         id: version
         run: echo "version=${GITHUB_REF_NAME#server-v}" >> "$GITHUB_OUTPUT"
 
+      - name: Validate tag matches server package version
+        run: |
+          TAG_VERSION="${{ steps.version.outputs.version }}"
+          PKG_VERSION="$(node -p "require('./src/server/package.json').version")"
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "Tag version ($TAG_VERSION) does not match src/server/package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -59,11 +69,7 @@ jobs:
 
             ### Installation
 
-            ```bash
-            npm install -g copilot-chef-server@${{ steps.version.outputs.version }}
-            ```
-
-            Or download the tarball below and install locally:
+            Download the tarball from this release and install:
 
             ```bash
             npm install -g ./copilot-chef-server-${{ steps.version.outputs.version }}.tgz
