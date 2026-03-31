@@ -41,6 +41,12 @@ function createWindow(): BrowserWindow {
     show: false,
     title: "Copilot Chef",
     icon: windowIconPath,
+    titleBarStyle: "hidden",
+    titleBarOverlay: {
+      color: "#2d6a4f",
+      symbolColor: "#fffdf8",
+      height: 40,
+    },
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       contextIsolation: true,

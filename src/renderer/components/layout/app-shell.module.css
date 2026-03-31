@@ -9,6 +9,12 @@
   padding: 0 2rem;
   background: var(--green);
   box-shadow: 0 2px 16px rgba(44, 36, 22, 0.18);
+  -webkit-app-region: drag;
+}
+
+.header a,
+.header button {
+  -webkit-app-region: no-drag;
 }
 
 .logo {
