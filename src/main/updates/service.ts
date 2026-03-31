@@ -1,7 +1,12 @@
 import { autoUpdater } from "electron-updater";
 import { ipcMain, BrowserWindow } from "electron";
 
-export function setupAutoUpdater(win: BrowserWindow): void {
+export function setupAutoUpdater(
+  win: BrowserWindow,
+  options?: { checkOnStartup?: boolean }
+): void {
+  const checkOnStartup = options?.checkOnStartup ?? true;
+
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
 
@@ -38,4 +43,10 @@ export function setupAutoUpdater(win: BrowserWindow): void {
   ipcMain.handle("updates:install", () => {
     autoUpdater.quitAndInstall();
   });
+
+  if (checkOnStartup) {
+    void autoUpdater.checkForUpdates().catch((err) => {
+      console.error("[updater] startup check failed:", err);
+    });
+  }
 }

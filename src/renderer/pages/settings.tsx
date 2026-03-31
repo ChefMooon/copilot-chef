@@ -312,6 +312,9 @@ export default function SettingsPage() {
   });
   const [connectionSaving, setConnectionSaving] = useState(false);
   const [connectionSaved, setConnectionSaved] = useState(false);
+  const [updatesCheckOnStartup, setUpdatesCheckOnStartup] = useState(true);
+  const [checkingForUpdates, setCheckingForUpdates] = useState(false);
+  const [manualUpdateCheckPending, setManualUpdateCheckPending] = useState(false);
 
   // Load connection config on mount
   useEffect(() => {
@@ -337,6 +340,69 @@ export default function SettingsPage() {
         // defaults already set
       });
   }, []);
+
+  useEffect(() => {
+    window.api
+      .invoke("app:settings:get", "updates_check_on_startup")
+      .then((value) => {
+        if (typeof value === "boolean") {
+          setUpdatesCheckOnStartup(value);
+          return;
+        }
+        setUpdatesCheckOnStartup(true);
+      })
+      .catch(() => {
+        setUpdatesCheckOnStartup(true);
+      });
+  }, []);
+
+  useEffect(() => {
+    const handleUpdateAvailable = (info?: { version?: string }) => {
+      if (!manualUpdateCheckPending) {
+        return;
+      }
+      setManualUpdateCheckPending(false);
+      setCheckingForUpdates(false);
+      toast({
+        title: "Update available",
+        description: info?.version
+          ? `Version ${info.version} is available to download.`
+          : "A new version is available to download.",
+      });
+    };
+
+    const handleUpdateNotAvailable = () => {
+      if (!manualUpdateCheckPending) {
+        return;
+      }
+      setManualUpdateCheckPending(false);
+      setCheckingForUpdates(false);
+      toast({ title: "You are up to date." });
+    };
+
+    const handleUpdateError = (message?: string) => {
+      if (!manualUpdateCheckPending) {
+        return;
+      }
+      setManualUpdateCheckPending(false);
+      setCheckingForUpdates(false);
+      toast({
+        title: "Update check failed",
+        description: message || "Could not check for updates right now.",
+        variant: "error",
+      });
+    };
+
+    window.api.on("updates:available", handleUpdateAvailable);
+    window.api.on("updates:not-available", handleUpdateNotAvailable);
+    window.api.on("updates:error", handleUpdateError);
+
+    return () => {
+      window.api.off("updates:available", handleUpdateAvailable);
+      window.api.off("updates:not-available", handleUpdateNotAvailable);
+      window.api.off("updates:error", handleUpdateError);
+    };
+  }, [manualUpdateCheckPending, toast]);
 
   useChatPageContext({ page: "settings" });
 
@@ -661,6 +727,50 @@ export default function SettingsPage() {
     }
   };
 
+  const handleToggleStartupUpdateCheck = async (checked: boolean) => {
+    const previous = updatesCheckOnStartup;
+    setUpdatesCheckOnStartup(checked);
+
+    try {
+      await window.api.invoke("app:settings:set", {
+        key: "updates_check_on_startup",
+        value: checked,
+      });
+    } catch {
+      setUpdatesCheckOnStartup(previous);
+      toast({
+        title: "Could not save update check preference.",
+        variant: "error",
+      });
+    }
+  };
+
+  const handleCheckForUpdates = async () => {
+    setCheckingForUpdates(true);
+    setManualUpdateCheckPending(true);
+
+    try {
+      const result = await window.api.invoke("updates:check");
+      if (result === null) {
+        setManualUpdateCheckPending(false);
+        setCheckingForUpdates(false);
+        toast({
+          title: "Update check failed",
+          description: "Could not check for updates right now.",
+          variant: "error",
+        });
+      }
+    } catch {
+      setManualUpdateCheckPending(false);
+      setCheckingForUpdates(false);
+      toast({
+        title: "Update check failed",
+        description: "Could not check for updates right now.",
+        variant: "error",
+      });
+    }
+  };
+
   if (!preferences) {
     return (
       <div className={styles.page}>
@@ -718,6 +828,14 @@ export default function SettingsPage() {
                 }))
               }
             />
+            <ToggleRow
+              checked={updatesCheckOnStartup}
+              label="Check for updates at startup"
+              description="Automatically check for app updates on launch (packaged app only)."
+              onChange={(checked) =>
+                void handleToggleStartupUpdateCheck(checked)
+              }
+            />
           </div>
           {connectionDraft.mode === "remote" && (
             <div className={styles.twoColumn}>
@@ -765,6 +883,14 @@ export default function SettingsPage() {
                 : connectionSaved
                   ? "Saved ✓"
                   : "Save connection"}
+            </Button>
+            <Button
+              disabled={checkingForUpdates}
+              onClick={() => void handleCheckForUpdates()}
+              type="button"
+              variant="outline"
+            >
+              {checkingForUpdates ? "Checking…" : "Check for updates"}
             </Button>
           </div>
         </div>

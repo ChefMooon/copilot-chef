@@ -140,6 +140,7 @@ app.whenReady().then(async () => {
   // Initialize default settings
   ensureSetting("app_close_to_tray", true);
   ensureSetting("app_minimize_to_tray", true);
+  ensureSetting("updates_check_on_startup", true);
 
   // Start in-process Hono server (unless remote mode)
   const serverMode = getSetting("server_mode") ?? "local";
@@ -163,7 +164,9 @@ app.whenReady().then(async () => {
 
   // Auto-updater (production only)
   if (app.isPackaged) {
-    setupAutoUpdater(mainWindow);
+    setupAutoUpdater(mainWindow, {
+      checkOnStartup: getSetting("updates_check_on_startup") !== false,
+    });
   }
 });
 
