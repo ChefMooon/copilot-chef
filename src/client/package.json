@@ -12,6 +12,7 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@copilot-chef/core": "*",
     "@copilot-chef/shared": "*",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.1.2",
