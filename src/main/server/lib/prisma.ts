@@ -1,4 +1,6 @@
 import { PrismaClient } from "@prisma/client";
+import { existsSync, mkdirSync } from "node:fs";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 
 const DEFAULT_DATABASE_URL = "file:./data/copilot-chef.db";
 
@@ -8,12 +10,47 @@ const globalForPrisma = globalThis as typeof globalThis & {
 
 let _client: PrismaClient | undefined;
 
+function normalizeDatabaseUrl(databaseUrl: string): string {
+  if (!databaseUrl.startsWith("file:")) return databaseUrl;
+
+  const filePart = databaseUrl.slice("file:".length);
+  const questionIndex = filePart.indexOf("?");
+  const pathPart =
+    questionIndex >= 0 ? filePart.slice(0, questionIndex) : filePart;
+  const queryPart = questionIndex >= 0 ? filePart.slice(questionIndex) : "";
+
+  // Keep behavior aligned with Prisma CLI, which resolves relative SQLite URLs
+  // from the folder containing schema.prisma (projectRoot/prisma).
+  const baseDir = join(process.cwd(), "prisma");
+  const normalizedPath = isAbsolute(pathPart)
+    ? pathPart
+    : resolve(baseDir, pathPart);
+
+  return `file:${normalizedPath.replace(/\\/g, "/")}${queryPart}`;
+}
+
+function ensureSqliteDirectory(databaseUrl: string): void {
+  if (!databaseUrl.startsWith("file:")) return;
+
+  const filePart = databaseUrl.slice("file:".length);
+  const questionIndex = filePart.indexOf("?");
+  const pathPart =
+    questionIndex >= 0 ? filePart.slice(0, questionIndex) : filePart;
+
+  const dir = dirname(pathPart);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
+  }
+}
+
 function getClient(): PrismaClient {
   if (globalForPrisma.prisma) return globalForPrisma.prisma;
   if (_client) return _client;
 
-  const databaseUrl =
+  const rawDatabaseUrl =
     process.env.COPILOT_CHEF_DATABASE_URL ?? DEFAULT_DATABASE_URL;
+  const databaseUrl = normalizeDatabaseUrl(rawDatabaseUrl);
+  ensureSqliteDirectory(databaseUrl);
 
   _client = new PrismaClient({
     datasourceUrl: databaseUrl,

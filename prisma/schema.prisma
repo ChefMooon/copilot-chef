@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:./data/copilot-chef.db"
+  url      = env("COPILOT_CHEF_DATABASE_URL")
 }
 
 enum MealType {

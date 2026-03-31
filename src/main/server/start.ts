@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { app } from "electron";
 import { serve } from "@hono/node-server";
@@ -21,8 +21,49 @@ export interface ServerInfo {
   port: number;
 }
 
+function readEnvOverrideFromFile(key: string): string | undefined {
+  if (app.isPackaged) return undefined;
+
+  const envPath = join(process.cwd(), ".env");
+  if (!existsSync(envPath)) return undefined;
+
+  try {
+    const raw = readFileSync(envPath, "utf-8");
+    for (const line of raw.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+
+      const separator = trimmed.indexOf("=");
+      if (separator <= 0) continue;
+
+      const entryKey = trimmed.slice(0, separator).trim();
+      if (entryKey !== key) continue;
+
+      const rawValue = trimmed.slice(separator + 1).trim();
+      const unquoted =
+        (rawValue.startsWith('"') && rawValue.endsWith('"')) ||
+        (rawValue.startsWith("'") && rawValue.endsWith("'"))
+          ? rawValue.slice(1, -1)
+          : rawValue;
+
+      return unquoted || undefined;
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
+}
+
 // ── Helpers ──────────────────────────────────────────────────
 function resolveDbPath(): string {
+  const dbOverride =
+    process.env["COPILOT_CHEF_DATABASE_URL"] ??
+    readEnvOverrideFromFile("COPILOT_CHEF_DATABASE_URL");
+  if (dbOverride) {
+    return dbOverride;
+  }
+
   const userDataPath = app.getPath("userData");
   const dataDir = join(userDataPath, "data");
   if (!existsSync(dataDir)) {
