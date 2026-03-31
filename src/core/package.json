@@ -24,6 +24,7 @@
     "@github/copilot-sdk": "^0.1.32",
     "@prisma/client": "^6.5.0",
     "cheerio": "^1.2.0",
+    "domhandler": "^5.0.3",
     "defuddle": "^0.14.0",
     "parse-ingredient": "^2.1.0",
     "zod": "^3.24.2"

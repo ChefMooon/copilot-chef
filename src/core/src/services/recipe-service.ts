@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { load, type Cheerio, type Element } from "cheerio";
+import { load, type Cheerio } from "cheerio";
+import type { Element } from "domhandler";
 
 import { prisma } from "../lib/prisma";
 import { bootstrapDatabase } from "../lib/bootstrap";
