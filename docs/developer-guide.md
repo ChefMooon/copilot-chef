@@ -135,14 +135,17 @@ origins = ["tauri://localhost", "http://localhost:5173"]
 
 `copilot-chef-client.toml` in the Tauri app data directory:
 
+- If the file is missing or invalid on first launch, the client automatically recreates it using defaults.
+
 ```toml
 [connection]
-server_url = "http://localhost:3001"
-api_key = ""
-auto_launch_server = false  # set true to spawn server automatically
+serverUrl = "http://localhost:3001"
+apiKey = ""
+autoLaunchServer = false  # set true to spawn server automatically
+serverBinaryPath = ""
 
 [updates]
-check_on_startup = true
+checkOnStartup = true
 
 [ui]
 theme = "system"

@@ -131,7 +131,7 @@ Environment variable overrides use the `COPILOT_CHEF_` prefix:
 
 ### Client: `copilot-chef-client.toml`
 
-Stored in the Tauri app data directory via `@tauri-apps/plugin-fs`. If absent on first launch, the app shows a first-run setup UI asking for the server URL and API key.
+Stored in the Tauri app data directory via `@tauri-apps/plugin-fs`. If the file is missing or invalid on first launch, the app loads defaults and recreates the file automatically.
 
 ---
 

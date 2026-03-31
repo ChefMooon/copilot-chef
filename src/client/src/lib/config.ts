@@ -23,8 +23,15 @@ export async function loadClientConfig(): Promise<ClientConfig> {
     cachedConfig = ClientConfigSchema.parse(parsed);
     return cachedConfig;
   } catch {
-    // File not found or parse error — return defaults
+    // File missing or invalid — recover to defaults and attempt to persist.
     cachedConfig = ClientConfigSchema.parse({});
+
+    try {
+      await saveClientConfig(cachedConfig);
+    } catch {
+      // Best-effort persistence; continue with in-memory defaults.
+    }
+
     return cachedConfig;
   }
 }
