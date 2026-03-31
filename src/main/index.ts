@@ -148,7 +148,7 @@ app.whenReady().then(async () => {
     try {
       const serverInfo = await startServer();
       console.info(
-        `[copilot-chef] server started on http://localhost:${serverInfo.port}`
+        `[copilot-chef] server started on http://127.0.0.1:${serverInfo.port}`
       );
     } catch (err) {
       console.error("[copilot-chef] server startup failed:", err);

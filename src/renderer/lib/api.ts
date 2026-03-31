@@ -48,7 +48,7 @@ export type DetectedRegionPayload = {
 
 function getApiBase(): string {
   const config = getCachedConfig();
-  return config?.url ?? "http://localhost:3001";
+  return config?.url ?? "http://127.0.0.1:3001";
 }
 
 function getAuthHeaders(): Record<string, string> {

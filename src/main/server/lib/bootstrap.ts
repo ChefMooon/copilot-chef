@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { ensureDatabaseSchema } from "./schema";
 import { seedDatabase } from "./seed";
 
 let bootstrapPromise: Promise<void> | undefined;
@@ -31,6 +32,7 @@ export async function bootstrapDatabase() {
   if (!bootstrapPromise) {
     bootstrapPromise = (async () => {
       await prisma.$connect();
+      await ensureDatabaseSchema();
       if (shouldSeedDatabase()) {
         await seedDatabase();
       }

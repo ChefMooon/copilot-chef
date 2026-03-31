@@ -32,6 +32,11 @@
         "filter": ["**/*"]
       },
       {
+        "from": "node_modules/@prisma/client",
+        "to": "node_modules/@prisma/client",
+        "filter": ["**/*"]
+      },
+      {
         "from": "node_modules/@prisma/engines",
         "to": "node_modules/@prisma/engines",
         "filter": ["**/*"]
@@ -61,9 +66,10 @@
   },
   "scripts": {
     "dev": "electron-vite dev",
+    "prebuild": "npm run db:generate",
     "build": "electron-vite build",
     "start": "electron-vite preview",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "npm run db:generate && electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:linux": "npm run build && electron-builder --linux",

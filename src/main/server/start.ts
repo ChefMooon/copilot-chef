@@ -10,6 +10,8 @@ import { createApp } from "./app";
 import { getSetting } from "../settings/store";
 import type { ServerConfig } from "@shared/config/server-config";
 
+const LOCAL_SERVER_HOST = "127.0.0.1";
+
 // ── State ────────────────────────────────────────────────────
 let httpServer: ServerType | null = null;
 let serverToken: string | null = null;
@@ -86,7 +88,7 @@ function tryPort(config: ServerConfig, port: number): Promise<ServerInfo> {
           httpServer = server;
           serverPort = info.port;
           resolve({
-            url: `http://localhost:${info.port}`,
+            url: `http://${LOCAL_SERVER_HOST}:${info.port}`,
             token: serverToken!,
             port: info.port,
           });
@@ -117,6 +119,9 @@ export async function startServer(): Promise<ServerInfo> {
     readEnvOverrideFromFile("COPILOT_CHEF_SEED_DATABASE");
   if (seedOverride !== undefined) {
     process.env["COPILOT_CHEF_SEED_DATABASE"] = seedOverride;
+  } else if (app.isPackaged) {
+    // Production default: never seed sample data unless explicitly requested.
+    process.env["COPILOT_CHEF_SEED_DATABASE"] = "false";
   }
 
   // Compute DB path and set env
@@ -136,7 +141,7 @@ export async function startServer(): Promise<ServerInfo> {
   const config: ServerConfig = {
     server: {
       port,
-      host: "127.0.0.1",
+      host: LOCAL_SERVER_HOST,
       logLevel: "info",
     },
     database: {
@@ -151,7 +156,8 @@ export async function startServer(): Promise<ServerInfo> {
       checkOnStartup: false,
     },
     cors: {
-      origins: ["http://localhost:5173", "app://localhost"],
+      // Packaged Electron renderer requests can send Origin: null (file://)
+      origins: ["http://localhost:5173", "app://localhost", "null"],
     },
   };
 
@@ -180,7 +186,7 @@ export async function stopServer(): Promise<void> {
 export function getServerInfo(): ServerInfo | null {
   if (!serverPort || !serverToken) return null;
   return {
-    url: `http://localhost:${serverPort}`,
+    url: `http://${LOCAL_SERVER_HOST}:${serverPort}`,
     token: serverToken,
     port: serverPort,
   };

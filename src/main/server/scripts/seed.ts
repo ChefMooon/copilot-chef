@@ -37,12 +37,14 @@ function loadDbUrlFromEnvFile(): void {
 async function main(): Promise<void> {
   loadDbUrlFromEnvFile();
 
-  const [{ seedDatabase }, { prisma }] = await Promise.all([
+  const [{ ensureDatabaseSchema }, { seedDatabase }, { prisma }] = await Promise.all([
+    import("../lib/schema"),
     import("../lib/seed"),
     import("../lib/prisma"),
   ]);
 
   try {
+    await ensureDatabaseSchema();
     await seedDatabase();
     console.info("[copilot-chef] seed complete");
   } finally {

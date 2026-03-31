@@ -8,7 +8,7 @@ export function registerIpcHandlers(): void {
     const mode = getSetting("server_mode") ?? "local";
     if (mode === "remote") {
       return {
-        url: (getSetting("remote_server_url") as string) || "http://localhost:3001",
+        url: (getSetting("remote_server_url") as string) || "http://127.0.0.1:3001",
         token: (getSetting("remote_api_key") as string) || "",
         mode: "remote" as const,
       };
@@ -16,7 +16,7 @@ export function registerIpcHandlers(): void {
 
     const info = getServerInfo();
     return {
-      url: info?.url ?? "http://localhost:3001",
+      url: info?.url ?? "http://127.0.0.1:3001",
       token: info?.token ?? "",
       mode: "local" as const,
     };
