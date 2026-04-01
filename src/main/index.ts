@@ -147,6 +147,7 @@ app.whenReady().then(async () => {
   ensureSetting("app_close_to_tray", true);
   ensureSetting("app_minimize_to_tray", true);
   ensureSetting("updates_check_on_startup", true);
+  ensureSetting("copilot_model", "gpt-4.1");
 
   // Start in-process Hono server (unless remote mode)
   const serverMode = getSetting("server_mode") ?? "local";

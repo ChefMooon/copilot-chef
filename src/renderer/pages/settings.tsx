@@ -164,6 +164,16 @@ const reasoningEffortOptions = [
   { label: "High", value: "high" },
 ];
 
+const copilotModelOptions = [
+  { label: "GPT-4.1", value: "gpt-4.1" },
+  { label: "GPT-5.4 mini", value: "gpt-5.4-mini" },
+  { label: "GPT-5.2", value: "gpt-5.2" },
+  { label: "Claude Haiku 4.5", value: "claude-haiku-4.5" },
+  { label: "Claude 4.6 Sonnet", value: "claude-4.6-sonnet" },
+  { label: "Gemini 3.0 Flash", value: "gemini-3.0-flash" },
+  { label: "Gemini 2.5 Pro", value: "gemini-2.5-pro" },
+];
+
 const emojiOptions = [
   { label: "Occasional", value: "occasional" },
   { label: "Frequent", value: "frequent" },
@@ -310,6 +320,8 @@ export default function SettingsPage() {
     token: "",
     mode: "local",
   });
+  const [machineApiKeyDraft, setMachineApiKeyDraft] = useState("");
+  const [copilotModelDraft, setCopilotModelDraft] = useState("gpt-4.1");
   const [connectionSaving, setConnectionSaving] = useState(false);
   const [connectionSaved, setConnectionSaved] = useState(false);
   const [updatesCheckOnStartup, setUpdatesCheckOnStartup] = useState(true);
@@ -343,6 +355,28 @@ export default function SettingsPage() {
 
   useEffect(() => {
     window.api
+      .invoke("app:settings:get", "machine_api_key")
+      .then((value) => {
+        if (typeof value === "string") {
+          setMachineApiKeyDraft(value);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    window.api
+      .invoke("app:settings:get", "copilot_model")
+      .then((value) => {
+        if (typeof value === "string" && value) {
+          setCopilotModelDraft(value);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    window.api
       .invoke("app:settings:get", "updates_check_on_startup")
       .then((value) => {
         if (typeof value === "boolean") {
@@ -357,7 +391,8 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    const handleUpdateAvailable = (info?: { version?: string }) => {
+    const handleUpdateAvailable = (...args: unknown[]) => {
+      const info = args[0] as { version?: string } | undefined;
       if (!manualUpdateCheckPending) {
         return;
       }
@@ -380,7 +415,8 @@ export default function SettingsPage() {
       toast({ title: "You are up to date." });
     };
 
-    const handleUpdateError = (message?: string) => {
+    const handleUpdateError = (...args: unknown[]) => {
+      const message = args[0] as string | undefined;
       if (!manualUpdateCheckPending) {
         return;
       }
@@ -715,6 +751,14 @@ export default function SettingsPage() {
         key: "server_mode",
         value: connectionDraft.mode,
       });
+      await window.api.invoke("app:settings:set", {
+        key: "machine_api_key",
+        value: machineApiKeyDraft,
+      });
+      await window.api.invoke("app:settings:set", {
+        key: "copilot_model",
+        value: copilotModelDraft.trim() || "gpt-4.1",
+      });
       resetConfigCache();
       await loadServerConfig();
       setConnectionSaved(true);
@@ -871,6 +915,30 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+          <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
+            <label className={styles.fieldLabel}>AI model <span style={{ fontWeight: 400, opacity: 0.6 }}>(requires restart)</span></label>
+            <select
+              className={styles.select}
+              value={copilotModelDraft}
+              onChange={(event) => setCopilotModelDraft(event.target.value)}
+            >
+              {copilotModelOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
+            <label className={styles.fieldLabel}>Machine API key</label>
+            <input
+              className={styles.select}
+              type="password"
+              value={machineApiKeyDraft}
+              onChange={(event) => setMachineApiKeyDraft(event.target.value)}
+              placeholder="Token for external PA / automation access"
+            />
+          </div>
           <div className={styles.actionsRow} style={{ marginTop: "1rem" }}>
             <Button
               disabled={connectionSaving}

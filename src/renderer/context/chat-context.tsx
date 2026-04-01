@@ -71,15 +71,15 @@ const SENTINEL_PREFIX = "\x00COPILOT_CHEF_EVENT\x00";
 
 function getApiUrl(path: string): string {
   const config = getCachedConfig();
-  const base = config?.connection.serverUrl ?? "http://localhost:3001";
+  const base = config?.url ?? "http://127.0.0.1:3001";
   return `${base}${path}`;
 }
 
 function getAuthHeaders(): Record<string, string> {
   const config = getCachedConfig();
-  const apiKey = config?.connection.apiKey ?? "";
-  if (!apiKey) return {};
-  return { "Authorization": `Bearer ${apiKey}` };
+  const token = config?.token ?? "";
+  if (!token) return {};
+  return { "Authorization": `Bearer ${token}` };
 }
 
 function getMinimalContextForPath(path: string): string {

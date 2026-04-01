@@ -52,11 +52,11 @@ function toIsoString(date: Date) {
 
 async function readChatResponse(message: string) {
   const config = getCachedConfig();
-  const serverUrl = config?.connection.serverUrl ?? "http://localhost:3001";
-  const apiKey = config?.connection.apiKey ?? "";
+  const serverUrl = config?.url ?? "http://127.0.0.1:3001";
+  const token = config?.token ?? "";
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (apiKey) {
-    headers["Authorization"] = `Bearer ${apiKey}`;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
 
   const response = await fetch(`${serverUrl}/api/chat`, {

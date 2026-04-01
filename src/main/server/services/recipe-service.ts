@@ -1035,6 +1035,7 @@ export class RecipeService {
         {
           timeout: 45000,
           maxBuffer: 1024 * 1024 * 8,
+          windowsHide: true,
         }
       );
       const payload = JSON.parse(result.stdout) as {

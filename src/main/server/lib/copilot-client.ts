@@ -12,6 +12,27 @@ function getCliPath(): string {
       ? __dirname
       : dirname(fileURLToPath(import.meta.url));
   const initCwd = process.env["INIT_CWD"];
+
+  // On Windows, prefer the native binary directly to avoid npm-loader.js using
+  // spawnSync without windowsHide, which causes a visible terminal window.
+  const nativePkg = `copilot-${process.platform}-${process.arch}`;
+  const nativeBin = process.platform === "win32" ? "copilot.exe" : "copilot";
+  const nativeCandidates = [
+    initCwd
+      ? resolve(initCwd, "node_modules", "@github", nativePkg, nativeBin)
+      : "",
+    resolve(process.cwd(), "node_modules", "@github", nativePkg, nativeBin),
+    resolve(moduleDir, "..", "..", "..", "..", "..", "node_modules", "@github", nativePkg, nativeBin),
+    resolve(moduleDir, "..", "..", "..", "..", "node_modules", "@github", nativePkg, nativeBin),
+  ].filter(Boolean);
+
+  for (const candidate of nativeCandidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  // Fallback to npm-loader.js for platforms without a native package
   const candidates = [
     initCwd
       ? resolve(initCwd, "node_modules", "@github", "copilot", "npm-loader.js")
@@ -82,7 +103,7 @@ function getCliPath(): string {
   }
 
   throw new Error(
-    `Unable to locate @github/copilot npm-loader.js. Checked: ${candidates.join(", ")}`
+    `Unable to locate @github/copilot CLI. Checked: ${[...nativeCandidates, ...candidates].join(", ")}`
   );
 }
 
@@ -97,6 +118,7 @@ export async function getClient(): Promise<CopilotClient> {
         cliPath: getCliPath(),
         autoStart: true,
         autoRestart: true,
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
       });
       await c.start();
       client = c;

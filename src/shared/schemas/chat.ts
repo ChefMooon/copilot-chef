@@ -72,7 +72,7 @@ export const chatRequestSchema = z.object({
         page: z.enum(["stats", "settings"]),
       }),
     ])
-    .optional(),
+    .nullish(),
   chatSessionId: z.string().optional(),
 });
 

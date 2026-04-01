@@ -41,7 +41,7 @@ interface UserInputRequest {
 }
 
 /** Default model — override by setting COPILOT_MODEL in your environment. */
-export const COPILOT_DEFAULT_MODEL = "gpt-4o-mini";
+export const COPILOT_DEFAULT_MODEL = "gpt-4.1";
 const DEFAULT_CHAT_OWNER_ID = "web-default";
 
 const mealTypeSchema = z.enum([
