@@ -53,13 +53,14 @@ function roundTo(value: number, decimals = 2) {
 
 function fromMl(ml: number) {
   const abs = Math.abs(ml);
+  const quarterTspInMl = TO_ML.tsp / 4;
   if (abs >= TO_ML.qt) return { quantity: roundTo(ml / TO_ML.qt), unit: "qt" };
   if (abs >= TO_ML.pt) return { quantity: roundTo(ml / TO_ML.pt), unit: "pt" };
   if (abs >= TO_ML.cup) return { quantity: roundTo(ml / TO_ML.cup), unit: "cup" };
   if (abs >= TO_ML.tbsp) {
     return { quantity: roundTo(ml / TO_ML.tbsp), unit: "tbsp" };
   }
-  if (abs >= TO_ML.tsp) return { quantity: roundTo(ml / TO_ML.tsp), unit: "tsp" };
+  if (abs >= quarterTspInMl) return { quantity: roundTo(ml / TO_ML.tsp), unit: "tsp" };
   return { quantity: roundTo(ml), unit: "ml" };
 }
 

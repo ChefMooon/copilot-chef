@@ -10,6 +10,7 @@ import { useToast } from "@/components/providers/toast-provider";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { type RecipePayload } from "@/lib/api";
+import { formatFraction, parseFraction } from "@/lib/fractions";
 import {
   type InstructionDraft,
   createEmptyInstructionDraft,
@@ -25,9 +26,17 @@ type IngredientDraft = {
   unit: "g" | "ml" | "cups" | "tbsp" | "tsp" | "oz" | "lb" | "count";
 };
 
+type IngredientGroupDraft = {
+  id: string;
+  name: string;
+  ingredients: IngredientDraft[];
+};
+
 type FormState = {
   title: string;
   description: string;
+  sourceUrl: string;
+  sourceLabel: string;
   servings: string;
   prepTime: string;
   cookTime: string;
@@ -36,7 +45,7 @@ type FormState = {
   cookNotes: string;
   instructions: InstructionDraft[];
   tagsText: string;
-  ingredients: IngredientDraft[];
+  ingredientGroups: IngredientGroupDraft[];
 };
 
 type AddRecipeModalProps = {
@@ -57,29 +66,75 @@ function createEmptyIngredient(): IngredientDraft {
   };
 }
 
-function toIngredientDrafts(recipe?: RecipePayload | null): IngredientDraft[] {
+function createEmptyIngredientGroup(name = ""): IngredientGroupDraft {
+  return {
+    id: crypto.randomUUID(),
+    name,
+    ingredients: [createEmptyIngredient()],
+  };
+}
+
+function toIngredientGroups(recipe?: RecipePayload | null): IngredientGroupDraft[] {
   if (!recipe || recipe.ingredients.length === 0) {
-    return [createEmptyIngredient()];
+    return [createEmptyIngredientGroup()];
   }
 
-  return recipe.ingredients.map((ingredient) => {
+  const groupsByName = new Map<string, IngredientGroupDraft>();
+
+  for (const ingredient of recipe.ingredients) {
     const normalized = ingredient.unit?.toLowerCase();
     const validUnits: IngredientDraft["unit"][] = ["g", "ml", "cups", "tbsp", "tsp", "oz", "lb", "count"];
     const unit = validUnits.includes(normalized as IngredientDraft["unit"])
       ? (normalized as IngredientDraft["unit"])
       : "g";
 
-    return {
-      id: ingredient.id,
-      name: ingredient.name,
-      amount:
-        typeof ingredient.quantity === "number" && Number.isFinite(ingredient.quantity)
-          ? String(ingredient.quantity)
-          : "",
-      notes: ingredient.notes ?? "",
-      unit,
-    };
-  });
+    const groupName = (ingredient.group ?? "").trim();
+    const groupKey = groupName.toLowerCase();
+    const existingGroup = groupsByName.get(groupKey);
+
+    if (existingGroup) {
+      existingGroup.ingredients.push({
+        id: ingredient.id,
+        name: ingredient.name,
+        amount:
+          typeof ingredient.quantity === "number" && Number.isFinite(ingredient.quantity)
+            ? formatFraction(ingredient.quantity)
+            : "",
+        notes: ingredient.notes ?? "",
+        unit,
+      });
+      continue;
+    }
+
+    groupsByName.set(groupKey, {
+      id: crypto.randomUUID(),
+      name: groupName,
+      ingredients: [
+        {
+          id: ingredient.id,
+          name: ingredient.name,
+          amount:
+            typeof ingredient.quantity === "number" && Number.isFinite(ingredient.quantity)
+              ? formatFraction(ingredient.quantity)
+              : "",
+          notes: ingredient.notes ?? "",
+          unit,
+        },
+      ],
+    });
+  }
+
+  const groups = Array.from(groupsByName.values());
+  return groups.length > 0 ? groups : [createEmptyIngredientGroup()];
+}
+
+function flattenIngredientGroups(groups: IngredientGroupDraft[]) {
+  return groups.flatMap((group) =>
+    group.ingredients.map((ingredient) => ({
+      ...ingredient,
+      group: group.name.trim() || null,
+    }))
+  );
 }
 
 export function AddRecipeModal({
@@ -91,11 +146,14 @@ export function AddRecipeModal({
 }: AddRecipeModalProps) {
   const { toast } = useToast();
   const overlayRef = useRef<HTMLDivElement>(null);
+  const previousOpenRef = useRef(false);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>({
     title: "",
     description: "",
+    sourceUrl: "",
+    sourceLabel: "",
     servings: "2",
     prepTime: "",
     cookTime: "",
@@ -104,7 +162,7 @@ export function AddRecipeModal({
     cookNotes: "",
     instructions: [],
     tagsText: "",
-    ingredients: [createEmptyIngredient()],
+    ingredientGroups: [createEmptyIngredientGroup()],
   });
 
   useEffect(() => {
@@ -116,26 +174,30 @@ export function AddRecipeModal({
   };
 
   useEffect(() => {
-    if (!open) {
-      return;
+    const openingNow = open && !previousOpenRef.current;
+
+    if (openingNow) {
+      setForm({
+        title: initialRecipe?.title ?? "",
+        description: initialRecipe?.description ?? "",
+        sourceUrl: initialRecipe?.sourceUrl ?? "",
+        sourceLabel: initialRecipe?.sourceLabel ?? "",
+        servings: String(initialRecipe?.servings ?? 2),
+        prepTime: initialRecipe?.prepTime != null ? String(initialRecipe.prepTime) : "",
+        cookTime: initialRecipe?.cookTime != null ? String(initialRecipe.cookTime) : "",
+        difficulty: initialRecipe?.difficulty ?? "",
+        rating: initialRecipe?.rating != null ? String(initialRecipe.rating) : "",
+        cookNotes: initialRecipe?.cookNotes ?? "",
+        instructions:
+          initialRecipe?.instructions && initialRecipe.instructions.length > 0
+            ? payloadToInstructionDrafts(initialRecipe.instructions)
+            : [],
+        tagsText: initialRecipe?.tags.join(", ") ?? "",
+        ingredientGroups: toIngredientGroups(initialRecipe),
+      });
     }
 
-    setForm({
-      title: initialRecipe?.title ?? "",
-      description: initialRecipe?.description ?? "",
-      servings: String(initialRecipe?.servings ?? 2),
-      prepTime: initialRecipe?.prepTime != null ? String(initialRecipe.prepTime) : "",
-      cookTime: initialRecipe?.cookTime != null ? String(initialRecipe.cookTime) : "",
-      difficulty: initialRecipe?.difficulty ?? "",
-      rating: initialRecipe?.rating != null ? String(initialRecipe.rating) : "",
-      cookNotes: initialRecipe?.cookNotes ?? "",
-      instructions:
-        initialRecipe?.instructions && initialRecipe.instructions.length > 0
-          ? payloadToInstructionDrafts(initialRecipe.instructions)
-          : [],
-      tagsText: initialRecipe?.tags.join(", ") ?? "",
-      ingredients: toIngredientDrafts(initialRecipe),
-    });
+    previousOpenRef.current = open;
   }, [open, initialRecipe]);
 
   useEffect(() => {
@@ -173,7 +235,12 @@ export function AddRecipeModal({
     [form.instructions]
   );
 
-  const hasAtLeastOneIngredient = form.ingredients.some(
+  const flattenedIngredients = useMemo(
+    () => flattenIngredientGroups(form.ingredientGroups),
+    [form.ingredientGroups]
+  );
+
+  const hasAtLeastOneIngredient = flattenedIngredients.some(
     (ingredient) => ingredient.name.trim().length > 0
   );
 
@@ -199,14 +266,17 @@ export function AddRecipeModal({
       description: form.description.trim() || null,
       servings: Number.isFinite(parsedServings) && parsedServings > 0 ? parsedServings : 2,
       instructions: instructionList,
-      ingredients: form.ingredients
+      sourceUrl: form.sourceUrl.trim() || null,
+      sourceLabel: form.sourceLabel.trim() || null,
+      ingredients: flattenedIngredients
         .map((ingredient, index) => ({
           name: ingredient.name.trim(),
           quantity:
             ingredient.amount.trim().length > 0
-              ? Number.parseFloat(ingredient.amount.trim())
+              ? parseFraction(ingredient.amount.trim())
               : null,
           unit: ingredient.unit,
+          group: ingredient.group,
           notes: ingredient.notes.trim() || null,
           order: index,
         }))
@@ -374,6 +444,28 @@ export function AddRecipeModal({
               />
             </div>
 
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.06em] text-text-muted sm:text-sm sm:normal-case sm:tracking-normal">
+                Source URL
+              </label>
+              <Input
+                onChange={(event) => setField("sourceUrl", event.target.value)}
+                placeholder="https://example.com/recipe"
+                value={form.sourceUrl}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.06em] text-text-muted sm:text-sm sm:normal-case sm:tracking-normal">
+                Source Label
+              </label>
+              <Input
+                onChange={(event) => setField("sourceLabel", event.target.value)}
+                placeholder="example.com"
+                value={form.sourceLabel}
+              />
+            </div>
+
             <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.06em] text-text-muted sm:text-sm sm:normal-case sm:tracking-normal">
                 Instructions
@@ -381,20 +473,6 @@ export function AddRecipeModal({
               <div className="rounded-card border border-cream-dark bg-cream/70 p-3 sm:p-4">
                 <div className="mb-2.5 flex items-center justify-between sm:mb-3">
                   <p className="text-xs font-medium text-text-muted">Steps</p>
-                  <Button
-                    className="h-8 px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm"
-                    onClick={() =>
-                      setField("instructions", [
-                        ...form.instructions,
-                        createEmptyInstructionDraft(),
-                      ])
-                    }
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    + Add Step
-                  </Button>
                 </div>
 
                 {form.instructions.length === 0 ? (
@@ -507,6 +585,23 @@ export function AddRecipeModal({
                     ))}
                   </div>
                 )}
+
+                <div className="mt-2.5 sm:mt-3">
+                  <Button
+                    className="h-8 px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm"
+                    onClick={() =>
+                      setField("instructions", [
+                        ...form.instructions,
+                        createEmptyInstructionDraft(),
+                      ])
+                    }
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    + Add Step
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -524,113 +619,256 @@ export function AddRecipeModal({
           </div>
 
           <div className="mt-4 rounded-card border border-cream-dark bg-cream/70 p-3 sm:mt-5 sm:p-4">
-            <div className="mb-2.5 flex items-center justify-between sm:mb-3">
+            <div className="mb-2.5">
               <h3 className="font-serif text-lg font-semibold text-text sm:text-xl">Ingredients</h3>
+            </div>
+
+            <div className="space-y-3">
+              {form.ingredientGroups.map((group, groupIndex) => {
+                const totalIngredients = form.ingredientGroups.reduce(
+                  (count, entry) => count + entry.ingredients.length,
+                  0
+                );
+                const showGroupHeader =
+                  form.ingredientGroups.length > 1 || group.name.trim().length > 0;
+
+                return (
+                  <div className="rounded-btn border border-cream-dark bg-white p-2.5 sm:p-3" key={group.id}>
+                    {showGroupHeader ? (
+                      <div className="mb-2 flex items-center gap-2">
+                        <Input
+                          onChange={(event) => {
+                            const nextValue = event.target.value;
+                            setField(
+                              "ingredientGroups",
+                              form.ingredientGroups.map((entry) =>
+                                entry.id === group.id ? { ...entry, name: nextValue } : entry
+                              )
+                            );
+                          }}
+                          placeholder="Group name (optional)"
+                          value={group.name}
+                        />
+                        <Button
+                          className="h-8 px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
+                          disabled={form.ingredientGroups.length === 1}
+                          onClick={() => {
+                            if (form.ingredientGroups.length === 1) {
+                              return;
+                            }
+
+                            const targetIndex = groupIndex === 0 ? 1 : 0;
+                            const nextGroups = form.ingredientGroups
+                              .map((entry, index) => {
+                                if (index === targetIndex) {
+                                  return {
+                                    ...entry,
+                                    ingredients: [...group.ingredients, ...entry.ingredients],
+                                  };
+                                }
+                                return entry;
+                              })
+                              .filter((entry) => entry.id !== group.id);
+
+                            setField("ingredientGroups", nextGroups);
+                          }}
+                          size="sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          Remove Group
+                        </Button>
+                      </div>
+                    ) : null}
+
+                    <div className="space-y-1.5 sm:space-y-2">
+                      {group.ingredients.map((ingredient) => (
+                        <div
+                          className="grid gap-2 rounded-btn border border-cream-dark bg-cream p-2.5 md:grid-cols-[1fr_110px_160px_auto] sm:p-3"
+                          key={ingredient.id}
+                        >
+                          <Input
+                            onChange={(event) => {
+                              const nextValue = event.target.value;
+                              setField(
+                                "ingredientGroups",
+                                form.ingredientGroups.map((entry) =>
+                                  entry.id !== group.id
+                                    ? entry
+                                    : {
+                                        ...entry,
+                                        ingredients: entry.ingredients.map((item) =>
+                                          item.id === ingredient.id
+                                            ? { ...item, name: nextValue }
+                                            : item
+                                        ),
+                                      }
+                                )
+                              );
+                            }}
+                            placeholder="Ingredient name"
+                            value={ingredient.name}
+                          />
+                          <Input
+                            onChange={(event) => {
+                              const nextValue = event.target.value;
+                              setField(
+                                "ingredientGroups",
+                                form.ingredientGroups.map((entry) =>
+                                  entry.id !== group.id
+                                    ? entry
+                                    : {
+                                        ...entry,
+                                        ingredients: entry.ingredients.map((item) =>
+                                          item.id === ingredient.id
+                                            ? { ...item, amount: nextValue }
+                                            : item
+                                        ),
+                                      }
+                                )
+                              );
+                            }}
+                            placeholder="Amount (e.g. 1/8)"
+                            type="text"
+                            value={ingredient.amount}
+                          />
+                          <select
+                            className="h-10 rounded-btn border border-cream-dark bg-white px-2.5 py-2 font-sans text-sm text-text outline-none transition focus:border-green-light focus:ring-2 focus:ring-green/10"
+                            onChange={(event) => {
+                              const nextValue = event.target.value as IngredientDraft["unit"];
+                              setField(
+                                "ingredientGroups",
+                                form.ingredientGroups.map((entry) =>
+                                  entry.id !== group.id
+                                    ? entry
+                                    : {
+                                        ...entry,
+                                        ingredients: entry.ingredients.map((item) =>
+                                          item.id === ingredient.id
+                                            ? { ...item, unit: nextValue }
+                                            : item
+                                        ),
+                                      }
+                                )
+                              );
+                            }}
+                            value={ingredient.unit}
+                          >
+                            <option value="g">Grams (g)</option>
+                            <option value="ml">Milliliters (ml)</option>
+                            <option value="cups">Cups</option>
+                            <option value="tbsp">Tablespoons (tbsp)</option>
+                            <option value="tsp">Teaspoons (tsp)</option>
+                            <option value="oz">Ounces (oz)</option>
+                            <option value="lb">Pounds (lb)</option>
+                            <option value="count">Count (items)</option>
+                          </select>
+                          <Button
+                            className="h-8 self-center px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
+                            disabled={totalIngredients === 1}
+                            onClick={() => {
+                              if (totalIngredients === 1) {
+                                return;
+                              }
+
+                              const nextGroups = form.ingredientGroups
+                                .map((entry) =>
+                                  entry.id !== group.id
+                                    ? entry
+                                    : {
+                                        ...entry,
+                                        ingredients: entry.ingredients.filter(
+                                          (item) => item.id !== ingredient.id
+                                        ),
+                                      }
+                                )
+                                .filter((entry) => entry.ingredients.length > 0);
+
+                              setField(
+                                "ingredientGroups",
+                                nextGroups.length > 0
+                                  ? nextGroups
+                                  : [createEmptyIngredientGroup()]
+                              );
+                            }}
+                            size="sm"
+                            type="button"
+                            variant="ghost"
+                          >
+                            Remove
+                          </Button>
+
+                          <div className="md:col-span-4">
+                            <Input
+                              onChange={(event) => {
+                                const nextValue = event.target.value;
+                                setField(
+                                  "ingredientGroups",
+                                  form.ingredientGroups.map((entry) =>
+                                    entry.id !== group.id
+                                      ? entry
+                                      : {
+                                          ...entry,
+                                          ingredients: entry.ingredients.map((item) =>
+                                            item.id === ingredient.id
+                                              ? { ...item, notes: nextValue }
+                                              : item
+                                          ),
+                                        }
+                                  )
+                                );
+                              }}
+                              placeholder="Notes (optional)"
+                              value={ingredient.notes}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-2">
+                      <Button
+                        className="h-8 px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm"
+                        onClick={() => {
+                          setField(
+                            "ingredientGroups",
+                            form.ingredientGroups.map((entry) =>
+                              entry.id === group.id
+                                ? {
+                                    ...entry,
+                                    ingredients: [...entry.ingredients, createEmptyIngredient()],
+                                  }
+                                : entry
+                            )
+                          );
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        + Add Ingredient
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-3">
               <Button
                 className="h-8 px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm"
-                onClick={() =>
-                  setField("ingredients", [...form.ingredients, createEmptyIngredient()])
-                }
+                onClick={() => {
+                  setField("ingredientGroups", [
+                    ...form.ingredientGroups,
+                    createEmptyIngredientGroup(),
+                  ]);
+                }}
                 size="sm"
                 type="button"
                 variant="outline"
               >
-                + Add Ingredient
+                + Add Group
               </Button>
-            </div>
-
-            <div className="space-y-1.5 sm:space-y-2">
-              {form.ingredients.map((ingredient, index) => (
-                <div
-                  className="grid gap-2 rounded-btn border border-cream-dark bg-white p-2.5 md:grid-cols-[1fr_110px_160px_auto] sm:p-3"
-                  key={ingredient.id}
-                >
-                  <Input
-                    onChange={(event) => {
-                      const nextValue = event.target.value;
-                      setField(
-                        "ingredients",
-                        form.ingredients.map((item) =>
-                          item.id === ingredient.id ? { ...item, name: nextValue } : item
-                        )
-                      );
-                    }}
-                    placeholder="Ingredient name"
-                    value={ingredient.name}
-                  />
-                  <Input
-                    min={0}
-                    onChange={(event) => {
-                      const nextValue = event.target.value;
-                      setField(
-                        "ingredients",
-                        form.ingredients.map((item) =>
-                          item.id === ingredient.id ? { ...item, amount: nextValue } : item
-                        )
-                      );
-                    }}
-                    placeholder="Amount"
-                    step="any"
-                    type="number"
-                    value={ingredient.amount}
-                  />
-                  <select
-                    className="h-10 rounded-btn border border-cream-dark bg-cream px-2.5 py-2 font-sans text-sm text-text outline-none transition focus:border-green-light focus:ring-2 focus:ring-green/10"
-                    onChange={(event) => {
-                      const nextValue = event.target.value as IngredientDraft["unit"];
-                      setField(
-                        "ingredients",
-                        form.ingredients.map((item) =>
-                          item.id === ingredient.id ? { ...item, unit: nextValue } : item
-                        )
-                      );
-                    }}
-                    value={ingredient.unit}
-                  >
-                    <option value="g">Grams (g)</option>
-                    <option value="ml">Milliliters (ml)</option>
-                    <option value="cups">Cups</option>
-                    <option value="tbsp">Tablespoons (tbsp)</option>
-                    <option value="tsp">Teaspoons (tsp)</option>
-                    <option value="oz">Ounces (oz)</option>
-                    <option value="lb">Pounds (lb)</option>
-                    <option value="count">Count (items)</option>
-                  </select>
-                  <Button
-                    className="h-8 self-center px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"
-                    disabled={form.ingredients.length === 1 && index === 0}
-                    onClick={() => {
-                      setField(
-                        "ingredients",
-                        form.ingredients.length > 1
-                          ? form.ingredients.filter((item) => item.id !== ingredient.id)
-                          : form.ingredients
-                      );
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    Remove
-                  </Button>
-
-                  <div className="md:col-span-4">
-                    <Input
-                      onChange={(event) => {
-                        const nextValue = event.target.value;
-                        setField(
-                          "ingredients",
-                          form.ingredients.map((item) =>
-                            item.id === ingredient.id ? { ...item, notes: nextValue } : item
-                          )
-                        );
-                      }}
-                      placeholder="Notes (optional)"
-                      value={ingredient.notes}
-                    />
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
 

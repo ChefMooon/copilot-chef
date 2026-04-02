@@ -49,6 +49,7 @@ type SerializedRecipeIngredient = {
   name: string;
   quantity: number | null;
   unit: string | null;
+  group: string | null;
   notes: string | null;
   order: number;
 };
@@ -173,6 +174,7 @@ function serializeRecipe(recipe: {
     name: string;
     quantity: number | null;
     unit: string | null;
+    group: string | null;
     notes: string | null;
     order: number;
   }>;
@@ -204,6 +206,7 @@ function serializeRecipe(recipe: {
         name: ingredient.name,
         quantity: ingredient.quantity,
         unit: ingredient.unit,
+        group: ingredient.group,
         notes: ingredient.notes,
         order: ingredient.order,
       })),
@@ -229,6 +232,7 @@ function normalizedRowsFromInput(input: CreateRecipeInput | UpdateRecipeInput) {
       name: ingredient.name,
       quantity: ingredient.quantity,
       unit: ingredient.unit,
+      group: null,
       notes: ingredient.notes,
       order: index,
     }));
@@ -250,6 +254,7 @@ function normalizedRowsFromInput(input: CreateRecipeInput | UpdateRecipeInput) {
       name: normalized.name,
       quantity: ingredient.quantity ?? normalized.quantity,
       unit: ingredient.unit ?? normalized.unit,
+      group: compactString(ingredient.group),
       notes: ingredient.notes ?? normalized.notes,
       order: ingredient.order ?? index,
     };
@@ -774,6 +779,7 @@ export class RecipeService {
               name: ingredient.name,
               quantity: ingredient.quantity,
               unit: ingredient.unit,
+              group: ingredient.group,
               notes: ingredient.notes,
               order: ingredient.order,
             })),
@@ -847,6 +853,7 @@ export class RecipeService {
               name: ingredient.name,
               quantity: ingredient.quantity,
               unit: ingredient.unit,
+              group: ingredient.group,
               notes: ingredient.notes,
               order: ingredient.order,
             })),

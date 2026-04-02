@@ -33,6 +33,7 @@ export type RecipePayload = {
     name: string;
     quantity: number | null;
     unit: string | null;
+    group?: string | null;
     notes: string | null;
     order: number;
   }>;

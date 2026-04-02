@@ -6,6 +6,7 @@ const recipeIngredientInputSchema = z.object({
   name: z.string().min(1),
   quantity: z.number().nullable().optional(),
   unit: z.string().nullable().optional(),
+  group: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   order: z.number().int().nonnegative().optional(),
 });
@@ -66,6 +67,7 @@ const recipeExportItemSchema = z.object({
       name: z.string(),
       quantity: z.number().nullable(),
       unit: z.string().nullable(),
+      group: z.string().nullable().optional(),
       notes: z.string().nullable(),
       order: z.number().int().nonnegative(),
     })

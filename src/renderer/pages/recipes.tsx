@@ -11,6 +11,7 @@ import {
   updateRecipe,
   type RecipePayload,
 } from "@/lib/api";
+import { recipeKeys } from "@/lib/query-keys";
 
 import { AddRecipeModal } from "@/components/recipes/AddRecipeModal";
 import { IngestModal } from "@/components/recipes/IngestModal";
@@ -29,7 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useChatPageContext } from "@/context/chat-context";
 
-const recipesKey = ["recipes"] as const;
+const recipesKey = recipeKeys.all;
 
 function downloadJson(data: unknown, fileName: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -243,6 +244,7 @@ export default function RecipesPage() {
       </div>
 
       <AddRecipeModal
+        key={editingRecipe?.id ?? "new-recipe"}
         initialRecipe={editingRecipe}
         isSaving={createMutation.isPending || updateMutation.isPending}
         onClose={() => {

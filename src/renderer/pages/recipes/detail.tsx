@@ -4,6 +4,7 @@ import { useParams } from "react-router";
 import { fetchJson } from "@/lib/api";
 import { RecipeDetail } from "@/components/recipes/RecipeDetail";
 import { type RecipePayload } from "@/lib/api";
+import { recipeKeys } from "@/lib/query-keys";
 
 type RecipeDetailResponse = {
   data: RecipePayload;
@@ -20,7 +21,7 @@ export default function RecipeDetailPage() {
   const { recipeId } = useParams<{ recipeId: string }>();
 
   const recipeQuery = useQuery({
-    queryKey: ["recipe", recipeId],
+    queryKey: recipeId ? recipeKeys.detail(recipeId) : recipeKeys.detail(""),
     queryFn: () =>
       fetchJson<RecipeDetailResponse>(`/api/recipes/${recipeId}`).then(
         (response) => response.data
