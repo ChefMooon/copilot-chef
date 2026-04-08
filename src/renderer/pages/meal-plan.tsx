@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { DayView } from "@/components/meal-plan/DayView";
 import { DeleteConfirmationModal } from "@/components/meal-plan/DeleteConfirmationModal";
@@ -7,6 +7,15 @@ import { EditModal } from "@/components/meal-plan/EditModal";
 import { MonthView } from "@/components/meal-plan/MonthView";
 import { TrashDropZone } from "@/components/meal-plan/TrashDropZone";
 import { WeekView } from "@/components/meal-plan/WeekView";
+import { AddRecipeModal } from "@/components/recipes/AddRecipeModal";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import styles from "@/components/meal-plan/meal-plan.module.css";
 
 import {
@@ -23,17 +32,30 @@ import {
   type EditableMeal,
 } from "@/lib/calendar";
 
-import { fetchJson } from "@/lib/api";
+import { createRecipe, fetchJson } from "@/lib/api";
 import { useChatPageContext } from "@/context/chat-context";
 import { useToast } from "@/components/providers/toast-provider";
 import { useMealUndoRedo } from "@/components/meal-plan/use-meal-undo-redo";
 import { getCachedConfig } from "@/lib/config";
+import { mealToRecipePayload } from "@/lib/meal-to-recipe";
+import type { CreateRecipeInput, RecipeConflict } from "@shared/types";
 
 type CalView = "day" | "week" | "month";
 
 type DeletedMealSnapshot = Pick<
   EditableMeal,
-  "name" | "date" | "type" | "notes" | "ingredients"
+  | "name"
+  | "date"
+  | "type"
+  | "notes"
+  | "ingredients"
+  | "description"
+  | "instructions"
+  | "servings"
+  | "prepTime"
+  | "cookTime"
+  | "servingsOverride"
+  | "recipeId"
 >;
 
 function toDeletedMealSnapshot(meal: EditableMeal): DeletedMealSnapshot {
@@ -43,6 +65,13 @@ function toDeletedMealSnapshot(meal: EditableMeal): DeletedMealSnapshot {
     type: meal.type,
     notes: meal.notes,
     ingredients: [...meal.ingredients],
+    description: meal.description,
+    instructions: [...meal.instructions],
+    servings: meal.servings,
+    prepTime: meal.prepTime,
+    cookTime: meal.cookTime,
+    servingsOverride: meal.servingsOverride,
+    recipeId: meal.recipeId,
   };
 }
 
@@ -107,6 +136,16 @@ export default function MealPlanPage() {
   const queryClient = useQueryClient();
   const { toast, dismissAll, setDragging } = useToast();
   const { recordAction, discardLast, undo, redo } = useMealUndoRedo();
+  const [saveAsRecipeMeal, setSaveAsRecipeMeal] = useState<EditableMeal | null>(null);
+  const [saveAsRecipeConflict, setSaveAsRecipeConflict] =
+    useState<RecipeConflict | null>(null);
+
+  const createRecipeMutation = useMutation({
+    mutationFn: createRecipe,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["recipes"] });
+    },
+  });
 
   const dateRange = useMemo(() => toRangeByView(view, date), [view, date]);
   const mealsQueryKey = useMemo(
@@ -271,6 +310,13 @@ export default function MealPlanPage() {
       mealType: fromCalendarMealType(updatedMeal.type),
       notes: updatedMeal.notes,
       ingredients: updatedMeal.ingredients,
+      description: updatedMeal.description || null,
+      instructions: updatedMeal.instructions,
+      servings: updatedMeal.servings,
+      prepTime: updatedMeal.prepTime,
+      cookTime: updatedMeal.cookTime,
+      servingsOverride: updatedMeal.servingsOverride,
+      recipeId: updatedMeal.recipeId,
     };
 
     if (updatedMeal.id) {
@@ -292,6 +338,13 @@ export default function MealPlanPage() {
           mealType: payload.mealType,
           notes: payload.notes || null,
           ingredients: payload.ingredients ?? [],
+          description: payload.description,
+          instructions: payload.instructions,
+          servings: payload.servings,
+          prepTime: payload.prepTime,
+          cookTime: payload.cookTime,
+          servingsOverride: payload.servingsOverride,
+          recipeId: payload.recipeId,
         },
         summary: `Added ${payload.name}`,
       });
@@ -439,6 +492,13 @@ export default function MealPlanPage() {
         mealType: fromCalendarMealType(snapshot.type),
         notes: snapshot.notes ? snapshot.notes : null,
         ingredients: snapshot.ingredients,
+        description: snapshot.description || null,
+        instructions: snapshot.instructions,
+        servings: snapshot.servings,
+        prepTime: snapshot.prepTime,
+        cookTime: snapshot.cookTime,
+        servingsOverride: snapshot.servingsOverride,
+        recipeId: snapshot.recipeId,
       }),
     });
 
@@ -494,6 +554,13 @@ export default function MealPlanPage() {
           mealType: fromCalendarMealType(mealToDelete.type),
           notes: mealToDelete.notes || null,
           ingredients: [...mealToDelete.ingredients],
+          description: mealToDelete.description || null,
+          instructions: [...mealToDelete.instructions],
+          servings: mealToDelete.servings,
+          prepTime: mealToDelete.prepTime,
+          cookTime: mealToDelete.cookTime,
+          servingsOverride: mealToDelete.servingsOverride,
+          recipeId: mealToDelete.recipeId,
         },
         summary: `Deleted ${mealToDelete.name}`,
       });
@@ -533,6 +600,13 @@ export default function MealPlanPage() {
           mealType: fromCalendarMealType(snapshot.type),
           notes: snapshot.notes || null,
           ingredients: [...snapshot.ingredients],
+          description: snapshot.description || null,
+          instructions: [...snapshot.instructions],
+          servings: snapshot.servings,
+          prepTime: snapshot.prepTime,
+          cookTime: snapshot.cookTime,
+          servingsOverride: snapshot.servingsOverride,
+          recipeId: snapshot.recipeId,
         },
         summary: `Deleted ${snapshot.name}`,
       });
@@ -547,6 +621,86 @@ export default function MealPlanPage() {
     } finally {
       setIsTrashDeleting(false);
     }
+  };
+
+  const handleSaveAsRecipe = async (meal: EditableMeal) => {
+    setSaveAsRecipeConflict(null);
+    setSaveAsRecipeMeal(meal);
+    setEditMeal(null);
+  };
+
+  const handleSaveRecipeConflict = (conflict: RecipeConflict) => {
+    setSaveAsRecipeConflict(conflict);
+  };
+
+  const closeSaveAsRecipeFlow = () => {
+    setSaveAsRecipeConflict(null);
+    setSaveAsRecipeMeal(null);
+  };
+
+  const handleSaveRecipeFromMeal = async (input: CreateRecipeInput) => {
+    if (!saveAsRecipeMeal) return;
+    const recipe = await createRecipeMutation.mutateAsync(input);
+
+    // Link the meal back to the new recipe if it has been persisted
+    if (saveAsRecipeMeal.id) {
+      await fetchJson<{ data: CalendarMeal }>(`/api/meals/${saveAsRecipeMeal.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ recipeId: recipe.id }),
+      });
+      await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+    }
+
+    closeSaveAsRecipeFlow();
+    toast({
+      title: `Saved "${recipe.title}" to Recipe Book`,
+      description: saveAsRecipeMeal.id
+        ? "This meal is now linked to the recipe."
+        : undefined,
+      duration: 5000,
+    });
+  };
+
+  const handleLinkExistingRecipe = async () => {
+    if (!saveAsRecipeMeal?.id || !saveAsRecipeConflict) {
+      return;
+    }
+
+    await fetchJson<{ data: CalendarMeal }>(`/api/meals/${saveAsRecipeMeal.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ recipeId: saveAsRecipeConflict.existing.id }),
+    });
+    await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+
+    const existingTitle = saveAsRecipeConflict.existing.title;
+    closeSaveAsRecipeFlow();
+    toast({
+      title: `Linked to "${existingTitle}"`,
+      description: "This meal now points to the existing recipe.",
+      duration: 5000,
+    });
+  };
+
+  const handleUnlinkRecipe = async (meal: EditableMeal) => {
+    if (!meal.id || !meal.linkedRecipe) return;
+
+    // Copy recipe data into standalone meal fields, then clear the link
+    await fetchJson<{ data: CalendarMeal }>(`/api/meals/${meal.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        recipeId: null,
+        description: meal.linkedRecipe.description || null,
+        instructions: meal.linkedRecipe.instructions,
+        ingredients: meal.linkedRecipe.ingredients,
+        servings: meal.servingsOverride ?? meal.linkedRecipe.servings,
+        prepTime: meal.linkedRecipe.prepTime,
+        cookTime: meal.linkedRecipe.cookTime,
+        servingsOverride: null,
+      }),
+    });
+
+    await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+    setEditMeal(null);
   };
 
   const onResuggest = async (meal: EditableMeal) => {
@@ -672,8 +826,67 @@ export default function MealPlanPage() {
           onDelete={onDeleteMeal}
           onResuggest={onResuggest}
           onSave={onSaveMeal}
+          onSaveAsRecipe={handleSaveAsRecipe}
+          onUnlinkRecipe={handleUnlinkRecipe}
         />
       ) : null}
+
+      {saveAsRecipeMeal ? (
+        <AddRecipeModal
+          open
+          initialRecipe={mealToRecipePayload(saveAsRecipeMeal)}
+          isSaving={createRecipeMutation.isPending}
+          onClose={closeSaveAsRecipeFlow}
+          onConflict={handleSaveRecipeConflict}
+          onSave={handleSaveRecipeFromMeal}
+        />
+      ) : null}
+
+      <AlertDialog
+        open={Boolean(saveAsRecipeConflict)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSaveAsRecipeConflict(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Recipe already exists</AlertDialogTitle>
+            <AlertDialogDescription>
+              {saveAsRecipeConflict?.code === "RECIPE_DUPLICATE_SOURCE_URL"
+                ? `The source URL for "${saveAsRecipeConflict?.existing.title ?? "this recipe"}" is already in your Recipe Book.`
+                : `"${saveAsRecipeConflict?.existing.title ?? "This recipe"}" is already in your Recipe Book.`} You can link this meal to the existing recipe, or keep editing and rename the draft before saving.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <button
+              className={styles.btnGhost}
+              onClick={() => setSaveAsRecipeConflict(null)}
+              type="button"
+            >
+              Cancel
+            </button>
+            <button
+              className={styles.btnLinkRecipe}
+              onClick={() => setSaveAsRecipeConflict(null)}
+              type="button"
+            >
+              Rename Draft
+            </button>
+            <button
+              className={styles.btnSave}
+              disabled={!saveAsRecipeMeal?.id}
+              onClick={() => {
+                void handleLinkExistingRecipe();
+              }}
+              type="button"
+            >
+              Link Existing
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {trashPendingMeal ? (
         <DeleteConfirmationModal

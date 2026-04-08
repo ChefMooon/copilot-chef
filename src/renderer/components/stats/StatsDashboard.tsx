@@ -28,7 +28,11 @@ export type StatsPayload = {
   cuisineBreakdown: { cuisine: string; count: number }[];
   weeklyTrend: { weekLabel: string; meals: number }[];
   dayOfWeekBreakdown: { day: string; count: number }[];
-  planVsLog: { planned: number; logged: number; followThroughRate: number };
+  planningWindow: {
+    totalMeals: number;
+    activeDays: number;
+    avgMealsPerActiveDay: number;
+  };
   topMeals: { mealName: string; count: number }[];
   topIngredients: { ingredient: string; count: number }[];
 };
@@ -107,9 +111,9 @@ export function StatsDashboard({ stats }: Props) {
       <SectionLabel>Planning</SectionLabel>
       <div className="grid gap-4 lg:grid-cols-2">
         <PlanVsLogCard
-          followThroughRate={stats.planVsLog.followThroughRate}
-          logged={stats.planVsLog.logged}
-          planned={stats.planVsLog.planned}
+          activeDays={stats.planningWindow.activeDays}
+          avgMealsPerActiveDay={stats.planningWindow.avgMealsPerActiveDay}
+          totalMeals={stats.planningWindow.totalMeals}
         />
         <TopMealsList meals={stats.topMeals} />
       </div>

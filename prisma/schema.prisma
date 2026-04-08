@@ -18,16 +18,24 @@ enum MealType {
 }
 
 model Meal {
-  id              String    @id @default(cuid())
-  name            String
-  date            DateTime? @default(now())
-  mealType        MealType
-  notes           String?
-  ingredientsJson String    @default("[]")
-  createdAt       DateTime  @default(now())
-  logs            MealLog[]
+  id               String    @id @default(cuid())
+  name             String
+  date             DateTime? @default(now())
+  mealType         MealType
+  notes            String?
+  ingredientsJson  String    @default("[]")
+  description      String?
+  instructionsJson String    @default("[]")
+  servings         Int       @default(2)
+  prepTime         Int?
+  cookTime         Int?
+  servingsOverride Int?
+  recipeId         String?
+  recipe           Recipe?   @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  createdAt        DateTime  @default(now())
 
   @@index([date])
+  @@index([recipeId])
 }
 
 model GroceryList {
@@ -94,6 +102,7 @@ model UserPreference {
 model Recipe {
   id           String             @id @default(cuid())
   title        String
+  normalizedTitle String?         @unique
   description  String?
   servings     Int                @default(2)
   prepTime     Int?
@@ -101,6 +110,7 @@ model Recipe {
   difficulty   String?
   instructions String
   sourceUrl    String?
+  normalizedSourceUrl String?     @unique
   sourceLabel  String?
   origin       String             @default("manual")
   rating       Int?
@@ -113,6 +123,7 @@ model Recipe {
   tags         RecipeTag[]
   linkedFrom   RecipeLink[]       @relation("ParentRecipe")
   linkedTo     RecipeLink[]       @relation("SubRecipe")
+  meals        Meal[]
 
   @@index([title])
   @@index([origin])
@@ -229,18 +240,6 @@ model ChatPendingSuggestion {
 
   @@index([chatSessionId, createdAt])
   @@index([chatSessionId, expiresAt])
-}
-
-model MealLog {
-  id        String   @id @default(cuid())
-  date      DateTime
-  mealType  MealType
-  mealName  String
-  cooked    Boolean  @default(true)
-  mealId    String?
-  meal      Meal?    @relation(fields: [mealId], references: [id], onDelete: SetNull)
-
-  @@index([date])
 }
 
 model CustomPersona {

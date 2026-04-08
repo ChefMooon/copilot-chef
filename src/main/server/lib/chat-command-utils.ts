@@ -12,7 +12,14 @@ export type MealShape = {
   date: string | null;
   mealType: MealTypeValue;
   notes: string | null;
-  ingredients: string[];
+  ingredients: import("@shared/types").MealIngredient[];
+  description?: string | null;
+  instructions?: string[];
+  servings?: number;
+  prepTime?: number | null;
+  cookTime?: number | null;
+  servingsOverride?: number | null;
+  recipeId?: string | null;
 };
 
 export type MealForwardOp =
@@ -28,7 +35,14 @@ export type MealForwardOp =
         date?: string | null;
         mealType?: MealTypeValue;
         notes?: string | null;
-        ingredients?: string[];
+        ingredients?: import("@shared/types").MealIngredient[];
+        description?: string | null;
+        instructions?: string[];
+        servings?: number;
+        prepTime?: number | null;
+        cookTime?: number | null;
+        servingsOverride?: number | null;
+        recipeId?: string | null;
       };
     }
   | {

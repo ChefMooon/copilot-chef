@@ -5,6 +5,7 @@ export const ApiPaths = {
   // Meals
   meals: "/api/meals",
   meal: (id: string) => `/api/meals/${id}`,
+  mealsHeatmap: "/api/meals/heatmap",
 
   // Grocery lists
   groceryLists: "/api/grocery-lists",
@@ -44,9 +45,6 @@ export const ApiPaths = {
   // Personas
   personas: "/api/personas",
   persona: (id: string) => `/api/personas/${id}`,
-
-  // Meal logs
-  mealLogs: "/api/meal-logs",
 
   // Stats
   stats: "/api/stats",

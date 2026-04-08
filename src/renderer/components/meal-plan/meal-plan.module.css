@@ -303,6 +303,17 @@
   transition: border-color 0.16s, background 0.16s, box-shadow 0.16s;
 }
 
+.timelineEmptySlot:hover {
+  border-color: rgba(59, 94, 69, 0.42);
+  background: rgba(59, 94, 69, 0.04);
+}
+
+.timelineEmptySlot:focus-visible {
+  border-color: var(--green);
+  background: rgba(59, 94, 69, 0.04);
+  box-shadow: 0 0 0 2px rgba(59, 94, 69, 0.14);
+}
+
 .slotDropTarget {
   border-color: var(--green) !important;
   background: var(--green-pale) !important;
@@ -386,6 +397,11 @@
 }
 
 .btnAddSlot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-muted);
@@ -532,6 +548,32 @@
   padding: 0.75rem;
   gap: 0.75rem;
   transition: border-color 0.16s, background 0.16s, box-shadow 0.16s;
+}
+
+.weekSlotEmpty:hover {
+  border-color: rgba(59, 94, 69, 0.42);
+  background: rgba(59, 94, 69, 0.04);
+}
+
+.weekSlotEmpty:focus-visible {
+  border-color: var(--green);
+  background: rgba(59, 94, 69, 0.04);
+  box-shadow: 0 0 0 2px rgba(59, 94, 69, 0.14);
+}
+
+.emptySlotButton {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  text-align: center;
+  cursor: pointer;
+}
+
+.emptySlotButton .btnAddSlot {
+  width: auto;
+  height: auto;
+  justify-content: flex-start;
 }
 
 .weekSlotStack {
@@ -1098,28 +1140,62 @@
 
 .modalFooter {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   padding: 1rem 1.4rem;
   border-top: 1px solid var(--cream-dark);
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  gap: 0.6rem;
 }
 
-.modalFooterRight {
+.modalFooterTop,
+.modalFooterBottom {
   display: flex;
-  gap: 0.6rem;
   align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.modalFooterAux {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.modalFooterSecondary,
+.modalFooterPrimary {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.modalFooterSecondary {
+  justify-content: flex-end;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.modalFooterPrimary {
+  justify-content: flex-end;
+  flex: 0 0 auto;
+}
+
+.footerActionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  white-space: nowrap;
+  text-align: center;
+  line-height: 1.15;
 }
 
 .btnAiSuggest {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 700;
   background: #fbf6e8;
   color: #8a6e20;
   border: 1.5px solid #e8d98a;
   border-radius: 8px;
-  padding: 0.42rem 0.85rem;
+  padding: 0.34rem 0.7rem;
   cursor: pointer;
   transition: all 0.14s;
 }
@@ -1130,12 +1206,12 @@
 }
 
 .btnGhost {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   background: none;
   border: 1.5px solid var(--cream-dark);
   border-radius: 8px;
-  padding: 0.42rem 0.85rem;
+  padding: 0.34rem 0.72rem;
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.14s;
@@ -1147,13 +1223,14 @@
 }
 
 .btnSave {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   background: var(--orange);
   color: #fffdf8;
   border: none;
   border-radius: 8px;
-  padding: 0.45rem 1.1rem;
+  padding: 0.36rem 0.95rem;
+  min-width: 7.9rem;
   cursor: pointer;
   transition: background 0.14s;
 }
@@ -1163,13 +1240,13 @@
 }
 
 .btnDelete {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   background: #f6e5df;
   color: #a0441a;
   border: 1.5px solid #e9bca9;
   border-radius: 8px;
-  padding: 0.42rem 0.85rem;
+  padding: 0.34rem 0.72rem;
   cursor: pointer;
   transition: all 0.14s;
 }
@@ -1184,6 +1261,27 @@
 .btnGhost:disabled,
 .btnAiSuggest:disabled,
 .btnSave:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.btnLinkRecipe {
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: var(--white);
+  border: 1.5px solid var(--green);
+  border-radius: 8px;
+  padding: 0.34rem 0.72rem;
+  color: var(--green);
+  cursor: pointer;
+  transition: all 0.14s;
+}
+
+.btnLinkRecipe:hover {
+  background: var(--green-pale);
+}
+
+.btnLinkRecipe:disabled {
   opacity: 0.65;
   cursor: not-allowed;
 }
@@ -1244,6 +1342,191 @@
   gap: 0.55rem;
 }
 
+.recipeSearchModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 502;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(44, 36, 22, 0.62);
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.16s ease;
+}
+
+.recipeSearchModalPanel {
+  width: 100%;
+  max-width: 520px;
+  background: var(--white);
+  border-radius: 14px;
+  border: 1px solid var(--cream-dark);
+  box-shadow: 0 18px 48px rgba(44, 36, 22, 0.24);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.recipeSearchModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.15rem 0.9rem;
+  border-bottom: 1px solid var(--cream-dark);
+}
+
+.recipeSearchModalTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.recipeSearchModalBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.recipeSearchModalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.95rem 1.15rem;
+  border-top: 1px solid var(--cream-dark);
+  gap: 0.6rem;
+}
+
+.recipeSearchFilterRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px;
+  gap: 0.55rem;
+}
+
+.recipeSearchStatusText {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
+.recipeSearchList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.recipeSearchListItem {
+  margin: 0;
+}
+
+.recipeSearchListBtn {
+  width: 100%;
+  border: 1px solid var(--cream-dark);
+  border-radius: 10px;
+  background: var(--white);
+  padding: 0.55rem 0.7rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  align-items: flex-start;
+  text-align: left;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.recipeSearchListBtn:hover:not(:disabled) {
+  background: var(--cream);
+  border-color: #ccbda1;
+}
+
+.recipeSearchListBtnDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.recipeSearchListMeta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.recipePreviewPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.recipePreviewTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.recipePreviewSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.recipePreviewChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.recipePreviewChip {
+  font-size: 0.74rem;
+  font-weight: 600;
+  background: var(--green-pale);
+  color: var(--green);
+  padding: 3px 9px;
+  border-radius: 99px;
+}
+
+.servingsInput {
+  max-width: 140px;
+}
+
+.previewNoteInput {
+  min-height: 84px;
+}
+
+.recipePreviewActions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.btnConfirmLink {
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: var(--green);
+  color: #fffdf8;
+  border: none;
+  border-radius: 8px;
+  padding: 0.44rem 0.95rem;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+
+.btnConfirmLink:hover:not(:disabled) {
+  background: var(--green-light);
+}
+
+.btnConfirmLink:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
   .pageHeader {
     flex-direction: column;
@@ -1293,17 +1576,71 @@
   }
 
   .modalFooter {
-    flex-direction: column-reverse;
+    align-items: stretch;
   }
 
-  .modalFooterRight {
+  .modalFooterTop,
+  .modalFooterBottom {
     width: 100%;
-    justify-content: flex-end;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .modalFooterSecondary,
+  .modalFooterPrimary {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .modalFooterAux,
+  .modalFooterSecondary,
+  .modalFooterPrimary {
+    width: 100%;
+  }
+
+  .modalFooterAux > *,
+  .modalFooterSecondary > *,
+  .modalFooterPrimary > * {
+    flex: 1 1 calc(50% - 0.3rem);
+  }
+
+  .modalFooterPrimary .btnSave {
+    flex-basis: 100%;
+    width: 100%;
   }
 
   .btnAiSuggest {
     width: 100%;
     text-align: center;
+  }
+
+  .recipeSearchModalPanel {
+    max-width: 520px;
+  }
+
+  .recipeSearchFilterRow {
+    grid-template-columns: 1fr;
+  }
+
+  .recipeSearchModalFooter {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .recipePreviewActions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .linkedRecipeStatsRow,
+  .ingredientEditorGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .ingredientEditorHeader {
+    display: none;
   }
 
   .confirmationOverlay {
@@ -1322,4 +1659,338 @@
     left: 0.75rem;
     bottom: 0.75rem;
   }
+}
+
+/* ── Recipe-linked banner ───────────────────────────────────────────────── */
+.linkedRecipeBanner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--green-pale);
+  border: 1px solid rgba(59, 94, 69, 0.18);
+  border-radius: 10px;
+  margin-bottom: 0.75rem;
+}
+
+.linkedRecipeIcon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.linkedRecipeLabel {
+  flex: 1;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.linkedRecipeBannerContent {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.linkedRecipeMeta {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.linkedRecipeStatsRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.linkedRecipeStatCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--cream);
+  border-radius: 8px;
+}
+
+.linkedRecipeStatLabel {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.linkedRecipeStatValue {
+  font-size: 0.92rem;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.formHint {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.btnUnlink {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  border: 1.5px solid rgba(59, 94, 69, 0.3);
+  background: var(--white);
+  color: var(--green);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.btnUnlink:hover:not(:disabled) {
+  background: var(--cream);
+}
+
+.btnUnlink:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Read-only display ──────────────────────────────────────────────────── */
+.readOnlyValue {
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--cream);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  line-height: 1.5;
+}
+
+.readOnlyEmpty {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Instructions read-only list ────────────────────────────────────────── */
+.instructionsList {
+  padding-left: 1.25rem;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.instructionReadOnly {
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* ── Ingredient chip in-place editing ───────────────────────────────────── */
+.ingredientChipLabel {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  line-height: inherit;
+}
+
+.ingredientEditorGrid {
+  display: grid;
+  grid-template-columns: 80px 90px minmax(0, 1.25fr) minmax(0, 1fr) 28px;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.ingredientEditorHeader {
+  font-size: 0.71rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ingredientEditorInput {
+  min-width: 0;
+}
+
+/* ── Instructions editor (Mode A) ───────────────────────────────────────── */
+.instructionEditorList {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.instructionEditorRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.instructionStepNum {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  width: 18px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.instructionInput {
+  flex: 1;
+}
+
+.instructionActions {
+  display: flex;
+  gap: 2px;
+}
+
+.btnInstructionOrder {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--cream-dark);
+  background: var(--cream);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.btnInstructionOrder:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.btnInstructionRemove {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.btnInstructionRemove:hover {
+  color: #a0441a;
+  background: #fbefe9;
+}
+
+.btnAddStep {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--green);
+  background: none;
+  border: 1.5px dashed rgba(59, 94, 69, 0.3);
+  border-radius: 7px;
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.btnAddStep:hover {
+  background: var(--green-pale);
+  border-color: var(--green);
+}
+
+/* ── Recipe search / link ───────────────────────────────────────────────── */
+.recipeSearchWrapper {
+  position: relative;
+}
+
+.recipeSearchInput {
+  width: 100%;
+}
+
+.recipeSearchSpinner {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.recipeSearchDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--white);
+  border: 1px solid var(--cream-dark);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  z-index: 10;
+  list-style: none;
+  padding: 4px;
+  margin: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.recipeSearchResult {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.45rem 0.7rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 7px;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.recipeSearchResult:hover {
+  background: var(--cream);
+}
+
+.recipeSearchTitle {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.recipeSearchOrigin {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+/* ── Save as Recipe button ──────────────────────────────────────────────── */
+.btnSaveAsRecipe {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.34rem 0.72rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--green);
+  background: var(--white);
+  color: var(--green);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btnSaveAsRecipe:hover:not(:disabled) {
+  background: var(--green-pale);
+}
+
+.btnSaveAsRecipe:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }

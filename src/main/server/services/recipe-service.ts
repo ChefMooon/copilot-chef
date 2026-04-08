@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { load, type Cheerio } from "cheerio";
 import type { Element } from "domhandler";
+import { Prisma } from "@prisma/client";
 
 import { prisma } from "../lib/prisma";
 import { bootstrapDatabase } from "../lib/bootstrap";
@@ -18,6 +19,12 @@ import {
   normalizeIngredients,
   type NormalizedIngredient,
 } from "../lib/ingredient-normalizer";
+import {
+  buildDuplicateRecipeTitle,
+  normalizeRecipeSourceUrl,
+  normalizeRecipeTitle,
+  sanitizeRecipeTitle,
+} from "../lib/recipe-identity";
 import {
   CreateRecipeInputSchema,
   UpdateRecipeInputSchema,
@@ -98,6 +105,39 @@ export type ImportResult = {
   skipped: Array<{ title: string; reason: string }>;
 };
 
+type RecipeConflictReason = "duplicate_title" | "duplicate_source_url";
+
+class RecipeConflictError extends Error {
+  code: "RECIPE_DUPLICATE_TITLE" | "RECIPE_DUPLICATE_SOURCE_URL";
+  reason: RecipeConflictReason;
+  existing: ReturnType<typeof toIngestExistingRecipe>;
+
+  constructor(reason: RecipeConflictReason, recipe: SerializedRecipe) {
+    const duplicateLabel =
+      reason === "duplicate_source_url"
+        ? "A recipe from this URL already exists."
+        : `A recipe named "${recipe.title}" already exists.`;
+
+    super(duplicateLabel);
+    this.name = "RecipeConflictError";
+    this.code =
+      reason === "duplicate_source_url"
+        ? "RECIPE_DUPLICATE_SOURCE_URL"
+        : "RECIPE_DUPLICATE_TITLE";
+    this.reason = reason;
+    this.existing = toIngestExistingRecipe(recipe);
+  }
+}
+
+function isUniqueConstraintError(error: unknown, fieldName: string) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002" &&
+    Array.isArray(error.meta?.target) &&
+    error.meta.target.includes(fieldName)
+  );
+}
+
 function parseInstructions(instructions: string) {
   try {
     const parsed = JSON.parse(instructions) as unknown;
@@ -150,6 +190,15 @@ function uniqueCaseInsensitive(values: string[]) {
     result.push(trimmed);
   }
   return result;
+}
+
+function sanitizeRequiredRecipeTitle(title: string) {
+  const sanitizedTitle = sanitizeRecipeTitle(title);
+  if (!sanitizedTitle) {
+    throw new Error("Recipe title is required");
+  }
+
+  return sanitizedTitle;
 }
 
 function serializeRecipe(recipe: {
@@ -752,61 +801,157 @@ function toIngestExistingRecipe(recipe: SerializedRecipe) {
 }
 
 export class RecipeService {
+  private async findRecipeConflict(input: {
+    title?: string | null;
+    sourceUrl?: string | null;
+    excludeRecipeId?: string;
+  }): Promise<RecipeConflictError | null> {
+    const excludeRecipeId = input.excludeRecipeId;
+    const idFilter = excludeRecipeId ? { not: excludeRecipeId } : undefined;
+
+    if (input.sourceUrl) {
+      const existingBySourceUrl = await prisma.recipe.findFirst({
+        where: {
+          normalizedSourceUrl: input.sourceUrl,
+          ...(idFilter ? { id: idFilter } : {}),
+        },
+        include: includeRecipeRelations(),
+      });
+
+      if (existingBySourceUrl) {
+        return new RecipeConflictError(
+          "duplicate_source_url",
+          serializeRecipe(existingBySourceUrl)
+        );
+      }
+    }
+
+    if (input.title) {
+      const existingByTitle = await prisma.recipe.findFirst({
+        where: {
+          normalizedTitle: input.title,
+          ...(idFilter ? { id: idFilter } : {}),
+        },
+        include: includeRecipeRelations(),
+      });
+
+      if (existingByTitle) {
+        return new RecipeConflictError(
+          "duplicate_title",
+          serializeRecipe(existingByTitle)
+        );
+      }
+    }
+
+    return null;
+  }
+
+  private async getNextAvailableDuplicateTitle(baseTitle: string) {
+    let copyNumber = 1;
+
+    while (true) {
+      const candidate = buildDuplicateRecipeTitle(baseTitle, copyNumber);
+      const conflict = await this.findRecipeConflict({
+        title: normalizeRecipeTitle(candidate),
+      });
+
+      if (!conflict) {
+        return candidate;
+      }
+
+      copyNumber += 1;
+    }
+  }
+
   async createRecipe(data: CreateRecipeInput): Promise<SerializedRecipe> {
     await bootstrapDatabase();
     const input = CreateRecipeInputSchema.parse(data);
+    const title = sanitizeRequiredRecipeTitle(input.title);
+    const sourceUrl = normalizeRecipeSourceUrl(input.sourceUrl);
+
+    const conflict = await this.findRecipeConflict({
+      title: normalizeRecipeTitle(title),
+      sourceUrl,
+    });
+    if (conflict) {
+      throw conflict;
+    }
 
     const ingredients = normalizedRowsFromInput(input);
     const tags = uniqueCaseInsensitive(input.tags ?? []);
 
-    const recipe = await prisma.$transaction(async (tx) => {
-      const created = await tx.recipe.create({
-        data: {
-          title: input.title,
-          description: compactString(input.description),
-          servings: input.servings ?? 2,
-          prepTime: input.prepTime ?? null,
-          cookTime: input.cookTime ?? null,
-          difficulty: compactString(input.difficulty),
-          instructions: JSON.stringify(input.instructions),
-          sourceUrl: compactString(input.sourceUrl),
-          sourceLabel: compactString(input.sourceLabel),
-          origin: input.origin ?? "manual",
-          rating: input.rating ?? null,
-          cookNotes: compactString(input.cookNotes),
-          ingredients: {
-            create: ingredients.map((ingredient) => ({
-              name: ingredient.name,
-              quantity: ingredient.quantity,
-              unit: ingredient.unit,
-              group: ingredient.group,
-              notes: ingredient.notes,
-              order: ingredient.order,
+    try {
+      const recipe = await prisma.$transaction(async (tx) => {
+        const created = await tx.recipe.create({
+          data: {
+            title,
+            normalizedTitle: normalizeRecipeTitle(title),
+            description: compactString(input.description),
+            servings: input.servings ?? 2,
+            prepTime: input.prepTime ?? null,
+            cookTime: input.cookTime ?? null,
+            difficulty: compactString(input.difficulty),
+            instructions: JSON.stringify(input.instructions),
+            sourceUrl,
+            normalizedSourceUrl: sourceUrl,
+            sourceLabel: compactString(input.sourceLabel),
+            origin: input.origin ?? "manual",
+            rating: input.rating ?? null,
+            cookNotes: compactString(input.cookNotes),
+            ingredients: {
+              create: ingredients.map((ingredient) => ({
+                name: ingredient.name,
+                quantity: ingredient.quantity,
+                unit: ingredient.unit,
+                group: ingredient.group,
+                notes: ingredient.notes,
+                order: ingredient.order,
+              })),
+            },
+            tags: {
+              create: tags.map((tag) => ({ tag })),
+            },
+          },
+        });
+
+        const links = input.linkedSubRecipes ?? [];
+        if (links.length > 0) {
+          await tx.recipeLink.createMany({
+            data: links.map((entry) => ({
+              parentId: created.id,
+              subRecipeId: entry.subRecipeId,
             })),
-          },
-          tags: {
-            create: tags.map((tag) => ({ tag })),
-          },
-        },
+          });
+        }
+
+        return tx.recipe.findUniqueOrThrow({
+          where: { id: created.id },
+          include: includeRecipeRelations(),
+        });
       });
 
-      const links = input.linkedSubRecipes ?? [];
-      if (links.length > 0) {
-        await tx.recipeLink.createMany({
-          data: links.map((entry) => ({
-            parentId: created.id,
-            subRecipeId: entry.subRecipeId,
-          })),
-        });
+      return serializeRecipe(recipe);
+    } catch (error) {
+      if (error instanceof RecipeConflictError) {
+        throw error;
       }
 
-      return tx.recipe.findUniqueOrThrow({
-        where: { id: created.id },
-        include: includeRecipeRelations(),
-      });
-    });
+      if (
+        isUniqueConstraintError(error, "normalizedTitle") ||
+        isUniqueConstraintError(error, "normalizedSourceUrl")
+      ) {
+        const retryConflict = await this.findRecipeConflict({
+          title: normalizeRecipeTitle(title),
+          sourceUrl,
+        });
 
-    return serializeRecipe(recipe);
+        if (retryConflict) {
+          throw retryConflict;
+        }
+      }
+
+      throw error;
+    }
   }
 
   async updateRecipe(id: string, data: UpdateRecipeInput): Promise<SerializedRecipe> {
@@ -815,7 +960,28 @@ export class RecipeService {
 
     const updateData: Parameters<typeof prisma.recipe.update>[0]["data"] = {};
 
-    if (input.title !== undefined) updateData.title = input.title;
+    const nextTitle =
+      input.title !== undefined ? sanitizeRequiredRecipeTitle(input.title) : undefined;
+    const nextSourceUrl =
+      input.sourceUrl !== undefined ? normalizeRecipeSourceUrl(input.sourceUrl) : undefined;
+
+    if (input.title !== undefined || input.sourceUrl !== undefined) {
+      const conflict = await this.findRecipeConflict({
+        title:
+          nextTitle !== undefined ? normalizeRecipeTitle(nextTitle) : undefined,
+        sourceUrl: nextSourceUrl,
+        excludeRecipeId: id,
+      });
+
+      if (conflict) {
+        throw conflict;
+      }
+    }
+
+    if (nextTitle !== undefined) {
+      updateData.title = nextTitle;
+      updateData.normalizedTitle = normalizeRecipeTitle(nextTitle);
+    }
     if (input.description !== undefined) {
       updateData.description = compactString(input.description);
     }
@@ -829,7 +995,8 @@ export class RecipeService {
       updateData.instructions = JSON.stringify(input.instructions);
     }
     if (input.sourceUrl !== undefined) {
-      updateData.sourceUrl = compactString(input.sourceUrl);
+      updateData.sourceUrl = nextSourceUrl;
+      updateData.normalizedSourceUrl = nextSourceUrl;
     }
     if (input.sourceLabel !== undefined) {
       updateData.sourceLabel = compactString(input.sourceLabel);
@@ -840,58 +1007,81 @@ export class RecipeService {
       updateData.cookNotes = compactString(input.cookNotes);
     }
 
-    const recipe = await prisma.$transaction(async (tx) => {
-      await tx.recipe.update({ where: { id }, data: updateData });
+    try {
+      const recipe = await prisma.$transaction(async (tx) => {
+        await tx.recipe.update({ where: { id }, data: updateData });
 
-      if (input.ingredients !== undefined || input.ingredientLines !== undefined) {
-        const ingredients = normalizedRowsFromInput(input);
-        await tx.recipeIngredient.deleteMany({ where: { recipeId: id } });
-        if (ingredients.length > 0) {
-          await tx.recipeIngredient.createMany({
-            data: ingredients.map((ingredient) => ({
-              recipeId: id,
-              name: ingredient.name,
-              quantity: ingredient.quantity,
-              unit: ingredient.unit,
-              group: ingredient.group,
-              notes: ingredient.notes,
-              order: ingredient.order,
-            })),
-          });
+        if (input.ingredients !== undefined || input.ingredientLines !== undefined) {
+          const ingredients = normalizedRowsFromInput(input);
+          await tx.recipeIngredient.deleteMany({ where: { recipeId: id } });
+          if (ingredients.length > 0) {
+            await tx.recipeIngredient.createMany({
+              data: ingredients.map((ingredient) => ({
+                recipeId: id,
+                name: ingredient.name,
+                quantity: ingredient.quantity,
+                unit: ingredient.unit,
+                group: ingredient.group,
+                notes: ingredient.notes,
+                order: ingredient.order,
+              })),
+            });
+          }
         }
-      }
 
-      if (input.tags !== undefined) {
-        const tags = uniqueCaseInsensitive(input.tags);
-        await tx.recipeTag.deleteMany({ where: { recipeId: id } });
-        if (tags.length > 0) {
-          await tx.recipeTag.createMany({
-            data: tags.map((tag) => ({ recipeId: id, tag })),
-          });
+        if (input.tags !== undefined) {
+          const tags = uniqueCaseInsensitive(input.tags);
+          await tx.recipeTag.deleteMany({ where: { recipeId: id } });
+          if (tags.length > 0) {
+            await tx.recipeTag.createMany({
+              data: tags.map((tag) => ({ recipeId: id, tag })),
+            });
+          }
         }
-      }
 
-      if (input.linkedSubRecipes !== undefined) {
-        await tx.recipeLink.deleteMany({ where: { parentId: id } });
-        if (input.linkedSubRecipes.length > 0) {
-          await tx.recipeLink.createMany({
-            data: input.linkedSubRecipes.map((entry) => ({
-              parentId: id,
-              subRecipeId: entry.subRecipeId,
-            })),
-          });
+        if (input.linkedSubRecipes !== undefined) {
+          await tx.recipeLink.deleteMany({ where: { parentId: id } });
+          if (input.linkedSubRecipes.length > 0) {
+            await tx.recipeLink.createMany({
+              data: input.linkedSubRecipes.map((entry) => ({
+                parentId: id,
+                subRecipeId: entry.subRecipeId,
+              })),
+            });
+          }
         }
-      }
 
-      return tx.recipe.findUniqueOrThrow({
-        where: { id },
-        include: {
-          ...includeRecipeRelations(),
-        },
+        return tx.recipe.findUniqueOrThrow({
+          where: { id },
+          include: {
+            ...includeRecipeRelations(),
+          },
+        });
       });
-    });
 
-    return serializeRecipe(recipe);
+      return serializeRecipe(recipe);
+    } catch (error) {
+      if (error instanceof RecipeConflictError) {
+        throw error;
+      }
+
+      if (
+        isUniqueConstraintError(error, "normalizedTitle") ||
+        isUniqueConstraintError(error, "normalizedSourceUrl")
+      ) {
+        const retryConflict = await this.findRecipeConflict({
+          title: nextTitle !== undefined ? normalizeRecipeTitle(nextTitle) : undefined,
+          sourceUrl: nextSourceUrl,
+          excludeRecipeId: id,
+        });
+
+        if (retryConflict) {
+          throw retryConflict;
+        }
+      }
+
+      throw error;
+    }
   }
 
   async deleteRecipe(id: string): Promise<void> {
@@ -1058,29 +1248,15 @@ export class RecipeService {
       throw new Error("Unable to ingest recipe from URL");
     }
 
-    const existingByUrl = await prisma.recipe.findFirst({
-      where: { sourceUrl: cleanedUrl },
-      include: {
-        ...includeRecipeRelations(),
-      },
+    const conflict = await this.findRecipeConflict({
+      title: normalizeRecipeTitle(title.trim() || "Imported Recipe"),
+      sourceUrl: cleanedUrl,
     });
 
-    if (existingByUrl) {
+    if (conflict) {
       return {
         duplicate: true,
-        existing: toIngestExistingRecipe(serializeRecipe(existingByUrl)),
-      };
-    }
-
-    const existingByTitle = await prisma.recipe.findFirst({
-      where: { title: title.trim() },
-      include: includeRecipeRelations(),
-    });
-
-    if (existingByTitle) {
-      return {
-        duplicate: true,
-        existing: toIngestExistingRecipe(serializeRecipe(existingByTitle)),
+        existing: conflict.existing,
       };
     }
 
@@ -1139,8 +1315,11 @@ export class RecipeService {
       throw new Error("Recipe not found");
     }
 
+    const title =
+      overrides?.title ?? (await this.getNextAvailableDuplicateTitle(source.title));
+
     return this.createRecipe({
-      title: `${source.title} (My Version)`,
+      title,
       description: source.description,
       servings: source.servings,
       prepTime: source.prepTime,
@@ -1405,34 +1584,34 @@ export class RecipeService {
     const skipped: Array<{ title: string; reason: string }> = [];
 
     for (const recipe of json.recipes) {
-      const duplicate = await prisma.recipe.findFirst({
-        where: { title: recipe.title },
-      });
+      try {
+        const created = await this.createRecipe({
+          title: recipe.title,
+          description: recipe.description,
+          servings: recipe.servings,
+          prepTime: recipe.prepTime,
+          cookTime: recipe.cookTime,
+          difficulty: recipe.difficulty,
+          instructions: recipe.instructions,
+          sourceUrl: recipe.sourceUrl,
+          sourceLabel: recipe.sourceLabel,
+          origin: recipe.origin,
+          rating: recipe.rating,
+          cookNotes: recipe.cookNotes,
+          ingredients: recipe.ingredients,
+          tags: recipe.tags,
+          linkedSubRecipes: [],
+        });
 
-      if (duplicate) {
-        skipped.push({ title: recipe.title, reason: "duplicate_title" });
-        continue;
+        imported.push(created);
+      } catch (error) {
+        if (error instanceof RecipeConflictError) {
+          skipped.push({ title: recipe.title, reason: error.reason });
+          continue;
+        }
+
+        throw error;
       }
-
-      const created = await this.createRecipe({
-        title: recipe.title,
-        description: recipe.description,
-        servings: recipe.servings,
-        prepTime: recipe.prepTime,
-        cookTime: recipe.cookTime,
-        difficulty: recipe.difficulty,
-        instructions: recipe.instructions,
-        sourceUrl: recipe.sourceUrl,
-        sourceLabel: recipe.sourceLabel,
-        origin: recipe.origin,
-        rating: recipe.rating,
-        cookNotes: recipe.cookNotes,
-        ingredients: recipe.ingredients,
-        tags: recipe.tags,
-        linkedSubRecipes: [],
-      });
-
-      imported.push(created);
     }
 
     return { imported, skipped };

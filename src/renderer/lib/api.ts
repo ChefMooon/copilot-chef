@@ -2,6 +2,7 @@ import {
   type CreateRecipeInput,
   type CustomPersonaPayload,
   type IngestResult,
+  type RecipeConflict,
   type RecipeExportJson,
   type CreatePersonaInput,
   type PreferenceUpdateInput,
@@ -47,6 +48,41 @@ export type DetectedRegionPayload = {
   error?: string;
 };
 
+type ApiErrorBody = {
+  error?: string;
+  code?: string;
+  reason?: string;
+  existing?: unknown;
+};
+
+export class ApiError<T = unknown> extends Error {
+  status: number;
+  code?: string;
+  data?: T;
+
+  constructor(message: string, status: number, code?: string, data?: T) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.data = data;
+  }
+}
+
+export function isApiError<T = unknown>(error: unknown): error is ApiError<T> {
+  return error instanceof ApiError;
+}
+
+export function isRecipeConflictError(
+  error: unknown
+): error is ApiError<RecipeConflict> {
+  return (
+    error instanceof ApiError &&
+    (error.code === "RECIPE_DUPLICATE_TITLE" ||
+      error.code === "RECIPE_DUPLICATE_SOURCE_URL")
+  );
+}
+
 function getApiBase(): string {
   const config = getCachedConfig();
   return config?.url ?? "http://127.0.0.1:3001";
@@ -75,7 +111,20 @@ export async function fetchJson<T>(
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
+    let payload: ApiErrorBody | undefined;
+
+    try {
+      payload = (await response.json()) as ApiErrorBody;
+    } catch {
+      payload = undefined;
+    }
+
+    throw new ApiError(
+      payload?.error ?? `Request failed with status ${response.status}`,
+      response.status,
+      payload?.code,
+      payload as T
+    );
   }
 
   return response.json() as Promise<T>;

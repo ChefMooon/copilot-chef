@@ -1,3 +1,5 @@
+import type { MealIngredient } from "@shared/types";
+
 export const MEAL_TYPES = [
   "breakfast",
   "morning snack",
@@ -22,7 +24,27 @@ export type CalendarMeal = {
   date: string;
   mealType: ApiMealType;
   notes: string | null;
-  ingredients: string[];
+  ingredients: MealIngredient[];
+  description: string | null;
+  instructions: string[];
+  servings: number;
+  prepTime: number | null;
+  cookTime: number | null;
+  servingsOverride: number | null;
+  recipeId: string | null;
+  linkedRecipe: LinkedRecipeSummary | null;
+};
+
+export type LinkedRecipeSummary = {
+  id: string;
+  title: string;
+  description: string | null;
+  instructions: string[];
+  cookNotes: string | null;
+  servings: number;
+  prepTime: number | null;
+  cookTime: number | null;
+  ingredients: MealIngredient[];
 };
 
 export type EditableMeal = {
@@ -31,8 +53,24 @@ export type EditableMeal = {
   date: Date;
   type: CalendarMealType;
   notes: string;
-  ingredients: string[];
+  ingredients: MealIngredient[];
+  description: string;
+  instructions: string[];
+  servings: number;
+  prepTime: number | null;
+  cookTime: number | null;
+  servingsOverride: number | null;
+  recipeId: string | null;
+  linkedRecipe: LinkedRecipeSummary | null;
 };
+
+export function formatMealIngredient(ingredient: MealIngredient) {
+  const parts = [ingredient.quantity, ingredient.unit, ingredient.name]
+    .filter((part) => typeof part === "string" && part.trim().length > 0)
+    .map((part) => part?.trim());
+
+  return parts.join(" ").trim() || ingredient.name;
+}
 
 export type MealSlot = {
   type: CalendarMealType;
@@ -106,6 +144,14 @@ export function toEditableMeal(meal: CalendarMeal): EditableMeal {
     type: toCalendarMealType(meal.mealType),
     notes: meal.notes ?? "",
     ingredients: meal.ingredients ?? [],
+    description: meal.description ?? "",
+    instructions: meal.instructions ?? [],
+    servings: meal.servings ?? 2,
+    prepTime: meal.prepTime ?? null,
+    cookTime: meal.cookTime ?? null,
+    servingsOverride: meal.servingsOverride ?? null,
+    recipeId: meal.recipeId ?? null,
+    linkedRecipe: meal.linkedRecipe ?? null,
   };
 }
 
@@ -207,5 +253,13 @@ export function createEmptyMeal(
     type,
     notes: "",
     ingredients: [],
+    description: "",
+    instructions: [],
+    servings: 2,
+    prepTime: null,
+    cookTime: null,
+    servingsOverride: null,
+    recipeId: null,
+    linkedRecipe: null,
   };
 }

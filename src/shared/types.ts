@@ -59,5 +59,19 @@ export type CreatePersonaInput = {
   prompt: string;
 };
 
+export type MealIngredient = {
+  name: string;
+  quantity: string | null;
+  unit: string | null;
+  group: string | null;
+  notes: string | null;
+  order: number;
+};
+
 // ── Recipes ──────────────────────────────────────────────────
-export type { CreateRecipeInput, IngestResult, RecipeExportJson } from "./schemas/recipe-schemas";
+export type {
+  CreateRecipeInput,
+  IngestResult,
+  RecipeConflict,
+  RecipeExportJson,
+} from "./schemas/recipe-schemas";

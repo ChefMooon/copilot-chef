@@ -12,7 +12,6 @@ import { preferencesRoutes } from "./routes/preferences.js";
 import { chatRoutes } from "./routes/chat.js";
 import { chatSessionsRoutes } from "./routes/chat-sessions.js";
 import { personasRoutes } from "./routes/personas.js";
-import { mealLogsRoutes } from "./routes/meal-logs.js";
 import { statsRoutes } from "./routes/stats.js";
 import { sessionProbeRoutes } from "./routes/session-probe.js";
 
@@ -61,7 +60,6 @@ export function createApp(config: ServerConfig) {
   app.route("/api", chatRoutes);
   app.route("/api", chatSessionsRoutes);
   app.route("/api", personasRoutes);
-  app.route("/api", mealLogsRoutes);
   app.route("/api", statsRoutes);
   app.route("/api", sessionProbeRoutes);
 

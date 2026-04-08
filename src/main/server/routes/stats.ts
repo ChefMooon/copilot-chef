@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { mealLogService, mealService } from "../services.js";
+import { mealService } from "../services.js";
 
 function getCurrentWeekRange() {
   const now = new Date();
@@ -27,17 +27,17 @@ statsRoutes.get("/stats", async (c) => {
     cuisineBreakdown,
     weeklyTrend,
     dayOfWeekBreakdown,
-    planVsLog,
+    planningWindow,
     topMeals,
     topIngredients,
   ] = await Promise.all([
-    mealLogService.getHeatmap(52),
-    mealLogService.getMealTypeBreakdown(),
-    mealLogService.getCuisineBreakdown(),
-    mealLogService.getWeeklyTrend(12),
-    mealLogService.getDayOfWeekBreakdown(),
-    mealLogService.getPlanVsLogStats(30),
-    mealLogService.getTopMeals(10),
+    mealService.getHeatmap(52),
+    mealService.getMealTypeBreakdown(),
+    mealService.getCuisineBreakdown(),
+    mealService.getWeeklyTrend(12),
+    mealService.getDayOfWeekBreakdown(),
+    mealService.getPlanningWindowStats(30),
+    mealService.getTopMeals(10),
     mealService.getTopIngredients(15),
   ]);
 
@@ -48,7 +48,7 @@ statsRoutes.get("/stats", async (c) => {
       cuisineBreakdown,
       weeklyTrend,
       dayOfWeekBreakdown,
-      planVsLog,
+      planningWindow,
       topMeals,
       topIngredients,
     },

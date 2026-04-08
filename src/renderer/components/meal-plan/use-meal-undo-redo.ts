@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/api";
 import type { CalendarMeal } from "@/lib/calendar";
 import { useToast } from "@/components/providers/toast-provider";
+import type { MealIngredient } from "@shared/types";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -14,7 +15,14 @@ export type MealSnapshot = {
   date: string;
   mealType: string;
   notes: string | null;
-  ingredients: string[];
+  ingredients: MealIngredient[];
+  description?: string | null;
+  instructions?: string[];
+  servings?: number;
+  prepTime?: number | null;
+  cookTime?: number | null;
+  servingsOverride?: number | null;
+  recipeId?: string | null;
 };
 
 type AddAction = {
@@ -117,6 +125,13 @@ function createMealApi(snapshot: MealSnapshot) {
       mealType: snapshot.mealType,
       notes: snapshot.notes,
       ingredients: snapshot.ingredients,
+      description: snapshot.description,
+      instructions: snapshot.instructions,
+      servings: snapshot.servings,
+      prepTime: snapshot.prepTime,
+      cookTime: snapshot.cookTime,
+      servingsOverride: snapshot.servingsOverride,
+      recipeId: snapshot.recipeId,
     }),
   });
 }

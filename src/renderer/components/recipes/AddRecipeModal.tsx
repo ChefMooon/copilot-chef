@@ -3,14 +3,19 @@
 import { useEffect, useRef, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { type CreateRecipeInput } from "@shared/types";
+import { type CreateRecipeInput, type RecipeConflict } from "@shared/types";
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/providers/toast-provider";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { type RecipePayload } from "@/lib/api";
+import { isRecipeConflictError, type RecipePayload } from "@/lib/api";
 import { formatFraction, parseFraction } from "@/lib/fractions";
+import {
+  isRecipeIngredientUnit,
+  RECIPE_INGREDIENT_UNITS,
+  type RecipeIngredientUnit,
+} from "@/lib/ingredient-units";
 import {
   type InstructionDraft,
   createEmptyInstructionDraft,
@@ -23,7 +28,7 @@ type IngredientDraft = {
   name: string;
   amount: string;
   notes: string;
-  unit: "g" | "ml" | "cups" | "tbsp" | "tsp" | "oz" | "lb" | "count";
+  unit: RecipeIngredientUnit;
 };
 
 type IngredientGroupDraft = {
@@ -54,6 +59,7 @@ type AddRecipeModalProps = {
   isSaving?: boolean;
   onClose: () => void;
   onSave: (input: CreateRecipeInput) => Promise<void>;
+  onConflict?: (conflict: RecipeConflict) => void;
 };
 
 function createEmptyIngredient(): IngredientDraft {
@@ -83,10 +89,7 @@ function toIngredientGroups(recipe?: RecipePayload | null): IngredientGroupDraft
 
   for (const ingredient of recipe.ingredients) {
     const normalized = ingredient.unit?.toLowerCase();
-    const validUnits: IngredientDraft["unit"][] = ["g", "ml", "cups", "tbsp", "tsp", "oz", "lb", "count"];
-    const unit = validUnits.includes(normalized as IngredientDraft["unit"])
-      ? (normalized as IngredientDraft["unit"])
-      : "g";
+    const unit = isRecipeIngredientUnit(normalized) ? normalized : "g";
 
     const groupName = (ingredient.group ?? "").trim();
     const groupKey = groupName.toLowerCase();
@@ -143,6 +146,7 @@ export function AddRecipeModal({
   isSaving,
   onClose,
   onSave,
+  onConflict,
 }: AddRecipeModalProps) {
   const { toast } = useToast();
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -297,7 +301,24 @@ export function AddRecipeModal({
 
     try {
       await onSave(input);
-    } catch {
+    } catch (error) {
+      if (isRecipeConflictError(error) && error.data) {
+        if (onConflict) {
+          onConflict(error.data);
+          return;
+        }
+
+        toast({
+          title: "Duplicate recipe found.",
+          description:
+            error.code === "RECIPE_DUPLICATE_SOURCE_URL"
+              ? "A recipe from this source URL already exists in your Recipe Book."
+              : `A recipe named "${error.data.existing.title}" already exists in your Recipe Book.`,
+          variant: "error",
+        });
+        return;
+      }
+
       toast({
         title: "Could not save recipe.",
         description: "Please try again in a moment.",
@@ -735,7 +756,7 @@ export function AddRecipeModal({
                           <select
                             className="h-10 rounded-btn border border-cream-dark bg-white px-2.5 py-2 font-sans text-sm text-text outline-none transition focus:border-green-light focus:ring-2 focus:ring-green/10"
                             onChange={(event) => {
-                              const nextValue = event.target.value as IngredientDraft["unit"];
+                              const nextValue = event.target.value as RecipeIngredientUnit;
                               setField(
                                 "ingredientGroups",
                                 form.ingredientGroups.map((entry) =>
@@ -754,14 +775,11 @@ export function AddRecipeModal({
                             }}
                             value={ingredient.unit}
                           >
-                            <option value="g">Grams (g)</option>
-                            <option value="ml">Milliliters (ml)</option>
-                            <option value="cups">Cups</option>
-                            <option value="tbsp">Tablespoons (tbsp)</option>
-                            <option value="tsp">Teaspoons (tsp)</option>
-                            <option value="oz">Ounces (oz)</option>
-                            <option value="lb">Pounds (lb)</option>
-                            <option value="count">Count (items)</option>
+                            {RECIPE_INGREDIENT_UNITS.map((unit) => (
+                              <option key={unit.value} value={unit.value}>
+                                {unit.label}
+                              </option>
+                            ))}
                           </select>
                           <Button
                             className="h-8 self-center px-2 text-xs sm:h-9 sm:px-3 sm:text-sm"

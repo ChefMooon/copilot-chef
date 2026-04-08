@@ -154,40 +154,39 @@ export function DayView({
                   {typeConfig.label}
                 </div>
                 {slotMeals.length === 0 ? (
-                  <div
-                    className={`${styles.timelineEmptySlot} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
-                    onDragLeave={() =>
-                      setDropTargetKey((current) =>
-                        current === emptyTargetKey ? null : current
-                      )
-                    }
-                    onDragOver={(event) => {
-                      if (!draggedMeal || isApplyingDrop) {
-                        return;
+                  draggedMeal ? (
+                    <div
+                      className={`${styles.timelineEmptySlot} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
+                      onDragLeave={() =>
+                        setDropTargetKey((current) =>
+                          current === emptyTargetKey ? null : current
+                        )
                       }
+                      onDragOver={(event) => {
+                        if (!draggedMeal || isApplyingDrop) {
+                          return;
+                        }
 
-                      event.preventDefault();
-                      event.dataTransfer.dropEffect = "move";
-                      setDropTargetKey(emptyTargetKey);
-                    }}
-                    onDrop={async (event) => {
-                      event.preventDefault();
-                      await moveMealToSlot(type);
-                    }}
-                  >
-                    {draggedMeal ? (
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = "move";
+                        setDropTargetKey(emptyTargetKey);
+                      }}
+                      onDrop={async (event) => {
+                        event.preventDefault();
+                        await moveMealToSlot(type);
+                      }}
+                    >
                       <span className={styles.slotDropHint}>Drop here</span>
-                    ) : null}
-                    {!draggedMeal && (
-                      <button
-                        className={styles.btnAddSlot}
-                        onClick={() => onEdit(createEmptyMeal(new Date(date), type))}
-                        type="button"
-                      >
-                        + Add
-                      </button>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <button
+                      className={`${styles.timelineEmptySlot} ${styles.emptySlotButton}`}
+                      onClick={() => onEdit(createEmptyMeal(new Date(date), type))}
+                      type="button"
+                    >
+                      <span className={styles.btnAddSlot}>+ Add</span>
+                    </button>
+                  )
                 ) : (
                   <div className={styles.slotMealStack}>
                     {slotMeals.map((meal) => {

@@ -200,42 +200,41 @@ export function WeekView({
                           key={`${day.toISOString()}-${type}`}
                         >
                           {slotMeals.length === 0 ? (
-                            <div
-                              className={`${styles.weekSlotEmpty} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
-                              onDragLeave={() =>
-                                setDropTargetKey((current) =>
-                                  current === emptyTargetKey ? null : current
-                                )
-                              }
-                              onDragOver={(event) => {
-                                if (!draggedMeal || isApplyingDrop) {
-                                  return;
+                            draggedMeal ? (
+                              <div
+                                className={`${styles.weekSlotEmpty} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
+                                onDragLeave={() =>
+                                  setDropTargetKey((current) =>
+                                    current === emptyTargetKey ? null : current
+                                  )
                                 }
-
-                                event.preventDefault();
-                                event.dataTransfer.dropEffect = "move";
-                                setDropTargetKey(emptyTargetKey);
-                              }}
-                              onDrop={async (event) => {
-                                event.preventDefault();
-                                await moveMealToSlot(day, type);
-                              }}
-                            >
-                              {draggedMeal ? (
-                                <span className={styles.slotDropHint}>Drop here</span>
-                              ) : null}
-                              {!draggedMeal && (
-                                <button
-                                  className={styles.btnAddSlot}
-                                  onClick={() =>
-                                    onEdit(createEmptyMeal(new Date(day), type))
+                                onDragOver={(event) => {
+                                  if (!draggedMeal || isApplyingDrop) {
+                                    return;
                                   }
-                                  type="button"
-                                >
-                                  + Add
-                                </button>
-                              )}
-                            </div>
+
+                                  event.preventDefault();
+                                  event.dataTransfer.dropEffect = "move";
+                                  setDropTargetKey(emptyTargetKey);
+                                }}
+                                onDrop={async (event) => {
+                                  event.preventDefault();
+                                  await moveMealToSlot(day, type);
+                                }}
+                              >
+                                <span className={styles.slotDropHint}>Drop here</span>
+                              </div>
+                            ) : (
+                              <button
+                                className={`${styles.weekSlotEmpty} ${styles.emptySlotButton}`}
+                                onClick={() =>
+                                  onEdit(createEmptyMeal(new Date(day), type))
+                                }
+                                type="button"
+                              >
+                                <span className={styles.btnAddSlot}>+ Add</span>
+                              </button>
+                            )
                           ) : (
                             <div className={styles.weekSlotStack}>
                               {slotMeals.map((meal) => {

@@ -1,5 +1,5 @@
 import { Hono, type Context } from "hono";
-import { preferenceService, mealLogService } from "../services.js";
+import { preferenceService, mealService } from "../services.js";
 
 type GeoPayload = {
   country_code?: string;
@@ -123,13 +123,13 @@ preferencesRoutes.get("/preferences/detect-region", async (c) => {
 });
 
 preferencesRoutes.get("/preferences/export", async () => {
-  const [preferences, mealLogs] = await Promise.all([
+  const [preferences, meals] = await Promise.all([
     preferenceService.getPreferences(),
-    mealLogService.listAll(),
+    mealService.listAllMeals(),
   ]);
 
   const payload = JSON.stringify(
-    { exportedAt: new Date().toISOString(), preferences, mealLogs },
+    { exportedAt: new Date().toISOString(), preferences, meals },
     null,
     2
   );

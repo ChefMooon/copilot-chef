@@ -1,4 +1,23 @@
 import { prisma } from "./prisma";
+import {
+  buildDuplicateRecipeTitle,
+  normalizeRecipeSourceUrl,
+  normalizeRecipeTitle,
+  sanitizeRecipeTitle,
+} from "./recipe-identity";
+
+type TableInfoRow = {
+  name: string;
+};
+
+type RecipeIdentityRow = {
+  id: string;
+  title: string;
+  sourceUrl: string | null;
+  sourceLabel: string | null;
+  normalizedTitle: string | null;
+  normalizedSourceUrl: string | null;
+};
 
 const SCHEMA_STATEMENTS = [
   `
@@ -9,10 +28,18 @@ const SCHEMA_STATEMENTS = [
       "mealType" TEXT NOT NULL,
       "notes" TEXT,
       "ingredientsJson" TEXT NOT NULL DEFAULT '[]',
+      "description" TEXT,
+      "instructionsJson" TEXT NOT NULL DEFAULT '[]',
+      "servings" INTEGER NOT NULL DEFAULT 2,
+      "prepTime" INTEGER,
+      "cookTime" INTEGER,
+      "servingsOverride" INTEGER,
+      "recipeId" TEXT,
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `,
   `CREATE INDEX IF NOT EXISTS "Meal_date_idx" ON "Meal"("date")`,
+  `CREATE INDEX IF NOT EXISTS "Meal_recipeId_idx" ON "Meal"("recipeId")`,
   `
     CREATE TABLE IF NOT EXISTS "GroceryList" (
       "id" TEXT NOT NULL PRIMARY KEY,
@@ -80,6 +107,7 @@ const SCHEMA_STATEMENTS = [
     CREATE TABLE IF NOT EXISTS "Recipe" (
       "id" TEXT NOT NULL PRIMARY KEY,
       "title" TEXT NOT NULL,
+      "normalizedTitle" TEXT,
       "description" TEXT,
       "servings" INTEGER NOT NULL DEFAULT 2,
       "prepTime" INTEGER,
@@ -87,6 +115,7 @@ const SCHEMA_STATEMENTS = [
       "difficulty" TEXT,
       "instructions" TEXT NOT NULL,
       "sourceUrl" TEXT,
+      "normalizedSourceUrl" TEXT,
       "sourceLabel" TEXT,
       "origin" TEXT NOT NULL DEFAULT 'manual',
       "rating" INTEGER,
@@ -211,20 +240,6 @@ const SCHEMA_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS "ChatPendingSuggestion_chatSessionId_createdAt_idx" ON "ChatPendingSuggestion"("chatSessionId", "createdAt")`,
   `CREATE INDEX IF NOT EXISTS "ChatPendingSuggestion_chatSessionId_expiresAt_idx" ON "ChatPendingSuggestion"("chatSessionId", "expiresAt")`,
   `
-    CREATE TABLE IF NOT EXISTS "MealLog" (
-      "id" TEXT NOT NULL PRIMARY KEY,
-      "date" DATETIME NOT NULL,
-      "mealType" TEXT NOT NULL,
-      "mealName" TEXT NOT NULL,
-      "cooked" INTEGER NOT NULL DEFAULT 1,
-      "mealId" TEXT,
-      CONSTRAINT "MealLog_mealId_fkey"
-        FOREIGN KEY ("mealId") REFERENCES "Meal" ("id")
-        ON DELETE SET NULL ON UPDATE CASCADE
-    )
-  `,
-  `CREATE INDEX IF NOT EXISTS "MealLog_date_idx" ON "MealLog"("date")`,
-  `
     CREATE TABLE IF NOT EXISTS "CustomPersona" (
       "id" TEXT NOT NULL PRIMARY KEY,
       "emoji" TEXT NOT NULL,
@@ -237,8 +252,119 @@ const SCHEMA_STATEMENTS = [
   `,
 ] as const;
 
+async function ensureMissingColumns(
+  tableName: string,
+  safeAlterStatements: Record<string, string>
+) {
+  const rows = await prisma.$queryRawUnsafe<TableInfoRow[]>(
+    `PRAGMA table_info("${tableName}")`
+  );
+  const existingColumns = new Set(rows.map((column) => column.name));
+
+  for (const [columnName, statement] of Object.entries(safeAlterStatements)) {
+    if (existingColumns.has(columnName)) {
+      continue;
+    }
+
+    try {
+      await prisma.$executeRawUnsafe(statement);
+    } catch {
+      // Ignore duplicate-column failures for already-migrated databases.
+    }
+  }
+}
+
+async function reconcileRecipeIdentityColumns() {
+  const recipes = await prisma.$queryRawUnsafe<RecipeIdentityRow[]>(
+    `SELECT "id", "title", "sourceUrl", "sourceLabel", "normalizedTitle", "normalizedSourceUrl" FROM "Recipe" ORDER BY "createdAt" ASC, "id" ASC`
+  );
+
+  const usedTitles = new Set<string>();
+  const usedSourceUrls = new Set<string>();
+
+  for (const recipe of recipes) {
+    const baseTitle = sanitizeRecipeTitle(recipe.title) || "Untitled Recipe";
+    let nextTitle = baseTitle;
+    let nextNormalizedTitle = normalizeRecipeTitle(nextTitle);
+    let copyNumber = 1;
+
+    while (!nextNormalizedTitle || usedTitles.has(nextNormalizedTitle)) {
+      copyNumber += 1;
+      nextTitle = buildDuplicateRecipeTitle(baseTitle, copyNumber);
+      nextNormalizedTitle = normalizeRecipeTitle(nextTitle);
+    }
+
+    usedTitles.add(nextNormalizedTitle);
+
+    const canonicalSourceUrl = normalizeRecipeSourceUrl(recipe.sourceUrl);
+    const nextSourceUrl =
+      canonicalSourceUrl && !usedSourceUrls.has(canonicalSourceUrl)
+        ? canonicalSourceUrl
+        : null;
+
+    if (nextSourceUrl) {
+      usedSourceUrls.add(nextSourceUrl);
+    }
+
+    const nextNormalizedSourceUrl = nextSourceUrl;
+    const nextSourceLabel = nextSourceUrl
+      ? recipe.sourceLabel?.trim() || new URL(nextSourceUrl).hostname.replace(/^www\./, "")
+      : null;
+
+    if (
+      nextTitle === recipe.title &&
+      nextNormalizedTitle === recipe.normalizedTitle &&
+      nextSourceUrl === recipe.sourceUrl &&
+      nextNormalizedSourceUrl === recipe.normalizedSourceUrl &&
+      nextSourceLabel === recipe.sourceLabel
+    ) {
+      continue;
+    }
+
+    await prisma.$executeRaw`
+      UPDATE "Recipe"
+      SET
+        "title" = ${nextTitle},
+        "normalizedTitle" = ${nextNormalizedTitle},
+        "sourceUrl" = ${nextSourceUrl},
+        "normalizedSourceUrl" = ${nextNormalizedSourceUrl},
+        "sourceLabel" = ${nextSourceLabel}
+      WHERE "id" = ${recipe.id}
+    `;
+  }
+}
+
+async function ensureRecipeIdentityIndexes() {
+  await prisma.$executeRawUnsafe(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "Recipe_normalizedTitle_key" ON "Recipe"("normalizedTitle")`
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE UNIQUE INDEX IF NOT EXISTS "Recipe_normalizedSourceUrl_key" ON "Recipe"("normalizedSourceUrl")`
+  );
+}
+
 export async function ensureDatabaseSchema(): Promise<void> {
   for (const statement of SCHEMA_STATEMENTS) {
     await prisma.$executeRawUnsafe(statement);
   }
+
+  const safeMealAlterStatements = {
+    description: `ALTER TABLE "Meal" ADD COLUMN "description" TEXT`,
+    instructionsJson: `ALTER TABLE "Meal" ADD COLUMN "instructionsJson" TEXT NOT NULL DEFAULT '[]'`,
+    servings: `ALTER TABLE "Meal" ADD COLUMN "servings" INTEGER NOT NULL DEFAULT 2`,
+    prepTime: `ALTER TABLE "Meal" ADD COLUMN "prepTime" INTEGER`,
+    cookTime: `ALTER TABLE "Meal" ADD COLUMN "cookTime" INTEGER`,
+    servingsOverride: `ALTER TABLE "Meal" ADD COLUMN "servingsOverride" INTEGER`,
+    recipeId: `ALTER TABLE "Meal" ADD COLUMN "recipeId" TEXT`,
+  } as const;
+
+  const safeRecipeAlterStatements = {
+    normalizedTitle: `ALTER TABLE "Recipe" ADD COLUMN "normalizedTitle" TEXT`,
+    normalizedSourceUrl: `ALTER TABLE "Recipe" ADD COLUMN "normalizedSourceUrl" TEXT`,
+  } as const;
+
+  await ensureMissingColumns("Meal", safeMealAlterStatements);
+  await ensureMissingColumns("Recipe", safeRecipeAlterStatements);
+  await reconcileRecipeIdentityColumns();
+  await ensureRecipeIdentityIndexes();
 }

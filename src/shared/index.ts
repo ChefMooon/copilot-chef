@@ -43,5 +43,7 @@ export type {
   RecipeExportJson,
   IngestResult,
   AIRecipeSave,
+  RecipeConflict,
 } from "./schemas/recipe-schemas";
+export type { MealIngredient } from "./types";
 

@@ -3,6 +3,20 @@ import { mealService } from "../services.js";
 
 export const mealsRoutes = new Hono();
 
+function normalizeIngredients(input: unknown) {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input;
+}
+
+mealsRoutes.get("/meals/heatmap", async (c) => {
+  const weeks = Number(c.req.query("weeks") ?? "13");
+  const data = await mealService.getHeatmap(Number.isFinite(weeks) ? weeks : 13);
+  return c.json({ data });
+});
+
 mealsRoutes.get("/meals", async (c) => {
   const from = c.req.query("from");
   const to = c.req.query("to");
@@ -38,7 +52,11 @@ mealsRoutes.post("/meals", async (c) => {
       ...body,
       name: body?.name ?? body?.title,
       mealType: body?.mealType ?? body?.type,
-      ingredients: body?.ingredients ?? ingredientsFromJson ?? [],
+      ingredients: normalizeIngredients(body?.ingredients ?? ingredientsFromJson ?? []),
+      instructions:
+        Array.isArray(body?.instructions) || body?.instructions === undefined
+          ? body?.instructions
+          : [],
     };
 
     const data = await mealService.createMeal(normalizedBody);
@@ -55,7 +73,15 @@ mealsRoutes.patch("/meals/:id", async (c) => {
   try {
     const id = c.req.param("id");
     const body = await c.req.json();
-    const data = await mealService.updateMeal(id, body);
+    const data = await mealService.updateMeal(id, {
+      ...body,
+      ingredients:
+        body?.ingredients !== undefined ? normalizeIngredients(body.ingredients) : undefined,
+      instructions:
+        Array.isArray(body?.instructions) || body?.instructions === undefined
+          ? body?.instructions
+          : undefined,
+    });
     return c.json({ data });
   } catch (error) {
     return c.json(

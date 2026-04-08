@@ -86,9 +86,9 @@ export function HomeDashboard() {
   });
 
   const heatmapQuery = useQuery({
-    queryKey: ["meal-logs", 13],
+    queryKey: ["meals", "heatmap", 13],
     queryFn: () =>
-      fetchJson<{ data: HeatmapPayload }>("/api/meal-logs?weeks=13").then(
+      fetchJson<{ data: HeatmapPayload }>("/api/meals/heatmap?weeks=13").then(
         (response) => response.data
       ),
   });

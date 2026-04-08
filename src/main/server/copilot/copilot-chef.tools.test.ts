@@ -130,6 +130,17 @@ function getToolMap(chef: CopilotChef) {
 }
 
 describe("CopilotChef SDK tool handlers", () => {
+  const eggIngredient = [
+    {
+      name: "eggs",
+      quantity: "2",
+      unit: null,
+      group: null,
+      notes: null,
+      order: 0,
+    },
+  ];
+
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-18T12:00:00.000Z"));
@@ -143,7 +154,7 @@ describe("CopilotChef SDK tool handlers", () => {
       date: "2026-03-19T12:00:00.000Z",
       mealType: "BREAKFAST",
       notes: null,
-      ingredients: ["eggs"],
+      ingredients: eggIngredient,
     });
 
     const tool = getToolMap(chef).get("create_meal");
@@ -151,7 +162,7 @@ describe("CopilotChef SDK tool handlers", () => {
       name: "Pancakes",
       mealType: "BREAKFAST",
       date: "tomorrow",
-      ingredients: ["eggs"],
+      ingredients: eggIngredient,
       chatSessionId: "chat-1",
     });
 
@@ -159,7 +170,7 @@ describe("CopilotChef SDK tool handlers", () => {
       expect.objectContaining({
         name: "Pancakes",
         mealType: "BREAKFAST",
-        ingredients: ["eggs"],
+        ingredients: eggIngredient,
         date: expect.stringContaining("2026-03-19"),
       })
     );

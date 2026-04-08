@@ -10,6 +10,36 @@ import { recipeService } from "../services.js";
 
 export const recipesRoutes = new Hono();
 
+function toRecipeErrorResponse(error: unknown, fallbackMessage: string, fallbackCode: string) {
+  if (
+    error instanceof Error &&
+    "code" in error &&
+    "reason" in error &&
+    "existing" in error &&
+    (error as { code?: unknown }).code &&
+    (error as { reason?: unknown }).reason &&
+    (error as { existing?: unknown }).existing
+  ) {
+    return {
+      body: {
+        error: error.message,
+        code: (error as { code: string }).code,
+        reason: (error as { reason: string }).reason,
+        existing: (error as { existing: unknown }).existing,
+      },
+      status: 409,
+    };
+  }
+
+  return {
+    body: {
+      error: error instanceof Error ? error.message : fallbackMessage,
+      code: fallbackCode,
+    },
+    status: 400,
+  };
+}
+
 function parseFilters(c: Context): RecipeFilters {
   const origin = c.req.query("origin");
   const difficulty = c.req.query("difficulty");
@@ -54,10 +84,12 @@ recipesRoutes.post("/recipes", async (c) => {
     const data = await recipeService.createRecipe(input);
     return c.json({ data }, 201);
   } catch (error) {
-    return c.json(
-      { error: error instanceof Error ? error.message : "Unable to create recipe", code: "RECIPE_CREATE_FAILED" },
-      400
+    const response = toRecipeErrorResponse(
+      error,
+      "Unable to create recipe",
+      "RECIPE_CREATE_FAILED"
     );
+    return c.json(response.body, response.status);
   }
 });
 
@@ -113,10 +145,12 @@ recipesRoutes.post("/recipes/ingest/confirm", async (c) => {
     const data = await recipeService.createRecipe(input);
     return c.json({ data }, 201);
   } catch (error) {
-    return c.json(
-      { error: error instanceof Error ? error.message : "Unable to save ingest draft", code: "RECIPE_INGEST_CONFIRM_FAILED" },
-      400
+    const response = toRecipeErrorResponse(
+      error,
+      "Unable to save ingest draft",
+      "RECIPE_INGEST_CONFIRM_FAILED"
     );
+    return c.json(response.body, response.status);
   }
 });
 
@@ -180,10 +214,12 @@ recipesRoutes.put("/recipes/:id", async (c) => {
     const data = await recipeService.updateRecipe(id, input);
     return c.json({ data });
   } catch (error) {
-    return c.json(
-      { error: error instanceof Error ? error.message : "Unable to update recipe", code: "RECIPE_UPDATE_FAILED" },
-      400
+    const response = toRecipeErrorResponse(
+      error,
+      "Unable to update recipe",
+      "RECIPE_UPDATE_FAILED"
     );
+    return c.json(response.body, response.status);
   }
 });
 

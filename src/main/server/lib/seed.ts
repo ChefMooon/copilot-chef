@@ -8,6 +8,12 @@ type MealTypeValue =
 
 import { prisma } from "./prisma";
 import { addDays, startOfDay } from "./date";
+import type { MealIngredient } from "@shared/types";
+import {
+  normalizeRecipeSourceUrl,
+  normalizeRecipeTitle,
+  sanitizeRecipeTitle,
+} from "./recipe-identity";
 
 const sampleMeals: Array<{
   name: string;
@@ -163,12 +169,27 @@ const dinnerPool = [
   "Crisp gnocchi with greens",
 ];
 
-function buildMealLogs(referenceDate: Date) {
-  const logs: Array<{
+function toMealIngredients(names: string[]): MealIngredient[] {
+  return names.map((name, index) => ({
+    name,
+    quantity: null,
+    unit: null,
+    group: null,
+    notes: null,
+    order: index,
+  }));
+}
+
+function buildHistoricalMeals(referenceDate: Date) {
+  const meals: Array<{
+    name: string;
     date: Date;
     mealType: MealTypeValue;
-    mealName: string;
-    cooked: boolean;
+    notes: string | null;
+    ingredientsJson: string;
+    description: string | null;
+    instructionsJson: string;
+    servings: number;
   }> = [];
 
   const today = startOfDay(referenceDate);
@@ -180,60 +201,84 @@ function buildMealLogs(referenceDate: Date) {
     const mealsToday = signal < 2 ? 0 : signal < 5 ? 1 : signal < 8 ? 2 : 3;
 
     if (mealsToday >= 1) {
-      logs.push({
+      meals.push({
+        name: dinnerPool[offset % dinnerPool.length],
         date,
         mealType: "DINNER",
-        mealName: dinnerPool[offset % dinnerPool.length],
-        cooked: true,
+        notes: null,
+        ingredientsJson: JSON.stringify([]),
+        description: null,
+        instructionsJson: JSON.stringify([]),
+        servings: 2,
       });
     }
 
     if (mealsToday >= 2) {
-      logs.push({
+      meals.push({
+        name: lunchPool[offset % lunchPool.length],
         date,
         mealType: "LUNCH",
-        mealName: lunchPool[offset % lunchPool.length],
-        cooked: true,
+        notes: null,
+        ingredientsJson: JSON.stringify([]),
+        description: null,
+        instructionsJson: JSON.stringify([]),
+        servings: 2,
       });
     }
 
     if (mealsToday >= 3) {
-      logs.push({
+      meals.push({
+        name: breakfastPool[offset % breakfastPool.length],
         date,
         mealType: "BREAKFAST",
-        mealName: breakfastPool[offset % breakfastPool.length],
-        cooked: true,
+        notes: null,
+        ingredientsJson: JSON.stringify([]),
+        description: null,
+        instructionsJson: JSON.stringify([]),
+        servings: 2,
       });
     }
   }
 
-  return logs;
+  return meals;
+}
+
+function recipeIdentityData(title: string, sourceUrl?: string | null) {
+  const canonicalSourceUrl = normalizeRecipeSourceUrl(sourceUrl);
+
+  return {
+    title: sanitizeRecipeTitle(title),
+    normalizedTitle: normalizeRecipeTitle(title),
+    sourceUrl: canonicalSourceUrl,
+    normalizedSourceUrl: canonicalSourceUrl,
+  };
 }
 
 export async function seedDatabase() {
   const existingMeals = await prisma.meal.count();
   const existingPreferences = await prisma.userPreference.count();
-  const existingLogs = await prisma.mealLog.count();
   const existingRecipes = await prisma.recipe.count();
 
-  if (
-    existingMeals > 0 ||
-    existingPreferences > 0 ||
-    existingLogs > 0 ||
-    existingRecipes > 0
-  ) {
+  if (existingMeals > 0 || existingPreferences > 0 || existingRecipes > 0) {
     return;
   }
 
   const today = startOfDay(new Date());
   const weekStart = addDays(today, -((today.getDay() + 6) % 7));
   await prisma.meal.createMany({
+    data: buildHistoricalMeals(today),
+  });
+
+  await prisma.meal.createMany({
     data: sampleMeals.map((meal) => ({
       name: meal.name,
       date: addDays(weekStart, meal.dayOffset),
       mealType: meal.mealType,
       notes: meal.notes,
-      ingredientsJson: JSON.stringify(meal.ingredients),
+      ingredientsJson: JSON.stringify(toMealIngredients(meal.ingredients)),
+      description: null,
+      instructionsJson: JSON.stringify([]),
+      servings: 2,
     })),
   });
 
@@ -286,7 +331,7 @@ export async function seedDatabase() {
 
   const tomatoSauce = await prisma.recipe.create({
     data: {
-      title: "Basic Tomato Sauce",
+      ...recipeIdentityData("Basic Tomato Sauce"),
       description: "A simple weeknight red sauce for pasta, meatballs, or pizza.",
       servings: 4,
       prepTime: 10,
@@ -316,7 +361,7 @@ export async function seedDatabase() {
 
   await prisma.recipe.create({
     data: {
-      title: "Crispy Chickpea Grain Bowl",
+      ...recipeIdentityData("Crispy Chickpea Grain Bowl"),
       description: "High-protein bowl with lemony tahini dressing.",
       servings: 2,
       prepTime: 15,
@@ -350,7 +395,7 @@ export async function seedDatabase() {
 
   await prisma.recipe.create({
     data: {
-      title: "Weeknight Spaghetti",
+      ...recipeIdentityData("Weeknight Spaghetti"),
       description: "Fast spaghetti dinner built on a classic tomato sauce.",
       servings: 4,
       prepTime: 10,
@@ -383,7 +428,7 @@ export async function seedDatabase() {
 
   await prisma.recipe.create({
     data: {
-      title: "Sourdough Avocado Toast",
+      ...recipeIdentityData("Sourdough Avocado Toast"),
       description: "Quick breakfast with citrus and chili flakes.",
       servings: 2,
       prepTime: 8,
@@ -410,9 +455,5 @@ export async function seedDatabase() {
         ],
       },
     },
-  });
-
-  await prisma.mealLog.createMany({
-    data: buildMealLogs(today),
   });
 }

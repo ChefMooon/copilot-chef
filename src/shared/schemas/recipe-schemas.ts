@@ -80,6 +80,21 @@ export const RecipeExportJsonSchema = z.object({
   recipes: z.array(recipeExportItemSchema),
 });
 
+const recipeConflictReasonSchema = z.enum([
+  "duplicate_title",
+  "duplicate_source_url",
+]);
+
+export const RecipeConflictSchema = z.object({
+  error: z.string(),
+  code: z.enum([
+    "RECIPE_DUPLICATE_TITLE",
+    "RECIPE_DUPLICATE_SOURCE_URL",
+  ]),
+  reason: recipeConflictReasonSchema,
+  existing: recipeExportItemSchema,
+});
+
 const recipeDuplicateResultSchema = z.object({
   duplicate: z.literal(true),
   existing: recipeExportItemSchema,
@@ -125,3 +140,4 @@ export type UpdateRecipeInput = z.input<typeof UpdateRecipeInputSchema>;
 export type RecipeExportJson = z.infer<typeof RecipeExportJsonSchema>;
 export type IngestResult = z.infer<typeof IngestResultSchema>;
 export type AIRecipeSave = z.infer<typeof AIRecipeSaveSchema>;
+export type RecipeConflict = z.infer<typeof RecipeConflictSchema>;
