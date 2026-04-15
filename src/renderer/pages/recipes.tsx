@@ -15,8 +15,10 @@ import { recipeKeys } from "@/lib/query-keys";
 
 import { AddRecipeModal } from "@/components/recipes/AddRecipeModal";
 import { IngestModal } from "@/components/recipes/IngestModal";
+import { RecipeExportModal } from "@/components/recipes/RecipeExportModal";
 import { RecipeFilterSidebar } from "@/components/recipes/RecipeFilterSidebar";
 import { RecipeGrid } from "@/components/recipes/RecipeGrid";
+import { useToast } from "@/components/providers/toast-provider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -48,11 +50,14 @@ function downloadJson(data: unknown, fileName: string) {
 
 export default function RecipesPage() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [origin, setOrigin] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isExporting, setIsExporting] = useState(false);
   const [showIngest, setShowIngest] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<RecipePayload | null>(null);
   const [recipePendingDelete, setRecipePendingDelete] = useState<RecipePayload | null>(null);
 
@@ -111,6 +116,9 @@ export default function RecipesPage() {
     });
   }, [recipesQuery.data, origin, search]);
 
+  const totalRecipes = recipesQuery.data?.length ?? 0;
+  const selectedCount = selectedIds.size;
+
   useChatPageContext({
     page: "recipes",
     search,
@@ -136,11 +144,44 @@ export default function RecipesPage() {
     });
   }
 
-  async function handleExport() {
-    const ids = selectedIds.size > 0 ? Array.from(selectedIds) : undefined;
-    const payload = await exportRecipes(ids);
-    const date = new Date().toISOString().slice(0, 10);
-    downloadJson(payload, `copilot-chef-recipes-${date}.json`);
+  async function handleExport(scope: "all" | "selected") {
+    setIsExporting(true);
+    const ids = scope === "selected" ? Array.from(selectedIds) : undefined;
+    try {
+      const payload = await exportRecipes(ids);
+      const date = new Date().toISOString().slice(0, 10);
+      const fileName =
+        scope === "selected"
+          ? `copilot-chef-recipes-selected-${selectedCount}-${date}.json`
+          : `copilot-chef-recipes-all-${date}.json`;
+
+      downloadJson(payload, fileName);
+      toast({
+        title: "Recipe export started.",
+        description:
+          scope === "selected"
+            ? `Preparing ${selectedCount} selected recipe${selectedCount === 1 ? "" : "s"} as ${fileName}.`
+            : `Preparing your full recipe library as ${fileName}.`,
+      });
+      setShowExportModal(false);
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  async function handleExportRequest(scope: "all" | "selected") {
+    try {
+      await handleExport(scope);
+    } catch {
+      toast({
+        title: "Could not export recipes.",
+        description:
+          scope === "selected"
+            ? "Try again in a moment or export your full library instead."
+            : "Try again in a moment.",
+        variant: "error",
+      });
+    }
   }
 
   async function handleImportFile(file: File) {
@@ -211,7 +252,8 @@ export default function RecipesPage() {
             Add Recipe
           </Button>
           <Button
-            onClick={() => void handleExport()}
+            disabled={recipesQuery.isLoading}
+            onClick={() => setShowExportModal(true)}
             size="sm"
             type="button"
             variant="accent"
@@ -267,6 +309,22 @@ export default function RecipesPage() {
             }
             setShowIngest(false);
           }}
+        />
+      ) : null}
+
+      {showExportModal ? (
+        <RecipeExportModal
+          isExporting={isExporting}
+          onClose={() => {
+            if (isExporting) {
+              return;
+            }
+            setShowExportModal(false);
+          }}
+          onExportAll={() => void handleExportRequest("all")}
+          onExportSelected={() => void handleExportRequest("selected")}
+          selectedCount={selectedCount}
+          totalRecipes={totalRecipes}
         />
       ) : null}
 
