@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { pageContextSchema } from "./page-context";
 
 export const quickPromptSchema = z.enum([
   "Plan this week",
@@ -15,64 +16,7 @@ export const chatRequestSchema = z.object({
   responseMode: z.enum(["auto", "json", "stream"]).default("auto"),
   sessionId: z.string().optional(),
   pageContext: z.string().optional(),
-  pageContextData: z
-    .union([
-      z.object({
-        page: z.literal("meal-plan"),
-        view: z.enum(["day", "week", "month"]),
-        date: z.string(),
-        dateRangeFrom: z.string(),
-        dateRangeTo: z.string(),
-        meals: z.array(
-          z.object({
-            id: z.string(),
-            name: z.string(),
-            mealType: z.string(),
-            date: z.string(),
-          })
-        ),
-      }),
-      z.object({
-        page: z.literal("grocery-list"),
-        activeList: z
-          .object({
-            id: z.string(),
-            name: z.string(),
-            items: z.array(
-              z.object({
-                id: z.string(),
-                name: z.string(),
-                qty: z.string().nullable(),
-                unit: z.string().nullable(),
-                category: z.string(),
-                checked: z.boolean(),
-              })
-            ),
-            totalItems: z.number(),
-            checkedCount: z.number(),
-            completionPercentage: z.number(),
-          })
-          .nullable(),
-        allLists: z.array(
-          z.object({
-            id: z.string(),
-            name: z.string(),
-            itemCount: z.number(),
-            checkedCount: z.number(),
-          })
-        ),
-      }),
-      z.object({
-        page: z.literal("home"),
-        totalMeals: z.number(),
-        groceryListName: z.string().nullable(),
-        groceryCompletion: z.number(),
-      }),
-      z.object({
-        page: z.enum(["stats", "settings"]),
-      }),
-    ])
-    .nullish(),
+  pageContextData: pageContextSchema.nullish(),
   chatSessionId: z.string().optional(),
 });
 

@@ -1,78 +1,16 @@
-export type MealItem = {
-  id: string;
-  name: string;
-  mealType: string;
-  date: string;
-};
+export type {
+  MealItem,
+  MealPlanPageContext,
+  GroceryItemContext,
+  GroceryListSummary,
+  GroceryListPageContext,
+  HomePageContext,
+  RecipesPageContext,
+  MinimalPageContext,
+  PageContext,
+} from "@shared/schemas/page-context";
 
-export type MealPlanPageContext = {
-  page: "meal-plan";
-  view: "day" | "week" | "month";
-  date: string;
-  dateRangeFrom: string;
-  dateRangeTo: string;
-  meals: MealItem[];
-};
-
-export type GroceryItemContext = {
-  id: string;
-  name: string;
-  qty: string | null;
-  unit: string | null;
-  category: string;
-  checked: boolean;
-};
-
-export type GroceryListSummary = {
-  id: string;
-  name: string;
-  itemCount: number;
-  checkedCount: number;
-};
-
-export type GroceryListPageContext = {
-  page: "grocery-list";
-  activeList: {
-    id: string;
-    name: string;
-    items: GroceryItemContext[];
-    totalItems: number;
-    checkedCount: number;
-    completionPercentage: number;
-  } | null;
-  allLists: GroceryListSummary[];
-};
-
-export type HomePageContext = {
-  page: "home";
-  totalMeals: number;
-  groceryListName: string | null;
-  groceryCompletion: number;
-};
-
-export type RecipesPageContext = {
-  page: "recipes";
-  search: string;
-  origin: string;
-  totalRecipes: number;
-  filteredRecipes: number;
-  visibleRecipes: Array<{
-    id: string;
-    title: string;
-    origin: string;
-  }>;
-};
-
-export type MinimalPageContext = {
-  page: "stats" | "settings";
-};
-
-export type PageContext =
-  | MealPlanPageContext
-  | GroceryListPageContext
-  | HomePageContext
-  | RecipesPageContext
-  | MinimalPageContext;
+import type { PageContext } from "@shared/schemas/page-context";
 
 export function serializePageContext(ctx: PageContext): string {
   switch (ctx.page) {

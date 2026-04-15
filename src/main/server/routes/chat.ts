@@ -16,7 +16,9 @@ import {
   snapshotFromList,
   toDateLabel,
   toWeekdayName,
+  type GroceryListPageContext,
   type GroceryListSnapshot,
+  type MealPlanPageContext,
   type MealForwardOp,
   type MealTypeValue,
 } from "../core-index";
@@ -70,35 +72,6 @@ type HandledChatAction = {
     type: string;
     summary: string;
   };
-};
-
-type MealPlanPageContext = {
-  page: "meal-plan";
-  view: "day" | "week" | "month";
-  date: string;
-  dateRangeFrom: string;
-  dateRangeTo: string;
-  meals: { id: string; name: string; mealType: string; date: string }[];
-};
-
-type GroceryPageContext = {
-  page: "grocery-list";
-  activeList: {
-    id: string;
-    name: string;
-    items: {
-      id: string;
-      name: string;
-      qty: string | null;
-      unit: string | null;
-      category: string;
-      checked: boolean;
-    }[];
-    totalItems: number;
-    checkedCount: number;
-    completionPercentage: number;
-  } | null;
-  allLists: { id: string; name: string; itemCount: number; checkedCount: number }[];
 };
 
 async function readTextFromStream(stream: ReadableStream<Uint8Array>) {
@@ -461,7 +434,7 @@ async function tryHandleMealCommand(message: string, pageContextData?: unknown, 
 
 async function tryHandleGroceryCommand(message: string, pageContextData?: unknown, chatSessionId?: string, ownerId?: string): Promise<HandledChatAction | null> {
   if (!pageContextData || typeof pageContextData !== "object") return null;
-  const context = pageContextData as GroceryPageContext;
+  const context = pageContextData as GroceryListPageContext;
   if (context.page !== "grocery-list") return null;
   const text = message.trim();
   const activeList = context.activeList;
@@ -873,6 +846,25 @@ chatRoutes.post("/chat", async (c) => {
       responseStatus = error.status;
       return c.json({ error: error.message, requestId }, error.status as 401 | 403);
     }
+
+    if (error instanceof z.ZodError) {
+      const details = error.flatten();
+      console.error("[chat-route] validation-error", {
+        requestId,
+        formErrors: details.formErrors,
+        fieldErrors: details.fieldErrors,
+      });
+      responseStatus = 400;
+      return c.json(
+        {
+          error: "Request validation failed",
+          details,
+          requestId,
+        },
+        400
+      );
+    }
+
     const message = error instanceof Error ? error.message : "Unable to handle chat request";
     const stack = process.env.NODE_ENV !== "production" && error instanceof Error ? error.stack : undefined;
     responseStatus = 400;
