@@ -69,6 +69,37 @@ export const recipesPageContextSchema = z.object({
   visibleRecipes: z.array(recipeListItemSchema),
 });
 
+export const recipeDetailIngredientContextSchema = z.object({
+  name: z.string(),
+  quantity: z.number().nullable(),
+  unit: z.string().nullable(),
+});
+
+export const recipeDetailPageContextSchema = z.object({
+  page: z.literal("recipe-detail"),
+  recipeId: z.string(),
+  title: z.string(),
+  description: z.string().nullable(),
+  difficulty: z.string().nullable(),
+  servings: z.number(),
+  prepTime: z.number().nullable(),
+  cookTime: z.number().nullable(),
+  rating: z.number().nullable(),
+  origin: z.string(),
+  tags: z.array(z.string()),
+  ingredients: z.array(recipeDetailIngredientContextSchema),
+});
+
+export const shoppingPageContextSchema = z.object({
+  page: z.literal("shopping"),
+  listId: z.string(),
+  listName: z.string(),
+  itemCount: z.number(),
+  checkedCount: z.number(),
+  completionPercentage: z.number(),
+  items: z.array(groceryItemContextSchema),
+});
+
 export const minimalPageContextSchema = z.object({
   page: z.enum(["stats", "settings"]),
 });
@@ -78,6 +109,8 @@ export const pageContextSchema = z.union([
   groceryListPageContextSchema,
   homePageContextSchema,
   recipesPageContextSchema,
+  recipeDetailPageContextSchema,
+  shoppingPageContextSchema,
   minimalPageContextSchema,
 ]);
 
@@ -89,5 +122,12 @@ export type GroceryListPageContext = z.infer<typeof groceryListPageContextSchema
 export type HomePageContext = z.infer<typeof homePageContextSchema>;
 export type RecipeListItem = z.infer<typeof recipeListItemSchema>;
 export type RecipesPageContext = z.infer<typeof recipesPageContextSchema>;
+export type RecipeDetailIngredientContext = z.infer<
+  typeof recipeDetailIngredientContextSchema
+>;
+export type RecipeDetailPageContext = z.infer<
+  typeof recipeDetailPageContextSchema
+>;
+export type ShoppingPageContext = z.infer<typeof shoppingPageContextSchema>;
 export type MinimalPageContext = z.infer<typeof minimalPageContextSchema>;
 export type PageContext = z.infer<typeof pageContextSchema>;

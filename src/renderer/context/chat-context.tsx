@@ -11,6 +11,10 @@ import { useLocation } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { type PageContext, serializePageContext } from "./page-context-types";
+import {
+  getActivePageContext,
+  getMinimalContextForPath,
+} from "./page-context-routing";
 import { getCachedConfig } from "@/lib/config";
 
 export type ChatSize = "compact" | "medium" | "fullscreen";
@@ -82,17 +86,6 @@ function getAuthHeaders(): Record<string, string> {
   return { "Authorization": `Bearer ${token}` };
 }
 
-function getMinimalContextForPath(path: string): string {
-  if (path === "/stats")
-    return "The user is on the Stats page, viewing meal activity statistics.";
-  if (path === "/settings")
-    return "The user is on the Settings page, managing household preferences.";
-  if (path === "/") return "The user is on the Home page.";
-  if (path === "/meal-plan") return "The user is on the Meal Plan page.";
-  if (path === "/grocery-list") return "The user is on the Grocery List page.";
-  return `The user is on the ${path} page.`;
-}
-
 export function ChatProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const pathname = location.pathname;
@@ -114,11 +107,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     useState<PendingInputRequest | null>(null);
 
   const pageContextRef = useRef<PageContext | null>(null);
-  const lastSentPathRef = useRef<string>("");
+  const pageContextPathRef = useRef<string | null>(null);
 
   const setPageContext = useCallback((ctx: PageContext) => {
     pageContextRef.current = ctx;
-  }, []);
+    pageContextPathRef.current = pathname;
+  }, [pathname]);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -140,13 +134,14 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       setIsTyping(true);
       setStreamingMessage("");
 
-      let pageContextStr: string | undefined;
-      if (pathname !== lastSentPathRef.current) {
-        pageContextStr = pageContextRef.current
-          ? serializePageContext(pageContextRef.current)
-          : getMinimalContextForPath(pathname);
-        lastSentPathRef.current = pathname;
-      }
+      const activePageContext = getActivePageContext(
+        pathname,
+        pageContextRef.current,
+        pageContextPathRef.current
+      );
+      const pageContextStr = activePageContext
+        ? serializePageContext(activePageContext)
+        : getMinimalContextForPath(pathname);
 
       try {
         const response = await fetch(getApiUrl("/api/chat"), {
@@ -159,7 +154,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             message: text,
             sessionId: copilotSessionId,
             pageContext: pageContextStr,
-            pageContextData: pageContextRef.current,
+            pageContextData: activePageContext,
             chatSessionId,
           }),
         });
@@ -406,7 +401,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             }
           : null
       );
-      lastSentPathRef.current = "";
       setMessages([
         INITIAL_MESSAGE,
         ...data.messages.map((m) => ({
@@ -426,7 +420,6 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setChatSessionId(undefined);
     setMessages([INITIAL_MESSAGE]);
     setPendingInputRequest(null);
-    lastSentPathRef.current = "";
     setShowSessionBrowser(false);
   }, []);
 
@@ -543,5 +536,5 @@ export function useChatPageContext(ctx: PageContext) {
   const ctxStr = JSON.stringify(ctx);
   useEffect(() => {
     setPageContext(JSON.parse(ctxStr) as PageContext);
-  }, [ctxStr]);
+  }, [ctxStr, setPageContext]);
 }

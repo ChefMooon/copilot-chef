@@ -5,6 +5,7 @@ import { fetchJson } from "@/lib/api";
 import { RecipeDetail } from "@/components/recipes/RecipeDetail";
 import { type RecipePayload } from "@/lib/api";
 import { recipeKeys } from "@/lib/query-keys";
+import { useChatPageContext } from "@/context/chat-context";
 
 type RecipeDetailResponse = {
   data: RecipePayload;
@@ -16,6 +17,43 @@ type PreferencesResponse = {
     defaultRecipeView?: string;
   };
 };
+
+function RecipeDetailContent({
+  recipe,
+  defaultUnitMode,
+  defaultView,
+}: {
+  recipe: RecipePayload;
+  defaultUnitMode: "cup" | "grams";
+  defaultView: "basic" | "detailed" | "cooking";
+}) {
+  useChatPageContext({
+    page: "recipe-detail",
+    recipeId: recipe.id,
+    title: recipe.title,
+    description: recipe.description,
+    difficulty: recipe.difficulty,
+    servings: recipe.servings,
+    prepTime: recipe.prepTime,
+    cookTime: recipe.cookTime,
+    rating: recipe.rating,
+    origin: recipe.origin,
+    tags: recipe.tags,
+    ingredients: recipe.ingredients.map((ingredient) => ({
+      name: ingredient.name,
+      quantity: ingredient.quantity,
+      unit: ingredient.unit,
+    })),
+  });
+
+  return (
+    <RecipeDetail
+      defaultUnitMode={defaultUnitMode}
+      defaultView={defaultView}
+      recipe={recipe}
+    />
+  );
+}
 
 export default function RecipeDetailPage() {
   const { recipeId } = useParams<{ recipeId: string }>();
@@ -64,20 +102,20 @@ export default function RecipeDetailPage() {
   }
 
   const preferences = preferencesQuery.data;
+  const defaultUnitMode =
+    preferences?.defaultUnitMode === "grams" ? "grams" : "cup";
+  const defaultView =
+    preferences?.defaultRecipeView === "detailed"
+      ? "detailed"
+      : preferences?.defaultRecipeView === "cooking"
+        ? "cooking"
+        : "basic";
 
   return (
     <div className="p-4 md:p-6">
-      <RecipeDetail
-        defaultUnitMode={
-          preferences?.defaultUnitMode === "grams" ? "grams" : "cup"
-        }
-        defaultView={
-          preferences?.defaultRecipeView === "detailed"
-            ? "detailed"
-            : preferences?.defaultRecipeView === "cooking"
-              ? "cooking"
-              : "basic"
-        }
+      <RecipeDetailContent
+        defaultUnitMode={defaultUnitMode}
+        defaultView={defaultView}
         recipe={recipeQuery.data}
       />
     </div>

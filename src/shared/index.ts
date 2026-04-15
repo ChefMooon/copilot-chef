@@ -23,6 +23,9 @@ export {
   homePageContextSchema,
   recipeListItemSchema,
   recipesPageContextSchema,
+  recipeDetailIngredientContextSchema,
+  recipeDetailPageContextSchema,
+  shoppingPageContextSchema,
   minimalPageContextSchema,
   pageContextSchema,
 } from "./schemas/page-context";
@@ -35,6 +38,9 @@ export type {
   HomePageContext,
   RecipeListItem,
   RecipesPageContext,
+  RecipeDetailIngredientContext,
+  RecipeDetailPageContext,
+  ShoppingPageContext,
   MinimalPageContext,
   PageContext,
 } from "./schemas/page-context";

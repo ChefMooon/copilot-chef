@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { fetchJson } from "@/lib/api";
+import { useChatPageContext } from "@/context/chat-context";
 import {
   deriveGroceryList,
   groupByCategory,
@@ -13,6 +14,115 @@ import {
 } from "@/lib/grocery";
 
 import styles from "./shop.module.css";
+
+function GroceryShopContent({
+  groups,
+  list,
+  done,
+  pct,
+  navigate,
+  toggleItem,
+}: {
+  groups: ReturnType<typeof groupByCategory>;
+  list: GroceryList;
+  done: number;
+  pct: number;
+  navigate: ReturnType<typeof useNavigate>;
+  toggleItem: (item: GroceryItem) => Promise<void>;
+}) {
+  useChatPageContext({
+    page: "shopping",
+    listId: list.id,
+    listName: list.name,
+    itemCount: list.items.length,
+    checkedCount: done,
+    completionPercentage: pct,
+    items: list.items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      qty: item.qty,
+      unit: item.unit,
+      category: item.category,
+      checked: item.checked,
+    })),
+  });
+
+  return (
+    <div className={styles.overlay}>
+      <div className={styles.header}>
+        <div className={styles.headerLeft}>
+          <span className={styles.logo}>🍳</span>
+          <div>
+            <div className={styles.listName}>{list.name}</div>
+            <div className={styles.progressText}>
+              {done} of {list.items.length} collected
+            </div>
+          </div>
+        </div>
+        <button
+          className={styles.closeBtn}
+          onClick={() => navigate("/grocery-list")}
+          type="button"
+        >
+          ✕ Done
+        </button>
+      </div>
+      <div className={styles.progressBarBg}>
+        <div className={styles.progressBarFill} style={{ width: `${pct}%` }} />
+      </div>
+      <div className={styles.body}>
+        {groups.map(([category, items]) => (
+          <div className={styles.category} key={category}>
+            <div className={styles.categoryHeader}>{category}</div>
+            {items.map((item) => (
+              <button
+                className={`${styles.item} ${item.checked ? styles.itemDone : ""}`}
+                key={item.id}
+                onClick={() => void toggleItem(item)}
+                type="button"
+              >
+                <div
+                  className={`${styles.checkCircle} ${item.checked ? styles.checkFilled : ""}`}
+                >
+                  {item.checked ? (
+                    <span className={styles.checkmark}>✓</span>
+                  ) : null}
+                </div>
+                <div className={styles.itemInfo}>
+                  <span className={styles.itemName}>{item.name}</span>
+                  <div className={styles.itemMeta}>
+                    {item.qty ? (
+                      <span>
+                        {item.qty}
+                        {item.unit ? ` ${item.unit}` : ""}
+                      </span>
+                    ) : null}
+                    {item.notes ? (
+                      <span className={styles.itemNotes}>· {item.notes}</span>
+                    ) : null}
+                    {item.meal ? (
+                      <span className={styles.itemMeal}>for {item.meal}</span>
+                    ) : null}
+                  </div>
+                </div>
+                <div>
+                  {item.checked ? (
+                    <span className={styles.statusDone}>Collected</span>
+                  ) : (
+                    <span className={styles.statusOpen}>Needed</span>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        ))}
+        {list.items.length === 0 ? (
+          <div className={styles.empty}>This list has no items yet.</div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 export default function GroceryShopPage() {
   const { id } = useParams<{ id: string }>();
@@ -98,78 +208,13 @@ export default function GroceryShopPage() {
   }
 
   return (
-    <div className={styles.overlay}>
-      <div className={styles.header}>
-        <div className={styles.headerLeft}>
-          <span className={styles.logo}>🍳</span>
-          <div>
-            <div className={styles.listName}>{list.name}</div>
-            <div className={styles.progressText}>
-              {done} of {list.items.length} collected
-            </div>
-          </div>
-        </div>
-        <button
-          className={styles.closeBtn}
-          onClick={() => navigate("/grocery-list")}
-          type="button"
-        >
-          ✕ Done
-        </button>
-      </div>
-      <div className={styles.progressBarBg}>
-        <div className={styles.progressBarFill} style={{ width: `${pct}%` }} />
-      </div>
-      <div className={styles.body}>
-        {groups.map(([category, items]) => (
-          <div className={styles.category} key={category}>
-            <div className={styles.categoryHeader}>{category}</div>
-            {items.map((item) => (
-              <button
-                className={`${styles.item} ${item.checked ? styles.itemDone : ""}`}
-                key={item.id}
-                onClick={() => void toggleItem(item)}
-                type="button"
-              >
-                <div
-                  className={`${styles.checkCircle} ${item.checked ? styles.checkFilled : ""}`}
-                >
-                  {item.checked ? (
-                    <span className={styles.checkmark}>✓</span>
-                  ) : null}
-                </div>
-                <div className={styles.itemInfo}>
-                  <span className={styles.itemName}>{item.name}</span>
-                  <div className={styles.itemMeta}>
-                    {item.qty ? (
-                      <span>
-                        {item.qty}
-                        {item.unit ? ` ${item.unit}` : ""}
-                      </span>
-                    ) : null}
-                    {item.notes ? (
-                      <span className={styles.itemNotes}>· {item.notes}</span>
-                    ) : null}
-                    {item.meal ? (
-                      <span className={styles.itemMeal}>for {item.meal}</span>
-                    ) : null}
-                  </div>
-                </div>
-                <div>
-                  {item.checked ? (
-                    <span className={styles.statusDone}>Collected</span>
-                  ) : (
-                    <span className={styles.statusOpen}>Needed</span>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        ))}
-        {list.items.length === 0 ? (
-          <div className={styles.empty}>This list has no items yet.</div>
-        ) : null}
-      </div>
-    </div>
+    <GroceryShopContent
+      done={done}
+      groups={groups}
+      list={list}
+      navigate={navigate}
+      pct={pct}
+      toggleItem={toggleItem}
+    />
   );
 }

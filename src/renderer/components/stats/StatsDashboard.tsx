@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
-
-import { useChatContext } from "@/context/chat-context";
+import { useChatPageContext } from "@/context/chat-context";
 
 import { ActivityHeatmap } from "./ActivityHeatmap";
 import { CuisineChart } from "./CuisineChart";
@@ -50,11 +48,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 export function StatsDashboard({ stats }: Props) {
-  const { setPageContext } = useChatContext();
-
-  useEffect(() => {
-    setPageContext({ page: "stats" });
-  }, [setPageContext]);
+  useChatPageContext({ page: "stats" });
 
   const avgMealsPerActiveDay =
     stats.heatmap.activeDays > 0

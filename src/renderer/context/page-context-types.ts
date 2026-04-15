@@ -6,6 +6,9 @@ export type {
   GroceryListPageContext,
   HomePageContext,
   RecipesPageContext,
+  RecipeDetailIngredientContext,
+  RecipeDetailPageContext,
+  ShoppingPageContext,
   MinimalPageContext,
   PageContext,
 } from "@shared/schemas/page-context";
@@ -89,6 +92,62 @@ export function serializePageContext(ctx: PageContext): string {
         `The user is on the Recipes page.${searchText}${originText}\n` +
         `Showing ${ctx.filteredRecipes} of ${ctx.totalRecipes} recipes.\n` +
         `Visible recipes:\n${listLines}`
+      );
+    }
+    case "recipe-detail": {
+      const ingredientLines =
+        ctx.ingredients.length > 0
+          ? ctx.ingredients
+              .slice(0, 20)
+              .map((ingredient) => {
+                const quantity =
+                  ingredient.quantity === null ? "" : `${ingredient.quantity} `;
+                const unit = ingredient.unit ? `${ingredient.unit} ` : "";
+                return `  - ${quantity}${unit}${ingredient.name}`.trimEnd();
+              })
+              .join("\n")
+          : "  (no ingredients listed)";
+      const descriptionText = ctx.description
+        ? ` Description: ${ctx.description}`
+        : "";
+      const difficultyText = ctx.difficulty
+        ? ` Difficulty: ${ctx.difficulty}.`
+        : "";
+      const timingText =
+        ctx.prepTime !== null || ctx.cookTime !== null
+          ? ` Prep: ${ctx.prepTime ?? 0}m. Cook: ${ctx.cookTime ?? 0}m.`
+          : "";
+      const ratingText =
+        ctx.rating !== null ? ` Rating: ${ctx.rating}/5.` : "";
+      const tagsText =
+        ctx.tags.length > 0 ? ` Tags: ${ctx.tags.join(", ")}.` : "";
+
+      return (
+        `The user is viewing the recipe "${ctx.title}" (${ctx.origin}).` +
+        ` Serves ${ctx.servings}.` +
+        difficultyText +
+        timingText +
+        ratingText +
+        tagsText +
+        descriptionText +
+        `\nIngredients:\n${ingredientLines}`
+      );
+    }
+    case "shopping": {
+      const itemLines =
+        ctx.items.length > 0
+          ? ctx.items
+              .map(
+                (item) =>
+                  `  - [${item.checked ? "x" : " "}] ${item.qty ? item.qty + " " : ""}${item.unit ? item.unit + " " : ""}${item.name} (${item.category})`
+              )
+              .join("\n")
+          : "  (empty list)";
+
+      return (
+        `The user is in Shopping Mode, working through "${ctx.listName}" ` +
+        `(${ctx.completionPercentage}% complete, ${ctx.checkedCount}/${ctx.itemCount} items checked).\n` +
+        `List items:\n${itemLines}`
       );
     }
     case "stats":
