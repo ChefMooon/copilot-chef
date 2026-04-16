@@ -11,6 +11,7 @@
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true,
+    "ignoreDeprecations": "6.0",
     "outDir": "./out/main",
     "rootDir": ".",
     "baseUrl": ".",
