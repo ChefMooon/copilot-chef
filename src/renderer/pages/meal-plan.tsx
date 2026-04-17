@@ -20,13 +20,18 @@ import styles from "@/components/meal-plan/meal-plan.module.css";
 
 import {
   createEmptyMeal,
+  eachDayInRange,
+  formatMealTypeProfileRange,
   fromCalendarMealType,
-  MEAL_TYPES,
+  getDefaultMealTypeProfile,
+  getMealTypeProfileContext,
+  getMealTypeProfileContexts,
+  getMealTypeDefinitionsForDate,
+  getTypeConfig,
   MONTHS,
   normalizeMealDate,
   toEditableMeal,
   toRangeByView,
-  TYPE_CONFIG,
   type CalendarMealType,
   type CalendarMeal,
   type EditableMeal,
@@ -38,6 +43,7 @@ import { useToast } from "@/components/providers/toast-provider";
 import { useMealUndoRedo } from "@/components/meal-plan/use-meal-undo-redo";
 import { getCachedConfig } from "@/lib/config";
 import { mealToRecipePayload } from "@/lib/meal-to-recipe";
+import { useMealTypeProfiles } from "@/lib/use-meal-types";
 import type { CreateRecipeInput, RecipeConflict } from "@shared/types";
 
 type CalView = "day" | "week" | "month";
@@ -47,6 +53,7 @@ type DeletedMealSnapshot = Pick<
   | "name"
   | "date"
   | "type"
+  | "mealTypeDefinitionId"
   | "notes"
   | "ingredients"
   | "description"
@@ -63,6 +70,7 @@ function toDeletedMealSnapshot(meal: EditableMeal): DeletedMealSnapshot {
     name: meal.name,
     date: meal.date,
     type: meal.type,
+    mealTypeDefinitionId: meal.mealTypeDefinitionId,
     notes: meal.notes,
     ingredients: [...meal.ingredients],
     description: meal.description,
@@ -117,6 +125,7 @@ async function readChatResponse(message: string) {
 
 export default function MealPlanPage() {
   const [view, setView] = useState<CalView>("week");
+  const [highlightedProfileId, setHighlightedProfileId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -169,6 +178,85 @@ export default function MealPlanPage() {
   });
 
   const meals = mealsQuery.data ?? [];
+  const mealTypeProfilesQuery = useMealTypeProfiles();
+  const mealTypeProfiles =
+    mealTypeProfilesQuery.data?.length
+      ? mealTypeProfilesQuery.data
+      : [getDefaultMealTypeProfile()];
+  const mealTypeDefinitions = getMealTypeDefinitionsForDate(date, mealTypeProfiles);
+  const currentProfileContext = useMemo(
+    () => getMealTypeProfileContext(date, mealTypeProfiles),
+    [date, mealTypeProfiles]
+  );
+  const visibleDates = useMemo(
+    () => eachDayInRange(dateRange.from, dateRange.to),
+    [dateRange.from, dateRange.to]
+  );
+  const visibleProfileContexts = useMemo(
+    () => getMealTypeProfileContexts(visibleDates, mealTypeProfiles),
+    [visibleDates, mealTypeProfiles]
+  );
+  const visibleProfiles = useMemo(() => {
+    const profileMap = new Map<
+      string,
+      {
+        id: string;
+        name: string;
+        accentColor: string;
+        rangeLabel: string | null;
+        occurrenceCount: number;
+        startsInRange: boolean;
+        isCurrent: boolean;
+      }
+    >();
+
+    for (const context of visibleProfileContexts) {
+      const existing = profileMap.get(context.profile.id);
+
+      if (existing) {
+        existing.occurrenceCount += 1;
+        existing.startsInRange = existing.startsInRange || context.isProfileStart;
+        existing.isCurrent = existing.isCurrent || context.profile.id === currentProfileContext.profile.id;
+        continue;
+      }
+
+      profileMap.set(context.profile.id, {
+        id: context.profile.id,
+        name: context.profile.name,
+        accentColor: context.accentColor,
+        rangeLabel: formatMealTypeProfileRange(context.profile),
+        occurrenceCount: 1,
+        startsInRange: context.isProfileStart,
+        isCurrent: context.profile.id === currentProfileContext.profile.id,
+      });
+    }
+
+    return Array.from(profileMap.values()).sort((left, right) => {
+      if (left.isCurrent !== right.isCurrent) {
+        return left.isCurrent ? -1 : 1;
+      }
+
+      return right.occurrenceCount - left.occurrenceCount || left.name.localeCompare(right.name);
+    });
+  }, [currentProfileContext.profile.id, visibleProfileContexts]);
+  const highlightedProfile =
+    visibleProfiles.find((profile) => profile.id === highlightedProfileId) ?? null;
+  const legendProfile =
+    mealTypeProfiles.find((profile) => profile.id === highlightedProfile?.id) ??
+    currentProfileContext.profile;
+  const legendMealTypeDefinitions = legendProfile.mealTypes;
+
+  useEffect(() => {
+    if (highlightedProfileId && !visibleProfiles.some((profile) => profile.id === highlightedProfileId)) {
+      setHighlightedProfileId(null);
+    }
+  }, [highlightedProfileId, visibleProfiles]);
+
+  const getMealTypesForDate = (value: Date) =>
+    getMealTypeDefinitionsForDate(value, mealTypeProfiles);
+
+  const findMealTypeDefinition = (mealType: string, value: Date) =>
+    getMealTypesForDate(value).find((definition) => definition.slug === mealType) ?? null;
 
   useEffect(() => {
     if (view === "month") {
@@ -286,14 +374,21 @@ export default function MealPlanPage() {
     mealId: string,
     changes: Partial<Pick<EditableMeal, "date" | "type">>
   ) => {
-    const payload: { date?: string; mealType?: ReturnType<typeof fromCalendarMealType> } = {};
+    const payload: {
+      date?: string;
+      mealType?: ReturnType<typeof fromCalendarMealType>;
+      mealTypeDefinitionId?: string | null;
+    } = {};
 
     if (changes.date) {
       payload.date = normalizeMealDate(changes.date).toISOString();
     }
 
     if (changes.type) {
+      const effectiveDate = changes.date ?? meals.find((meal) => meal.id === mealId)?.date ?? date;
       payload.mealType = fromCalendarMealType(changes.type);
+      payload.mealTypeDefinitionId =
+        findMealTypeDefinition(changes.type, effectiveDate)?.id ?? null;
     }
 
     await fetchJson<{ data: CalendarMeal }>(`/api/meals/${mealId}`, {
@@ -308,6 +403,10 @@ export default function MealPlanPage() {
       name: updatedMeal.name,
       date: normalizedDate.toISOString(),
       mealType: fromCalendarMealType(updatedMeal.type),
+      mealTypeDefinitionId:
+        updatedMeal.mealTypeDefinitionId ??
+        findMealTypeDefinition(updatedMeal.type, normalizedDate)?.id ??
+        null,
       notes: updatedMeal.notes,
       ingredients: updatedMeal.ingredients,
       description: updatedMeal.description || null,
@@ -373,6 +472,8 @@ export default function MealPlanPage() {
       return;
     }
 
+    const targetDefinition = findMealTypeDefinition(targetType, normalizedTargetDate);
+
     const previousMeals = updateMealsCache((current) =>
       current.map((currentMeal) =>
         currentMeal.id === meal.id
@@ -380,6 +481,8 @@ export default function MealPlanPage() {
               ...currentMeal,
               date: normalizedTargetDate,
               type: targetType,
+              mealTypeDefinitionId: targetDefinition?.id ?? null,
+              mealTypeDefinition: targetDefinition,
             }
           : currentMeal
       )
@@ -427,18 +530,24 @@ export default function MealPlanPage() {
     const previousMeals = updateMealsCache((current) =>
       current.map((currentMeal) => {
         if (currentMeal.id === draggedMeal.id) {
+          const nextDefinition = findMealTypeDefinition(targetMeal.type, targetSourceDate);
           return {
             ...currentMeal,
             date: targetSourceDate,
             type: targetMeal.type,
+            mealTypeDefinitionId: nextDefinition?.id ?? null,
+            mealTypeDefinition: nextDefinition,
           };
         }
 
         if (currentMeal.id === targetMeal.id) {
+          const nextDefinition = findMealTypeDefinition(draggedMeal.type, draggedSourceDate);
           return {
             ...currentMeal,
             date: draggedSourceDate,
             type: draggedMeal.type,
+            mealTypeDefinitionId: nextDefinition?.id ?? null,
+            mealTypeDefinition: nextDefinition,
           };
         }
 
@@ -490,6 +599,7 @@ export default function MealPlanPage() {
         name: snapshot.name,
         date: normalizeMealDate(snapshot.date).toISOString(),
         mealType: fromCalendarMealType(snapshot.type),
+        mealTypeDefinitionId: snapshot.mealTypeDefinitionId,
         notes: snapshot.notes ? snapshot.notes : null,
         ingredients: snapshot.ingredients,
         description: snapshot.description || null,
@@ -720,30 +830,95 @@ export default function MealPlanPage() {
     };
   };
 
+  const pageTitle =
+    view === "day"
+      ? "Daily Meal Plan"
+      : view === "week"
+        ? "Weekly Meal Plan"
+        : "Monthly Meal Plan";
+  const pageDateLabel =
+    view === "day"
+      ? date.toLocaleDateString("default", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        })
+      : view === "week"
+        ? "Plan and review your meals week by week."
+        : `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+  const startsInRange = visibleProfiles
+    .filter((profile) => profile.startsInRange)
+    .map((profile) => `${profile.name} starts in view`)
+    .join(". ");
+  const profileSummary =
+    view === "day"
+      ? `Using the ${currentProfileContext.profile.name} profile${currentProfileContext.rangeLabel ? ` for ${currentProfileContext.rangeLabel.toLowerCase()}` : ""}.`
+      : visibleProfiles.length === 1
+        ? `${visibleProfiles[0].name} is the only meal type profile in this ${view}.`
+        : `${visibleProfiles.length} meal type profiles appear in this ${view}.${startsInRange ? ` ${startsInRange}.` : ""}`;
+  const mealTypeLegendTitle = highlightedProfile
+    ? `Meal types for ${highlightedProfile.name}`
+    : `Meal types for ${currentProfileContext.profile.name}`;
+
   return (
     <div className={styles.calendarPage}>
       <div className={styles.pageHeader}>
         <div>
           <div className={styles.eyebrow}>Meal Plan</div>
-          <h1 className={styles.pageTitle}>Weekly Meal Plan</h1>
-          <p className={styles.pageSub}>
-            {view === "day" &&
-              date.toLocaleDateString("default", {
-                weekday: "long",
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
-            {view === "week" && "Plan and review your meals week by week."}
-            {view === "month" &&
-              `${MONTHS[date.getMonth()]} ${date.getFullYear()}`}
-          </p>
+          <h1 className={styles.pageTitle}>{pageTitle}</h1>
+          <p className={styles.pageSub}>{pageDateLabel}</p>
+          <p className={styles.profileSummary}>{profileSummary}</p>
+          <div className={styles.profileFilterRow}>
+            <span className={styles.profileFilterLabel}>Profile accents</span>
+            {visibleProfiles.length > 1 ? (
+              <button
+                aria-pressed={highlightedProfileId === null}
+                className={`${styles.profileFilterChip} ${highlightedProfileId === null ? styles.profileFilterChipActive : ""}`}
+                onClick={() => setHighlightedProfileId(null)}
+                type="button"
+              >
+                All Profiles
+              </button>
+            ) : null}
+            {visibleProfiles.map((profile) => (
+              <button
+                aria-pressed={highlightedProfileId === profile.id}
+                className={`${styles.profileFilterChip} ${highlightedProfileId === profile.id ? styles.profileFilterChipActive : ""}`}
+                key={profile.id}
+                onClick={() =>
+                  setHighlightedProfileId((current) =>
+                    current === profile.id ? null : profile.id
+                  )
+                }
+                style={{ borderColor: profile.accentColor, color: profile.accentColor }}
+                title={profile.rangeLabel ?? undefined}
+                type="button"
+              >
+                <span
+                  className={styles.profileFilterSwatch}
+                  style={{ background: profile.accentColor }}
+                />
+                {profile.name}
+              </button>
+            ))}
+          </div>
         </div>
         <div className={styles.pageHeaderRight}>
           <button
             className={styles.btnAddMeal}
             onClick={() =>
-              setEditMeal(createEmptyMeal(new Date(date), "dinner"))
+              setEditMeal(
+                createEmptyMeal(
+                  new Date(date),
+                  mealTypeDefinitions.find((definition) => definition.enabled)?.slug ??
+                    mealTypeDefinitions[0]?.slug ??
+                    "DINNER",
+                  mealTypeDefinitions.find((definition) => definition.enabled) ??
+                    mealTypeDefinitions[0] ??
+                    null
+                )
+              )
             }
             type="button"
           >
@@ -771,11 +946,34 @@ export default function MealPlanPage() {
         </div>
       </div>
 
+      {highlightedProfile ? (
+        <div className={styles.cardFocusBar}>
+          <div className={styles.cardFocusCopy}>
+            <span
+              className={styles.cardFocusSwatch}
+              style={{ background: highlightedProfile.accentColor }}
+            />
+            <span className={styles.cardFocusText}>
+              Focused on {highlightedProfile.name}
+            </span>
+          </div>
+          <button
+            className={styles.cardFocusClear}
+            onClick={() => setHighlightedProfileId(null)}
+            type="button"
+          >
+            Clear focus
+          </button>
+        </div>
+      ) : null}
+
       <div className={styles.calCard}>
         {view === "day" ? (
           <DayView
             date={date}
             meals={meals}
+            mealTypeProfiles={mealTypeProfiles}
+            highlightedProfileId={highlightedProfileId}
             onEdit={setEditMeal}
             onMoveMeal={onMoveMeal}
             onSwapMeals={onSwapMeals}
@@ -786,6 +984,8 @@ export default function MealPlanPage() {
           <WeekView
             date={date}
             meals={meals}
+            mealTypeProfiles={mealTypeProfiles}
+            highlightedProfileId={highlightedProfileId}
             onEdit={setEditMeal}
             onMoveMeal={onMoveMeal}
             onSwapMeals={onSwapMeals}
@@ -796,6 +996,8 @@ export default function MealPlanPage() {
           <MonthView
             date={date}
             meals={meals}
+            mealTypeProfiles={mealTypeProfiles}
+            highlightedProfileId={highlightedProfileId}
             onEdit={setEditMeal}
             setDate={setDate}
           />
@@ -807,21 +1009,63 @@ export default function MealPlanPage() {
         onDropMeal={onTrashDropMeal}
       />
 
-      <div className={styles.legend}>
-        {MEAL_TYPES.map((type) => (
-          <div className={styles.legendItem} key={type}>
-            <span
-              className={styles.legendDot}
-              style={{ background: TYPE_CONFIG[type].dot }}
-            />
-            <span className={styles.legendText}>{TYPE_CONFIG[type].label}</span>
+      <div className={styles.legendStack}>
+        <div className={styles.legendSection}>
+          <div className={styles.legendHeadingRow}>
+            <h2 className={styles.legendTitle}>Profile accents</h2>
+            <p className={styles.legendHint}>
+              {highlightedProfile
+                ? `Focusing ${highlightedProfile.name}. Other profile days stay visible but subdued.`
+                : visibleProfiles.length > 1
+                  ? "Use the chips above to focus one profile's accent cues."
+                  : `All visible days use the ${currentProfileContext.profile.name} profile.`}
+            </p>
           </div>
-        ))}
+          <div className={styles.legend}>
+            {visibleProfiles.map((profile) => (
+              <div className={styles.legendItem} key={profile.id}>
+                <span
+                  className={styles.legendDot}
+                  style={{ background: profile.accentColor }}
+                />
+                <span className={styles.legendText}>{profile.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className={styles.legendSection}>
+          <div className={styles.legendHeadingRow}>
+            <h2 className={styles.legendTitle}>{mealTypeLegendTitle}</h2>
+            <p className={styles.legendHint}>
+              {highlightedProfile?.rangeLabel ?? currentProfileContext.rangeLabel ?? "Shown for the selected date."}
+            </p>
+          </div>
+          <div className={styles.legend}>
+            {legendMealTypeDefinitions
+          .filter((definition) => definition.enabled)
+          .sort((left, right) => left.sortOrder - right.sortOrder)
+          .map((definition) => {
+            const config = getTypeConfig(definition.slug, legendMealTypeDefinitions);
+
+            return (
+              <div className={styles.legendItem} key={definition.id}>
+                <span
+                  className={styles.legendDot}
+                  style={{ background: config.dot }}
+                />
+                <span className={styles.legendText}>{config.label}</span>
+              </div>
+            );
+          })}
+          </div>
+        </div>
       </div>
 
       {editMeal ? (
         <EditModal
           meal={editMeal}
+          mealTypeProfiles={mealTypeProfiles}
           onClose={() => setEditMeal(null)}
           onDelete={onDeleteMeal}
           onResuggest={onResuggest}

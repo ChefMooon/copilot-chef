@@ -5,17 +5,22 @@ import {
   createMealSlots,
   DAYS,
   getMonday,
+  getMealTypeProfileContexts,
+  getTypeConfig,
+  mergeMealTypeDefinitions,
   type CalendarMealType,
   isSameDay,
   type EditableMeal,
-  TYPE_CONFIG,
 } from "@/lib/calendar";
+import type { MealTypeProfilePayload } from "@shared/types";
 
 import styles from "./meal-plan.module.css";
 
 type WeekViewProps = {
   date: Date;
   meals: EditableMeal[];
+  mealTypeProfiles: MealTypeProfilePayload[];
+  highlightedProfileId?: string | null;
   setDate: (date: Date) => void;
   onEdit: (meal: EditableMeal) => void;
   onMoveMeal: (
@@ -32,6 +37,8 @@ type WeekViewProps = {
 export function WeekView({
   date,
   meals,
+  mealTypeProfiles,
+  highlightedProfileId,
   setDate,
   onEdit,
   onMoveMeal,
@@ -47,13 +54,21 @@ export function WeekView({
     day.setDate(day.getDate() + index);
     return day;
   });
+  const dayProfileContexts = useMemo(
+    () => getMealTypeProfileContexts(days, mealTypeProfiles),
+    [days, mealTypeProfiles]
+  );
   const slotsByDay = useMemo(
     () =>
-      days.map((day) => ({
-        day,
-        slots: createMealSlots(meals, day),
-      })),
-    [days, meals]
+      dayProfileContexts.map(({ mealTypes }, index) => {
+        const day = days[index];
+        return {
+          day,
+          mealTypes,
+          slots: createMealSlots(meals, day, mealTypes),
+        };
+      }),
+    [dayProfileContexts, days, meals]
   );
 
   const prevWeek = () => {
@@ -83,7 +98,11 @@ export function WeekView({
   const weekMeals = slotsByDay.flatMap(({ slots }) =>
     slots.flatMap((slot) => slot.meals)
   );
-  const mealTypes = slotsByDay[0]?.slots.map((slot) => slot.type) ?? [];
+  const mergedMealTypes = useMemo(
+    () => mergeMealTypeDefinitions(slotsByDay.map(({ mealTypes }) => mealTypes)),
+    [slotsByDay]
+  );
+  const rowMealTypes = mergedMealTypes.map((definition) => definition.slug);
   const draggedMeal = weekMeals.find((meal) => meal.id === draggedMealId) ?? null;
 
   const clearDragState = () => {
@@ -150,13 +169,18 @@ export function WeekView({
       <div className={styles.weekBoardScroller}>
         <div className={styles.weekBoard}>
           <div className={styles.weekBoardCorner}>Meal</div>
-          {days.map((day) => {
+          {days.map((day, index) => {
             const todayMatch = isSameDay(day, today);
+            const profileContext = dayProfileContexts[index];
+            const isMuted =
+              highlightedProfileId != null &&
+              profileContext.profile.id !== highlightedProfileId;
 
             return (
               <div
-                className={`${styles.weekDayHeader} ${todayMatch ? styles.weekDayHeaderToday : ""}`}
+                className={`${styles.weekDayHeader} ${todayMatch ? styles.weekDayHeaderToday : ""} ${profileContext.isProfileStart ? styles.weekDayHeaderProfileStart : ""} ${isMuted ? styles.weekProfileMuted : ""}`}
                 key={`header-${day.toISOString()}`}
+                style={{ boxShadow: `inset 0 3px 0 ${profileContext.accentColor}` }}
               >
                 <span className={styles.weekColWeekday}>{DAYS[day.getDay()]}</span>
                 <span
@@ -164,13 +188,23 @@ export function WeekView({
                 >
                   {day.getDate()}
                 </span>
+                <span
+                  className={styles.weekProfileChip}
+                  style={{ borderColor: profileContext.accentColor, color: profileContext.accentColor }}
+                  title={profileContext.rangeLabel ?? profileContext.profile.description ?? undefined}
+                >
+                  {profileContext.profile.name}
+                </span>
+                {profileContext.isProfileStart ? (
+                  <span className={styles.weekProfileTransition}>Profile starts</span>
+                ) : null}
               </div>
             );
           })}
 
           {days.length > 0
-            ? mealTypes.map((type) => {
-                const typeConfig = TYPE_CONFIG[type];
+            ? rowMealTypes.map((type) => {
+                const typeConfig = getTypeConfig(type, mergedMealTypes);
 
                 return (
                   <Fragment key={type}>
@@ -186,20 +220,35 @@ export function WeekView({
                         {typeConfig.label}
                       </span>
                     </div>
-                    {slotsByDay.map(({ day, slots }) => {
+                    {slotsByDay.map(({ day, mealTypes, slots }, index) => {
                       const todayMatch = isSameDay(day, today);
                       const slot = slots.find(
                         (currentSlot) => currentSlot.type === type
                       );
                       const slotMeals = slot?.meals ?? [];
+                      const isConfiguredType = mealTypes.some(
+                        (definition) => definition.slug === type
+                      );
+                      const isUnavailable = !isConfiguredType && slotMeals.length === 0;
                       const emptyTargetKey = `week-slot-${day.toISOString()}-${type}`;
+                      const profileContext = dayProfileContexts[index];
+                      const isMuted =
+                        highlightedProfileId != null &&
+                        profileContext.profile.id !== highlightedProfileId;
 
                       return (
                         <div
-                          className={`${styles.weekSlotCell} ${todayMatch ? styles.weekSlotCellToday : ""}`}
+                          className={`${styles.weekSlotCell} ${todayMatch ? styles.weekSlotCellToday : ""} ${isUnavailable ? styles.weekSlotCellUnavailable : ""} ${isMuted ? styles.weekProfileMuted : ""}`}
                           key={`${day.toISOString()}-${type}`}
                         >
-                          {slotMeals.length === 0 ? (
+                          {isUnavailable ? (
+                            <div className={styles.weekSlotUnavailable}>
+                              <span className={styles.weekSlotUnavailableLabel}>Not in profile</span>
+                              <span className={styles.weekSlotUnavailableProfile}>
+                                {profileContext.profile.name}
+                              </span>
+                            </div>
+                          ) : slotMeals.length === 0 ? (
                             draggedMeal ? (
                               <div
                                 className={`${styles.weekSlotEmpty} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
@@ -228,7 +277,14 @@ export function WeekView({
                               <button
                                 className={`${styles.weekSlotEmpty} ${styles.emptySlotButton}`}
                                 onClick={() =>
-                                  onEdit(createEmptyMeal(new Date(day), type))
+                                  onEdit(
+                                    createEmptyMeal(
+                                      new Date(day),
+                                      type,
+                                      mealTypes.find((definition) => definition.slug === type) ??
+                                        null
+                                    )
+                                  )
                                 }
                                 type="button"
                               >

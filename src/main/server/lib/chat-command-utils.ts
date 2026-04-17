@@ -1,10 +1,4 @@
-export type MealTypeValue =
-  | "BREAKFAST"
-  | "MORNING_SNACK"
-  | "LUNCH"
-  | "AFTERNOON_SNACK"
-  | "DINNER"
-  | "SNACK";
+export type MealTypeValue = string;
 
 export type MealShape = {
   id: string;
@@ -164,11 +158,18 @@ export function normalizeMealType(value: string): MealTypeValue | null {
   if (lower === "afternoon snack") return "AFTERNOON_SNACK";
   if (lower === "dinner") return "DINNER";
   if (lower === "snack") return "SNACK";
-  return null;
+
+  const normalized = lower
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_")
+    .toUpperCase();
+
+  return normalized || null;
 }
 
 export function formatMealType(type: MealTypeValue) {
-  return type.toLowerCase().replace("_", " ");
+  return type.toLowerCase().replace(/_/g, " ");
 }
 
 export function toWeekdayName(iso: string | null) {

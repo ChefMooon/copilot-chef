@@ -26,6 +26,7 @@ import { MealService } from "../services/meal-service";
 import { PersonaService } from "../services/persona-service";
 import { PreferenceService } from "../services/preference-service";
 import { RecipeService } from "../services/recipe-service";
+import { MealTypeService } from "../services/meal-type-service";
 import { AIRecipeSaveSchema } from "../schemas/recipe-schemas";
 import { buildSystemPrompt, type SystemPromptContext } from "./system-prompt";
 
@@ -45,14 +46,7 @@ interface UserInputRequest {
 export const COPILOT_DEFAULT_MODEL = "gpt-4.1";
 const DEFAULT_CHAT_OWNER_ID = "web-default";
 
-const mealTypeSchema = z.enum([
-  "BREAKFAST",
-  "MORNING_SNACK",
-  "LUNCH",
-  "AFTERNOON_SNACK",
-  "DINNER",
-  "SNACK",
-]);
+const mealTypeSchema = z.string().min(1);
 
 const mealIngredientSchema = z.object({
   name: z.string().min(1),
@@ -386,8 +380,24 @@ export class CopilotChef {
     private readonly historyService = new ChatHistoryService(),
     private readonly preferenceService = new PreferenceService(),
     private readonly personaService = new PersonaService(),
-    private readonly recipeService = new RecipeService()
+    private readonly recipeService = new RecipeService(),
+    private readonly mealTypeService = new MealTypeService()
   ) {}
+
+  private describeActiveMealTypes(context?: SystemPromptContext) {
+    const activeMealTypes = context?.activeMealTypes ?? [];
+    if (activeMealTypes.length === 0) {
+      return "Use the active meal type label for the meal date.";
+    }
+
+    return `Use the active meal type label for the meal date. Current active types: ${activeMealTypes
+      .map((definition) => `${definition.name} (${definition.slug})`)
+      .join(", ")}.`;
+  }
+
+  private async resolveToolMealType(mealType: string, date: string) {
+    return this.mealTypeService.resolveMealTypeForDate(date, mealType);
+  }
 
   private getActiveStreamingSessionId() {
     for (const [sessionId, state] of this.sessionState.entries()) {
@@ -588,11 +598,13 @@ export class CopilotChef {
 
   private async buildContext(): Promise<SystemPromptContext> {
     const { from, to } = getCurrentWeekRange();
-    const [meals, groceryList, preferences, recipes] = await Promise.all([
+    const today = new Date();
+    const [meals, groceryList, preferences, recipes, mealTypeSummary] = await Promise.all([
       this.mealService.listMealsInRange(from, to),
       this.groceryService.getCurrentGroceryList(),
       this.preferenceService.getPreferences(),
       this.recipeService.listRecipes(),
+      this.mealTypeService.getActiveMealTypeSummary(today),
     ]);
 
     let customPersonaPrompt: string | undefined;
@@ -616,6 +628,15 @@ export class CopilotChef {
         count: recipes.length,
         recentTitles: recipes.slice(0, 3).map((recipe) => recipe.title),
       },
+      activeMealTypeProfile: mealTypeSummary.profile
+        ? {
+            id: mealTypeSummary.profile.id,
+            name: mealTypeSummary.profile.name,
+            startDate: mealTypeSummary.profile.startDate,
+            endDate: mealTypeSummary.profile.endDate,
+          }
+        : null,
+      activeMealTypes: mealTypeSummary.activeMealTypes,
     };
   }
 
@@ -680,7 +701,9 @@ export class CopilotChef {
     return mcpServers;
   }
 
-  private buildTools() {
+  private buildTools(context?: SystemPromptContext) {
+    const activeMealTypeDescription = this.describeActiveMealTypes(context);
+
     return [
       defineTool("create_meal", {
         description: "Create a meal entry in the meal calendar.",
@@ -688,7 +711,7 @@ export class CopilotChef {
           type: "object",
           properties: {
             name: { type: "string" },
-            mealType: { type: "string", enum: mealTypeSchema.options },
+            mealType: { type: "string", description: activeMealTypeDescription },
             date: { type: "string" },
             notes: { type: ["string", "null"] },
             ingredients: {
@@ -719,10 +742,16 @@ export class CopilotChef {
         },
         handler: async (rawArgs) => {
           const args = createMealArgsSchema.parse(rawArgs);
+          const resolvedDate = resolveToolDate(args.date);
+          const resolvedMealType = await this.resolveToolMealType(
+            args.mealType,
+            resolvedDate
+          );
           const created = await this.mealService.createMeal({
             name: args.name,
-            mealType: args.mealType,
-            date: resolveToolDate(args.date),
+            mealType: resolvedMealType.mealType,
+            mealTypeDefinitionId: resolvedMealType.mealTypeDefinitionId,
+            date: resolvedDate,
             notes: args.notes ?? null,
             ingredients: args.ingredients ?? [],
             description: args.description ?? null,
@@ -808,7 +837,7 @@ export class CopilotChef {
           properties: {
             id: { type: "string" },
             name: { type: "string" },
-            mealType: { type: "string", enum: mealTypeSchema.options },
+            mealType: { type: "string", description: activeMealTypeDescription },
             date: { type: ["string", "null"] },
             notes: { type: ["string", "null"] },
             ingredients: {
@@ -843,10 +872,16 @@ export class CopilotChef {
           if (!before) {
             return { success: false, message: "Meal not found." };
           }
+          const targetDate = args.date ? resolveToolDate(args.date) : before.date ?? null;
+          const resolvedMealType =
+            targetDate && (args.mealType || args.date)
+              ? await this.resolveToolMealType(args.mealType ?? before.mealType, targetDate)
+              : null;
           const updated = await this.mealService.updateMeal(args.id, {
             name: args.name,
-            mealType: args.mealType,
-            date: args.date,
+            mealType: resolvedMealType?.mealType,
+            mealTypeDefinitionId: resolvedMealType?.mealTypeDefinitionId,
+            date: targetDate,
             notes: args.notes,
             ingredients: args.ingredients,
             description: args.description,
@@ -970,8 +1005,15 @@ export class CopilotChef {
           if (!before) {
             return { success: false, message: "Meal not found." };
           }
+          const targetDate = resolveToolDate(args.toDate);
+          const resolvedMealType = await this.resolveToolMealType(
+            before.mealType,
+            targetDate
+          );
           const updated = await this.mealService.updateMeal(args.id, {
-            date: resolveToolDate(args.toDate),
+            date: targetDate,
+            mealType: resolvedMealType.mealType,
+            mealTypeDefinitionId: resolvedMealType.mealTypeDefinitionId,
           });
 
           await this.recordMealAction(args.chatSessionId, {
@@ -1075,6 +1117,9 @@ export class CopilotChef {
         handler: async (rawArgs) => {
           const args = suggestMealsArgsSchema.parse(rawArgs);
           const ownerId = await this.resolveChatOwnerId(args.chatSessionId);
+          const preferredMealType = await this.mealTypeService.getSuggestedPlanningMealType(
+            new Date()
+          );
           const pool = [
             "Lemon Herb Chicken Bowls",
             "Creamy Tomato Pasta",
@@ -1098,7 +1143,7 @@ export class CopilotChef {
                 title: name,
                 payloadJson: JSON.stringify({
                   name,
-                  mealType: "DINNER",
+                  mealType: preferredMealType?.slug ?? "DINNER",
                   rank: index,
                 }),
               })
@@ -1151,10 +1196,15 @@ export class CopilotChef {
               name: string;
               mealType?: MealTypeValue;
             };
+            const resolvedMealType = await this.resolveToolMealType(
+              payload.mealType ?? "DINNER",
+              dates[index]
+            );
             const created = await this.mealService.createMeal({
               name: payload.name,
               date: dates[index],
-              mealType: payload.mealType ?? "DINNER",
+              mealType: resolvedMealType.mealType,
+              mealTypeDefinitionId: resolvedMealType.mealTypeDefinitionId,
               notes: null,
               ingredients: [] as MealIngredient[],
             });
@@ -1566,7 +1616,7 @@ export class CopilotChef {
       streaming: true,
       ...(reasoningEffort ? { reasoningEffort } : {}),
       availableTools: ALLOWED_TOOLS,
-      tools: this.buildTools(),
+      tools: this.buildTools(context),
       systemMessage: { content: systemMessage },
       onPermissionRequest: (request: { kind: string }) => {
         if (request.kind === "custom-tool") {

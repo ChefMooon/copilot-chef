@@ -1,18 +1,26 @@
 import {
+  type CreateMealTypeDefinitionInput,
+  type CreateMealTypeProfileInput,
   type CreateRecipeInput,
   type CustomPersonaPayload,
   type IngestResult,
+  type MealTypeDefinitionPayload,
+  type MealTypeProfilePayload,
   type RecipeConflict,
   type RecipeExportJson,
   type CreatePersonaInput,
   type PreferenceUpdateInput,
   type PreferencesPayload,
+  type UpdateMealTypeDefinitionInput,
+  type UpdateMealTypeProfileInput,
 } from "@shared/types";
+import { MEAL_TYPE_API_PATHS } from "@shared/api/constants";
 
 import { getCachedConfig } from "./config";
 
 export type SettingsPreferences = PreferencesPayload;
 export type { CustomPersonaPayload };
+export type { MealTypeDefinitionPayload, MealTypeProfilePayload };
 
 export type RecipePayload = {
   id: string;
@@ -325,5 +333,121 @@ export async function importRecipes(payload: RecipeExportJson) {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  return response.data;
+}
+
+export async function getActiveMealTypeProfile(date: string) {
+  const response = await fetchJson<{ data: MealTypeProfilePayload | null }>(
+    `${MEAL_TYPE_API_PATHS.active}?date=${encodeURIComponent(date)}`
+  );
+  return response.data;
+}
+
+export async function listMealTypeProfiles() {
+  const response = await fetchJson<{ data: MealTypeProfilePayload[] }>(
+    MEAL_TYPE_API_PATHS.profiles
+  );
+  return response.data;
+}
+
+export async function createMealTypeProfile(input: CreateMealTypeProfileInput) {
+  const response = await fetchJson<{ data: MealTypeProfilePayload }>(
+    MEAL_TYPE_API_PATHS.profiles,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    }
+  );
+  return response.data;
+}
+
+export async function updateMealTypeProfile(
+  id: string,
+  input: UpdateMealTypeProfileInput
+) {
+  const response = await fetchJson<{ data: MealTypeProfilePayload }>(
+    `${MEAL_TYPE_API_PATHS.profiles}/${id}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }
+  );
+  return response.data;
+}
+
+export async function deleteMealTypeProfile(id: string) {
+  const response = await fetchJson<{ data: { id: string } }>(
+    `${MEAL_TYPE_API_PATHS.profiles}/${id}`,
+    {
+      method: "DELETE",
+    }
+  );
+  return response.data;
+}
+
+export async function duplicateMealTypeProfile(id: string) {
+  const response = await fetchJson<{ data: MealTypeProfilePayload }>(
+    `${MEAL_TYPE_API_PATHS.profiles}/${id}/duplicate`,
+    {
+      method: "POST",
+      body: JSON.stringify({}),
+    }
+  );
+  return response.data;
+}
+
+export async function createMealTypeDefinition(
+  profileId: string,
+  input: CreateMealTypeDefinitionInput
+) {
+  const response = await fetchJson<{ data: MealTypeDefinitionPayload }>(
+    `${MEAL_TYPE_API_PATHS.profiles}/${profileId}/definitions`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    }
+  );
+  return response.data;
+}
+
+export async function updateMealTypeDefinition(
+  profileId: string,
+  definitionId: string,
+  input: UpdateMealTypeDefinitionInput
+) {
+  const response = await fetchJson<{ data: MealTypeDefinitionPayload }>(
+    `${MEAL_TYPE_API_PATHS.profiles}/${profileId}/definitions/${definitionId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }
+  );
+  return response.data;
+}
+
+export async function deleteMealTypeDefinition(
+  profileId: string,
+  definitionId: string
+) {
+  const response = await fetchJson<{ data: { id: string } }>(
+    `${MEAL_TYPE_API_PATHS.profiles}/${profileId}/definitions/${definitionId}`,
+    {
+      method: "DELETE",
+    }
+  );
+  return response.data;
+}
+
+export async function reorderMealTypeDefinitions(
+  profileId: string,
+  orderedIds: string[]
+) {
+  const response = await fetchJson<{ data: MealTypeDefinitionPayload[] }>(
+    `${MEAL_TYPE_API_PATHS.profiles}/${profileId}/definitions/order`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ orderedIds }),
+    }
+  );
   return response.data;
 }

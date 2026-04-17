@@ -59,6 +59,51 @@ export type CreatePersonaInput = {
   prompt: string;
 };
 
+export type MealTypeDefinitionPayload = {
+  id: string;
+  profileId: string;
+  name: string;
+  slug: string;
+  color: string;
+  enabled: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MealTypeProfilePayload = {
+  id: string;
+  name: string;
+  color: string;
+  description: string | null;
+  isDefault: boolean;
+  priority: number;
+  startDate: string | null;
+  endDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+  mealTypes: MealTypeDefinitionPayload[];
+};
+
+export type CreateMealTypeProfileInput = {
+  name: string;
+  color: string;
+  description?: string | null;
+  priority?: number;
+  startDate?: string | null;
+  endDate?: string | null;
+};
+
+export type UpdateMealTypeProfileInput = Partial<CreateMealTypeProfileInput>;
+
+export type CreateMealTypeDefinitionInput = {
+  name: string;
+  color: string;
+  enabled?: boolean;
+};
+
+export type UpdateMealTypeDefinitionInput = Partial<CreateMealTypeDefinitionInput>;
+
 export type MealIngredient = {
   name: string;
   quantity: string | null;
@@ -66,6 +111,35 @@ export type MealIngredient = {
   group: string | null;
   notes: string | null;
   order: number;
+};
+
+export type MealPayload = {
+  id: string;
+  name: string;
+  date: string | null;
+  mealType: string;
+  mealTypeDefinitionId: string | null;
+  mealTypeDefinition: MealTypeDefinitionPayload | null;
+  notes: string | null;
+  ingredients: MealIngredient[];
+  description: string | null;
+  instructions: string[];
+  servings: number;
+  prepTime: number | null;
+  cookTime: number | null;
+  servingsOverride: number | null;
+  recipeId: string | null;
+  linkedRecipe: {
+    id: string;
+    title: string;
+    description: string | null;
+    servings: number;
+    prepTime: number | null;
+    cookTime: number | null;
+    instructions: string[];
+    cookNotes: string | null;
+    ingredients: MealIngredient[];
+  } | null;
 };
 
 // ── Recipes ──────────────────────────────────────────────────

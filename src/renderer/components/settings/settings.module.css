@@ -932,9 +932,42 @@
   cursor: not-allowed;
 }
 
+.mealTypeProfileModalPanel {
+  width: min(760px, 96vw);
+}
+
+.mealTypeProfileModalBody {
+  gap: 1.25rem;
+  background: linear-gradient(180deg, #fffdf9 0%, #fff8ee 100%);
+}
+
+.mealTypeProfileModalSection {
+  display: grid;
+  gap: 1rem;
+}
+
+.mealTypeProfileModalList {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.mealTypeProfileDraftCard {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid rgba(59, 94, 69, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: 0 2px 12px rgba(44, 36, 22, 0.08);
+}
+
 @media (max-width: 600px) {
   .personaGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mealTypeProfileModalPanel {
+    width: min(96vw, 640px);
   }
 }
 

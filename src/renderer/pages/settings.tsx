@@ -8,6 +8,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { PersonaModal } from "@/components/settings/PersonaModal";
+import { MealTypesSection } from "@/components/settings/MealTypesSection";
 
 import { ChipList } from "@/components/settings/ChipList";
 import { CollapsibleSection } from "@/components/settings/CollapsibleSection";
@@ -963,6 +964,8 @@ export default function SettingsPage() {
           </div>
         </div>
       </CollapsibleSection>
+
+      <MealTypesSection />
 
       <CollapsibleSection id="dietary" label="Dietary Profile">
         <div className={styles.card}>

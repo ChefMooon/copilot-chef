@@ -2,16 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import {
+  buildTypeConfig,
   formatMealIngredient,
-  MEAL_TYPES,
+  getMealTypeDefinitionsForDate,
   toDateInputValue,
   type EditableMeal,
   type LinkedRecipeSummary,
-  TYPE_CONFIG,
 } from "@/lib/calendar";
 import { type RecipePayload } from "@/lib/api";
 import { RECIPE_INGREDIENT_UNITS } from "@/lib/ingredient-units";
-import type { MealIngredient } from "@shared/types";
+import type { MealIngredient, MealTypeProfilePayload } from "@shared/types";
 
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { RecipeSearchModal } from "./RecipeSearchModal";
@@ -23,6 +23,7 @@ const FOCUSABLE_SELECTOR =
 
 type EditModalProps = {
   meal: EditableMeal;
+  mealTypeProfiles: MealTypeProfilePayload[];
   onClose: () => void;
   onSave: (meal: EditableMeal) => Promise<void>;
   onDelete: (mealId: string) => Promise<void>;
@@ -33,6 +34,7 @@ type EditModalProps = {
 
 export function EditModal({
   meal,
+  mealTypeProfiles,
   onClose,
   onSave,
   onDelete,
@@ -281,7 +283,20 @@ export function EditModal({
     };
   };
 
-  const typeConfig = TYPE_CONFIG[form.type];
+  const mealTypes = getMealTypeDefinitionsForDate(form.date, mealTypeProfiles);
+  const mealTypeConfig = buildTypeConfig(mealTypes);
+  const typeConfig =
+    mealTypeConfig[form.type] ?? {
+      dot: "#6A7C91",
+      bg: "#EEF2F5",
+      text: "#31404F",
+      label: form.mealTypeDefinition?.name ?? form.type,
+      enabled: true,
+      sortOrder: Number.MAX_SAFE_INTEGER,
+    };
+  const selectableMealTypes = mealTypes.filter(
+    (definition) => definition.enabled || definition.slug === form.type
+  );
 
   const handleDeleteConfirm = async () => {
     if (!form.id) {
@@ -405,18 +420,22 @@ export function EditModal({
                   <select
                     className={styles.formInput}
                     id="meal-type-select"
-                    onChange={(event) =>
-                      setField(
-                        "type",
-                        MEAL_TYPES.find((type) => type === event.target.value) ??
-                          "breakfast"
-                      )
-                    }
+                    onChange={(event) => {
+                      const nextType = event.target.value as EditableMeal["type"];
+                      const definition =
+                        mealTypes.find((entry) => entry.slug === nextType) ?? null;
+                      setForm((current) => ({
+                        ...current,
+                        type: nextType,
+                        mealTypeDefinitionId: definition?.id ?? null,
+                        mealTypeDefinition: definition,
+                      }));
+                    }}
                     value={form.type}
                   >
-                    {MEAL_TYPES.map((type) => (
-                      <option key={type} value={type}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                    {selectableMealTypes.map((definition) => (
+                      <option key={definition.id} value={definition.slug}>
+                        {definition.name}
                       </option>
                     ))}
                   </select>
@@ -574,7 +593,10 @@ export function EditModal({
                   </div>
 
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel} htmlFor="meal-description-input">
+                    <label
+                      className={styles.formLabel}
+                      htmlFor="meal-description-input"
+                    >
                       Description
                     </label>
                     <textarea

@@ -9,6 +9,8 @@ export { ApiPaths } from "./api/types";
 // Constants
 export {
   MEAL_TYPES,
+  DEFAULT_MEAL_TYPE_TEMPLATES,
+  MEAL_TYPE_API_PATHS,
   GROCERY_CATEGORIES,
   GROCERY_UNITS,
   SENTINEL_PREFIX,
@@ -76,5 +78,18 @@ export type {
   AIRecipeSave,
   RecipeConflict,
 } from "./schemas/recipe-schemas";
-export type { MealIngredient } from "./types";
+export type {
+  MealIngredient,
+  PreferencesPayload,
+  PreferenceUpdateInput,
+  CustomPersonaPayload,
+  CreatePersonaInput,
+  MealTypeDefinitionPayload,
+  MealTypeProfilePayload,
+  CreateMealTypeProfileInput,
+  UpdateMealTypeProfileInput,
+  CreateMealTypeDefinitionInput,
+  UpdateMealTypeDefinitionInput,
+  MealPayload,
+} from "./types";
 

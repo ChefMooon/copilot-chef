@@ -124,6 +124,38 @@ function createMinimalServices() {
       createRecipe: vi.fn(),
       deleteRecipe: vi.fn(),
     },
+    mealTypeService: {
+      getActiveMealTypeSummary: vi.fn().mockResolvedValue({
+        profile: {
+          id: "default-profile",
+          name: "Default",
+          startDate: null,
+          endDate: null,
+        },
+        activeMealTypes: [
+          {
+            id: "default-dinner",
+            name: "Dinner",
+            slug: "DINNER",
+            color: "#C65D3B",
+          },
+        ],
+      }),
+      resolveMealTypeForDate: vi.fn().mockImplementation(
+        async (_date: string, mealType: string) => ({
+          mealType,
+          mealTypeDefinitionId: null,
+          definition: null,
+          profile: null,
+        })
+      ),
+      getSuggestedPlanningMealType: vi.fn().mockResolvedValue({
+        id: "default-dinner",
+        name: "Dinner",
+        slug: "DINNER",
+        color: "#C65D3B",
+      }),
+    },
   };
 }
 
@@ -134,7 +166,8 @@ function makeChef(services = createMinimalServices()) {
     services.historyService as never,
     services.preferenceService as never,
     services.personaService as never,
-    services.recipeService as never
+    services.recipeService as never,
+    services.mealTypeService as never
   );
 }
 

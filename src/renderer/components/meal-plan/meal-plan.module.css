@@ -34,6 +34,57 @@
   margin-top: 0.3rem;
 }
 
+.profileSummary {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 0.45rem;
+}
+
+.profileFilterRow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  margin-top: 0.8rem;
+}
+
+.profileFilterLabel {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.profileFilterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.32rem 0.62rem;
+  border: 1px solid var(--cream-dark);
+  border-radius: 999px;
+  background: var(--white);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.16s, background 0.16s, box-shadow 0.16s, color 0.16s;
+}
+
+.profileFilterChip:hover {
+  background: rgba(59, 94, 69, 0.04);
+}
+
+.profileFilterChipActive {
+  box-shadow: 0 0 0 2px rgba(59, 94, 69, 0.1);
+  background: rgba(59, 94, 69, 0.06);
+}
+
+.profileFilterSwatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .pageHeaderRight {
   display: flex;
   align-items: center;
@@ -101,12 +152,87 @@
   overflow: hidden;
 }
 
+.cardFocusBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.7rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid rgba(59, 94, 69, 0.12);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 253, 248, 1) 0%, rgba(212, 228, 216, 0.28) 100%);
+}
+
+.cardFocusCopy {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.cardFocusSwatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cardFocusText {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cardFocusClear {
+  border: none;
+  background: transparent;
+  color: var(--green);
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0.2rem 0;
+}
+
+.cardFocusClear:hover {
+  text-decoration: underline;
+}
+
 .legend {
   display: flex;
   gap: 1.25rem;
   flex-wrap: wrap;
-  margin-top: 1rem;
   padding-left: 0.25rem;
+}
+
+.legendStack {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.legendSection {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.legendHeadingRow {
+  display: grid;
+  gap: 0.2rem;
+  padding-left: 0.25rem;
+}
+
+.legendTitle {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.legendHint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
 
 .legendItem {
@@ -133,6 +259,11 @@
 
 .dayView {
   padding: 0;
+}
+
+.dayProfileMuted {
+  opacity: 0.5;
+  filter: saturate(0.7);
 }
 
 .dayNav,
@@ -500,6 +631,10 @@
   background: rgba(59, 94, 69, 0.05);
 }
 
+.weekDayHeaderProfileStart {
+  background: linear-gradient(180deg, rgba(212, 228, 216, 0.45) 0%, var(--white) 68%);
+}
+
 .weekTypeCell {
   padding: 0.9rem 0.85rem;
   border-right: 1px solid var(--cream-dark);
@@ -535,6 +670,10 @@
 
 .weekSlotCellToday {
   background: rgba(59, 94, 69, 0.03);
+}
+
+.weekSlotCellUnavailable {
+  background: linear-gradient(180deg, rgba(237, 230, 214, 0.42) 0%, rgba(255, 253, 248, 0.9) 100%);
 }
 
 .weekSlotEmpty {
@@ -659,6 +798,65 @@
   font-size: 0.95rem;
 }
 
+.weekProfileChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  margin-top: 0.45rem;
+  padding: 0.22rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.weekProfileTransition {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.weekSlotUnavailable {
+  min-height: 100%;
+  border: 1px dashed rgba(122, 106, 88, 0.28);
+  border-radius: 10px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.weekSlotUnavailableLabel {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.weekSlotUnavailableProfile {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.weekProfileMuted {
+  opacity: 0.48;
+  filter: saturate(0.65);
+}
+
 .weekColMeals {
   flex: 1;
   padding: 0.5rem 0.4rem;
@@ -712,6 +910,15 @@
   .pageHeaderRight {
     width: 100%;
     flex-wrap: wrap;
+  }
+
+  .cardFocusBar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .profileFilterRow {
+    align-items: flex-start;
   }
 
   .dayNav,
@@ -769,8 +976,22 @@
   cursor: pointer;
 }
 
-.monthCellHasMeals:hover {
+.monthCellInteractive {
+  cursor: pointer;
+}
+
+.monthCellHasMeals:hover,
+.monthCellInteractive:hover {
   background: var(--cream-dark);
+}
+
+.monthCellProfileStart {
+  background-image: linear-gradient(180deg, rgba(212, 228, 216, 0.38) 0%, rgba(255, 253, 248, 0) 58%);
+}
+
+.monthProfileMuted {
+  opacity: 0.5;
+  filter: saturate(0.7);
 }
 
 .monthCellToday {
@@ -800,6 +1021,18 @@
   display: flex;
   gap: 3px;
   flex-wrap: wrap;
+}
+
+.monthProfileMarker {
+  min-height: 0.8rem;
+  font-size: 0.54rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .monthDot {
@@ -846,10 +1079,64 @@
   border-bottom: 1px solid var(--cream-dark);
 }
 
+.popoverHeaderBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
 .popoverDate {
   font-size: 0.78rem;
   font-weight: 700;
   color: var(--text);
+}
+
+.popoverProfileSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.popoverProfileChip {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.18rem 0.48rem;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.popoverProfileRange,
+.popoverProfileTransition {
+  font-size: 0.64rem;
+  color: var(--text-muted);
+}
+
+.popoverMealTypes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.65rem 1rem 0.75rem;
+  border-bottom: 1px solid var(--cream-dark);
+  background: rgba(237, 230, 214, 0.24);
+}
+
+.popoverMealTypeChip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.18rem 0.45rem;
+  font-size: 0.54rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .popoverClose {
@@ -869,6 +1156,12 @@
 .popoverMeals {
   display: flex;
   flex-direction: column;
+}
+
+.popoverEmptyState {
+  padding: 0.85rem 1rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
 }
 
 .popoverMealRow {

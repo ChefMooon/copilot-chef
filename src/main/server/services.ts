@@ -3,6 +3,7 @@ import {
   ChatHistoryService,
   GroceryService,
   MealService,
+  MealTypeService,
   PreferenceService,
   RecipeService,
   PersonaService,
@@ -13,5 +14,6 @@ export const historyService = new ChatHistoryService();
 export const preferenceService = new PreferenceService();
 export const groceryService = new GroceryService();
 export const mealService = new MealService();
+export const mealTypeService = new MealTypeService();
 export const recipeService = new RecipeService();
 export const personaService = new PersonaService();

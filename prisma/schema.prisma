@@ -8,34 +8,63 @@ datasource db {
   url      = env("COPILOT_CHEF_DATABASE_URL")
 }
 
-enum MealType {
-  BREAKFAST
-  MORNING_SNACK
-  LUNCH
-  AFTERNOON_SNACK
-  DINNER
-  SNACK
-}
-
 model Meal {
-  id               String    @id @default(cuid())
-  name             String
-  date             DateTime? @default(now())
-  mealType         MealType
-  notes            String?
-  ingredientsJson  String    @default("[]")
-  description      String?
-  instructionsJson String    @default("[]")
-  servings         Int       @default(2)
-  prepTime         Int?
-  cookTime         Int?
-  servingsOverride Int?
-  recipeId         String?
-  recipe           Recipe?   @relation(fields: [recipeId], references: [id], onDelete: SetNull)
-  createdAt        DateTime  @default(now())
+  id                   String              @id @default(cuid())
+  name                 String
+  date                 DateTime?           @default(now())
+  mealType             String
+  mealTypeDefinitionId String?
+  mealTypeDefinition   MealTypeDefinition? @relation(fields: [mealTypeDefinitionId], references: [id], onDelete: SetNull)
+  notes                String?
+  ingredientsJson      String              @default("[]")
+  description          String?
+  instructionsJson     String              @default("[]")
+  servings             Int                 @default(2)
+  prepTime             Int?
+  cookTime             Int?
+  servingsOverride     Int?
+  recipeId             String?
+  recipe               Recipe?             @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  createdAt            DateTime            @default(now())
 
   @@index([date])
+  @@index([mealTypeDefinitionId])
   @@index([recipeId])
+}
+
+model MealTypeProfile {
+  id          String               @id @default(cuid())
+  name        String
+  color       String               @default("#3B5E45")
+  description String?
+  isDefault   Boolean              @default(false)
+  priority    Int                  @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  mealTypes   MealTypeDefinition[]
+
+  @@index([isDefault, priority])
+  @@index([startDate, endDate, priority])
+}
+
+model MealTypeDefinition {
+  id         String          @id @default(cuid())
+  profileId  String
+  name       String
+  slug       String
+  color      String
+  enabled    Boolean         @default(true)
+  sortOrder  Int             @default(0)
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  profile    MealTypeProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  meals      Meal[]
+
+  @@unique([profileId, slug])
+  @@unique([profileId, sortOrder])
+  @@index([profileId, sortOrder])
 }
 
 model GroceryList {

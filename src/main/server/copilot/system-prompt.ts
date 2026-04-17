@@ -40,6 +40,18 @@ export type SystemPromptContext = {
     count: number;
     recentTitles: string[];
   } | null;
+  activeMealTypeProfile?: {
+    id: string;
+    name: string;
+    startDate: string | null;
+    endDate: string | null;
+  } | null;
+  activeMealTypes?: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    color: string;
+  }> | null;
   /** Optional free-form context string injected into the system prompt. */
   extraContext?: string;
   /** Prompt text for a custom persona; populated when chefPersona is not a built-in key. */
@@ -146,6 +158,8 @@ export function buildSystemPrompt(context: SystemPromptContext = {}): string {
     groceryList,
     preferences,
     recipeSummary,
+    activeMealTypeProfile,
+    activeMealTypes,
     extraContext,
     customPersonaPrompt,
   } = context;
@@ -225,6 +239,19 @@ export function buildSystemPrompt(context: SystemPromptContext = {}): string {
     );
   }
 
+  if (activeMealTypes && activeMealTypes.length > 0) {
+    const profileRange = activeMealTypeProfile?.startDate || activeMealTypeProfile?.endDate
+      ? ` (${activeMealTypeProfile?.startDate ?? "open start"} to ${activeMealTypeProfile?.endDate ?? "open end"})`
+      : "";
+    const mealTypeLines = activeMealTypes
+      .map((definition) => `- ${definition.name} (${definition.slug})`)
+      .join("\n");
+
+    sections.push(
+      `## Active Meal Type Profile\nUsing profile "${activeMealTypeProfile?.name ?? "Default"}"${profileRange}.\nCurrent meal types:\n${mealTypeLines}`
+    );
+  }
+
   if (extraContext) {
     sections.push(`## Additional Context\n${extraContext}`);
   }
@@ -258,6 +285,7 @@ export function buildSystemPrompt(context: SystemPromptContext = {}): string {
     `## Tool Usage Rules`,
     `- Prefer tools for state-changing actions instead of describing what you would do.`,
     `- When creating or updating meals, use field names exactly: name, mealType, date, notes, ingredients, description, instructions, servings, prepTime, cookTime, servingsOverride, recipeId.`,
+    `- Treat mealType as the active slot label for that date. Prefer the active meal type names shown in context, such as custom labels like Suhoor or Iftar, instead of forcing Breakfast/Lunch/Dinner.`,
     `- Meal ingredients must be structured objects like { name, quantity, unit, notes, order } rather than plain strings.`,
     `- Never use alternate field names like title, type, or ingredientsJson when calling tools.`,
     `- Read current state with get or list tools before mutating when the target is ambiguous.`,

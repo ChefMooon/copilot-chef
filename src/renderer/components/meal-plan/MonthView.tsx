@@ -1,19 +1,25 @@
 import { useEffect, useState, type MouseEvent } from "react";
 
 import {
+  buildMonthCellAriaLabel,
+  formatMealTypeProfileRange,
+  getMealTypeProfileContext,
+  getMealTypeOrder,
+  getTypeConfig,
   isSameDay,
-  MEAL_TYPES,
   mealsForDay,
   MONTHS,
   type EditableMeal,
-  TYPE_CONFIG,
 } from "@/lib/calendar";
+import type { MealTypeProfilePayload } from "@shared/types";
 
 import styles from "./meal-plan.module.css";
 
 type MonthViewProps = {
   date: Date;
   meals: EditableMeal[];
+  mealTypeProfiles: MealTypeProfilePayload[];
+  highlightedProfileId?: string | null;
   setDate: (date: Date) => void;
   onEdit: (meal: EditableMeal) => void;
 };
@@ -24,7 +30,14 @@ type PopoverState = {
   y: number;
 };
 
-export function MonthView({ date, meals, setDate, onEdit }: MonthViewProps) {
+export function MonthView({
+  date,
+  meals,
+  mealTypeProfiles,
+  highlightedProfileId,
+  setDate,
+  onEdit,
+}: MonthViewProps) {
   const [popover, setPopover] = useState<PopoverState | null>(null);
 
   const year = date.getFullYear();
@@ -65,6 +78,12 @@ export function MonthView({ date, meals, setDate, onEdit }: MonthViewProps) {
   }, []);
 
   const today = new Date();
+  const popoverMealTypes = popover
+    ? getMealTypeProfileContext(popover.date, mealTypeProfiles).mealTypes
+    : [];
+  const popoverProfileContext = popover
+    ? getMealTypeProfileContext(popover.date, mealTypeProfiles)
+    : null;
 
   return (
     <div className={styles.monthView}>
@@ -100,18 +119,21 @@ export function MonthView({ date, meals, setDate, onEdit }: MonthViewProps) {
           }
 
           const cellDate = new Date(year, month, dayNum);
-          const cellMeals = mealsForDay(meals, cellDate);
+          const profileContext = getMealTypeProfileContext(cellDate, mealTypeProfiles);
+          const mealTypes = profileContext.mealTypes;
+          const cellMeals = mealsForDay(meals, cellDate, mealTypes);
           const todayMatch = isSameDay(cellDate, today);
+          const isMuted =
+            highlightedProfileId != null &&
+            profileContext.profile.id !== highlightedProfileId;
 
           return (
             <button
-              className={`${styles.monthCell} ${todayMatch ? styles.monthCellToday : ""} ${cellMeals.length ? styles.monthCellHasMeals : ""}`}
+              aria-label={buildMonthCellAriaLabel(cellDate, profileContext, cellMeals)}
+              className={`${styles.monthCell} ${todayMatch ? styles.monthCellToday : ""} ${styles.monthCellInteractive} ${cellMeals.length ? styles.monthCellHasMeals : ""} ${profileContext.isProfileStart ? styles.monthCellProfileStart : ""} ${isMuted ? styles.monthProfileMuted : ""}`}
               key={index}
-              onClick={(event) => {
-                if (cellMeals.length > 0) {
-                  handleDayClick(event, cellDate);
-                }
-              }}
+              onClick={(event) => handleDayClick(event, cellDate)}
+              style={{ boxShadow: `inset 0 3px 0 ${profileContext.accentColor}` }}
               type="button"
             >
               <span
@@ -119,8 +141,14 @@ export function MonthView({ date, meals, setDate, onEdit }: MonthViewProps) {
               >
                 {dayNum}
               </span>
+              <span
+                className={styles.monthProfileMarker}
+                style={{ color: profileContext.accentColor }}
+              >
+                {profileContext.isProfileStart ? profileContext.profile.name : ""}
+              </span>
               <div className={styles.monthDots}>
-                {MEAL_TYPES.map((type) => {
+                {getMealTypeOrder(mealTypes).map((type) => {
                   const hasMealType = cellMeals.some(
                     (meal) => meal.type === type
                   );
@@ -128,7 +156,7 @@ export function MonthView({ date, meals, setDate, onEdit }: MonthViewProps) {
                     <span
                       className={styles.monthDot}
                       key={type}
-                      style={{ background: TYPE_CONFIG[type].dot }}
+                      style={{ background: getTypeConfig(type, mealTypes).dot }}
                     />
                   ) : null;
                 })}
@@ -152,13 +180,38 @@ export function MonthView({ date, meals, setDate, onEdit }: MonthViewProps) {
             }}
           >
             <div className={styles.popoverHeader}>
-              <span className={styles.popoverDate}>
-                {popover.date.toLocaleDateString("default", {
-                  weekday: "long",
-                  month: "short",
-                  day: "numeric",
-                })}
-              </span>
+              <div className={styles.popoverHeaderBody}>
+                <span className={styles.popoverDate}>
+                  {popover.date.toLocaleDateString("default", {
+                    weekday: "long",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </span>
+                {popoverProfileContext ? (
+                  <div className={styles.popoverProfileSummary}>
+                    <span
+                      className={styles.popoverProfileChip}
+                      style={{
+                        borderColor: popoverProfileContext.accentColor,
+                        color: popoverProfileContext.accentColor,
+                      }}
+                    >
+                      {popoverProfileContext.profile.name}
+                    </span>
+                    {popoverProfileContext.rangeLabel ? (
+                      <span className={styles.popoverProfileRange}>
+                        {formatMealTypeProfileRange(popoverProfileContext.profile)}
+                      </span>
+                    ) : null}
+                    {popoverProfileContext.isProfileStart ? (
+                      <span className={styles.popoverProfileTransition}>
+                        Profile starts on this day
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
               <button
                 className={styles.popoverClose}
                 onClick={() => setPopover(null)}
@@ -167,41 +220,62 @@ export function MonthView({ date, meals, setDate, onEdit }: MonthViewProps) {
                 x
               </button>
             </div>
-            <div className={styles.popoverMeals}>
-              {mealsForDay(meals, popover.date).map((meal) => {
-                const typeConfig = TYPE_CONFIG[meal.type];
-                return (
-                  <button
-                    className={styles.popoverMealRow}
-                    key={
-                      meal.id ||
-                      `${meal.type}-${meal.date.toISOString()}-${meal.name}`
-                    }
-                    onClick={() => {
-                      onEdit(meal);
-                      setPopover(null);
-                    }}
-                    type="button"
-                  >
+            {popoverProfileContext ? (
+              <div className={styles.popoverMealTypes}>
+                {getMealTypeOrder(popoverProfileContext.mealTypes).map((type) => {
+                  const typeConfig = getTypeConfig(type, popoverProfileContext.mealTypes);
+
+                  return (
                     <span
-                      className={styles.popoverDot}
-                      style={{ background: typeConfig.dot }}
-                    />
-                    <div className={styles.popoverMealInfo}>
-                      <span className={styles.popoverMealName}>
-                        {meal.name}
-                      </span>
+                      className={styles.popoverMealTypeChip}
+                      key={type}
+                      style={{ borderColor: typeConfig.dot, color: typeConfig.text }}
+                    >
+                      {typeConfig.label}
+                    </span>
+                  );
+                })}
+              </div>
+            ) : null}
+            <div className={styles.popoverMeals}>
+              {mealsForDay(meals, popover.date, popoverMealTypes).length === 0 ? (
+                <div className={styles.popoverEmptyState}>No meals planned.</div>
+              ) : (
+                mealsForDay(meals, popover.date, popoverMealTypes).map((meal) => {
+                  const typeConfig = getTypeConfig(meal.type, popoverMealTypes);
+                  return (
+                    <button
+                      className={styles.popoverMealRow}
+                      key={
+                        meal.id ||
+                        `${meal.type}-${meal.date.toISOString()}-${meal.name}`
+                      }
+                      onClick={() => {
+                        onEdit(meal);
+                        setPopover(null);
+                      }}
+                      type="button"
+                    >
                       <span
-                        className={styles.popoverMealType}
-                        style={{ color: typeConfig.text }}
-                      >
-                        {typeConfig.label}
-                      </span>
-                    </div>
-                    <span className={styles.popoverEditHint}>Edit -&gt;</span>
-                  </button>
-                );
-              })}
+                        className={styles.popoverDot}
+                        style={{ background: typeConfig.dot }}
+                      />
+                      <div className={styles.popoverMealInfo}>
+                        <span className={styles.popoverMealName}>
+                          {meal.name}
+                        </span>
+                        <span
+                          className={styles.popoverMealType}
+                          style={{ color: typeConfig.text }}
+                        >
+                          {typeConfig.label}
+                        </span>
+                      </div>
+                      <span className={styles.popoverEditHint}>Edit -&gt;</span>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         </>

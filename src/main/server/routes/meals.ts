@@ -52,6 +52,11 @@ mealsRoutes.post("/meals", async (c) => {
       ...body,
       name: body?.name ?? body?.title,
       mealType: body?.mealType ?? body?.type,
+      mealTypeDefinitionId:
+        typeof body?.mealTypeDefinitionId === "string" ||
+        body?.mealTypeDefinitionId === null
+          ? body.mealTypeDefinitionId
+          : undefined,
       ingredients: normalizeIngredients(body?.ingredients ?? ingredientsFromJson ?? []),
       instructions:
         Array.isArray(body?.instructions) || body?.instructions === undefined
@@ -75,6 +80,11 @@ mealsRoutes.patch("/meals/:id", async (c) => {
     const body = await c.req.json();
     const data = await mealService.updateMeal(id, {
       ...body,
+      mealTypeDefinitionId:
+        typeof body?.mealTypeDefinitionId === "string" ||
+        body?.mealTypeDefinitionId === null
+          ? body.mealTypeDefinitionId
+          : undefined,
       ingredients:
         body?.ingredients !== undefined ? normalizeIngredients(body.ingredients) : undefined,
       instructions:

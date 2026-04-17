@@ -26,6 +26,7 @@ const SCHEMA_STATEMENTS = [
       "name" TEXT NOT NULL,
       "date" DATETIME DEFAULT CURRENT_TIMESTAMP,
       "mealType" TEXT NOT NULL,
+      "mealTypeDefinitionId" TEXT,
       "notes" TEXT,
       "ingredientsJson" TEXT NOT NULL DEFAULT '[]',
       "description" TEXT,
@@ -39,7 +40,43 @@ const SCHEMA_STATEMENTS = [
     )
   `,
   `CREATE INDEX IF NOT EXISTS "Meal_date_idx" ON "Meal"("date")`,
+  `CREATE INDEX IF NOT EXISTS "Meal_mealTypeDefinitionId_idx" ON "Meal"("mealTypeDefinitionId")`,
   `CREATE INDEX IF NOT EXISTS "Meal_recipeId_idx" ON "Meal"("recipeId")`,
+  `
+    CREATE TABLE IF NOT EXISTS "MealTypeProfile" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "name" TEXT NOT NULL,
+      "color" TEXT NOT NULL DEFAULT '#3B5E45',
+      "description" TEXT,
+      "isDefault" INTEGER NOT NULL DEFAULT 0,
+      "priority" INTEGER NOT NULL DEFAULT 0,
+      "startDate" DATETIME,
+      "endDate" DATETIME,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `,
+  `CREATE INDEX IF NOT EXISTS "MealTypeProfile_isDefault_priority_idx" ON "MealTypeProfile"("isDefault", "priority")`,
+  `CREATE INDEX IF NOT EXISTS "MealTypeProfile_startDate_endDate_priority_idx" ON "MealTypeProfile"("startDate", "endDate", "priority")`,
+  `
+    CREATE TABLE IF NOT EXISTS "MealTypeDefinition" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "profileId" TEXT NOT NULL,
+      "name" TEXT NOT NULL,
+      "slug" TEXT NOT NULL,
+      "color" TEXT NOT NULL,
+      "enabled" INTEGER NOT NULL DEFAULT 1,
+      "sortOrder" INTEGER NOT NULL DEFAULT 0,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "MealTypeDefinition_profileId_fkey"
+        FOREIGN KEY ("profileId") REFERENCES "MealTypeProfile" ("id")
+        ON DELETE CASCADE ON UPDATE CASCADE
+    )
+  `,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "MealTypeDefinition_profileId_slug_key" ON "MealTypeDefinition"("profileId", "slug")`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "MealTypeDefinition_profileId_sortOrder_key" ON "MealTypeDefinition"("profileId", "sortOrder")`,
+  `CREATE INDEX IF NOT EXISTS "MealTypeDefinition_profileId_sortOrder_idx" ON "MealTypeDefinition"("profileId", "sortOrder")`,
   `
     CREATE TABLE IF NOT EXISTS "GroceryList" (
       "id" TEXT NOT NULL PRIMARY KEY,
@@ -349,6 +386,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
   }
 
   const safeMealAlterStatements = {
+    mealTypeDefinitionId: `ALTER TABLE "Meal" ADD COLUMN "mealTypeDefinitionId" TEXT`,
     description: `ALTER TABLE "Meal" ADD COLUMN "description" TEXT`,
     instructionsJson: `ALTER TABLE "Meal" ADD COLUMN "instructionsJson" TEXT NOT NULL DEFAULT '[]'`,
     servings: `ALTER TABLE "Meal" ADD COLUMN "servings" INTEGER NOT NULL DEFAULT 2`,
@@ -358,12 +396,17 @@ export async function ensureDatabaseSchema(): Promise<void> {
     recipeId: `ALTER TABLE "Meal" ADD COLUMN "recipeId" TEXT`,
   } as const;
 
+  const safeMealTypeProfileAlterStatements = {
+    color: `ALTER TABLE "MealTypeProfile" ADD COLUMN "color" TEXT NOT NULL DEFAULT '#3B5E45'`,
+  } as const;
+
   const safeRecipeAlterStatements = {
     normalizedTitle: `ALTER TABLE "Recipe" ADD COLUMN "normalizedTitle" TEXT`,
     normalizedSourceUrl: `ALTER TABLE "Recipe" ADD COLUMN "normalizedSourceUrl" TEXT`,
   } as const;
 
   await ensureMissingColumns("Meal", safeMealAlterStatements);
+  await ensureMissingColumns("MealTypeProfile", safeMealTypeProfileAlterStatements);
   await ensureMissingColumns("Recipe", safeRecipeAlterStatements);
   await reconcileRecipeIdentityColumns();
   await ensureRecipeIdentityIndexes();

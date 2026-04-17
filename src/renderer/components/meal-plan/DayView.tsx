@@ -3,17 +3,22 @@ import { useState, type DragEvent } from "react";
 import {
   createMealSlots,
   createEmptyMeal,
+  getMealTypeDefinitionsForDate,
+  getMealTypeProfileContext,
+  getTypeConfig,
   isSameDay,
   type CalendarMealType,
   type EditableMeal,
-  TYPE_CONFIG,
 } from "@/lib/calendar";
+import type { MealTypeProfilePayload } from "@shared/types";
 
 import styles from "./meal-plan.module.css";
 
 type DayViewProps = {
   date: Date;
   meals: EditableMeal[];
+  mealTypeProfiles: MealTypeProfilePayload[];
+  highlightedProfileId?: string | null;
   setDate: (date: Date) => void;
   onEdit: (meal: EditableMeal) => void;
   onMoveMeal: (
@@ -30,12 +35,16 @@ type DayViewProps = {
 export function DayView({
   date,
   meals,
+  mealTypeProfiles,
+  highlightedProfileId,
   setDate,
   onEdit,
   onMoveMeal,
   onSwapMeals,
 }: DayViewProps) {
-  const daySlots = createMealSlots(meals, date);
+  const profileContext = getMealTypeProfileContext(date, mealTypeProfiles);
+  const mealTypes = getMealTypeDefinitionsForDate(date, mealTypeProfiles);
+  const daySlots = createMealSlots(meals, date, mealTypes);
   const dayMeals = daySlots.flatMap((slot) => slot.meals);
   const [draggedMealId, setDraggedMealId] = useState<string | null>(null);
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
@@ -55,6 +64,9 @@ export function DayView({
 
   const today = new Date();
   const draggedMeal = dayMeals.find((meal) => meal.id === draggedMealId) ?? null;
+  const isMuted =
+    highlightedProfileId != null &&
+    profileContext.profile.id !== highlightedProfileId;
 
   const clearDragState = () => {
     setDraggedMealId(null);
@@ -105,8 +117,11 @@ export function DayView({
   };
 
   return (
-    <div className={styles.dayView}>
-      <div className={styles.dayNav}>
+    <div className={`${styles.dayView} ${isMuted ? styles.dayProfileMuted : ""}`}>
+      <div
+        className={styles.dayNav}
+        style={{ boxShadow: `inset 0 3px 0 ${profileContext.accentColor}` }}
+      >
         <button className={styles.dayNavBtn} onClick={prev} type="button">
           {"<"}
         </button>
@@ -132,7 +147,7 @@ export function DayView({
 
       <div className={styles.dayTimeline}>
         {daySlots.map(({ type, meals: slotMeals }, index) => {
-          const typeConfig = TYPE_CONFIG[type];
+          const typeConfig = getTypeConfig(type, mealTypes);
           const emptyTargetKey = `day-slot-${type}`;
 
           return (
@@ -181,7 +196,15 @@ export function DayView({
                   ) : (
                     <button
                       className={`${styles.timelineEmptySlot} ${styles.emptySlotButton}`}
-                      onClick={() => onEdit(createEmptyMeal(new Date(date), type))}
+                      onClick={() =>
+                        onEdit(
+                          createEmptyMeal(
+                            new Date(date),
+                            type,
+                            mealTypes.find((definition) => definition.slug === type) ?? null
+                          )
+                        )
+                      }
                       type="button"
                     >
                       <span className={styles.btnAddSlot}>+ Add</span>

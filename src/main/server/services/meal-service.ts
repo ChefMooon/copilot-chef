@@ -2,15 +2,11 @@ import { bootstrapDatabase } from "../lib/bootstrap";
 import { classifyCuisine } from "../lib/cuisine-classifier";
 import { addDays, formatDayKey, startOfDay, startOfWeek } from "../lib/date";
 import { prisma } from "../lib/prisma";
-import type { MealIngredient } from "@shared/types";
-
-type MealTypeValue =
-  | "BREAKFAST"
-  | "MORNING_SNACK"
-  | "LUNCH"
-  | "AFTERNOON_SNACK"
-  | "DINNER"
-  | "SNACK";
+import type {
+  MealIngredient,
+  MealPayload,
+  MealTypeDefinitionPayload,
+} from "@shared/types";
 
 type LinkedRecipeRow = {
   id: string;
@@ -135,6 +131,49 @@ function getMonthStarts(weeks: Array<Array<{ date: string }>>) {
   return monthStarts;
 }
 
+function normalizeMealType(value: string) {
+  const normalized = value
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_")
+    .toUpperCase();
+
+  if (!normalized) {
+    throw new Error("Meal type is required.");
+  }
+
+  return normalized;
+}
+
+function serializeMealTypeDefinition(definition: {
+  id: string;
+  profileId: string;
+  name: string;
+  slug: string;
+  color: string;
+  enabled: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+} | null | undefined): MealTypeDefinitionPayload | null {
+  if (!definition) {
+    return null;
+  }
+
+  return {
+    id: definition.id,
+    profileId: definition.profileId,
+    name: definition.name,
+    slug: definition.slug,
+    color: definition.color,
+    enabled: definition.enabled,
+    sortOrder: definition.sortOrder,
+    createdAt: definition.createdAt.toISOString(),
+    updatedAt: definition.updatedAt.toISOString(),
+  };
+}
+
 function countStreak(counts: Map<string, number>, today: Date) {
   let streak = 0;
   let cursor = startOfDay(today);
@@ -151,7 +190,19 @@ function serializeMeal(meal: {
   id: string;
   name: string;
   date: Date | null;
-  mealType: MealTypeValue;
+  mealType: string;
+  mealTypeDefinitionId?: string | null;
+  mealTypeDefinition?: {
+    id: string;
+    profileId: string;
+    name: string;
+    slug: string;
+    color: string;
+    enabled: boolean;
+    sortOrder: number;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
   notes: string | null;
   ingredientsJson: string;
   description?: string | null;
@@ -162,7 +213,7 @@ function serializeMeal(meal: {
   servingsOverride?: number | null;
   recipeId?: string | null;
   recipe?: LinkedRecipeRow | null;
-}) {
+}): MealPayload {
   const serializedDate = meal.date
     ? new Date(
         Date.UTC(
@@ -212,6 +263,8 @@ function serializeMeal(meal: {
     name: meal.name,
     date: serializedDate,
     mealType: meal.mealType,
+    mealTypeDefinitionId: meal.mealTypeDefinitionId ?? null,
+    mealTypeDefinition: serializeMealTypeDefinition(meal.mealTypeDefinition),
     notes: meal.notes,
     ingredients: parseMealIngredients(meal.ingredientsJson),
     description: meal.description ?? null,
@@ -254,12 +307,52 @@ function normalizeMealDateInput(input: string | null | undefined) {
 
 export class MealService {
   private mealInclude = {
+    mealTypeDefinition: true,
     recipe: {
       include: {
         ingredients: { orderBy: { order: "asc" as const } },
       },
     },
   };
+
+  private async resolveMealTypeInput(input: {
+    mealType?: string;
+    mealTypeDefinitionId?: string | null;
+  }) {
+    if (input.mealTypeDefinitionId === undefined) {
+      return input.mealType === undefined
+        ? {}
+        : {
+            mealType: normalizeMealType(input.mealType),
+          };
+    }
+
+    if (input.mealTypeDefinitionId === null) {
+      if (!input.mealType) {
+        return {
+          mealTypeDefinitionId: null,
+        };
+      }
+
+      return {
+        mealType: normalizeMealType(input.mealType),
+        mealTypeDefinitionId: null,
+      };
+    }
+
+    const definition = await prisma.mealTypeDefinition.findUnique({
+      where: { id: input.mealTypeDefinitionId },
+    });
+
+    if (!definition) {
+      throw new Error(`Meal type definition with id "${input.mealTypeDefinitionId}" not found.`);
+    }
+
+    return {
+      mealType: definition.slug,
+      mealTypeDefinitionId: definition.id,
+    };
+  }
 
   async getMeal(id: string) {
     await bootstrapDatabase();
@@ -295,7 +388,8 @@ export class MealService {
     id?: string;
     name: string;
     date?: string | null;
-    mealType: MealTypeValue;
+    mealType: string;
+    mealTypeDefinitionId?: string | null;
     notes?: string | null;
     ingredients?: MealIngredientInput[];
     description?: string | null;
@@ -309,13 +403,17 @@ export class MealService {
     await bootstrapDatabase();
 
     const normalizedDate = normalizeMealDateInput(input.date);
+    const mealTypeFields = await this.resolveMealTypeInput({
+      mealType: input.mealType,
+      mealTypeDefinitionId: input.mealTypeDefinitionId,
+    });
 
     const meal = await prisma.meal.create({
       data: {
         ...(input.id ? { id: input.id } : {}),
         name: input.name,
         ...(normalizedDate === undefined ? {} : { date: normalizedDate }),
-        mealType: input.mealType,
+        ...mealTypeFields,
         notes: input.notes ?? null,
         ingredientsJson: stringifyMealIngredients(input.ingredients),
         description: input.description ?? null,
@@ -337,7 +435,8 @@ export class MealService {
     input: {
       name?: string;
       date?: string | null;
-      mealType?: MealTypeValue;
+      mealType?: string;
+      mealTypeDefinitionId?: string | null;
       notes?: string | null;
       ingredients?: MealIngredientInput[];
       description?: string | null;
@@ -352,13 +451,17 @@ export class MealService {
     await bootstrapDatabase();
 
     const normalizedDate = normalizeMealDateInput(input.date);
+    const mealTypeFields = await this.resolveMealTypeInput({
+      mealType: input.mealType,
+      mealTypeDefinitionId: input.mealTypeDefinitionId,
+    });
 
     const meal = await prisma.meal.update({
       where: { id },
       data: {
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(normalizedDate !== undefined ? { date: normalizedDate } : {}),
-        ...(input.mealType !== undefined ? { mealType: input.mealType } : {}),
+        ...mealTypeFields,
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
         ...(input.ingredients !== undefined
           ? { ingredientsJson: stringifyMealIngredients(input.ingredients) }

@@ -1,8 +1,10 @@
 import { prisma } from "./prisma";
 import { ensureDatabaseSchema } from "./schema";
 import { seedDatabase } from "./seed";
+import { MealTypeService } from "../services/meal-type-service";
 
 let bootstrapPromise: Promise<void> | undefined;
+const mealTypeBootstrapService = new MealTypeService();
 
 function parseBooleanEnv(value: string): boolean | undefined {
   const normalized = value.trim().toLowerCase();
@@ -33,9 +35,11 @@ export async function bootstrapDatabase() {
     bootstrapPromise = (async () => {
       await prisma.$connect();
       await ensureDatabaseSchema();
+      await mealTypeBootstrapService.bootstrapDefaults();
       if (shouldSeedDatabase()) {
         await seedDatabase();
       }
+      await mealTypeBootstrapService.migrateExistingMeals();
     })().catch((error) => {
       bootstrapPromise = undefined;
       throw error;

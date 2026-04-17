@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,8 @@ export function CollapsibleSection({
 }: CollapsibleSectionProps) {
   const storageKey = `settings-section-${id}`;
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [contentHeight, setContentHeight] = useState(0);
+  const contentInnerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     try {
@@ -41,6 +43,33 @@ export function CollapsibleSection({
       // ignore storage failures
     }
   }, [isOpen, storageKey]);
+
+  useEffect(() => {
+    const node = contentInnerRef.current;
+    if (!node) {
+      return;
+    }
+
+    const updateHeight = () => {
+      setContentHeight(node.scrollHeight);
+    };
+
+    updateHeight();
+
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      updateHeight();
+    });
+
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [children, isOpen]);
 
   return (
     <section className={styles.section}>
@@ -64,8 +93,9 @@ export function CollapsibleSection({
           styles.sectionContent,
           !isOpen && styles.sectionContentClosed
         )}
+        style={{ maxHeight: isOpen ? `${contentHeight}px` : undefined }}
       >
-        <div className={styles.sectionInner}>{children}</div>
+        <div className={styles.sectionInner} ref={contentInnerRef}>{children}</div>
       </div>
     </section>
   );
