@@ -208,7 +208,7 @@ const groupingOptions = [
 
 const recipeViewOptions = [
   { label: "Basic", value: "basic" },
-  { label: "Detailed", value: "detailed" },
+  { label: "Annotated", value: "detailed" },
   { label: "Cooking", value: "cooking" },
 ];
 

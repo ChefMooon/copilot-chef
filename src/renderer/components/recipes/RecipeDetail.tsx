@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { convertIngredient, type UnitMode } from "@/lib/recipe-units";
 import { formatFraction } from "@/lib/fractions";
+import { annotateInstructionSteps } from "@/lib/recipe-instruction-annotations";
 import { recipeKeys } from "@/lib/query-keys";
 
 import {
@@ -23,6 +24,13 @@ type RecipeDetailProps = {
   defaultView: "basic" | "detailed" | "cooking";
   defaultUnitMode: UnitMode;
 };
+
+const VIEW_LABELS = {
+  basic: "Basic",
+  detailed: "Annotated",
+  cooking: "Cooking",
+  print: "Print",
+} as const;
 
 export function RecipeDetail({
   recipe,
@@ -62,18 +70,36 @@ export function RecipeDetail({
           converted.quantity != null
             ? `${converted.approximate ? "~" : ""}${formatFraction(converted.quantity)}`
             : "";
+        const amountText = quantityPart
+          ? [quantityPart, converted.unit ?? ""].filter(Boolean).join(" ")
+          : null;
         const display = [quantityPart, converted.unit ?? "", ingredient.name]
           .filter(Boolean)
           .join(" ");
 
         return {
           id: ingredient.id,
+          name: ingredient.name,
+          amountText,
           display,
           notes: ingredient.notes,
           group: ingredient.group?.trim() ?? "",
         };
       }),
     [recipe.ingredients, scale, unitMode]
+  );
+
+  const detailedInstructionSteps = useMemo(
+    () =>
+      annotateInstructionSteps(
+        recipe.instructions,
+        ingredientDisplays.map((ingredient) => ({
+          ingredientId: ingredient.id,
+          ingredientName: ingredient.name,
+          amountText: ingredient.amountText,
+        }))
+      ),
+    [ingredientDisplays, recipe.instructions]
   );
 
   async function handleSaveEdit(
@@ -210,7 +236,7 @@ export function RecipeDetail({
             }}
             type="button"
           >
-            {mode}
+            {VIEW_LABELS[mode]}
           </button>
         ))}
       </div>
@@ -259,12 +285,45 @@ export function RecipeDetail({
 
       <section className="rounded-[18px] border border-[rgba(59,94,69,0.1)] bg-white p-5 shadow-card md:p-6">
         <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-text-muted">
-          Instructions
+          {view === "detailed" ? "Annotated Instructions" : "Instructions"}
         </p>
+        {view === "detailed" ? (
+          <p className="mt-2 text-[0.8rem] leading-relaxed text-text-muted">
+            Matching ingredients show scaled amounts inline when the step text
+            directly references them.
+          </p>
+        ) : null}
         <ol className="mt-3 list-decimal space-y-2.5 pl-5 text-[0.92rem] leading-relaxed text-text">
-          {recipe.instructions.map((step, index) => (
-            <li key={`${index}-${step}`}>{step}</li>
-          ))}
+          {(view === "detailed" ? detailedInstructionSteps : recipe.instructions).map(
+            (step, index) => (
+              <li
+                key={
+                  view === "detailed"
+                    ? `${index}-${step.parts.map((part) => part.type === "text" ? part.value : part.text).join("")}`
+                    : `${index}-${step}`
+                }
+              >
+                {view === "detailed"
+                  ? step.parts.map((part, partIndex) => {
+                      if (part.type === "text") {
+                        return (
+                          <span key={`text-${partIndex}`}>{part.value}</span>
+                        );
+                      }
+
+                      return (
+                        <span key={`${part.ingredientId}-${partIndex}`}>
+                          {part.text}
+                          <span className="ml-1 rounded-full bg-green/10 px-1.5 py-0.5 text-[0.76rem] font-semibold text-green">
+                            {part.amountText}
+                          </span>
+                        </span>
+                      );
+                    })
+                  : step}
+              </li>
+            )
+          )}
         </ol>
       </section>
 
