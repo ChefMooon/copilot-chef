@@ -155,6 +155,7 @@ const SCHEMA_STATEMENTS = [
       "normalizedSourceUrl" TEXT,
       "sourceLabel" TEXT,
       "origin" TEXT NOT NULL DEFAULT 'manual',
+      "favourite" INTEGER NOT NULL DEFAULT 0,
       "rating" INTEGER,
       "cookNotes" TEXT,
       "lastMadeAt" DATETIME,
@@ -403,6 +404,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
   const safeRecipeAlterStatements = {
     normalizedTitle: `ALTER TABLE "Recipe" ADD COLUMN "normalizedTitle" TEXT`,
     normalizedSourceUrl: `ALTER TABLE "Recipe" ADD COLUMN "normalizedSourceUrl" TEXT`,
+    favourite: `ALTER TABLE "Recipe" ADD COLUMN "favourite" INTEGER NOT NULL DEFAULT 0`,
   } as const;
 
   await ensureMissingColumns("Meal", safeMealAlterStatements);

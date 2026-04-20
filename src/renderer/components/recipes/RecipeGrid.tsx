@@ -6,6 +6,7 @@ type RecipeGridProps = {
   recipes: RecipePayload[];
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
+  onToggleFavourite?: (recipe: RecipePayload, nextValue: boolean) => void;
   onEdit?: (recipe: RecipePayload) => void;
   onDelete?: (recipe: RecipePayload) => void;
 };
@@ -14,6 +15,7 @@ export function RecipeGrid({
   recipes,
   selectedIds,
   onToggleSelect,
+  onToggleFavourite,
   onEdit,
   onDelete,
 }: RecipeGridProps) {
@@ -32,6 +34,7 @@ export function RecipeGrid({
           key={recipe.id}
           onDelete={onDelete}
           onEdit={onEdit}
+          onToggleFavourite={onToggleFavourite}
           onToggleSelect={onToggleSelect}
           recipe={recipe}
           selected={selectedIds?.has(recipe.id)}

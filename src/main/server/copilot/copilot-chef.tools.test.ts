@@ -776,11 +776,13 @@ describe("CopilotChef SDK tool handlers", () => {
     const result = await getToolMap(chef).get("list_recipes")?.handler({
       tags: ["breakfast"],
       maxCookTime: 20,
+      favourite: true,
     });
 
     expect(services.recipeService.listRecipes).toHaveBeenCalledWith({
       tags: ["breakfast"],
       maxCookTime: 20,
+      favourite: true,
     });
     expect(result).toMatchObject({ count: 1 });
   });

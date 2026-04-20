@@ -44,6 +44,7 @@ function parseFilters(c: Context): RecipeFilters {
   const origin = c.req.query("origin");
   const difficulty = c.req.query("difficulty");
   const maxCookTime = c.req.query("maxCookTime");
+  const favourite = c.req.query("favourite");
   const rating = c.req.query("rating");
   const tags = c.req.query("tags")
     ?.split(",")
@@ -57,6 +58,12 @@ function parseFilters(c: Context): RecipeFilters {
         : undefined,
     difficulty: difficulty ?? undefined,
     maxCookTime: maxCookTime ? Number.parseInt(maxCookTime, 10) : undefined,
+    favourite:
+      favourite === "true"
+        ? true
+        : favourite === "false"
+          ? false
+          : undefined,
     rating: rating ? Number.parseInt(rating, 10) : undefined,
     tags: tags && tags.length > 0 ? tags : undefined,
   };

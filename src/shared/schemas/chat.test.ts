@@ -11,12 +11,15 @@ describe("chatRequestSchema", () => {
         search: "taco",
         origin: "imported",
         totalRecipes: 12,
+        favouriteCount: 3,
         filteredRecipes: 2,
+        showingFavouritesOnly: false,
         visibleRecipes: [
           {
             id: "recipe-1",
             title: "Easy Taco Salad",
             origin: "imported",
+            favourite: true,
           },
         ],
       },
@@ -28,12 +31,15 @@ describe("chatRequestSchema", () => {
       search: "taco",
       origin: "imported",
       totalRecipes: 12,
+      favouriteCount: 3,
       filteredRecipes: 2,
+      showingFavouritesOnly: false,
       visibleRecipes: [
         {
           id: "recipe-1",
           title: "Easy Taco Salad",
           origin: "imported",
+          favourite: true,
         },
       ],
     });
@@ -53,6 +59,7 @@ describe("chatRequestSchema", () => {
         cookTime: 5,
         rating: 4,
         origin: "manual",
+        favourite: true,
         tags: ["breakfast", "quick"],
         ingredients: [
           {
@@ -75,6 +82,7 @@ describe("chatRequestSchema", () => {
       cookTime: 5,
       rating: 4,
       origin: "manual",
+      favourite: true,
       tags: ["breakfast", "quick"],
       ingredients: [
         {
@@ -142,6 +150,7 @@ describe("chatRequestSchema", () => {
         cookTime: null,
         rating: null,
         origin: "manual",
+        favourite: false,
         tags: [],
         ingredients: [],
       },

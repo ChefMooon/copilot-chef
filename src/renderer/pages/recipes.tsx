@@ -53,6 +53,7 @@ export default function RecipesPage() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [origin, setOrigin] = useState("");
+  const [favouritesOnly, setFavouritesOnly] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
   const [showIngest, setShowIngest] = useState(false);
@@ -101,6 +102,9 @@ export default function RecipesPage() {
       if (origin && recipe.origin !== origin) {
         return false;
       }
+      if (favouritesOnly && !recipe.favourite) {
+        return false;
+      }
       if (!search.trim()) {
         return true;
       }
@@ -114,9 +118,11 @@ export default function RecipesPage() {
         )
       );
     });
-  }, [recipesQuery.data, origin, search]);
+  }, [favouritesOnly, recipesQuery.data, origin, search]);
 
   const totalRecipes = recipesQuery.data?.length ?? 0;
+  const favouriteCount =
+    recipesQuery.data?.filter((recipe) => recipe.favourite).length ?? 0;
   const selectedCount = selectedIds.size;
 
   useChatPageContext({
@@ -124,11 +130,14 @@ export default function RecipesPage() {
     search,
     origin: origin || "all",
     totalRecipes: recipesQuery.data?.length ?? 0,
+    favouriteCount,
     filteredRecipes: filteredRecipes.length,
+    showingFavouritesOnly: favouritesOnly,
     visibleRecipes: filteredRecipes.slice(0, 10).map((recipe) => ({
       id: recipe.id,
       title: recipe.title,
       origin: recipe.origin,
+      favourite: recipe.favourite,
     })),
   });
 
@@ -142,6 +151,40 @@ export default function RecipesPage() {
       }
       return next;
     });
+  }
+
+  async function handleToggleFavourite(
+    recipe: RecipePayload,
+    nextValue: boolean
+  ) {
+    const previousRecipes = recipesQuery.data ?? [];
+    const nextRecipes = previousRecipes.map((entry) =>
+      entry.id === recipe.id ? { ...entry, favourite: nextValue } : entry
+    );
+
+    queryClient.setQueryData(recipesKey, nextRecipes);
+    queryClient.setQueryData(recipeKeys.detail(recipe.id), {
+      ...recipe,
+      favourite: nextValue,
+    });
+
+    try {
+      const updated = await updateRecipe(recipe.id, { favourite: nextValue });
+      queryClient.setQueryData(recipesKey, (current: RecipePayload[] | undefined) =>
+        (current ?? nextRecipes).map((entry) =>
+          entry.id === updated.id ? updated : entry
+        )
+      );
+      queryClient.setQueryData(recipeKeys.detail(recipe.id), updated);
+    } catch {
+      queryClient.setQueryData(recipesKey, previousRecipes);
+      queryClient.setQueryData(recipeKeys.detail(recipe.id), recipe);
+      toast({
+        title: "Could not update favourite.",
+        description: "Try again in a moment.",
+        variant: "error",
+      });
+    }
   }
 
   async function handleExport(scope: "all" | "selected") {
@@ -266,6 +309,8 @@ export default function RecipesPage() {
       <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
         <div className="space-y-4">
           <RecipeFilterSidebar
+            favouritesOnly={favouritesOnly}
+            onFavouritesOnlyChange={setFavouritesOnly}
             onOriginChange={setOrigin}
             onSearchChange={setSearch}
             origin={origin}
@@ -278,6 +323,9 @@ export default function RecipesPage() {
           onEdit={(recipe) => {
             setEditingRecipe(recipe);
             setShowAddModal(true);
+          }}
+          onToggleFavourite={(recipe, nextValue) => {
+            void handleToggleFavourite(recipe, nextValue);
           }}
           onToggleSelect={toggleSelection}
           recipes={filteredRecipes as RecipePayload[]}

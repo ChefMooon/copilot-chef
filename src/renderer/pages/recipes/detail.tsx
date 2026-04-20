@@ -38,6 +38,7 @@ function RecipeDetailContent({
     cookTime: recipe.cookTime,
     rating: recipe.rating,
     origin: recipe.origin,
+    favourite: recipe.favourite,
     tags: recipe.tags,
     ingredients: recipe.ingredients.map((ingredient) => ({
       name: ingredient.name,

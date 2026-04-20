@@ -58,6 +58,7 @@ export const recipeListItemSchema = z.object({
   id: z.string(),
   title: z.string(),
   origin: z.string(),
+  favourite: z.boolean(),
 });
 
 export const recipesPageContextSchema = z.object({
@@ -65,7 +66,9 @@ export const recipesPageContextSchema = z.object({
   search: z.string(),
   origin: z.string(),
   totalRecipes: z.number(),
+  favouriteCount: z.number(),
   filteredRecipes: z.number(),
+  showingFavouritesOnly: z.boolean(),
   visibleRecipes: z.array(recipeListItemSchema),
 });
 
@@ -86,6 +89,7 @@ export const recipeDetailPageContextSchema = z.object({
   cookTime: z.number().nullable(),
   rating: z.number().nullable(),
   origin: z.string(),
+  favourite: z.boolean(),
   tags: z.array(z.string()),
   ingredients: z.array(recipeDetailIngredientContextSchema),
 });

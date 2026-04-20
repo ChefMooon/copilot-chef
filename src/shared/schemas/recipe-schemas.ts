@@ -36,6 +36,7 @@ export const CreateRecipeInputSchema = z.object({
   sourceUrl: z.string().url().nullable().optional(),
   sourceLabel: z.string().nullable().optional(),
   origin: recipeOriginSchema.optional(),
+  favourite: z.boolean().optional(),
   rating: z.number().int().min(1).max(5).nullable().optional(),
   cookNotes: z.string().nullable().optional(),
   ingredients: z.array(recipeIngredientInputSchema).default([]),
@@ -58,6 +59,7 @@ const recipeExportItemSchema = z.object({
   sourceUrl: z.string().nullable(),
   sourceLabel: z.string().nullable(),
   origin: recipeOriginSchema,
+  favourite: z.boolean(),
   rating: z.number().int().min(1).max(5).nullable(),
   cookNotes: z.string().nullable(),
   lastMadeAt: z.string().nullable(),
@@ -133,6 +135,7 @@ export const AIRecipeSaveSchema = z.object({
     .default([]),
   instructions: z.array(z.string()).default([]),
   tags: z.array(z.string()).default([]),
+  favourite: z.boolean().optional(),
 });
 
 export type CreateRecipeInput = z.input<typeof CreateRecipeInputSchema>;

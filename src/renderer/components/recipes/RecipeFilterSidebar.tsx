@@ -6,15 +6,19 @@ import { Input } from "@/components/ui/input";
 type RecipeFilterSidebarProps = {
   search: string;
   origin: string;
+  favouritesOnly: boolean;
   onSearchChange: (value: string) => void;
   onOriginChange: (value: string) => void;
+  onFavouritesOnlyChange: (value: boolean) => void;
 };
 
 export function RecipeFilterSidebar({
   search,
   origin,
+  favouritesOnly,
   onSearchChange,
   onOriginChange,
+  onFavouritesOnlyChange,
 }: RecipeFilterSidebarProps) {
   return (
     <aside className="space-y-4 rounded-card border border-cream-dark bg-white p-4">
@@ -54,6 +58,15 @@ export function RecipeFilterSidebar({
           <option value="ai_generated">AI Generated</option>
         </select>
       </div>
+      <label className="flex items-center justify-between gap-3 rounded-[12px] border border-cream-dark bg-cream px-3 py-2 text-sm font-medium text-text">
+        <span>Favourites only</span>
+        <input
+          checked={favouritesOnly}
+          className="h-4 w-4 rounded border-cream-dark text-green focus:ring-green"
+          onChange={(event) => onFavouritesOnlyChange(event.target.checked)}
+          type="checkbox"
+        />
+      </label>
     </aside>
   );
 }

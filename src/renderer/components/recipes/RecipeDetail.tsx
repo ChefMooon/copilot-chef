@@ -125,6 +125,35 @@ export function RecipeDetail({
     }
   }
 
+  async function handleToggleFavourite(nextValue: boolean): Promise<void> {
+    const previousRecipe = recipe;
+    const optimisticRecipe = { ...recipe, favourite: nextValue };
+
+    queryClient.setQueryData(recipeQueryKey, optimisticRecipe);
+    queryClient.setQueryData(recipeKeys.all, (current: RecipePayload[] | undefined) =>
+      (current ?? []).map((entry) =>
+        entry.id === recipe.id ? { ...entry, favourite: nextValue } : entry
+      )
+    );
+
+    try {
+      const updated = await updateRecipe(recipe.id, { favourite: nextValue });
+      queryClient.setQueryData(recipeQueryKey, updated);
+      queryClient.setQueryData(recipeKeys.all, (current: RecipePayload[] | undefined) =>
+        (current ?? []).map((entry) =>
+          entry.id === updated.id ? updated : entry
+        )
+      );
+    } catch {
+      queryClient.setQueryData(recipeQueryKey, previousRecipe);
+      queryClient.setQueryData(recipeKeys.all, (current: RecipePayload[] | undefined) =>
+        (current ?? []).map((entry) =>
+          entry.id === previousRecipe.id ? previousRecipe : entry
+        )
+      );
+    }
+  }
+
   async function handleDelete(): Promise<void> {
     const confirmed = window.confirm(
       "Delete this recipe? This action cannot be undone."
@@ -159,9 +188,19 @@ export function RecipeDetail({
             <p className="mb-1 text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-orange">
               Recipe Library
             </p>
-            <h1 className="recipe-print-title font-serif text-[2rem] font-bold leading-[1.12] text-text sm:text-[2.35rem]">
-              {recipe.title}
-            </h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="recipe-print-title font-serif text-[2rem] font-bold leading-[1.12] text-text sm:text-[2.35rem]">
+                {recipe.title}
+              </h1>
+              <button
+                aria-label={`${recipe.favourite ? "Remove from" : "Add to"} favourites`}
+                className={`print-hidden rounded-full border px-2 py-1 text-sm transition-colors ${recipe.favourite ? "border-orange/30 bg-orange/10 text-orange" : "border-cream-dark bg-cream text-text-muted hover:border-orange/40 hover:text-orange"}`}
+                onClick={() => void handleToggleFavourite(!recipe.favourite)}
+                type="button"
+              >
+                {recipe.favourite ? "★ Favourite" : "☆ Favourite"}
+              </button>
+            </div>
             {recipe.description ? (
               <p className="recipe-print-description mt-2 text-sm text-text-muted">
                 {recipe.description}

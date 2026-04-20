@@ -142,6 +142,7 @@ model Recipe {
   normalizedSourceUrl String?     @unique
   sourceLabel  String?
   origin       String             @default("manual")
+  favourite    Boolean            @default(false)
   rating       Int?
   cookNotes    String?
   lastMadeAt   DateTime?

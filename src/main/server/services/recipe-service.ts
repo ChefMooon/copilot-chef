@@ -73,6 +73,7 @@ type SerializedRecipe = {
   sourceUrl: string | null;
   sourceLabel: string | null;
   origin: string;
+  favourite: boolean;
   rating: number | null;
   cookNotes: string | null;
   lastMadeAt: string | null;
@@ -88,6 +89,7 @@ export interface RecipeFilters {
   tags?: string[];
   difficulty?: string;
   maxCookTime?: number;
+  favourite?: boolean;
   rating?: number;
 }
 
@@ -213,6 +215,7 @@ function serializeRecipe(recipe: {
   sourceUrl: string | null;
   sourceLabel: string | null;
   origin: string;
+  favourite: boolean;
   rating: number | null;
   cookNotes: string | null;
   lastMadeAt: Date | null;
@@ -242,6 +245,7 @@ function serializeRecipe(recipe: {
     sourceUrl: recipe.sourceUrl,
     sourceLabel: recipe.sourceLabel,
     origin: recipe.origin,
+    favourite: recipe.favourite,
     rating: recipe.rating,
     cookNotes: recipe.cookNotes,
     lastMadeAt: recipe.lastMadeAt?.toISOString() ?? null,
@@ -896,6 +900,7 @@ export class RecipeService {
             normalizedSourceUrl: sourceUrl,
             sourceLabel: compactString(input.sourceLabel),
             origin: input.origin ?? "manual",
+            favourite: input.favourite ?? false,
             rating: input.rating ?? null,
             cookNotes: compactString(input.cookNotes),
             ingredients: {
@@ -1002,6 +1007,7 @@ export class RecipeService {
       updateData.sourceLabel = compactString(input.sourceLabel);
     }
     if (input.origin !== undefined) updateData.origin = input.origin;
+    if (input.favourite !== undefined) updateData.favourite = input.favourite;
     if (input.rating !== undefined) updateData.rating = input.rating;
     if (input.cookNotes !== undefined) {
       updateData.cookNotes = compactString(input.cookNotes);
@@ -1123,6 +1129,9 @@ export class RecipeService {
     if (filters?.difficulty) where.difficulty = filters.difficulty;
     if (filters?.maxCookTime !== undefined) {
       where.cookTime = { lte: filters.maxCookTime };
+    }
+    if (filters?.favourite !== undefined) {
+      where.favourite = filters.favourite;
     }
     if (filters?.rating !== undefined) {
       where.rating = { gte: filters.rating };
@@ -1596,6 +1605,7 @@ export class RecipeService {
           sourceUrl: recipe.sourceUrl,
           sourceLabel: recipe.sourceLabel,
           origin: recipe.origin,
+          favourite: recipe.favourite,
           rating: recipe.rating,
           cookNotes: recipe.cookNotes,
           ingredients: recipe.ingredients,
@@ -1646,6 +1656,7 @@ export class RecipeService {
           sourceUrl: serialized.sourceUrl,
           sourceLabel: serialized.sourceLabel,
           origin: serialized.origin as "manual" | "imported" | "ai_generated",
+          favourite: serialized.favourite,
           rating: serialized.rating,
           cookNotes: serialized.cookNotes,
           lastMadeAt: serialized.lastMadeAt,

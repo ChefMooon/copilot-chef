@@ -9,6 +9,7 @@ type RecipeCardProps = {
   recipe: RecipePayload;
   selected?: boolean;
   onToggleSelect?: (id: string) => void;
+  onToggleFavourite?: (recipe: RecipePayload, nextValue: boolean) => void;
   onEdit?: (recipe: RecipePayload) => void;
   onDelete?: (recipe: RecipePayload) => void;
 };
@@ -17,6 +18,7 @@ export function RecipeCard({
   recipe,
   selected,
   onToggleSelect,
+  onToggleFavourite,
   onEdit,
   onDelete,
 }: RecipeCardProps) {
@@ -41,6 +43,20 @@ export function RecipeCard({
           {recipe.title}
         </Link>
         <div className="flex flex-shrink-0 items-center gap-1.5">
+          {onToggleFavourite ? (
+            <Button
+              aria-label={`${recipe.favourite ? "Remove" : "Add"} ${recipe.title} ${recipe.favourite ? "from" : "to"} favourites`}
+              className={`h-4 w-4 min-w-4 rounded-[4px] p-0 ${recipe.favourite ? "text-orange hover:text-orange" : "text-text-muted hover:text-orange"}`}
+              onClick={() => onToggleFavourite(recipe, !recipe.favourite)}
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              <span aria-hidden="true" className="text-sm leading-none">
+                {recipe.favourite ? "★" : "☆"}
+              </span>
+            </Button>
+          ) : null}
           {onEdit ? (
             <Button
               aria-label={`Edit ${recipe.title}`}

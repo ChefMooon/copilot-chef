@@ -34,6 +34,7 @@ export type RecipePayload = {
   sourceUrl: string | null;
   sourceLabel: string | null;
   origin: string;
+  favourite: boolean;
   rating: number | null;
   cookNotes: string | null;
   lastMadeAt: string | null;

@@ -198,6 +198,7 @@ const listRecipesArgsSchema = z
     tags: z.array(z.string()).optional(),
     difficulty: z.string().optional(),
     maxCookTime: z.number().int().positive().optional(),
+    favourite: z.boolean().optional(),
     rating: z.number().int().min(1).max(5).optional(),
   })
   .optional();
@@ -1513,6 +1514,7 @@ export class CopilotChef {
             tags: { type: "array", items: { type: "string" } },
             difficulty: { type: "string" },
             maxCookTime: { type: "number" },
+            favourite: { type: "boolean" },
             rating: { type: "number" },
           },
         },

@@ -28,6 +28,7 @@ export function RecipeSearchModal({
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [query, setQuery] = useState("");
   const [originFilter, setOriginFilter] = useState("all");
+  const [favouritesOnly, setFavouritesOnly] = useState(false);
   const [results, setResults] = useState<RecipePayload[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export function RecipeSearchModal({
 
     setQuery("");
     setOriginFilter("all");
+    setFavouritesOnly(false);
     setSelectedRecipe(null);
     setPreviewServings(1);
     setPreviewNote("");
@@ -183,12 +185,18 @@ export function RecipeSearchModal({
   }, [results]);
 
   const filteredResults = useMemo(() => {
-    if (originFilter === "all") {
-      return results;
-    }
+    return results.filter((recipe) => {
+      if (originFilter !== "all" && recipe.origin !== originFilter) {
+        return false;
+      }
 
-    return results.filter((recipe) => recipe.origin === originFilter);
-  }, [originFilter, results]);
+      if (favouritesOnly && !recipe.favourite) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [favouritesOnly, originFilter, results]);
 
   if (!open || !portalRoot) {
     return null;
@@ -204,7 +212,9 @@ export function RecipeSearchModal({
       }}
     >
       <div
-        className={styles.recipeSearchModalPanel}
+        className={`${styles.recipeSearchModalPanel} ${
+          selectedRecipe ? "" : styles.recipeSearchModalPanelBrowse
+        }`}
         onClick={(event) => event.stopPropagation()}
         ref={panelRef}
         role="dialog"
@@ -219,7 +229,11 @@ export function RecipeSearchModal({
           </button>
         </div>
 
-        <div className={styles.recipeSearchModalBody}>
+        <div
+          className={`${styles.recipeSearchModalBody} ${
+            selectedRecipe ? "" : styles.recipeSearchModalBodyBrowse
+          }`}
+        >
           {selectedRecipe ? (
             <>
               <div className={styles.recipePreviewPanel}>
@@ -305,7 +319,7 @@ export function RecipeSearchModal({
               </div>
             </>
           ) : (
-            <>
+            <div className={styles.recipeSearchBrowseState}>
               <div className={styles.recipeSearchFilterRow}>
                 <input
                   autoFocus
@@ -326,57 +340,71 @@ export function RecipeSearchModal({
                     </option>
                   ))}
                 </select>
+                <label className={styles.recipeSearchCheckbox}>
+                  <input
+                    checked={favouritesOnly}
+                    onChange={(event) => setFavouritesOnly(event.target.checked)}
+                    type="checkbox"
+                  />
+                  <span className={styles.recipeSearchCheckboxMark} aria-hidden="true" />
+                  <span className={styles.recipeSearchCheckboxLabel}>Favourites only</span>
+                </label>
               </div>
 
               <div className={styles.recipeSearchStatusText}>
                 {isLoading
                   ? "Loading recipes..."
-                  : `${filteredResults.length} recipe${filteredResults.length === 1 ? "" : "s"}`}
+                  : `${filteredResults.length} ${
+                      favouritesOnly ? "favourite recipe" : "recipe"
+                    }${filteredResults.length === 1 ? "" : "s"}`}
               </div>
 
               {loadError ? (
                 <p className={styles.confirmationError}>{loadError}</p>
               ) : null}
 
-              <ul className={styles.recipeSearchList}>
-                {filteredResults.map((recipe) => {
-                  const duplicateName =
-                    normalizedMealName.length > 0 &&
-                    recipe.title.trim().toLowerCase() === normalizedMealName;
+              <div className={styles.recipeSearchResultsArea}>
+                <ul className={styles.recipeSearchList}>
+                  {filteredResults.map((recipe) => {
+                    const duplicateName =
+                      normalizedMealName.length > 0 &&
+                      recipe.title.trim().toLowerCase() === normalizedMealName;
 
-                  return (
-                    <li className={styles.recipeSearchListItem} key={recipe.id}>
-                      <button
-                        className={`${styles.recipeSearchListBtn} ${
-                          duplicateName ? styles.recipeSearchListBtnDisabled : ""
-                        }`}
-                        disabled={duplicateName}
-                        onClick={() => {
-                          setSelectedRecipe(recipe);
-                          setPreviewServings(Math.max(1, recipe.servings || 1));
-                          setPreviewNote("");
-                        }}
-                        title={
-                          duplicateName
-                            ? "Recipe name matches current meal name"
-                            : undefined
-                        }
-                        type="button"
-                      >
-                        <span className={styles.recipeSearchTitle}>{recipe.title}</span>
-                        <span className={styles.recipeSearchListMeta}>
-                          {recipe.origin} · {recipe.ingredients.length} ingredients
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+                    return (
+                      <li className={styles.recipeSearchListItem} key={recipe.id}>
+                        <button
+                          className={`${styles.recipeSearchListBtn} ${
+                            duplicateName ? styles.recipeSearchListBtnDisabled : ""
+                          }`}
+                          disabled={duplicateName}
+                          onClick={() => {
+                            setSelectedRecipe(recipe);
+                            setPreviewServings(Math.max(1, recipe.servings || 1));
+                            setPreviewNote("");
+                          }}
+                          title={
+                            duplicateName
+                              ? "Recipe name matches current meal name"
+                              : undefined
+                          }
+                          type="button"
+                        >
+                          <span className={styles.recipeSearchTitle}>{recipe.title}</span>
+                          <span className={styles.recipeSearchListMeta}>
+                            {recipe.favourite ? "★ " : ""}
+                            {recipe.origin} · {recipe.ingredients.length} ingredients
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
 
-              {!isLoading && !loadError && filteredResults.length === 0 ? (
-                <p className={styles.readOnlyEmpty}>No recipes found.</p>
-              ) : null}
-            </>
+                {!isLoading && !loadError && filteredResults.length === 0 ? (
+                  <p className={styles.recipeSearchEmptyState}>No recipes found.</p>
+                ) : null}
+              </div>
+            </div>
           )}
         </div>
 
