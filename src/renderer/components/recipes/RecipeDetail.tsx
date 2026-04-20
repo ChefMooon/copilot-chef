@@ -29,7 +29,6 @@ const VIEW_LABELS = {
   basic: "Basic",
   detailed: "Annotated",
   cooking: "Cooking",
-  print: "Print",
 } as const;
 
 export function RecipeDetail({
@@ -39,9 +38,7 @@ export function RecipeDetail({
 }: RecipeDetailProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [view, setView] = useState<"basic" | "detailed" | "cooking" | "print">(
-    defaultView
-  );
+  const [view, setView] = useState<"basic" | "detailed" | "cooking">(defaultView);
   const [servings, setServings] = useState(recipe.servings);
   const [unitMode, setUnitMode] = useState<UnitMode>(defaultUnitMode);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -155,25 +152,27 @@ export function RecipeDetail({
   }
 
   return (
-    <div className="space-y-5">
-      <header className="rounded-[18px] border border-[rgba(59,94,69,0.1)] bg-white p-5 shadow-card md:p-6">
+    <div className="recipe-print-root space-y-5">
+      <header className="recipe-print-hero rounded-[18px] border border-[rgba(59,94,69,0.1)] bg-white p-5 shadow-card md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="mb-1 text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-orange">
               Recipe Library
             </p>
-            <h1 className="font-serif text-[2rem] font-bold leading-[1.12] text-text sm:text-[2.35rem]">
+            <h1 className="recipe-print-title font-serif text-[2rem] font-bold leading-[1.12] text-text sm:text-[2.35rem]">
               {recipe.title}
             </h1>
             {recipe.description ? (
-              <p className="mt-2 text-sm text-text-muted">{recipe.description}</p>
+              <p className="recipe-print-description mt-2 text-sm text-text-muted">
+                {recipe.description}
+              </p>
             ) : (
-              <p className="mt-2 text-sm text-text-muted">
+              <p className="recipe-print-description mt-2 text-sm text-text-muted">
                 Review ingredients, adjust servings, and cook with confidence.
               </p>
             )}
           </div>
-          <div className="mt-1 flex flex-wrap gap-2">
+          <div className="print-hidden mt-1 flex flex-wrap gap-2">
             <Button asChild size="sm" type="button" variant="outline">
               <Link to="/recipes">Back to Recipes</Link>
             </Button>
@@ -196,7 +195,7 @@ export function RecipeDetail({
             </Button>
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.78rem] font-semibold text-text-muted">
+        <div className="recipe-print-meta mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.78rem] font-semibold text-text-muted">
           <SourceBadge
             origin={recipe.origin}
             sourceLabel={recipe.sourceLabel}
@@ -217,10 +216,13 @@ export function RecipeDetail({
             Last made: {recipe.lastMadeAt ? new Date(recipe.lastMadeAt).toLocaleDateString() : "Never"}
           </span>
         </div>
+        <div className="print-only recipe-print-settings mt-3 text-[0.8rem] font-semibold text-text-muted">
+          Yield: {servings} serving{servings === 1 ? "" : "s"} | Units: {unitMode === "grams" ? "Grams" : "Cups"}
+        </div>
       </header>
 
-      <div className="flex flex-wrap gap-2 rounded-[14px] border border-[rgba(59,94,69,0.08)] bg-white p-2 shadow-card">
-        {(["basic", "detailed", "cooking", "print"] as const).map((mode) => (
+      <div className="print-hidden flex flex-wrap gap-2 rounded-[14px] border border-[rgba(59,94,69,0.08)] bg-white p-2 shadow-card">
+        {(["basic", "detailed", "cooking"] as const).map((mode) => (
           <button
             key={mode}
             className={`rounded-[10px] border px-3 py-1.5 text-[0.82rem] font-bold capitalize transition-colors ${
@@ -228,32 +230,36 @@ export function RecipeDetail({
                 ? "border-green bg-green text-white"
                 : "border-cream-dark bg-cream text-text-muted hover:border-green-light hover:text-green"
             }`}
-            onClick={() => {
-              if (mode === "print") {
-                window.print();
-              }
-              setView(mode);
-            }}
+            onClick={() => setView(mode)}
             type="button"
           >
             {VIEW_LABELS[mode]}
           </button>
         ))}
+        <button
+          className="rounded-[10px] border border-cream-dark bg-cream px-3 py-1.5 text-[0.82rem] font-bold text-text-muted transition-colors hover:border-green-light hover:text-green"
+          onClick={() => window.print()}
+          type="button"
+        >
+          Print
+        </button>
       </div>
 
-      <ServingsScaler
-        baseServings={recipe.servings}
-        onServingsChange={setServings}
-        onUnitModeChange={setUnitMode}
-        servings={servings}
-        unitMode={unitMode}
-      />
+      <div className="print-hidden">
+        <ServingsScaler
+          baseServings={recipe.servings}
+          onServingsChange={setServings}
+          onUnitModeChange={setUnitMode}
+          servings={servings}
+          unitMode={unitMode}
+        />
+      </div>
 
-      <section className="rounded-[18px] border border-[rgba(59,94,69,0.1)] bg-white p-5 shadow-card md:p-6">
+      <section className="recipe-print-section rounded-[18px] border border-[rgba(59,94,69,0.1)] bg-white p-5 shadow-card md:p-6">
         <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-text-muted">
           Ingredients
         </p>
-        <div className="mt-2 space-y-3">
+        <div className="recipe-print-groups mt-2 space-y-3">
           {Array.from(
             ingredientDisplays.reduce((acc, ingredient) => {
               const key = ingredient.group;
@@ -283,17 +289,17 @@ export function RecipeDetail({
         </div>
       </section>
 
-      <section className="rounded-[18px] border border-[rgba(59,94,69,0.1)] bg-white p-5 shadow-card md:p-6">
+      <section className="recipe-print-section rounded-[18px] border border-[rgba(59,94,69,0.1)] bg-white p-5 shadow-card md:p-6">
         <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-text-muted">
           {view === "detailed" ? "Annotated Instructions" : "Instructions"}
         </p>
         {view === "detailed" ? (
-          <p className="mt-2 text-[0.8rem] leading-relaxed text-text-muted">
+          <p className="print-hidden mt-2 text-[0.8rem] leading-relaxed text-text-muted">
             Matching ingredients show scaled amounts inline when the step text
             directly references them.
           </p>
         ) : null}
-        <ol className="mt-3 list-decimal space-y-2.5 pl-5 text-[0.92rem] leading-relaxed text-text">
+        <ol className="recipe-print-steps mt-3 list-decimal space-y-2.5 pl-5 text-[0.92rem] leading-relaxed text-text">
           {(view === "detailed" ? detailedInstructionSteps : recipe.instructions).map(
             (step, index) => (
               <li
@@ -328,7 +334,7 @@ export function RecipeDetail({
       </section>
 
       {recipe.cookNotes ? (
-        <section className="rounded-[18px] border border-[rgba(59,94,69,0.1)] bg-white p-5 shadow-card md:p-6">
+        <section className="recipe-print-section rounded-[18px] border border-[rgba(59,94,69,0.1)] bg-white p-5 shadow-card md:p-6">
           <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-text-muted">
             Cook Notes
           </p>

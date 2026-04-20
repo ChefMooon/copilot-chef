@@ -136,6 +136,19 @@
   padding: 2rem 2rem 4rem;
 }
 
+@media print {
+  .header,
+  .mobileMenu {
+    display: none !important;
+  }
+
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+}
+
 @media (max-width: 768px) {
   .navDesktop {
     display: none;

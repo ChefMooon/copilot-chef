@@ -131,6 +131,7 @@ export function ChatPanel() {
   return (
     <div
       className={`${styles.panel} ${panelSizeClass}`}
+      data-print-hidden="true"
       role="dialog"
       aria-label="Copilot Chef chat"
     >

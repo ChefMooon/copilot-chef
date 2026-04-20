@@ -13,6 +13,7 @@ export function ChatWidget() {
         <button
           aria-label="Open Copilot Chef chat"
           className={styles.fab}
+          data-print-hidden="true"
           onClick={openChat}
           title="Chat with Copilot Chef"
           type="button"

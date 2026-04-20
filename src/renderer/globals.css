@@ -60,3 +60,95 @@ a {
 button {
   cursor: pointer;
 }
+
+.print-only {
+  display: none;
+}
+
+@page {
+  margin: 0.55in;
+}
+
+@media print {
+  html {
+    scroll-behavior: auto;
+  }
+
+  body {
+    min-height: auto;
+    background: #ffffff;
+    color: #000000;
+    font-family: Georgia, "Times New Roman", serif;
+  }
+
+  [data-print-hidden="true"],
+  .print-hidden {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .recipe-print-root {
+    margin: 0;
+    padding: 0;
+    color: #000000;
+  }
+
+  .recipe-print-hero,
+  .recipe-print-section {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    margin: 0 0 1.1rem;
+    padding: 0;
+  }
+
+  .recipe-print-title {
+    font-size: 20pt !important;
+    line-height: 1.1 !important;
+    margin: 0;
+    color: #000000 !important;
+  }
+
+  .recipe-print-description {
+    max-width: none;
+    font-size: 11pt !important;
+    line-height: 1.45;
+    color: #333333 !important;
+  }
+
+  .recipe-print-meta,
+  .recipe-print-settings {
+    color: #333333 !important;
+  }
+
+  .recipe-print-settings {
+    margin-top: 0.45rem;
+  }
+
+  .recipe-print-groups > div,
+  .recipe-print-section,
+  .recipe-print-meta {
+    break-inside: avoid;
+  }
+
+  .recipe-print-steps {
+    margin-top: 0.6rem;
+  }
+
+  .recipe-print-steps li {
+    margin-bottom: 0.45rem;
+  }
+
+  .recipe-print-root ul,
+  .recipe-print-root ol {
+    color: #000000;
+  }
+
+  .recipe-print-root * {
+    box-shadow: none !important;
+  }
+}
