@@ -58,6 +58,7 @@ export const recipeListItemSchema = z.object({
   id: z.string(),
   title: z.string(),
   origin: z.string(),
+  cuisine: z.string().nullable(),
   favourite: z.boolean(),
 });
 
@@ -65,6 +66,7 @@ export const recipesPageContextSchema = z.object({
   page: z.literal("recipes"),
   search: z.string(),
   origin: z.string(),
+  cuisine: z.string(),
   totalRecipes: z.number(),
   favouriteCount: z.number(),
   filteredRecipes: z.number(),
@@ -84,6 +86,7 @@ export const recipeDetailPageContextSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
   difficulty: z.string().nullable(),
+  cuisine: z.string().nullable(),
   servings: z.number(),
   prepTime: z.number().nullable(),
   cookTime: z.number().nullable(),

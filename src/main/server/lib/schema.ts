@@ -34,6 +34,7 @@ const SCHEMA_STATEMENTS = [
       "servings" INTEGER NOT NULL DEFAULT 2,
       "prepTime" INTEGER,
       "cookTime" INTEGER,
+      "cuisine" TEXT,
       "servingsOverride" INTEGER,
       "recipeId" TEXT,
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -41,6 +42,7 @@ const SCHEMA_STATEMENTS = [
   `,
   `CREATE INDEX IF NOT EXISTS "Meal_date_idx" ON "Meal"("date")`,
   `CREATE INDEX IF NOT EXISTS "Meal_mealTypeDefinitionId_idx" ON "Meal"("mealTypeDefinitionId")`,
+  `CREATE INDEX IF NOT EXISTS "Meal_cuisine_idx" ON "Meal"("cuisine")`,
   `CREATE INDEX IF NOT EXISTS "Meal_recipeId_idx" ON "Meal"("recipeId")`,
   `
     CREATE TABLE IF NOT EXISTS "MealTypeProfile" (
@@ -150,6 +152,7 @@ const SCHEMA_STATEMENTS = [
       "prepTime" INTEGER,
       "cookTime" INTEGER,
       "difficulty" TEXT,
+      "cuisine" TEXT,
       "instructions" TEXT NOT NULL,
       "sourceUrl" TEXT,
       "normalizedSourceUrl" TEXT,
@@ -165,6 +168,7 @@ const SCHEMA_STATEMENTS = [
   `,
   `CREATE INDEX IF NOT EXISTS "Recipe_title_idx" ON "Recipe"("title")`,
   `CREATE INDEX IF NOT EXISTS "Recipe_origin_idx" ON "Recipe"("origin")`,
+  `CREATE INDEX IF NOT EXISTS "Recipe_cuisine_idx" ON "Recipe"("cuisine")`,
   `CREATE INDEX IF NOT EXISTS "Recipe_sourceUrl_idx" ON "Recipe"("sourceUrl")`,
   `
     CREATE TABLE IF NOT EXISTS "RecipeIngredient" (
@@ -393,6 +397,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
     servings: `ALTER TABLE "Meal" ADD COLUMN "servings" INTEGER NOT NULL DEFAULT 2`,
     prepTime: `ALTER TABLE "Meal" ADD COLUMN "prepTime" INTEGER`,
     cookTime: `ALTER TABLE "Meal" ADD COLUMN "cookTime" INTEGER`,
+    cuisine: `ALTER TABLE "Meal" ADD COLUMN "cuisine" TEXT`,
     servingsOverride: `ALTER TABLE "Meal" ADD COLUMN "servingsOverride" INTEGER`,
     recipeId: `ALTER TABLE "Meal" ADD COLUMN "recipeId" TEXT`,
   } as const;
@@ -405,6 +410,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
     normalizedTitle: `ALTER TABLE "Recipe" ADD COLUMN "normalizedTitle" TEXT`,
     normalizedSourceUrl: `ALTER TABLE "Recipe" ADD COLUMN "normalizedSourceUrl" TEXT`,
     favourite: `ALTER TABLE "Recipe" ADD COLUMN "favourite" INTEGER NOT NULL DEFAULT 0`,
+    cuisine: `ALTER TABLE "Recipe" ADD COLUMN "cuisine" TEXT`,
   } as const;
 
   await ensureMissingColumns("Meal", safeMealAlterStatements);

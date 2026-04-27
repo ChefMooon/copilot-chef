@@ -2,22 +2,27 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CUISINE_OPTIONS } from "@shared/api/constants";
 
 type RecipeFilterSidebarProps = {
   search: string;
   origin: string;
+  cuisine: string;
   favouritesOnly: boolean;
   onSearchChange: (value: string) => void;
   onOriginChange: (value: string) => void;
+  onCuisineChange: (value: string) => void;
   onFavouritesOnlyChange: (value: boolean) => void;
 };
 
 export function RecipeFilterSidebar({
   search,
   origin,
+  cuisine,
   favouritesOnly,
   onSearchChange,
   onOriginChange,
+  onCuisineChange,
   onFavouritesOnlyChange,
 }: RecipeFilterSidebarProps) {
   return (
@@ -56,6 +61,21 @@ export function RecipeFilterSidebar({
           <option value="manual">Manual</option>
           <option value="imported">Imported</option>
           <option value="ai_generated">AI Generated</option>
+        </select>
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium text-text">Cuisine</label>
+        <select
+          className="h-10 w-full rounded-btn border border-cream-dark bg-cream px-3 py-2 font-sans text-sm text-text outline-none transition focus:border-green-light focus:ring-2 focus:ring-green/10"
+          onChange={(event) => onCuisineChange(event.target.value)}
+          value={cuisine}
+        >
+          <option value="">All</option>
+          {CUISINE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
       </div>
       <label className="flex items-center justify-between gap-3 rounded-[12px] border border-cream-dark bg-cream px-3 py-2 text-sm font-medium text-text">

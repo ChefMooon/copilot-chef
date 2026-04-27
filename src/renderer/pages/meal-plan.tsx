@@ -57,6 +57,7 @@ type DeletedMealSnapshot = Pick<
   | "notes"
   | "ingredients"
   | "description"
+  | "cuisine"
   | "instructions"
   | "servings"
   | "prepTime"
@@ -74,6 +75,7 @@ function toDeletedMealSnapshot(meal: EditableMeal): DeletedMealSnapshot {
     notes: meal.notes,
     ingredients: [...meal.ingredients],
     description: meal.description,
+    cuisine: meal.cuisine,
     instructions: [...meal.instructions],
     servings: meal.servings,
     prepTime: meal.prepTime,
@@ -410,6 +412,7 @@ export default function MealPlanPage() {
       notes: updatedMeal.notes,
       ingredients: updatedMeal.ingredients,
       description: updatedMeal.description || null,
+      cuisine: updatedMeal.cuisine,
       instructions: updatedMeal.instructions,
       servings: updatedMeal.servings,
       prepTime: updatedMeal.prepTime,
@@ -438,6 +441,7 @@ export default function MealPlanPage() {
           notes: payload.notes || null,
           ingredients: payload.ingredients ?? [],
           description: payload.description,
+          cuisine: payload.cuisine,
           instructions: payload.instructions,
           servings: payload.servings,
           prepTime: payload.prepTime,
@@ -603,6 +607,7 @@ export default function MealPlanPage() {
         notes: snapshot.notes ? snapshot.notes : null,
         ingredients: snapshot.ingredients,
         description: snapshot.description || null,
+        cuisine: snapshot.cuisine,
         instructions: snapshot.instructions,
         servings: snapshot.servings,
         prepTime: snapshot.prepTime,
@@ -665,6 +670,7 @@ export default function MealPlanPage() {
           notes: mealToDelete.notes || null,
           ingredients: [...mealToDelete.ingredients],
           description: mealToDelete.description || null,
+          cuisine: mealToDelete.cuisine,
           instructions: [...mealToDelete.instructions],
           servings: mealToDelete.servings,
           prepTime: mealToDelete.prepTime,
@@ -711,6 +717,7 @@ export default function MealPlanPage() {
           notes: snapshot.notes || null,
           ingredients: [...snapshot.ingredients],
           description: snapshot.description || null,
+          cuisine: snapshot.cuisine,
           instructions: [...snapshot.instructions],
           servings: snapshot.servings,
           prepTime: snapshot.prepTime,
@@ -756,7 +763,7 @@ export default function MealPlanPage() {
     if (saveAsRecipeMeal.id) {
       await fetchJson<{ data: CalendarMeal }>(`/api/meals/${saveAsRecipeMeal.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ recipeId: recipe.id }),
+        body: JSON.stringify({ recipeId: recipe.id, cuisine: recipe.cuisine }),
       });
       await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
     }
@@ -778,7 +785,10 @@ export default function MealPlanPage() {
 
     await fetchJson<{ data: CalendarMeal }>(`/api/meals/${saveAsRecipeMeal.id}`, {
       method: "PATCH",
-      body: JSON.stringify({ recipeId: saveAsRecipeConflict.existing.id }),
+      body: JSON.stringify({
+        recipeId: saveAsRecipeConflict.existing.id,
+        cuisine: saveAsRecipeConflict.existing.cuisine ?? null,
+      }),
     });
     await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
 
@@ -800,6 +810,7 @@ export default function MealPlanPage() {
       body: JSON.stringify({
         recipeId: null,
         description: meal.linkedRecipe.description || null,
+        cuisine: meal.linkedRecipe.cuisine,
         instructions: meal.linkedRecipe.instructions,
         ingredients: meal.linkedRecipe.ingredients,
         servings: meal.servingsOverride ?? meal.linkedRecipe.servings,

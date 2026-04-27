@@ -36,6 +36,7 @@ export function mealToRecipePayload(meal: EditableMeal): RecipePayload {
     prepTime: meal.prepTime,
     cookTime: meal.cookTime,
     difficulty: null,
+    cuisine: meal.cuisine ?? meal.linkedRecipe?.cuisine ?? null,
     instructions: meal.instructions,
     sourceUrl: null,
     sourceLabel: null,

@@ -8,6 +8,7 @@ export type MealShape = {
   notes: string | null;
   ingredients: import("@shared/types").MealIngredient[];
   description?: string | null;
+  cuisine?: string | null;
   instructions?: string[];
   servings?: number;
   prepTime?: number | null;
@@ -31,6 +32,7 @@ export type MealForwardOp =
         notes?: string | null;
         ingredients?: import("@shared/types").MealIngredient[];
         description?: string | null;
+        cuisine?: string | null;
         instructions?: string[];
         servings?: number;
         prepTime?: number | null;

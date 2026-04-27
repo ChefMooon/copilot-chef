@@ -5,6 +5,7 @@ import { convertIngredient, type UnitMode } from "@/lib/recipe-units";
 import { formatFraction } from "@/lib/fractions";
 import { annotateInstructionSteps } from "@/lib/recipe-instruction-annotations";
 import { recipeKeys } from "@/lib/query-keys";
+import { getCuisineLabel } from "@shared/api/constants";
 
 import {
   deleteRecipe,
@@ -44,6 +45,7 @@ export function RecipeDetail({
   const [showEditModal, setShowEditModal] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const cuisineLabel = getCuisineLabel(recipe.cuisine);
 
   useEffect(() => {
     setServings(recipe.servings);
@@ -242,6 +244,11 @@ export function RecipeDetail({
           {recipe.difficulty ? (
             <span className="rounded-chip border border-cream-dark bg-cream px-2 py-0.5 text-[0.72rem] font-bold uppercase tracking-[0.06em]">
               {recipe.difficulty}
+            </span>
+          ) : null}
+          {cuisineLabel ? (
+            <span className="rounded-chip border border-green/15 bg-green-pale px-2 py-0.5 text-[0.72rem] font-bold uppercase tracking-[0.06em] text-green">
+              {cuisineLabel}
             </span>
           ) : null}
           {recipe.prepTime != null ? (

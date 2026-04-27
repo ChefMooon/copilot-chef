@@ -58,6 +58,42 @@ export const DEFAULT_MEAL_TYPE_TEMPLATES = [
   },
 ] as const;
 
+export const CUISINE_VALUES = [
+  "mediterranean",
+  "japanese",
+  "comfort-food",
+  "mexican",
+  "thai",
+  "indian",
+  "italian",
+  "korean",
+  "middle-eastern",
+  "french",
+  "chinese",
+  "american-bbq",
+] as const;
+
+export type CuisineValue = (typeof CUISINE_VALUES)[number];
+
+export const CUISINE_OPTIONS: Array<{ label: string; value: CuisineValue }> = [
+  { label: "Mediterranean", value: "mediterranean" },
+  { label: "Japanese", value: "japanese" },
+  { label: "Comfort food", value: "comfort-food" },
+  { label: "Mexican", value: "mexican" },
+  { label: "Thai", value: "thai" },
+  { label: "Indian", value: "indian" },
+  { label: "Italian", value: "italian" },
+  { label: "Korean", value: "korean" },
+  { label: "Middle Eastern", value: "middle-eastern" },
+  { label: "French", value: "french" },
+  { label: "Chinese", value: "chinese" },
+  { label: "American BBQ", value: "american-bbq" },
+];
+
+export function getCuisineLabel(value: string | null | undefined) {
+  return CUISINE_OPTIONS.find((option) => option.value === value)?.label ?? null;
+}
+
 export const MEAL_TYPE_API_PATHS = {
   active: "/api/meal-types/active",
   profiles: "/api/meal-types/profiles",

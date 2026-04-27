@@ -22,6 +22,7 @@ model Meal {
   servings             Int                 @default(2)
   prepTime             Int?
   cookTime             Int?
+  cuisine              String?
   servingsOverride     Int?
   recipeId             String?
   recipe               Recipe?             @relation(fields: [recipeId], references: [id], onDelete: SetNull)
@@ -29,6 +30,7 @@ model Meal {
 
   @@index([date])
   @@index([mealTypeDefinitionId])
+  @@index([cuisine])
   @@index([recipeId])
 }
 
@@ -137,6 +139,7 @@ model Recipe {
   prepTime     Int?
   cookTime     Int?
   difficulty   String?
+  cuisine      String?
   instructions String
   sourceUrl    String?
   normalizedSourceUrl String?     @unique
@@ -157,6 +160,7 @@ model Recipe {
 
   @@index([title])
   @@index([origin])
+  @@index([cuisine])
   @@index([sourceUrl])
 }
 

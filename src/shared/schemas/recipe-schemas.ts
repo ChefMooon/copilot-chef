@@ -1,6 +1,8 @@
 import { z } from "zod";
+import { CUISINE_VALUES } from "../api/constants";
 
 const recipeOriginSchema = z.enum(["manual", "imported", "ai_generated"]);
+const recipeCuisineSchema = z.enum(CUISINE_VALUES);
 
 const recipeIngredientInputSchema = z.object({
   name: z.string().min(1),
@@ -32,6 +34,7 @@ export const CreateRecipeInputSchema = z.object({
   prepTime: z.number().int().nonnegative().nullable().optional(),
   cookTime: z.number().int().nonnegative().nullable().optional(),
   difficulty: z.string().nullable().optional(),
+  cuisine: recipeCuisineSchema.nullable().optional(),
   instructions: z.array(z.string().min(1)).min(1),
   sourceUrl: z.string().url().nullable().optional(),
   sourceLabel: z.string().nullable().optional(),
@@ -55,6 +58,7 @@ const recipeExportItemSchema = z.object({
   prepTime: z.number().int().nonnegative().nullable(),
   cookTime: z.number().int().nonnegative().nullable(),
   difficulty: z.string().nullable(),
+  cuisine: recipeCuisineSchema.nullable().optional(),
   instructions: z.array(z.string()),
   sourceUrl: z.string().nullable(),
   sourceLabel: z.string().nullable(),
@@ -123,6 +127,7 @@ export const AIRecipeSaveSchema = z.object({
   prepTime: z.number().int().nonnegative().nullable().optional(),
   cookTime: z.number().int().nonnegative().nullable().optional(),
   difficulty: z.string().nullable().optional(),
+  cuisine: recipeCuisineSchema.nullable().optional(),
   ingredients: z
     .array(
       z.object({

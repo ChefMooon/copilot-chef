@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useChatPageContext } from "@/context/chat-context";
+import { getCuisineLabel } from "@shared/api/constants";
 
 const recipesKey = recipeKeys.all;
 
@@ -53,6 +54,7 @@ export default function RecipesPage() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [origin, setOrigin] = useState("");
+  const [cuisine, setCuisine] = useState("");
   const [favouritesOnly, setFavouritesOnly] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
@@ -102,6 +104,9 @@ export default function RecipesPage() {
       if (origin && recipe.origin !== origin) {
         return false;
       }
+      if (cuisine && recipe.cuisine !== cuisine) {
+        return false;
+      }
       if (favouritesOnly && !recipe.favourite) {
         return false;
       }
@@ -109,16 +114,19 @@ export default function RecipesPage() {
         return true;
       }
       const query = search.trim().toLowerCase();
+      const cuisineLabel = getCuisineLabel(recipe.cuisine)?.toLowerCase() ?? "";
       return (
         recipe.title.toLowerCase().includes(query) ||
         (recipe.description ?? "").toLowerCase().includes(query) ||
+        (recipe.cuisine ?? "").toLowerCase().includes(query) ||
+        cuisineLabel.includes(query) ||
         recipe.tags.some((tag) => tag.toLowerCase().includes(query)) ||
         recipe.ingredients.some((ingredient) =>
           ingredient.name.toLowerCase().includes(query)
         )
       );
     });
-  }, [favouritesOnly, recipesQuery.data, origin, search]);
+  }, [cuisine, favouritesOnly, recipesQuery.data, origin, search]);
 
   const totalRecipes = recipesQuery.data?.length ?? 0;
   const favouriteCount =
@@ -129,6 +137,7 @@ export default function RecipesPage() {
     page: "recipes",
     search,
     origin: origin || "all",
+    cuisine: cuisine || "all",
     totalRecipes: recipesQuery.data?.length ?? 0,
     favouriteCount,
     filteredRecipes: filteredRecipes.length,
@@ -137,6 +146,7 @@ export default function RecipesPage() {
       id: recipe.id,
       title: recipe.title,
       origin: recipe.origin,
+      cuisine: recipe.cuisine,
       favourite: recipe.favourite,
     })),
   });
@@ -309,7 +319,9 @@ export default function RecipesPage() {
       <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
         <div className="space-y-4">
           <RecipeFilterSidebar
+            cuisine={cuisine}
             favouritesOnly={favouritesOnly}
+            onCuisineChange={setCuisine}
             onFavouritesOnlyChange={setFavouritesOnly}
             onOriginChange={setOrigin}
             onSearchChange={setSearch}

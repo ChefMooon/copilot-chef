@@ -42,6 +42,7 @@ function toRecipeErrorResponse(error: unknown, fallbackMessage: string, fallback
 
 function parseFilters(c: Context): RecipeFilters {
   const origin = c.req.query("origin");
+  const cuisine = c.req.query("cuisine");
   const difficulty = c.req.query("difficulty");
   const maxCookTime = c.req.query("maxCookTime");
   const favourite = c.req.query("favourite");
@@ -56,6 +57,7 @@ function parseFilters(c: Context): RecipeFilters {
       origin === "manual" || origin === "imported" || origin === "ai_generated"
         ? origin
         : undefined,
+    cuisine: cuisine?.trim() || undefined,
     difficulty: difficulty ?? undefined,
     maxCookTime: maxCookTime ? Number.parseInt(maxCookTime, 10) : undefined,
     favourite:
@@ -69,12 +71,48 @@ function parseFilters(c: Context): RecipeFilters {
   };
 }
 
+function matchesFilters(
+  recipe: Awaited<ReturnType<typeof recipeService.searchRecipes>>[number],
+  filters: RecipeFilters
+) {
+  if (filters.origin && recipe.origin !== filters.origin) {
+    return false;
+  }
+  if (filters.cuisine && recipe.cuisine !== filters.cuisine) {
+    return false;
+  }
+  if (filters.difficulty && recipe.difficulty !== filters.difficulty) {
+    return false;
+  }
+  if (filters.maxCookTime !== undefined) {
+    if (recipe.cookTime == null || recipe.cookTime > filters.maxCookTime) {
+      return false;
+    }
+  }
+  if (filters.favourite !== undefined && recipe.favourite !== filters.favourite) {
+    return false;
+  }
+  if (filters.rating !== undefined) {
+    if (recipe.rating == null || recipe.rating < filters.rating) {
+      return false;
+    }
+  }
+  if (filters.tags && filters.tags.length > 0) {
+    const recipeTags = new Set(recipe.tags.map((tag) => tag.toLowerCase()));
+    return filters.tags.every((tag) => recipeTags.has(tag.toLowerCase()));
+  }
+  return true;
+}
+
 recipesRoutes.get("/recipes", async (c) => {
   try {
     const query = c.req.query("query")?.trim();
+    const filters = parseFilters(c);
     const data = query
-      ? await recipeService.searchRecipes(query)
-      : await recipeService.listRecipes(parseFilters(c));
+      ? (await recipeService.searchRecipes(query)).filter((recipe) =>
+          matchesFilters(recipe, filters)
+        )
+      : await recipeService.listRecipes(filters);
     return c.json({ data });
   } catch (error) {
     return c.json(

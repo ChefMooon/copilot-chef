@@ -2,6 +2,7 @@ import { bootstrapDatabase } from "../lib/bootstrap";
 import { classifyCuisine } from "../lib/cuisine-classifier";
 import { addDays, formatDayKey, startOfDay, startOfWeek } from "../lib/date";
 import { prisma } from "../lib/prisma";
+import { getCuisineLabel } from "@shared/api/constants";
 import type {
   MealIngredient,
   MealPayload,
@@ -15,6 +16,7 @@ type LinkedRecipeRow = {
   servings: number;
   prepTime: number | null;
   cookTime: number | null;
+  cuisine: string | null;
   instructions: string;
   cookNotes: string | null;
   ingredients: Array<{
@@ -206,6 +208,7 @@ function serializeMeal(meal: {
   notes: string | null;
   ingredientsJson: string;
   description?: string | null;
+  cuisine?: string | null;
   instructionsJson?: string;
   servings?: number;
   prepTime?: number | null;
@@ -236,6 +239,7 @@ function serializeMeal(meal: {
         servings: meal.recipe.servings,
         prepTime: meal.recipe.prepTime,
         cookTime: meal.recipe.cookTime,
+        cuisine: meal.recipe.cuisine,
         instructions: (() => {
           try {
             const parsed = JSON.parse(meal.recipe.instructions);
@@ -268,6 +272,7 @@ function serializeMeal(meal: {
     notes: meal.notes,
     ingredients: parseMealIngredients(meal.ingredientsJson),
     description: meal.description ?? null,
+    cuisine: meal.cuisine ?? null,
     instructions: parseInstructions(meal.instructionsJson),
     servings: meal.servings ?? 2,
     prepTime: meal.prepTime ?? null,
@@ -354,6 +359,30 @@ export class MealService {
     };
   }
 
+  private async resolveCuisineInput(input: {
+    cuisine?: string | null;
+    recipeId?: string | null;
+  }) {
+    if (input.cuisine !== undefined) {
+      return input.cuisine;
+    }
+
+    if (input.recipeId === undefined) {
+      return undefined;
+    }
+
+    if (input.recipeId === null) {
+      return null;
+    }
+
+    const recipe = await prisma.recipe.findUnique({
+      where: { id: input.recipeId },
+      select: { cuisine: true },
+    });
+
+    return recipe?.cuisine ?? null;
+  }
+
   async getMeal(id: string) {
     await bootstrapDatabase();
 
@@ -393,6 +422,7 @@ export class MealService {
     notes?: string | null;
     ingredients?: MealIngredientInput[];
     description?: string | null;
+    cuisine?: string | null;
     instructions?: string[];
     servings?: number;
     prepTime?: number | null;
@@ -407,6 +437,10 @@ export class MealService {
       mealType: input.mealType,
       mealTypeDefinitionId: input.mealTypeDefinitionId,
     });
+    const cuisine = await this.resolveCuisineInput({
+      cuisine: input.cuisine,
+      recipeId: input.recipeId,
+    });
 
     const meal = await prisma.meal.create({
       data: {
@@ -417,6 +451,7 @@ export class MealService {
         notes: input.notes ?? null,
         ingredientsJson: stringifyMealIngredients(input.ingredients),
         description: input.description ?? null,
+        cuisine: cuisine ?? null,
         instructionsJson: JSON.stringify(input.instructions ?? []),
         servings: input.servings ?? 2,
         prepTime: input.prepTime ?? null,
@@ -440,6 +475,7 @@ export class MealService {
       notes?: string | null;
       ingredients?: MealIngredientInput[];
       description?: string | null;
+      cuisine?: string | null;
       instructions?: string[];
       servings?: number;
       prepTime?: number | null;
@@ -455,6 +491,10 @@ export class MealService {
       mealType: input.mealType,
       mealTypeDefinitionId: input.mealTypeDefinitionId,
     });
+    const cuisine = await this.resolveCuisineInput({
+      cuisine: input.cuisine,
+      recipeId: input.recipeId,
+    });
 
     const meal = await prisma.meal.update({
       where: { id },
@@ -467,6 +507,7 @@ export class MealService {
           ? { ingredientsJson: stringifyMealIngredients(input.ingredients) }
           : {}),
         ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(cuisine !== undefined ? { cuisine } : {}),
         ...(input.instructions !== undefined
           ? { instructionsJson: JSON.stringify(input.instructions) }
           : {}),
@@ -621,12 +662,23 @@ export class MealService {
     await bootstrapDatabase();
 
     const meals = await prisma.meal.findMany({
-      select: { name: true },
+      select: {
+        name: true,
+        cuisine: true,
+        recipe: {
+          select: {
+            cuisine: true,
+          },
+        },
+      },
     });
 
     const counts = new Map<string, number>();
     for (const meal of meals) {
-      const cuisine = classifyCuisine(meal.name);
+      const cuisine =
+        getCuisineLabel(meal.cuisine) ??
+        getCuisineLabel(meal.recipe?.cuisine) ??
+        classifyCuisine(meal.name);
       counts.set(cuisine, (counts.get(cuisine) ?? 0) + 1);
     }
 

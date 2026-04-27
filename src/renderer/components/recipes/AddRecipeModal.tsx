@@ -4,6 +4,7 @@ import { useEffect, useRef, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { type CreateRecipeInput, type RecipeConflict } from "@shared/types";
+import { CUISINE_OPTIONS } from "@shared/api/constants";
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/providers/toast-provider";
@@ -46,6 +47,7 @@ type FormState = {
   prepTime: string;
   cookTime: string;
   difficulty: string;
+  cuisine: string;
   rating: string;
   cookNotes: string;
   instructions: InstructionDraft[];
@@ -162,6 +164,7 @@ export function AddRecipeModal({
     prepTime: "",
     cookTime: "",
     difficulty: "",
+    cuisine: "",
     rating: "",
     cookNotes: "",
     instructions: [],
@@ -190,6 +193,7 @@ export function AddRecipeModal({
         prepTime: initialRecipe?.prepTime != null ? String(initialRecipe.prepTime) : "",
         cookTime: initialRecipe?.cookTime != null ? String(initialRecipe.cookTime) : "",
         difficulty: initialRecipe?.difficulty ?? "",
+        cuisine: initialRecipe?.cuisine ?? "",
         rating: initialRecipe?.rating != null ? String(initialRecipe.rating) : "",
         cookNotes: initialRecipe?.cookNotes ?? "",
         instructions:
@@ -295,6 +299,7 @@ export function AddRecipeModal({
       prepTime: form.prepTime.trim() ? Number.parseInt(form.prepTime.trim(), 10) : null,
       cookTime: form.cookTime.trim() ? Number.parseInt(form.cookTime.trim(), 10) : null,
       difficulty: form.difficulty.trim() || null,
+      cuisine: form.cuisine.trim() || null,
       rating: form.rating.trim() ? Number.parseInt(form.rating.trim(), 10) : null,
       cookNotes: form.cookNotes.trim() || null,
     };
@@ -433,6 +438,24 @@ export function AddRecipeModal({
                 <option value="Easy">Easy</option>
                 <option value="Medium">Medium</option>
                 <option value="Hard">Hard</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.06em] text-text-muted sm:text-sm sm:normal-case sm:tracking-normal">
+                Cuisine
+              </label>
+              <select
+                className="h-10 w-full rounded-btn border border-cream-dark bg-cream px-2.5 py-2 font-sans text-sm text-text outline-none transition focus:border-green-light focus:ring-2 focus:ring-green/10"
+                onChange={(event) => setField("cuisine", event.target.value)}
+                value={form.cuisine}
+              >
+                <option value="">No cuisine</option>
+                {CUISINE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { listRecipes, type RecipePayload } from "@/lib/api";
+import { getCuisineLabel } from "@shared/api/constants";
 
 import styles from "./meal-plan.module.css";
 
@@ -239,6 +240,15 @@ export function RecipeSearchModal({
               <div className={styles.recipePreviewPanel}>
                 <h4 className={styles.recipePreviewTitle}>{selectedRecipe.title}</h4>
 
+                {getCuisineLabel(selectedRecipe.cuisine) ? (
+                  <div className={styles.recipePreviewSection}>
+                    <label className={styles.formLabel}>Cuisine</label>
+                    <div className={styles.readOnlyValue}>
+                      {getCuisineLabel(selectedRecipe.cuisine)}
+                    </div>
+                  </div>
+                ) : null}
+
                 {selectedRecipe.description ? (
                   <div className={styles.recipePreviewSection}>
                     <label className={styles.formLabel}>Description</label>
@@ -392,7 +402,9 @@ export function RecipeSearchModal({
                           <span className={styles.recipeSearchTitle}>{recipe.title}</span>
                           <span className={styles.recipeSearchListMeta}>
                             {recipe.favourite ? "★ " : ""}
-                            {recipe.origin} · {recipe.ingredients.length} ingredients
+                            {[getCuisineLabel(recipe.cuisine), recipe.origin, `${recipe.ingredients.length} ingredients`]
+                              .filter(Boolean)
+                              .join(" · ")}
                           </span>
                         </button>
                       </li>

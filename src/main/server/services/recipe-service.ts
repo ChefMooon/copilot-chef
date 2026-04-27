@@ -69,6 +69,7 @@ type SerializedRecipe = {
   prepTime: number | null;
   cookTime: number | null;
   difficulty: string | null;
+  cuisine: string | null;
   instructions: string[];
   sourceUrl: string | null;
   sourceLabel: string | null;
@@ -86,6 +87,7 @@ type SerializedRecipe = {
 
 export interface RecipeFilters {
   origin?: "manual" | "imported" | "ai_generated";
+  cuisine?: string;
   tags?: string[];
   difficulty?: string;
   maxCookTime?: number;
@@ -211,6 +213,7 @@ function serializeRecipe(recipe: {
   prepTime: number | null;
   cookTime: number | null;
   difficulty: string | null;
+  cuisine: string | null;
   instructions: string;
   sourceUrl: string | null;
   sourceLabel: string | null;
@@ -241,6 +244,7 @@ function serializeRecipe(recipe: {
     prepTime: recipe.prepTime,
     cookTime: recipe.cookTime,
     difficulty: recipe.difficulty,
+    cuisine: recipe.cuisine,
     instructions: parseInstructions(recipe.instructions),
     sourceUrl: recipe.sourceUrl,
     sourceLabel: recipe.sourceLabel,
@@ -895,6 +899,7 @@ export class RecipeService {
             prepTime: input.prepTime ?? null,
             cookTime: input.cookTime ?? null,
             difficulty: compactString(input.difficulty),
+            cuisine: compactString(input.cuisine),
             instructions: JSON.stringify(input.instructions),
             sourceUrl,
             normalizedSourceUrl: sourceUrl,
@@ -995,6 +1000,9 @@ export class RecipeService {
     if (input.cookTime !== undefined) updateData.cookTime = input.cookTime;
     if (input.difficulty !== undefined) {
       updateData.difficulty = compactString(input.difficulty);
+    }
+    if (input.cuisine !== undefined) {
+      updateData.cuisine = compactString(input.cuisine);
     }
     if (input.instructions !== undefined) {
       updateData.instructions = JSON.stringify(input.instructions);
@@ -1126,6 +1134,7 @@ export class RecipeService {
 
     const where: Record<string, unknown> = {};
     if (filters?.origin) where.origin = filters.origin;
+    if (filters?.cuisine) where.cuisine = filters.cuisine;
     if (filters?.difficulty) where.difficulty = filters.difficulty;
     if (filters?.maxCookTime !== undefined) {
       where.cookTime = { lte: filters.maxCookTime };
@@ -1174,6 +1183,7 @@ export class RecipeService {
           where: {
             OR: [
               { description: { contains: q } },
+              { cuisine: { contains: q } },
               { cookNotes: { contains: q } },
               { instructions: { contains: q } },
             ],
@@ -1296,6 +1306,7 @@ export class RecipeService {
         prepTime: null,
         cookTime: null,
         difficulty: null,
+        cuisine: null,
         cookNotes,
         instructions: instructions.length > 0 ? instructions : ["Review and edit steps before saving."],
         sourceUrl: cleanedUrl,
@@ -1334,6 +1345,7 @@ export class RecipeService {
       prepTime: source.prepTime,
       cookTime: source.cookTime,
       difficulty: source.difficulty,
+      cuisine: source.cuisine,
       instructions: source.instructions,
       origin: "manual",
       sourceUrl: null,
@@ -1601,6 +1613,7 @@ export class RecipeService {
           prepTime: recipe.prepTime,
           cookTime: recipe.cookTime,
           difficulty: recipe.difficulty,
+          cuisine: recipe.cuisine ?? null,
           instructions: recipe.instructions,
           sourceUrl: recipe.sourceUrl,
           sourceLabel: recipe.sourceLabel,
@@ -1652,6 +1665,7 @@ export class RecipeService {
           prepTime: serialized.prepTime,
           cookTime: serialized.cookTime,
           difficulty: serialized.difficulty,
+          cuisine: serialized.cuisine,
           instructions: serialized.instructions,
           sourceUrl: serialized.sourceUrl,
           sourceLabel: serialized.sourceLabel,

@@ -19,6 +19,7 @@ export type LinkedRecipeSummary = {
   servings: number;
   prepTime: number | null;
   cookTime: number | null;
+  cuisine: string | null;
   ingredients: MealIngredient[];
 };
 
@@ -32,6 +33,7 @@ export type EditableMeal = {
   notes: string;
   ingredients: MealIngredient[];
   description: string;
+  cuisine: string | null;
   instructions: string[];
   servings: number;
   prepTime: number | null;
@@ -470,6 +472,7 @@ export function toEditableMeal(meal: CalendarMeal): EditableMeal {
     notes: meal.notes ?? "",
     ingredients: meal.ingredients ?? [],
     description: meal.description ?? "",
+    cuisine: meal.cuisine ?? null,
     instructions: meal.instructions ?? [],
     servings: meal.servings ?? 2,
     prepTime: meal.prepTime ?? null,
@@ -608,6 +611,7 @@ export function createEmptyMeal(
     notes: "",
     ingredients: [],
     description: "",
+    cuisine: null,
     instructions: [],
     servings: 2,
     prepTime: null,

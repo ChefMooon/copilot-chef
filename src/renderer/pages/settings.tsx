@@ -51,6 +51,7 @@ import {
   getCachedConfig,
   resetConfigCache,
 } from "@/lib/config";
+import { CUISINE_OPTIONS } from "@shared/api/constants";
 
 const preferenceQueryKey = ["preferences"] as const;
 
@@ -65,21 +66,6 @@ const dietaryOptions = [
   { label: "Dairy-free", value: "dairy-free" },
   { label: "Halal", value: "halal" },
   { label: "Kosher", value: "kosher" },
-];
-
-const cuisineOptions = [
-  { label: "Mediterranean", value: "mediterranean" },
-  { label: "Japanese", value: "japanese" },
-  { label: "Comfort food", value: "comfort-food" },
-  { label: "Mexican", value: "mexican" },
-  { label: "Thai", value: "thai" },
-  { label: "Indian", value: "indian" },
-  { label: "Italian", value: "italian" },
-  { label: "Korean", value: "korean" },
-  { label: "Middle Eastern", value: "middle-eastern" },
-  { label: "French", value: "french" },
-  { label: "Chinese", value: "chinese" },
-  { label: "American BBQ", value: "american-bbq" },
 ];
 
 const nutritionOptions = [
@@ -1022,7 +1008,7 @@ export default function SettingsPage() {
                   onToggle={(value) =>
                     void handleCuisineToggle("favoriteCuisines", value)
                   }
-                  options={cuisineOptions}
+                  options={CUISINE_OPTIONS}
                   selectedValues={preferences.favoriteCuisines}
                   tone="orange"
                 />
@@ -1033,7 +1019,7 @@ export default function SettingsPage() {
                   onToggle={(value) =>
                     void handleCuisineToggle("avoidCuisines", value)
                   }
-                  options={cuisineOptions}
+                  options={CUISINE_OPTIONS}
                   selectedValues={preferences.avoidCuisines}
                   tone="red"
                 />
@@ -1403,7 +1389,7 @@ export default function SettingsPage() {
                 onToggle={(value) =>
                   void handleCuisineToggle("favoriteCuisines", value)
                 }
-                options={cuisineOptions}
+                options={CUISINE_OPTIONS}
                 selectedValues={preferences.favoriteCuisines}
                 tone="orange"
               />
@@ -1414,7 +1400,7 @@ export default function SettingsPage() {
                 onToggle={(value) =>
                   void handleCuisineToggle("avoidCuisines", value)
                 }
-                options={cuisineOptions}
+                options={CUISINE_OPTIONS}
                 selectedValues={preferences.avoidCuisines}
                 tone="red"
               />

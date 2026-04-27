@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { type CreateRecipeInput } from "@shared/types";
+import { CUISINE_OPTIONS } from "@shared/api/constants";
 
 type RecipeFormProps = {
   initialValue?: Partial<CreateRecipeInput>;
@@ -13,6 +14,7 @@ export function RecipeForm({ initialValue, onSubmit }: RecipeFormProps) {
   const [title, setTitle] = useState(initialValue?.title ?? "");
   const [description, setDescription] = useState(initialValue?.description ?? "");
   const [servings, setServings] = useState(initialValue?.servings ?? 2);
+  const [cuisine, setCuisine] = useState(initialValue?.cuisine ?? "");
   const [ingredientsText, setIngredientsText] = useState(
     () =>
       initialValue?.ingredients
@@ -54,6 +56,7 @@ export function RecipeForm({ initialValue, onSubmit }: RecipeFormProps) {
         title,
         description,
         servings,
+        cuisine: cuisine || null,
         instructions: instructionLines,
         ingredientLines,
         tags: tagsText
@@ -67,6 +70,7 @@ export function RecipeForm({ initialValue, onSubmit }: RecipeFormProps) {
       setIngredientsText("");
       setInstructionsText("");
       setTagsText("");
+      setCuisine("");
     } finally {
       setSaving(false);
     }
@@ -95,6 +99,18 @@ export function RecipeForm({ initialValue, onSubmit }: RecipeFormProps) {
         type="number"
         value={servings}
       />
+      <select
+        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+        onChange={(event) => setCuisine(event.target.value)}
+        value={cuisine}
+      >
+        <option value="">No cuisine</option>
+        {CUISINE_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
       <textarea
         className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
         onChange={(event) => setIngredientsText(event.target.value)}

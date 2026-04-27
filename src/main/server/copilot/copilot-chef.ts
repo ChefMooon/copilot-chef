@@ -6,6 +6,7 @@ import {
   type MCPServerConfig,
 } from "@github/copilot-sdk";
 import { z } from "zod";
+import { CUISINE_VALUES } from "@shared/api/constants";
 import type { MealIngredient } from "@shared/types";
 
 import { getClient } from "../lib/copilot-client";
@@ -195,6 +196,7 @@ const updatePreferencesArgsSchema = z.object({
 const listRecipesArgsSchema = z
   .object({
     origin: z.enum(["manual", "imported", "ai_generated"]).optional(),
+    cuisine: z.enum(CUISINE_VALUES).optional(),
     tags: z.array(z.string()).optional(),
     difficulty: z.string().optional(),
     maxCookTime: z.number().int().positive().optional(),
@@ -646,7 +648,8 @@ export class CopilotChef {
       "The user asked to save a recipe from this conversation.",
       "Extract a structured recipe object and return ONLY valid JSON.",
       "If details are missing, infer reasonable defaults.",
-      "Required keys: title, description, servings, prepTime, cookTime, difficulty, ingredients, instructions, tags.",
+      "Required keys: title, description, servings, prepTime, cookTime, difficulty, cuisine, ingredients, instructions, tags.",
+      `Cuisine must be one of: ${CUISINE_VALUES.join(", ")}, or null if unknown.`,
       "Each ingredient should be {name, quantity, unit, notes}.",
       `User message: ${message}`,
     ].join("\n");
@@ -1511,6 +1514,7 @@ export class CopilotChef {
           type: "object",
           properties: {
             origin: { type: "string", enum: ["manual", "imported", "ai_generated"] },
+            cuisine: { type: "string", enum: [...CUISINE_VALUES] },
             tags: { type: "array", items: { type: "string" } },
             difficulty: { type: "string" },
             maxCookTime: { type: "number" },
@@ -1547,6 +1551,7 @@ export class CopilotChef {
             prepTime: { type: ["number", "null"] },
             cookTime: { type: ["number", "null"] },
             difficulty: { type: ["string", "null"] },
+            cuisine: { type: ["string", "null"], enum: [...CUISINE_VALUES, null] },
             ingredients: {
               type: "array",
               items: {
@@ -1574,6 +1579,7 @@ export class CopilotChef {
             prepTime: args.prepTime ?? null,
             cookTime: args.cookTime ?? null,
             difficulty: args.difficulty ?? null,
+            cuisine: args.cuisine ?? null,
             ingredients: args.ingredients.map((ingredient, index) => ({
               name: ingredient.name,
               quantity: ingredient.quantity ?? null,

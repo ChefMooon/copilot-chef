@@ -22,6 +22,13 @@ export type SettingsPreferences = PreferencesPayload;
 export type { CustomPersonaPayload };
 export type { MealTypeDefinitionPayload, MealTypeProfilePayload };
 
+export type RecipeListFilters = {
+  query?: string;
+  origin?: string;
+  cuisine?: string;
+  favourite?: boolean;
+};
+
 export type RecipePayload = {
   id: string;
   title: string;
@@ -30,6 +37,7 @@ export type RecipePayload = {
   prepTime: number | null;
   cookTime: number | null;
   difficulty: string | null;
+  cuisine: string | null;
   instructions: string[];
   sourceUrl: string | null;
   sourceLabel: string | null;
@@ -245,10 +253,29 @@ export async function deletePersona(id: string): Promise<{ id: string }> {
   return response.data;
 }
 
-export async function listRecipes(query?: string) {
-  const endpoint = query
-    ? `/api/recipes?query=${encodeURIComponent(query)}`
-    : "/api/recipes";
+export async function listRecipes(filters?: string | RecipeListFilters) {
+  const params = new URLSearchParams();
+  if (typeof filters === "string") {
+    if (filters.trim()) {
+      params.set("query", filters.trim());
+    }
+  } else if (filters) {
+    if (filters.query?.trim()) {
+      params.set("query", filters.query.trim());
+    }
+    if (filters.origin?.trim()) {
+      params.set("origin", filters.origin.trim());
+    }
+    if (filters.cuisine?.trim()) {
+      params.set("cuisine", filters.cuisine.trim());
+    }
+    if (filters.favourite !== undefined) {
+      params.set("favourite", String(filters.favourite));
+    }
+  }
+
+  const queryString = params.toString();
+  const endpoint = queryString ? `/api/recipes?${queryString}` : "/api/recipes";
   const response = await fetchJson<{ data: RecipePayload[] }>(endpoint);
   return response.data;
 }

@@ -2,6 +2,7 @@ import { Link } from "react-router";
 
 import { Button } from "@/components/ui/button";
 import { type RecipePayload } from "@/lib/api";
+import { getCuisineLabel } from "@shared/api/constants";
 
 import { SourceBadge } from "./SourceBadge";
 
@@ -26,7 +27,8 @@ export function RecipeCard({
   const hasPrepTime = recipe.prepTime != null;
   const hasCookTime = recipe.cookTime != null;
   const hasRating = recipe.rating != null;
-  const showMeta = hasDifficulty || hasPrepTime || hasCookTime || hasRating;
+  const cuisineLabel = getCuisineLabel(recipe.cuisine);
+  const showMeta = Boolean(cuisineLabel) || hasDifficulty || hasPrepTime || hasCookTime || hasRating;
 
   return (
     <article className={`rounded-card border border-cream-dark bg-white p-3 shadow-sm transition-all sm:p-4 ${selected ? "ring-2 ring-green ring-offset-2" : ""}`}>
@@ -107,6 +109,11 @@ export function RecipeCard({
       </p>
       {showMeta ? (
         <div className="mt-2.5 flex flex-wrap gap-x-2.5 gap-y-1 text-[11px] font-medium sm:text-xs">
+          {cuisineLabel ? (
+            <span className="rounded-full bg-green-pale px-2 py-1 text-green">
+              {cuisineLabel}
+            </span>
+          ) : null}
           {hasDifficulty ? (
             <span className="rounded-full bg-orange/15 px-2 py-1 text-orange">
               {recipe.difficulty}

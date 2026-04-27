@@ -17,6 +17,7 @@ export type MealSnapshot = {
   notes: string | null;
   ingredients: MealIngredient[];
   description?: string | null;
+  cuisine?: string | null;
   instructions?: string[];
   servings?: number;
   prepTime?: number | null;
@@ -126,6 +127,7 @@ function createMealApi(snapshot: MealSnapshot) {
       notes: snapshot.notes,
       ingredients: snapshot.ingredients,
       description: snapshot.description,
+      cuisine: snapshot.cuisine,
       instructions: snapshot.instructions,
       servings: snapshot.servings,
       prepTime: snapshot.prepTime,

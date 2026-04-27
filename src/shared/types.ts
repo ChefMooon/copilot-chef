@@ -123,6 +123,7 @@ export type MealPayload = {
   notes: string | null;
   ingredients: MealIngredient[];
   description: string | null;
+  cuisine: string | null;
   instructions: string[];
   servings: number;
   prepTime: number | null;
@@ -136,6 +137,7 @@ export type MealPayload = {
     servings: number;
     prepTime: number | null;
     cookTime: number | null;
+    cuisine: string | null;
     instructions: string[];
     cookNotes: string | null;
     ingredients: MealIngredient[];

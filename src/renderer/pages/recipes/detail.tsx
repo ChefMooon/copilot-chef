@@ -33,6 +33,7 @@ function RecipeDetailContent({
     title: recipe.title,
     description: recipe.description,
     difficulty: recipe.difficulty,
+    cuisine: recipe.cuisine,
     servings: recipe.servings,
     prepTime: recipe.prepTime,
     cookTime: recipe.cookTime,

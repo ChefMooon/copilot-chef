@@ -12,6 +12,7 @@ import {
 import { type RecipePayload } from "@/lib/api";
 import { RECIPE_INGREDIENT_UNITS } from "@/lib/ingredient-units";
 import type { MealIngredient, MealTypeProfilePayload } from "@shared/types";
+import { CUISINE_OPTIONS, getCuisineLabel } from "@shared/api/constants";
 
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { RecipeSearchModal } from "./RecipeSearchModal";
@@ -247,6 +248,7 @@ export function EditModal({
       servings: recipe.servings,
       prepTime: recipe.prepTime,
       cookTime: recipe.cookTime,
+      cuisine: recipe.cuisine,
       ingredients: recipe.ingredients.map((ingredient, index) => ({
         name: ingredient.name,
         quantity:
@@ -273,6 +275,7 @@ export function EditModal({
           ? options.servings
           : null,
       recipeId: recipe.id,
+      cuisine: recipe.cuisine,
       linkedRecipe: summary,
       notes:
         metadataLines.length > 0
@@ -284,6 +287,7 @@ export function EditModal({
   };
 
   const mealTypes = getMealTypeDefinitionsForDate(form.date, mealTypeProfiles);
+  const linkedCuisineLabel = getCuisineLabel(linkedRecipe?.cuisine);
   const mealTypeConfig = buildTypeConfig(mealTypes);
   const typeConfig =
     mealTypeConfig[form.type] ?? {
@@ -386,6 +390,7 @@ export function EditModal({
                     </span>
                     <span className={styles.linkedRecipeMeta}>
                       Recipe serves {linkedRecipe.servings}
+                      {linkedCuisineLabel ? ` · ${linkedCuisineLabel}` : ""}
                       {form.servingsOverride &&
                       form.servingsOverride !== linkedRecipe.servings
                         ? ` · This meal plans ${form.servingsOverride}`
@@ -479,6 +484,12 @@ export function EditModal({
                       <span className={styles.linkedRecipeStatLabel}>Recipe Servings</span>
                       <span className={styles.linkedRecipeStatValue}>{linkedRecipe.servings}</span>
                     </div>
+                    {linkedCuisineLabel ? (
+                      <div className={styles.linkedRecipeStatCard}>
+                        <span className={styles.linkedRecipeStatLabel}>Cuisine</span>
+                        <span className={styles.linkedRecipeStatValue}>{linkedCuisineLabel}</span>
+                      </div>
+                    ) : null}
                     <div className={styles.linkedRecipeStatCard}>
                       <span className={styles.linkedRecipeStatLabel}>Prep</span>
                       <span className={styles.linkedRecipeStatValue}>
@@ -607,6 +618,27 @@ export function EditModal({
                       rows={2}
                       value={form.description}
                     />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel} htmlFor="meal-cuisine-select">
+                      Cuisine
+                    </label>
+                    <select
+                      className={styles.formInput}
+                      id="meal-cuisine-select"
+                      onChange={(event) =>
+                        setField("cuisine", event.target.value || null)
+                      }
+                      value={form.cuisine ?? ""}
+                    >
+                      <option value="">No cuisine</option>
+                      {CUISINE_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className={styles.formRow}>
