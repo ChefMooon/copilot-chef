@@ -217,6 +217,17 @@ const recipeUnitOptions = [
   { label: "Grams", value: "grams" },
 ];
 
+type TabId = "dietary-profile" | "meal-plans" | "your-chef" | "app-settings";
+
+const TABS: Array<{ id: TabId; label: string; panelId: string }> = [
+  { id: "dietary-profile", label: "Dietary Profile", panelId: "panel-dietary-profile" },
+  { id: "meal-plans", label: "Meal Plans", panelId: "panel-meal-plans" },
+  { id: "your-chef", label: "Your Chef", panelId: "panel-your-chef" },
+  { id: "app-settings", label: "App Settings", panelId: "panel-app-settings" },
+];
+
+const TAB_IDS = TABS.map((t) => t.id);
+
 type ArrayPreferenceField =
   | "dietaryTags"
   | "favoriteCuisines"
@@ -328,6 +339,46 @@ export default function SettingsPage() {
   const [updatesCheckOnStartup, setUpdatesCheckOnStartup] = useState(true);
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
   const [manualUpdateCheckPending, setManualUpdateCheckPending] = useState(false);
+
+  // Tab navigation
+  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  function getInitialTab(): TabId {
+    try {
+      const stored = window.localStorage.getItem("settings-active-tab");
+      if (stored && (TAB_IDS as string[]).includes(stored)) return stored as TabId;
+    } catch {
+      // ignore storage failures
+    }
+    return "dietary-profile";
+  }
+
+  const [activeTab, setActiveTabState] = useState<TabId>(getInitialTab);
+
+  function setActiveTab(id: TabId) {
+    setActiveTabState(id);
+    try {
+      window.localStorage.setItem("settings-active-tab", id);
+    } catch {
+      // ignore storage failures
+    }
+  }
+
+  function handleTabKeyDown(
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    index: number
+  ) {
+    let next: number | null = null;
+    if (e.key === "ArrowRight") next = (index + 1) % TABS.length;
+    else if (e.key === "ArrowLeft") next = (index - 1 + TABS.length) % TABS.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = TABS.length - 1;
+    if (next !== null) {
+      e.preventDefault();
+      setActiveTab(TABS[next].id);
+      tabRefs.current[next]?.focus();
+    }
+  }
 
   // Load connection config on mount
   useEffect(() => {
@@ -853,119 +904,435 @@ export default function SettingsPage() {
         </div>
       </header>
 
-      <CollapsibleSection id="connection" label="Connection">
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>Server connection</h2>
-            <p className={styles.cardDescription}>
-              Configure the Copilot Chef server URL and authentication.
-            </p>
-          </div>
-          <div className={styles.toggleList} style={{ marginBottom: "1rem" }}>
-            <ToggleRow
-              checked={connectionDraft.mode === "remote"}
-              label="Remote mode"
-              description="Connect to a remote Copilot Chef server instead of the built-in one."
-              onChange={(checked) =>
-                setConnectionDraft((prev) => ({
-                  ...prev,
-                  mode: checked ? "remote" : "local",
-                }))
-              }
-            />
-            <ToggleRow
-              checked={updatesCheckOnStartup}
-              label="Check for updates at startup"
-              description="Automatically check for app updates on launch (packaged app only)."
-              onChange={(checked) =>
-                void handleToggleStartupUpdateCheck(checked)
-              }
-            />
-          </div>
-          {connectionDraft.mode === "remote" && (
+      {/* ── Tab strip ── */}
+      <div role="tablist" aria-label="Settings sections" className={styles.tabStrip}>
+        {TABS.map((tab, index) => (
+          <button
+            key={tab.id}
+            id={tab.id}
+            role="tab"
+            aria-selected={activeTab === tab.id}
+            aria-controls={tab.panelId}
+            tabIndex={activeTab === tab.id ? 0 : -1}
+            className={cn(
+              styles.tabButton,
+              activeTab === tab.id && styles.tabButtonActive
+            )}
+            onClick={() => setActiveTab(tab.id)}
+            onKeyDown={(e) => handleTabKeyDown(e, index)}
+            ref={(el) => {
+              tabRefs.current[index] = el;
+            }}
+            type="button"
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Tab 2: Meal Plans ── */}
+      <div
+        id="panel-meal-plans"
+        role="tabpanel"
+        aria-labelledby="meal-plans"
+        hidden={activeTab !== "meal-plans"}
+        className={styles.tabPanel}
+      >
+        <p className={styles.tabDescription}>
+          Manage meal-plan profiles for different routines or seasons.
+        </p>
+        <MealTypesSection />
+      </div>
+
+      {/* ── Tab 1: Dietary Profile ── */}
+      <div
+        id="panel-dietary-profile"
+        role="tabpanel"
+        aria-labelledby="dietary-profile"
+        hidden={activeTab !== "dietary-profile"}
+        className={styles.tabPanel}
+      >
+        <p className={styles.tabDescription}>
+          Tell Copilot Chef your household, dietary needs, cuisines, pantry
+          defaults, and nutrition goals.
+        </p>
+        <CollapsibleSection id="dietary-tab" label="Dietary Profile">
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Household</h2>
+            </div>
             <div className={styles.twoColumn}>
               <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>Server URL</label>
-                <input
-                  className={styles.select}
-                  type="text"
-                  value={connectionDraft.serverUrl}
-                  onChange={(event) =>
-                    setConnectionDraft((prev) => ({
-                      ...prev,
-                      serverUrl: event.target.value,
-                    }))
-                  }
-                  placeholder="http://localhost:3001"
-                />
+                <label className={styles.fieldLabel}>Household size</label>
+                <div className={styles.rangeRow}>
+                  <input
+                    className={styles.rangeInput}
+                    max={8}
+                    min={1}
+                    onChange={(event) =>
+                      scheduleHouseholdSave(Number(event.target.value))
+                    }
+                    step={1}
+                    type="range"
+                    value={householdSizeDraft}
+                  />
+                  <div className={styles.rangeValue}>{householdSizeDraft}</div>
+                </div>
               </div>
               <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>Auth token</label>
-                <input
+                <label className={styles.fieldLabel}>
+                  Preferred cooking length
+                </label>
+                <select
                   className={styles.select}
-                  type="password"
-                  value={connectionDraft.token}
                   onChange={(event) =>
-                    setConnectionDraft((prev) => ({
-                      ...prev,
-                      token: event.target.value,
-                    }))
+                    void handleImmediateField("cookingLength", event.target.value)
                   }
-                  placeholder="Leave blank if not required"
+                  value={preferences.cookingLength}
+                >
+                  {cookingLengthOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Dietary direction</h2>
+            </div>
+            <TagCloud
+              onToggle={(value) =>
+                void handleImmediateArrayToggle("dietaryTags", value)
+              }
+              options={dietaryOptions}
+              selectedValues={preferences.dietaryTags}
+            />
+          </div>
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Cuisines</h2>
+            </div>
+            <div className={styles.cuisineColumns}>
+              <div className={styles.cuisineColumn}>
+                <div className={styles.columnHeading}>Favorites</div>
+                <TagCloud
+                  onToggle={(value) =>
+                    void handleCuisineToggle("favoriteCuisines", value)
+                  }
+                  options={cuisineOptions}
+                  selectedValues={preferences.favoriteCuisines}
+                  tone="orange"
+                />
+              </div>
+              <div className={styles.cuisineColumn}>
+                <div className={styles.columnHeading}>Avoid</div>
+                <TagCloud
+                  onToggle={(value) =>
+                    void handleCuisineToggle("avoidCuisines", value)
+                  }
+                  options={cuisineOptions}
+                  selectedValues={preferences.avoidCuisines}
+                  tone="red"
                 />
               </div>
             </div>
-          )}
-          <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
-            <label className={styles.fieldLabel}>AI model <span style={{ fontWeight: 400, opacity: 0.6 }}>(requires restart)</span></label>
-            <select
-              className={styles.select}
-              value={copilotModelDraft}
-              onChange={(event) => setCopilotModelDraft(event.target.value)}
-            >
-              {copilotModelOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
           </div>
-          <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
-            <label className={styles.fieldLabel}>Machine API key</label>
-            <input
-              className={styles.select}
-              type="password"
-              value={machineApiKeyDraft}
-              onChange={(event) => setMachineApiKeyDraft(event.target.value)}
-              placeholder="Token for external PA / automation access"
+          <div className={styles.card}>
+            <div className={styles.chipColumns}>
+              <ChipList
+                description="Allergies or hard avoidances. Drag to reprioritize."
+                items={preferences.avoidIngredients}
+                onAdd={(values) => void handleChipAdd("avoidIngredients", values)}
+                onRemove={(value) =>
+                  void handleChipRemove("avoidIngredients", value)
+                }
+                onReorder={(values) =>
+                  void handleChipReorder("avoidIngredients", values)
+                }
+                placeholder="e.g. peanuts, shellfish"
+                title="Avoid ingredients"
+              />
+              <ChipList
+                description="Always in stock - skip from grocery lists. Drag to reorder."
+                items={preferences.pantryStaples}
+                onAdd={(values) => void handleChipAdd("pantryStaples", values)}
+                onRemove={(value) =>
+                  void handleChipRemove("pantryStaples", value)
+                }
+                onReorder={(values) =>
+                  void handleChipReorder("pantryStaples", values)
+                }
+                placeholder="e.g. olive oil, garlic"
+                title="Pantry staples"
+              />
+            </div>
+          </div>
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Planning notes</h2>
+              <p className={styles.cardDescription}>
+                Free-form context the AI uses when generating plans.
+              </p>
+            </div>
+            <textarea
+              className={styles.textarea}
+              onChange={(event) => scheduleNotesSave(event.target.value)}
+              value={planningNotesDraft}
             />
           </div>
-          <div className={styles.actionsRow} style={{ marginTop: "1rem" }}>
-            <Button
-              disabled={connectionSaving}
-              onClick={() => void handleSaveConnection()}
-              type="button"
-              variant="outline"
-            >
-              {connectionSaving
-                ? "Saving…"
-                : connectionSaved
-                  ? "Saved ✓"
-                  : "Save connection"}
-            </Button>
-            <Button
-              disabled={checkingForUpdates}
-              onClick={() => void handleCheckForUpdates()}
-              type="button"
-              variant="outline"
-            >
-              {checkingForUpdates ? "Checking…" : "Check for updates"}
-            </Button>
+        </CollapsibleSection>
+        <CollapsibleSection id="nutrition" label="Nutrition & Goals">
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Nutrition focus</h2>
+            </div>
+            <TagCloud
+              onToggle={(value) =>
+                void handleImmediateArrayToggle("nutritionTags", value)
+              }
+              options={nutritionOptions}
+              selectedValues={preferences.nutritionTags}
+            />
           </div>
-        </div>
-      </CollapsibleSection>
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Skill & budget</h2>
+            </div>
+            <div className={styles.twoColumn}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Cooking skill level</label>
+                <select
+                  className={styles.select}
+                  onChange={(event) =>
+                    void handleImmediateField("skillLevel", event.target.value)
+                  }
+                  value={preferences.skillLevel}
+                >
+                  {skillOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Budget range</label>
+                <select
+                  className={styles.select}
+                  onChange={(event) =>
+                    void handleImmediateField("budgetRange", event.target.value)
+                  }
+                  value={preferences.budgetRange}
+                >
+                  {budgetOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        </CollapsibleSection>
+      </div>
 
-      <MealTypesSection />
+      {/* ── Tab 3: Your Chef ── */}
+      <div
+        id="panel-your-chef"
+        role="tabpanel"
+        aria-labelledby="your-chef"
+        hidden={activeTab !== "your-chef"}
+        className={styles.tabPanel}
+      >
+        <p className={styles.tabDescription}>
+          Choose the assistant personality and response style that make cooking
+          help feel right for you.
+        </p>
+        <CollapsibleSection id="chef" label="Your Chef">
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Chef personality</h2>
+              <p className={styles.cardDescription}>
+                Choose how your AI chef talks to you.
+              </p>
+            </div>
+            <PersonaGrid
+              onCreateCustom={() =>
+                setPersonaModalState({ open: true, mode: "create" })
+              }
+              onEditCustom={(id) => {
+                const persona = customPersonas.find((p) => p.id === id);
+                if (persona)
+                  setPersonaModalState({ open: true, mode: "edit", persona });
+              }}
+              onSelect={(value) =>
+                void handleImmediateField("chefPersona", value)
+              }
+              options={allPersonaOptions}
+              value={preferences.chefPersona}
+            />
+          </div>
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Response style</h2>
+            </div>
+            <div className={styles.twoColumn}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Default reply length</label>
+                <SegmentedControl
+                  onChange={(value) =>
+                    void handleImmediateField("replyLength", value)
+                  }
+                  options={replyLengthOptions}
+                  value={preferences.replyLength}
+                />
+              </div>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>
+                  Use of emoji in responses
+                </label>
+                <SegmentedControl
+                  onChange={(value) =>
+                    void handleImmediateField("emojiUsage", value)
+                  }
+                  options={emojiOptions}
+                  value={preferences.emojiUsage}
+                />
+              </div>
+            </div>
+          </div>
+        </CollapsibleSection>
+      </div>
+
+      {/* ── Tab 4: App Settings ── */}
+      <div
+        id="panel-app-settings"
+        role="tabpanel"
+        aria-labelledby="app-settings"
+        hidden={activeTab !== "app-settings"}
+        className={styles.tabPanel}
+      >
+        <p className={styles.tabDescription}>
+          Configure connection details, automation access, app behavior,
+          planning defaults, and privacy controls.
+        </p>
+        <CollapsibleSection id="connection" label="Connection">
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Server connection</h2>
+              <p className={styles.cardDescription}>
+                Configure the Copilot Chef server URL and authentication.
+              </p>
+            </div>
+            <div className={styles.toggleList} style={{ marginBottom: "1rem" }}>
+              <ToggleRow
+                checked={connectionDraft.mode === "remote"}
+                label="Remote mode"
+                description="Connect to a remote Copilot Chef server instead of the built-in one."
+                onChange={(checked) =>
+                  setConnectionDraft((prev) => ({
+                    ...prev,
+                    mode: checked ? "remote" : "local",
+                  }))
+                }
+              />
+              <ToggleRow
+                checked={updatesCheckOnStartup}
+                label="Check for updates at startup"
+                description="Automatically check for app updates on launch (packaged app only)."
+                onChange={(checked) =>
+                  void handleToggleStartupUpdateCheck(checked)
+                }
+              />
+            </div>
+            {connectionDraft.mode === "remote" && (
+              <div className={styles.twoColumn}>
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel}>Server URL</label>
+                  <input
+                    className={styles.select}
+                    type="text"
+                    value={connectionDraft.serverUrl}
+                    onChange={(event) =>
+                      setConnectionDraft((prev) => ({
+                        ...prev,
+                        serverUrl: event.target.value,
+                      }))
+                    }
+                    placeholder="http://localhost:3001"
+                  />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel}>Auth token</label>
+                  <input
+                    className={styles.select}
+                    type="password"
+                    value={connectionDraft.token}
+                    onChange={(event) =>
+                      setConnectionDraft((prev) => ({
+                        ...prev,
+                        token: event.target.value,
+                      }))
+                    }
+                    placeholder="Leave blank if not required"
+                  />
+                </div>
+              </div>
+            )}
+            <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
+              <label className={styles.fieldLabel}>
+                AI model{" "}
+                <span style={{ fontWeight: 400, opacity: 0.6 }}>(requires restart)</span>
+              </label>
+              <select
+                className={styles.select}
+                value={copilotModelDraft}
+                onChange={(event) => setCopilotModelDraft(event.target.value)}
+              >
+                {copilotModelOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
+              <label className={styles.fieldLabel}>Machine API key</label>
+              <input
+                className={styles.select}
+                type="password"
+                value={machineApiKeyDraft}
+                onChange={(event) => setMachineApiKeyDraft(event.target.value)}
+                placeholder="Token for external PA / automation access"
+              />
+            </div>
+            <div className={styles.actionsRow} style={{ marginTop: "1rem" }}>
+              <Button
+                disabled={connectionSaving}
+                onClick={() => void handleSaveConnection()}
+                type="button"
+                variant="outline"
+              >
+                {connectionSaving
+                  ? "Saving…"
+                  : connectionSaved
+                    ? "Saved ✓"
+                    : "Save connection"}
+              </Button>
+              <Button
+                disabled={checkingForUpdates}
+                onClick={() => void handleCheckForUpdates()}
+                type="button"
+                variant="outline"
+              >
+                {checkingForUpdates ? "Checking…" : "Check for updates"}
+              </Button>
+            </div>
+          </div>
+        </CollapsibleSection>
 
       <CollapsibleSection id="dietary" label="Dietary Profile">
         <div className={styles.card}>
@@ -1041,7 +1408,6 @@ export default function SettingsPage() {
                 tone="orange"
               />
             </div>
-            <div className={styles.cuisineDivider} />
             <div className={styles.cuisineColumn}>
               <div className={styles.columnHeading}>Avoid</div>
               <TagCloud
@@ -1213,7 +1579,7 @@ export default function SettingsPage() {
         </div>
       </CollapsibleSection>
 
-      <CollapsibleSection id="app" label="App Settings">
+        <CollapsibleSection id="app" label="App Settings">
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <h2 className={styles.cardTitle}>AI behavior</h2>
@@ -1484,6 +1850,7 @@ export default function SettingsPage() {
           </div>
         </div>
       </CollapsibleSection>
+      </div>
 
       {personaModalState.open && (
         <PersonaModal

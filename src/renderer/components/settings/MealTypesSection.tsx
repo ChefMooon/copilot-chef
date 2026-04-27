@@ -362,7 +362,7 @@ export function MealTypesSection() {
   };
 
   return (
-    <CollapsibleSection id="meal-types" label="Meal Types">
+    <CollapsibleSection id="meal-types" label="Meal Plans">
       {profilesQuery.isLoading ? (
         <div className={styles.card}>Loading meal type profiles…</div>
       ) : null}
