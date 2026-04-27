@@ -2,6 +2,7 @@ import { useEffect, useState, type MouseEvent } from "react";
 
 import {
   buildMonthCellAriaLabel,
+  createMealSlots,
   formatMealTypeProfileRange,
   getMealTypeProfileContext,
   getMealTypeOrder,
@@ -84,6 +85,10 @@ export function MonthView({
   const popoverProfileContext = popover
     ? getMealTypeProfileContext(popover.date, mealTypeProfiles)
     : null;
+  const popoverMeals = popover ? mealsForDay(meals, popover.date, popoverMealTypes) : [];
+  const popoverVisibleMealTypes = popover
+    ? createMealSlots(meals, popover.date, popoverMealTypes).map((slot) => slot.type)
+    : [];
 
   return (
     <div className={styles.monthView}>
@@ -222,7 +227,7 @@ export function MonthView({
             </div>
             {popoverProfileContext ? (
               <div className={styles.popoverMealTypes}>
-                {getMealTypeOrder(popoverProfileContext.mealTypes).map((type) => {
+                {popoverVisibleMealTypes.map((type) => {
                   const typeConfig = getTypeConfig(type, popoverProfileContext.mealTypes);
 
                   return (
@@ -238,10 +243,10 @@ export function MonthView({
               </div>
             ) : null}
             <div className={styles.popoverMeals}>
-              {mealsForDay(meals, popover.date, popoverMealTypes).length === 0 ? (
+              {popoverMeals.length === 0 ? (
                 <div className={styles.popoverEmptyState}>No meals planned.</div>
               ) : (
-                mealsForDay(meals, popover.date, popoverMealTypes).map((meal) => {
+                popoverMeals.map((meal) => {
                   const typeConfig = getTypeConfig(meal.type, popoverMealTypes);
                   return (
                     <button

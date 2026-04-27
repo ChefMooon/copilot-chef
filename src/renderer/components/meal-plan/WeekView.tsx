@@ -102,7 +102,21 @@ export function WeekView({
     () => mergeMealTypeDefinitions(slotsByDay.map(({ mealTypes }) => mealTypes)),
     [slotsByDay]
   );
-  const rowMealTypes = mergedMealTypes.map((definition) => definition.slug);
+  const rowMealTypes = useMemo(() => {
+    const types = Array.from(
+      new Set(slotsByDay.flatMap(({ slots }) => slots.map((slot) => slot.type)))
+    );
+
+    return types.sort((left, right) => {
+      const leftConfig = getTypeConfig(left, mergedMealTypes);
+      const rightConfig = getTypeConfig(right, mergedMealTypes);
+
+      return (
+        leftConfig.sortOrder - rightConfig.sortOrder ||
+        leftConfig.label.localeCompare(rightConfig.label)
+      );
+    });
+  }, [mergedMealTypes, slotsByDay]);
   const draggedMeal = weekMeals.find((meal) => meal.id === draggedMealId) ?? null;
 
   const clearDragState = () => {
@@ -220,16 +234,13 @@ export function WeekView({
                         {typeConfig.label}
                       </span>
                     </div>
-                    {slotsByDay.map(({ day, mealTypes, slots }, index) => {
+                    {slotsByDay.map(({ day, slots }, index) => {
                       const todayMatch = isSameDay(day, today);
                       const slot = slots.find(
                         (currentSlot) => currentSlot.type === type
                       );
                       const slotMeals = slot?.meals ?? [];
-                      const isConfiguredType = mealTypes.some(
-                        (definition) => definition.slug === type
-                      );
-                      const isUnavailable = !isConfiguredType && slotMeals.length === 0;
+                      const isUnavailable = !slot;
                       const emptyTargetKey = `week-slot-${day.toISOString()}-${type}`;
                       const profileContext = dayProfileContexts[index];
                       const isMuted =

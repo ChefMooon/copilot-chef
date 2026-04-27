@@ -84,6 +84,73 @@ const weekendProfile: MealTypeProfilePayload = {
   ],
 };
 
+const filteredProfile: MealTypeProfilePayload = {
+  id: "filtered-profile",
+  name: "Filtered",
+  color: "#355D4E",
+  description: "Only breakfast and dinner enabled",
+  isDefault: true,
+  priority: 0,
+  startDate: null,
+  endDate: null,
+  createdAt: "2026-04-01T00:00:00.000Z",
+  updatedAt: "2026-04-01T00:00:00.000Z",
+  mealTypes: [
+    {
+      id: "filtered-breakfast",
+      profileId: "filtered-profile",
+      name: "Breakfast",
+      slug: "breakfast",
+      color: "#E8885A",
+      enabled: true,
+      sortOrder: 0,
+      createdAt: "2026-04-01T00:00:00.000Z",
+      updatedAt: "2026-04-01T00:00:00.000Z",
+    },
+    {
+      id: "filtered-lunch",
+      profileId: "filtered-profile",
+      name: "Lunch",
+      slug: "lunch",
+      color: "#4F8A62",
+      enabled: false,
+      sortOrder: 1,
+      createdAt: "2026-04-01T00:00:00.000Z",
+      updatedAt: "2026-04-01T00:00:00.000Z",
+    },
+    {
+      id: "filtered-dinner",
+      profileId: "filtered-profile",
+      name: "Dinner",
+      slug: "dinner",
+      color: "#3B5E45",
+      enabled: true,
+      sortOrder: 2,
+      createdAt: "2026-04-01T00:00:00.000Z",
+      updatedAt: "2026-04-01T00:00:00.000Z",
+    },
+  ],
+};
+
+const disabledTypeMeal: EditableMeal = {
+  id: "meal-disabled-lunch",
+  name: "Leftover Lunch",
+  date: new Date("2026-04-22T12:00:00"),
+  type: "lunch",
+  mealTypeDefinitionId: "filtered-lunch",
+  mealTypeDefinition: filteredProfile.mealTypes[1],
+  notes: "planned earlier",
+  ingredients: [],
+  description: "",
+  instructions: [],
+  servings: 1,
+  prepTime: null,
+  cookTime: null,
+  servingsOverride: null,
+  recipeId: null,
+  linkedRecipe: null,
+};
+
 const sampleMeals: EditableMeal[] = [
   {
     id: "meal-1",
@@ -160,6 +227,49 @@ describe("profile-aware meal plan views", () => {
     expect(screen.getByText("Brunch")).toBeTruthy();
   });
 
+  it("shows only enabled meal type chips in month popover when no meals exist", () => {
+    render(
+      <MonthView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[filteredProfile]}
+        setDate={vi.fn()}
+        onEdit={vi.fn()}
+      />
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Wednesday, April 22.*Active profile Filtered.*No meals planned\./i,
+      })
+    );
+
+    expect(screen.getByText("Breakfast")).toBeTruthy();
+    expect(screen.getByText("Dinner")).toBeTruthy();
+    expect(screen.queryByText("Lunch")).toBeNull();
+  });
+
+  it("keeps disabled meal type chips visible in month popover when meals exist in that type", () => {
+    render(
+      <MonthView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={[disabledTypeMeal]}
+        mealTypeProfiles={[filteredProfile]}
+        setDate={vi.fn()}
+        onEdit={vi.fn()}
+      />
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Wednesday, April 22.*Active profile Filtered.*1 meal planned\./i,
+      })
+    );
+
+    expect(screen.getAllByText("Lunch").length).toBeGreaterThan(0);
+    expect(screen.getByText("Leftover Lunch")).toBeTruthy();
+  });
+
   it("dims non-matching month cells when a profile is focused", () => {
     render(
       <MonthView
@@ -183,6 +293,39 @@ describe("profile-aware meal plan views", () => {
     expect(weekendDayButton.className).not.toContain(styles.monthProfileMuted);
   });
 
+  it("shows only enabled rows in week view unless a disabled type has planned meals", () => {
+    const { rerender } = render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[filteredProfile]}
+        setDate={vi.fn()}
+        onEdit={vi.fn()}
+        onMoveMeal={vi.fn().mockResolvedValue(undefined)}
+        onSwapMeals={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getByText("Breakfast")).toBeTruthy();
+    expect(screen.getByText("Dinner")).toBeTruthy();
+    expect(screen.queryByText("Lunch")).toBeNull();
+
+    rerender(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={[disabledTypeMeal]}
+        mealTypeProfiles={[filteredProfile]}
+        setDate={vi.fn()}
+        onEdit={vi.fn()}
+        onMoveMeal={vi.fn().mockResolvedValue(undefined)}
+        onSwapMeals={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getByText("Lunch")).toBeTruthy();
+    expect(screen.getByText("Leftover Lunch")).toBeTruthy();
+  });
+
   it("dims the day view when the focused profile is not active on the selected date", () => {
     const { container } = render(
       <DayView
@@ -200,5 +343,40 @@ describe("profile-aware meal plan views", () => {
     const dayViewRoot = container.firstElementChild;
 
     expect(dayViewRoot?.className).toContain(styles.dayProfileMuted);
+  });
+
+  it("shows only enabled slots in day view unless a disabled type has planned meals", () => {
+    const { rerender } = render(
+      <DayView
+        date={new Date("2026-04-22T12:00:00")}
+        highlightedProfileId={null}
+        meals={[]}
+        mealTypeProfiles={[filteredProfile]}
+        setDate={vi.fn()}
+        onEdit={vi.fn()}
+        onMoveMeal={vi.fn().mockResolvedValue(undefined)}
+        onSwapMeals={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getByText("Breakfast")).toBeTruthy();
+    expect(screen.getByText("Dinner")).toBeTruthy();
+    expect(screen.queryByText("Lunch")).toBeNull();
+
+    rerender(
+      <DayView
+        date={new Date("2026-04-22T12:00:00")}
+        highlightedProfileId={null}
+        meals={[disabledTypeMeal]}
+        mealTypeProfiles={[filteredProfile]}
+        setDate={vi.fn()}
+        onEdit={vi.fn()}
+        onMoveMeal={vi.fn().mockResolvedValue(undefined)}
+        onSwapMeals={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getByText("Lunch")).toBeTruthy();
+    expect(screen.getByText("Leftover Lunch")).toBeTruthy();
   });
 });
