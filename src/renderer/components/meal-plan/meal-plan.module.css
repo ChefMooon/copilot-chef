@@ -715,6 +715,17 @@
   justify-content: flex-start;
 }
 
+.dayTimeline .emptySlotButton {
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.dayTimeline .emptySlotButton .btnAddSlot {
+  width: 100%;
+  height: 100%;
+  justify-content: flex-start;
+}
+
 .weekSlotStack {
   display: flex;
   flex-direction: column;
