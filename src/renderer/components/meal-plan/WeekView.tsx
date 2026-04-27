@@ -234,7 +234,7 @@ export function WeekView({
                         {typeConfig.label}
                       </span>
                     </div>
-                    {slotsByDay.map(({ day, slots }, index) => {
+                    {slotsByDay.map(({ day, mealTypes, slots }, index) => {
                       const todayMatch = isSameDay(day, today);
                       const slot = slots.find(
                         (currentSlot) => currentSlot.type === type

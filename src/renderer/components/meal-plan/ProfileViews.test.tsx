@@ -326,6 +326,34 @@ describe("profile-aware meal plan views", () => {
     expect(screen.getByText("Leftover Lunch")).toBeTruthy();
   });
 
+  it("opens add meal from week view with the correct day and meal type", () => {
+    const onEdit = vi.fn();
+
+    render(
+      <WeekView
+        date={new Date("2026-04-17T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[defaultProfile, weekendProfile]}
+        setDate={vi.fn()}
+        onEdit={onEdit}
+        onMoveMeal={vi.fn().mockResolvedValue(undefined)}
+        onSwapMeals={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    const addButtons = screen.getAllByRole("button", { name: "+ Add" });
+    fireEvent.click(addButtons[0]);
+
+    expect(onEdit).toHaveBeenCalledTimes(1);
+
+    const payload = onEdit.mock.calls[0]?.[0] as EditableMeal;
+    expect(payload.type).toBe("breakfast");
+    expect(payload.mealTypeDefinitionId).toBe("default-breakfast");
+    expect(payload.date.getFullYear()).toBe(2026);
+    expect(payload.date.getMonth()).toBe(3);
+    expect(payload.date.getDate()).toBe(13);
+  });
+
   it("dims the day view when the focused profile is not active on the selected date", () => {
     const { container } = render(
       <DayView
