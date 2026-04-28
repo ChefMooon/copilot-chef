@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router";
 
@@ -27,6 +28,16 @@ function RecipeDetailContent({
   defaultUnitMode: "cup" | "grams";
   defaultView: "basic" | "detailed" | "cooking";
 }) {
+  const [liveState, setLiveState] = useState<{
+    activeView: "basic" | "detailed" | "cooking";
+    activeUnitMode: "cup" | "grams";
+    cookingStepNumber: number | null;
+  }>({
+    activeView: defaultView,
+    activeUnitMode: defaultUnitMode,
+    cookingStepNumber: defaultView === "cooking" ? 1 : null,
+  });
+
   useChatPageContext({
     page: "recipe-detail",
     recipeId: recipe.id,
@@ -46,12 +57,16 @@ function RecipeDetailContent({
       quantity: ingredient.quantity,
       unit: ingredient.unit,
     })),
+    activeView: liveState.activeView,
+    activeUnitMode: liveState.activeUnitMode,
+    cookingStepNumber: liveState.cookingStepNumber,
   });
 
   return (
     <RecipeDetail
       defaultUnitMode={defaultUnitMode}
       defaultView={defaultView}
+      onContextStateChange={setLiveState}
       recipe={recipe}
     />
   );

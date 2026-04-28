@@ -1,14 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type CookingModeProps = {
   steps: string[];
   onClose: () => void;
+  stepNumber: number;
+  onStepNumberChange: (value: number) => void;
 };
 
-export function CookingMode({ steps, onClose }: CookingModeProps) {
-  const [index, setIndex] = useState(0);
+export function CookingMode({
+  steps,
+  onClose,
+  stepNumber,
+  onStepNumberChange,
+}: CookingModeProps) {
+  const [index, setIndex] = useState(Math.max(0, stepNumber - 1));
+
+  useEffect(() => {
+    setIndex(Math.max(0, stepNumber - 1));
+  }, [stepNumber]);
+
+  function setIndexAndStep(nextIndex: number) {
+    setIndex(nextIndex);
+    onStepNumberChange(nextIndex + 1);
+  }
 
   return (
     <div className="fixed inset-0 z-[700] bg-[rgba(44,36,22,0.72)] p-4 text-text md:p-6">
@@ -31,7 +47,9 @@ export function CookingMode({ steps, onClose }: CookingModeProps) {
           <button
             className="rounded-[10px] border border-cream-dark bg-white px-3 py-2 text-[0.82rem] font-bold text-text-muted shadow-card transition-colors hover:border-green-light hover:text-green disabled:cursor-not-allowed disabled:opacity-50"
             disabled={index === 0}
-            onClick={() => setIndex((current) => Math.max(0, current - 1))}
+            onClick={() =>
+              setIndexAndStep(Math.max(0, index - 1))
+            }
             type="button"
           >
             Previous
@@ -40,7 +58,7 @@ export function CookingMode({ steps, onClose }: CookingModeProps) {
             className="rounded-[10px] bg-green px-3 py-2 text-[0.82rem] font-bold text-white shadow-card transition-colors hover:bg-green-light disabled:cursor-not-allowed disabled:opacity-50"
             disabled={index >= steps.length - 1}
             onClick={() =>
-              setIndex((current) => Math.min(steps.length - 1, current + 1))
+              setIndexAndStep(Math.min(steps.length - 1, index + 1))
             }
             type="button"
           >

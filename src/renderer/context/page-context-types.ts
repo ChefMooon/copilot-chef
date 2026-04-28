@@ -87,11 +87,20 @@ export function serializePageContext(ctx: PageContext): string {
       const searchText = ctx.search.trim() ? ` Search: "${ctx.search.trim()}".` : "";
       const originText =
         ctx.origin === "all" ? " Origin filter: all." : ` Origin filter: ${ctx.origin}.`;
+      const editorText = ctx.recipeEditor
+        ? ctx.recipeEditor.isOpen
+          ? `\nRecipe editor is open in ${ctx.recipeEditor.mode} mode.`
+          : "\nRecipe editor is closed."
+        : "";
+      const draftText =
+        ctx.recipeEditor?.isOpen && ctx.recipeEditor.draft
+          ? ` Draft so far: title=\"${ctx.recipeEditor.draft.title || "(untitled)"}\", servings=${ctx.recipeEditor.draft.servings ?? "(unset)"}, ingredients=${ctx.recipeEditor.draft.ingredientCount}, instructions=${ctx.recipeEditor.draft.instructionCount}, cuisine=${ctx.recipeEditor.draft.cuisine ?? "(unset)"}, difficulty=${ctx.recipeEditor.draft.difficulty ?? "(unset)"}, tags=${ctx.recipeEditor.draft.tagsCount}.`
+          : "";
 
       return (
         `The user is on the Recipes page.${searchText}${originText}\n` +
         `Showing ${ctx.filteredRecipes} of ${ctx.totalRecipes} recipes.\n` +
-        `Visible recipes:\n${listLines}`
+        `Visible recipes:\n${listLines}${editorText}${draftText}`
       );
     }
     case "recipe-detail": {
@@ -121,6 +130,11 @@ export function serializePageContext(ctx: PageContext): string {
         ctx.rating !== null ? ` Rating: ${ctx.rating}/5.` : "";
       const tagsText =
         ctx.tags.length > 0 ? ` Tags: ${ctx.tags.join(", ")}.` : "";
+      const viewStateText =
+        ` Viewing mode: ${ctx.activeView}. Unit mode: ${ctx.activeUnitMode}.` +
+        (ctx.activeView === "cooking"
+          ? ` Current cooking step: ${ctx.cookingStepNumber ?? 1}.`
+          : "");
 
       return (
         `The user is viewing the recipe "${ctx.title}" (${ctx.origin}).` +
@@ -129,6 +143,7 @@ export function serializePageContext(ctx: PageContext): string {
         timingText +
         ratingText +
         tagsText +
+        viewStateText +
         descriptionText +
         `\nIngredients:\n${ingredientLines}`
       );

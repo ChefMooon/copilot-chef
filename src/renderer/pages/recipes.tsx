@@ -63,6 +63,16 @@ export default function RecipesPage() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<RecipePayload | null>(null);
   const [recipePendingDelete, setRecipePendingDelete] = useState<RecipePayload | null>(null);
+  const [recipeEditorDraft, setRecipeEditorDraft] = useState<{
+    title: string;
+    description: string | null;
+    servings: number | null;
+    ingredientCount: number;
+    instructionCount: number;
+    cuisine: string | null;
+    difficulty: string | null;
+    tagsCount: number;
+  } | null>(null);
 
   const recipesQuery = useQuery({
     queryKey: recipesKey,
@@ -149,6 +159,11 @@ export default function RecipesPage() {
       cuisine: recipe.cuisine,
       favourite: recipe.favourite,
     })),
+    recipeEditor: {
+      isOpen: showAddModal,
+      mode: editingRecipe ? "edit" : "add",
+      draft: recipeEditorDraft,
+    },
   });
 
   function toggleSelection(id: string) {
@@ -254,6 +269,7 @@ export default function RecipesPage() {
 
     await createMutation.mutateAsync(input);
     setShowAddModal(false);
+    setRecipeEditorDraft(null);
   }
 
   return (
@@ -355,7 +371,9 @@ export default function RecipesPage() {
           }
           setShowAddModal(false);
           setEditingRecipe(null);
+          setRecipeEditorDraft(null);
         }}
+        onDraftContextChange={setRecipeEditorDraft}
         onSave={handleSaveRecipe}
         open={showAddModal}
       />

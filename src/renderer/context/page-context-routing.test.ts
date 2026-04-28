@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { serializePageContext } from "./page-context-types";
-import { getMinimalContextForPath } from "./page-context-routing";
+import {
+  getActivePageContext,
+  getMinimalContextForPath,
+} from "./page-context-routing";
 
 describe("page context routing", () => {
   it("serializes recipe detail context", () => {
@@ -24,11 +27,48 @@ describe("page context routing", () => {
           unit: "slice",
         },
       ],
+      activeView: "detailed",
+      activeUnitMode: "grams",
+      cookingStepNumber: null,
     });
 
     expect(result).toContain("Sourdough Avocado Toast");
     expect(result).toContain("Ingredients");
     expect(result).toContain("2 slice sourdough");
+    expect(result).toContain("Viewing mode: detailed");
+    expect(result).toContain("Unit mode: grams");
+  });
+
+  it("serializes recipes editor draft context", () => {
+    const result = serializePageContext({
+      page: "recipes",
+      search: "taco",
+      origin: "all",
+      cuisine: "all",
+      totalRecipes: 10,
+      favouriteCount: 2,
+      filteredRecipes: 3,
+      showingFavouritesOnly: false,
+      visibleRecipes: [],
+      recipeEditor: {
+        isOpen: true,
+        mode: "add",
+        draft: {
+          title: "Taco Bowl",
+          description: null,
+          servings: 4,
+          ingredientCount: 6,
+          instructionCount: 4,
+          cuisine: "mexican",
+          difficulty: "Easy",
+          tagsCount: 2,
+        },
+      },
+    });
+
+    expect(result).toContain("Recipe editor is open");
+    expect(result).toContain("title=\"Taco Bowl\"");
+    expect(result).toContain("ingredients=6");
   });
 
   it("serializes shopping context", () => {
@@ -66,5 +106,16 @@ describe("page context routing", () => {
     expect(getMinimalContextForPath("/grocery-list/shop/abc123")).toBe(
       "The user is on the Shopping Mode page, working through a grocery list."
     );
+  });
+
+  it("returns active page context only when stored path matches", () => {
+    const context = {
+      page: "settings" as const,
+    };
+
+    expect(getActivePageContext("/settings", context, "/settings")).toEqual(
+      context
+    );
+    expect(getActivePageContext("/recipes", context, "/settings")).toBeNull();
   });
 });

@@ -62,6 +62,16 @@ type AddRecipeModalProps = {
   onClose: () => void;
   onSave: (input: CreateRecipeInput) => Promise<void>;
   onConflict?: (conflict: RecipeConflict) => void;
+  onDraftContextChange?: (draft: {
+    title: string;
+    description: string | null;
+    servings: number | null;
+    ingredientCount: number;
+    instructionCount: number;
+    cuisine: string | null;
+    difficulty: string | null;
+    tagsCount: number;
+  } | null) => void;
 };
 
 function createEmptyIngredient(): IngredientDraft {
@@ -149,6 +159,7 @@ export function AddRecipeModal({
   onClose,
   onSave,
   onConflict,
+  onDraftContextChange,
 }: AddRecipeModalProps) {
   const { toast } = useToast();
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -247,6 +258,54 @@ export function AddRecipeModal({
     () => flattenIngredientGroups(form.ingredientGroups),
     [form.ingredientGroups]
   );
+
+  useEffect(() => {
+    if (!onDraftContextChange) {
+      return;
+    }
+
+    if (!open) {
+      onDraftContextChange(null);
+      return;
+    }
+
+    const parsedServings = Number.parseInt(form.servings, 10);
+    const instructionCount = instructionList.filter(
+      (step) => step.trim().length > 0
+    ).length;
+    const ingredientCount = flattenedIngredients.filter(
+      (ingredient) => ingredient.name.trim().length > 0
+    ).length;
+    const tagsCount = form.tagsText
+      .split(",")
+      .map((tag) => tag.trim())
+      .filter(Boolean).length;
+
+    onDraftContextChange({
+      title: form.title.trim(),
+      description: form.description.trim() || null,
+      servings:
+        Number.isFinite(parsedServings) && parsedServings > 0
+          ? parsedServings
+          : null,
+      ingredientCount,
+      instructionCount,
+      cuisine: form.cuisine.trim() || null,
+      difficulty: form.difficulty.trim() || null,
+      tagsCount,
+    });
+  }, [
+    flattenedIngredients,
+    form.cuisine,
+    form.description,
+    form.difficulty,
+    form.servings,
+    form.tagsText,
+    form.title,
+    instructionList,
+    onDraftContextChange,
+    open,
+  ]);
 
   const hasAtLeastOneIngredient = flattenedIngredients.some(
     (ingredient) => ingredient.name.trim().length > 0

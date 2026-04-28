@@ -24,6 +24,20 @@ describe("chatRequestSchema", () => {
             favourite: true,
           },
         ],
+        recipeEditor: {
+          isOpen: true,
+          mode: "add",
+          draft: {
+            title: "Taco Bowl",
+            description: null,
+            servings: 4,
+            ingredientCount: 6,
+            instructionCount: 4,
+            cuisine: "mexican",
+            difficulty: "Easy",
+            tagsCount: 2,
+          },
+        },
       },
     });
 
@@ -46,6 +60,20 @@ describe("chatRequestSchema", () => {
           favourite: true,
         },
       ],
+      recipeEditor: {
+        isOpen: true,
+        mode: "add",
+        draft: {
+          title: "Taco Bowl",
+          description: null,
+          servings: 4,
+          ingredientCount: 6,
+          instructionCount: 4,
+          cuisine: "mexican",
+          difficulty: "Easy",
+          tagsCount: 2,
+        },
+      },
     });
   });
 
@@ -73,6 +101,9 @@ describe("chatRequestSchema", () => {
             unit: "slice",
           },
         ],
+        activeView: "detailed",
+        activeUnitMode: "grams",
+        cookingStepNumber: null,
       },
     });
 
@@ -97,7 +128,43 @@ describe("chatRequestSchema", () => {
           unit: "slice",
         },
       ],
+      activeView: "detailed",
+      activeUnitMode: "grams",
+      cookingStepNumber: null,
     });
+  });
+
+  it("rejects invalid recipes editor drafts", () => {
+    const result = chatRequestSchema.safeParse({
+      message: "hello",
+      pageContextData: {
+        page: "recipes",
+        search: "",
+        origin: "all",
+        cuisine: "all",
+        totalRecipes: 1,
+        favouriteCount: 0,
+        filteredRecipes: 1,
+        showingFavouritesOnly: false,
+        visibleRecipes: [],
+        recipeEditor: {
+          isOpen: true,
+          mode: "add",
+          draft: {
+            title: "",
+            description: null,
+            servings: null,
+            ingredientCount: -1,
+            instructionCount: 0,
+            cuisine: null,
+            difficulty: null,
+            tagsCount: 0,
+          },
+        },
+      },
+    });
+
+    expect(result.success).toBe(false);
   });
 
   it("accepts shopping page context payloads", () => {
@@ -159,6 +226,9 @@ describe("chatRequestSchema", () => {
         favourite: false,
         tags: [],
         ingredients: [],
+        activeView: "basic",
+        activeUnitMode: "cup",
+        cookingStepNumber: null,
       },
     });
 

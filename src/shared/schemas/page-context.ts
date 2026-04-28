@@ -72,6 +72,24 @@ export const recipesPageContextSchema = z.object({
   filteredRecipes: z.number(),
   showingFavouritesOnly: z.boolean(),
   visibleRecipes: z.array(recipeListItemSchema),
+  recipeEditor: z
+    .object({
+      isOpen: z.boolean(),
+      mode: z.enum(["add", "edit"]),
+      draft: z
+        .object({
+          title: z.string(),
+          description: z.string().nullable(),
+          servings: z.number().int().positive().nullable(),
+          ingredientCount: z.number().int().nonnegative(),
+          instructionCount: z.number().int().nonnegative(),
+          cuisine: z.string().nullable(),
+          difficulty: z.string().nullable(),
+          tagsCount: z.number().int().nonnegative(),
+        })
+        .nullable(),
+    })
+    .optional(),
 });
 
 export const recipeDetailIngredientContextSchema = z.object({
@@ -95,6 +113,9 @@ export const recipeDetailPageContextSchema = z.object({
   favourite: z.boolean(),
   tags: z.array(z.string()),
   ingredients: z.array(recipeDetailIngredientContextSchema),
+  activeView: z.enum(["basic", "detailed", "cooking"]),
+  activeUnitMode: z.enum(["cup", "grams"]),
+  cookingStepNumber: z.number().int().positive().nullable(),
 });
 
 export const shoppingPageContextSchema = z.object({

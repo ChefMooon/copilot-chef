@@ -24,6 +24,11 @@ type RecipeDetailProps = {
   recipe: RecipePayload;
   defaultView: "basic" | "detailed" | "cooking";
   defaultUnitMode: UnitMode;
+  onContextStateChange?: (state: {
+    activeView: "basic" | "detailed" | "cooking";
+    activeUnitMode: "cup" | "grams";
+    cookingStepNumber: number | null;
+  }) => void;
 };
 
 const VIEW_LABELS = {
@@ -36,12 +41,16 @@ export function RecipeDetail({
   recipe,
   defaultView,
   defaultUnitMode,
+  onContextStateChange,
 }: RecipeDetailProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [view, setView] = useState<"basic" | "detailed" | "cooking">(defaultView);
   const [servings, setServings] = useState(recipe.servings);
   const [unitMode, setUnitMode] = useState<UnitMode>(defaultUnitMode);
+  const [cookingStepNumber, setCookingStepNumber] = useState<number | null>(
+    defaultView === "cooking" ? 1 : null
+  );
   const [showEditModal, setShowEditModal] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -50,6 +59,18 @@ export function RecipeDetail({
   useEffect(() => {
     setServings(recipe.servings);
   }, [recipe]);
+
+  useEffect(() => {
+    if (!onContextStateChange) {
+      return;
+    }
+
+    onContextStateChange({
+      activeView: view,
+      activeUnitMode: unitMode,
+      cookingStepNumber,
+    });
+  }, [cookingStepNumber, onContextStateChange, unitMode, view]);
 
   const scale = servings / Math.max(1, recipe.servings);
   const recipeQueryKey = recipeKeys.detail(recipe.id);
@@ -176,7 +197,12 @@ export function RecipeDetail({
   if (view === "cooking") {
     return (
       <CookingMode
-        onClose={() => setView("basic")}
+        onClose={() => {
+          setView("basic");
+          setCookingStepNumber(null);
+        }}
+        onStepNumberChange={setCookingStepNumber}
+        stepNumber={cookingStepNumber ?? 1}
         steps={recipe.instructions}
       />
     );
@@ -276,7 +302,10 @@ export function RecipeDetail({
                 ? "border-green bg-green text-white"
                 : "border-cream-dark bg-cream text-text-muted hover:border-green-light hover:text-green"
             }`}
-            onClick={() => setView(mode)}
+            onClick={() => {
+              setView(mode);
+              setCookingStepNumber(mode === "cooking" ? 1 : null);
+            }}
             type="button"
           >
             {VIEW_LABELS[mode]}
