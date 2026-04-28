@@ -13,6 +13,7 @@ type RecipeFilterSidebarProps = {
   onOriginChange: (value: string) => void;
   onCuisineChange: (value: string) => void;
   onFavouritesOnlyChange: (value: boolean) => void;
+  onClearFilters?: () => void;
 };
 
 export function RecipeFilterSidebar({
@@ -24,7 +25,9 @@ export function RecipeFilterSidebar({
   onOriginChange,
   onCuisineChange,
   onFavouritesOnlyChange,
+  onClearFilters,
 }: RecipeFilterSidebarProps) {
+  const hasActiveFilters = search.trim().length > 0 || origin !== "" || cuisine !== "" || favouritesOnly;
   return (
     <aside className="space-y-4 rounded-card border border-cream-dark bg-white p-4">
       <div>
@@ -87,6 +90,17 @@ export function RecipeFilterSidebar({
           type="checkbox"
         />
       </label>
+      {hasActiveFilters && onClearFilters ? (
+        <Button
+          className="w-full"
+          onClick={onClearFilters}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          Clear filters
+        </Button>
+      ) : null}
     </aside>
   );
 }

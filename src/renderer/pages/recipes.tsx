@@ -272,6 +272,13 @@ export default function RecipesPage() {
     setRecipeEditorDraft(null);
   }
 
+  function handleClearFilters() {
+    setSearch("");
+    setOrigin("");
+    setCuisine("");
+    setFavouritesOnly(false);
+  }
+
   return (
     <div className="space-y-6 p-4 md:p-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -332,11 +339,12 @@ export default function RecipesPage() {
         </div>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[260px_1fr] lg:items-start">
         <div className="space-y-4">
           <RecipeFilterSidebar
             cuisine={cuisine}
             favouritesOnly={favouritesOnly}
+            onClearFilters={handleClearFilters}
             onCuisineChange={setCuisine}
             onFavouritesOnlyChange={setFavouritesOnly}
             onOriginChange={setOrigin}
