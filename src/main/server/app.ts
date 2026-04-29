@@ -6,6 +6,7 @@ import type { ServerConfig } from "@shared/config/server-config";
 import { createAuthMiddleware } from "./middleware/auth.js";
 import { healthRoutes } from "./routes/health.js";
 import { mealsRoutes } from "./routes/meals.js";
+import { menuExportRoutes } from "./routes/menu-export.js";
 import { mealTypesRoutes } from "./routes/meal-types.js";
 import { groceryListsRoutes } from "./routes/grocery-lists.js";
 import { recipesRoutes } from "./routes/recipes.js";
@@ -55,6 +56,7 @@ export function createApp(config: ServerConfig) {
   // Routes
   app.route("/api", healthRoutes);
   app.route("/api", mealsRoutes);
+  app.route("/api", menuExportRoutes);
   app.route("/api", mealTypesRoutes);
   app.route("/api", groceryListsRoutes);
   app.route("/api", recipesRoutes);

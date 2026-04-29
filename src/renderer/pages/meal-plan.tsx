@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DayView } from "@/components/meal-plan/DayView";
 import { DeleteConfirmationModal } from "@/components/meal-plan/DeleteConfirmationModal";
 import { EditModal } from "@/components/meal-plan/EditModal";
+import { MenuPrintExportModal } from "@/components/meal-plan/MenuPrintExportModal";
 import { MonthView } from "@/components/meal-plan/MonthView";
 import { TrashDropZone } from "@/components/meal-plan/TrashDropZone";
 import { WeekView } from "@/components/meal-plan/WeekView";
@@ -148,6 +149,7 @@ export default function MealPlanPage() {
   const { toast, dismissAll, setDragging } = useToast();
   const { recordAction, discardLast, undo, redo } = useMealUndoRedo();
   const [saveAsRecipeMeal, setSaveAsRecipeMeal] = useState<EditableMeal | null>(null);
+  const [isMenuExportOpen, setIsMenuExportOpen] = useState(false);
   const [saveAsRecipeConflict, setSaveAsRecipeConflict] =
     useState<RecipeConflict | null>(null);
 
@@ -900,6 +902,13 @@ export default function MealPlanPage() {
           </button>
           <button
             className={styles.btnToday}
+            onClick={() => setIsMenuExportOpen(true)}
+            type="button"
+          >
+            Print / Export
+          </button>
+          <button
+            className={styles.btnToday}
             onClick={() => setDate(new Date())}
             type="button"
           >
@@ -982,6 +991,14 @@ export default function MealPlanPage() {
         visible={isDraggingMeal}
         onDropMeal={onTrashDropMeal}
       />
+
+      {isMenuExportOpen ? (
+        <MenuPrintExportModal
+          initialFrom={dateRange.from}
+          initialTo={dateRange.to}
+          onClose={() => setIsMenuExportOpen(false)}
+        />
+      ) : null}
 
       <div className={styles.legendStack}>
         <div className={styles.legendSection}>

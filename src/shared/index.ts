@@ -74,6 +74,11 @@ export {
   IngestResultSchema,
   AIRecipeSaveSchema,
 } from "./schemas/recipe-schemas";
+export {
+  MenuExportFormatSchema,
+  MenuExportRequestSchema,
+  MenuLayoutSchema,
+} from "./schemas/menu-export-schemas";
 export type {
   CreateRecipeInput,
   UpdateRecipeInput,
@@ -82,6 +87,11 @@ export type {
   AIRecipeSave,
   RecipeConflict,
 } from "./schemas/recipe-schemas";
+export type {
+  MenuExportFormat,
+  MenuExportRequest,
+  MenuLayout,
+} from "./schemas/menu-export-schemas";
 export type {
   MealIngredient,
   PreferencesPayload,

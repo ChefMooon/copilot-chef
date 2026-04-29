@@ -6,6 +6,8 @@ import {
   type IngestResult,
   type MealTypeDefinitionPayload,
   type MealTypeProfilePayload,
+  type MenuExportFormat,
+  type MenuLayout,
   type RecipeConflict,
   type RecipeExportJson,
   type CreatePersonaInput,
@@ -208,6 +210,53 @@ export async function exportUserData() {
   return {
     blob,
     fileName: fileNameMatch?.[1] ?? "copilot-chef-export.json",
+  };
+}
+
+export type MenuExportOptions = {
+  from: string;
+  to: string;
+  layout: MenuLayout;
+  format: MenuExportFormat;
+  includeEmptyDays?: boolean;
+  title?: string;
+};
+
+export async function exportMenu(options: MenuExportOptions) {
+  const params = new URLSearchParams({
+    from: options.from,
+    to: options.to,
+    layout: options.layout,
+    format: options.format,
+  });
+
+  if (options.includeEmptyDays === false) {
+    params.set("includeEmptyDays", "false");
+  }
+
+  if (options.title?.trim()) {
+    params.set("title", options.title.trim());
+  }
+
+  const response = await fetch(`${getApiBase()}/api/menu-export?${params.toString()}`, {
+    method: "GET",
+    cache: "no-store",
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const disposition = response.headers.get("content-disposition") ?? "";
+  const fileNameMatch = disposition.match(/filename="?([^"]+)"?/i);
+
+  return {
+    blob,
+    fileName:
+      fileNameMatch?.[1] ??
+      `meal-plan-menu.${options.format === "markdown" ? "md" : options.format}`,
   };
 }
 

@@ -65,6 +65,127 @@ button {
   display: none;
 }
 
+.menu-print-root {
+  max-width: 980px;
+  margin: 0 auto;
+  color: var(--text);
+  background: var(--white);
+  border: 1px solid var(--cream-dark);
+  border-radius: 8px;
+  padding: 1.25rem;
+  box-shadow: var(--shadow);
+  font-family: var(--font-lora), Georgia, serif;
+}
+
+.menu-print-header {
+  margin-bottom: 1rem;
+}
+
+.menu-print-header p {
+  margin: 0 0 0.25rem;
+  color: var(--text-muted);
+  font-family: var(--font-sans), Arial, sans-serif;
+  font-size: 0.78rem;
+}
+
+.menu-print-header h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.menu-print-days {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.menu-print-classic-grid .menu-print-days {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.menu-print-day {
+  border: 1px solid var(--cream-dark);
+  border-radius: 8px;
+  padding: 0.85rem;
+  background: #fffdf8;
+}
+
+.menu-print-day header p {
+  margin: 0;
+  color: var(--orange);
+  font-family: var(--font-sans), Arial, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.menu-print-day header h3 {
+  margin: 0.15rem 0 0.65rem;
+  font-size: 1.1rem;
+}
+
+.menu-print-meals {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.menu-print-card .menu-print-meals,
+.menu-print-restaurant .menu-print-meals {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.menu-print-restaurant {
+  text-align: center;
+}
+
+.menu-print-restaurant .menu-print-day {
+  border: 0;
+  border-top: 2px solid var(--text);
+  border-radius: 0;
+  background: transparent;
+}
+
+.menu-print-meal {
+  border-top: 1px solid var(--cream-dark);
+  padding-top: 0.5rem;
+}
+
+.menu-print-meal:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.menu-print-card .menu-print-meal:first-child,
+.menu-print-restaurant .menu-print-meal:first-child {
+  border-top: 1px solid transparent;
+  padding-top: 0.5rem;
+}
+
+.menu-print-meal span {
+  color: var(--green);
+  font-family: var(--font-sans), Arial, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.menu-print-meal h4 {
+  margin: 0.1rem 0 0;
+  font-size: 1rem;
+}
+
+.menu-print-meal p,
+.menu-print-empty {
+  color: var(--text-muted);
+  font-family: var(--font-sans), Arial, sans-serif;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  margin: 0.35rem 0 0;
+}
+
 @page {
   margin: 0.55in;
 }
@@ -150,5 +271,142 @@ button {
 
   .recipe-print-root * {
     box-shadow: none !important;
+  }
+
+  body.menu-export-printing > :not(.menu-export-print-surface) {
+    display: none !important;
+  }
+
+  body.menu-export-printing .menu-export-print-surface {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  body.menu-export-printing .menu-export-modal {
+    display: none !important;
+  }
+
+  .menu-print-root {
+    max-width: none;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    color: #000000;
+    background: #ffffff;
+    font-family: Georgia, "Times New Roman", serif;
+  }
+
+  .menu-print-header {
+    margin-bottom: 1rem;
+  }
+
+  .menu-print-header p {
+    margin: 0 0 0.25rem;
+    color: #333333;
+    font-family: Arial, sans-serif;
+    font-size: 10pt;
+  }
+
+  .menu-print-header h2 {
+    margin: 0;
+    color: #000000;
+    font-size: 22pt;
+    line-height: 1.1;
+  }
+
+  .menu-print-days {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  .menu-print-classic-grid .menu-print-days {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .menu-print-day,
+  .menu-print-meal {
+    break-inside: avoid;
+  }
+
+  .menu-print-day {
+    border: 1px solid #999999;
+    border-radius: 0;
+    padding: 0.45rem;
+  }
+
+  .menu-print-restaurant {
+    text-align: center;
+  }
+
+  .menu-print-restaurant .menu-print-day {
+    border: 0;
+    border-top: 2px solid #000000;
+    background: transparent;
+  }
+
+  .menu-print-day header p {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .menu-print-day header h3 {
+    margin: 0.1rem 0 0.45rem;
+    font-size: 13pt;
+  }
+
+  .menu-print-meals {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .menu-print-card .menu-print-meals,
+  .menu-print-restaurant .menu-print-meals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .menu-print-meal {
+    border-top: 1px solid #cccccc;
+    padding-top: 0.3rem;
+  }
+
+  .menu-print-meal:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .menu-print-card .menu-print-meal:first-child,
+  .menu-print-restaurant .menu-print-meal:first-child {
+    border-top: 1px solid transparent;
+    padding-top: 0.3rem;
+  }
+
+  .menu-print-meal span {
+    font-family: Arial, sans-serif;
+    font-size: 7.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .menu-print-meal h4 {
+    margin: 0.05rem 0 0;
+    font-size: 11pt;
+  }
+
+  .menu-print-meal p,
+  .menu-print-empty {
+    color: #222222;
+    font-family: Arial, sans-serif;
+    font-size: 9pt;
+    line-height: 1.35;
+    margin: 0.25rem 0 0;
   }
 }

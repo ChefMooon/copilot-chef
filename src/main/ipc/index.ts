@@ -1,6 +1,17 @@
-import { ipcMain, app } from "electron";
+import { app, BrowserWindow, dialog, ipcMain } from "electron";
+import { writeFile } from "node:fs/promises";
 import { getServerInfo } from "../server/start";
 import { getSetting, setSetting, getAllSettings } from "../settings/store";
+
+type MenuPdfExportPayload = {
+  htmlContent: string;
+  suggestedFileName: string;
+};
+
+type MenuPdfExportResult =
+  | { status: "saved"; filePath: string }
+  | { status: "canceled" }
+  | { status: "error"; message: string };
 
 export function registerIpcHandlers(): void {
   // ── Server config ────────────────────────────────────────
@@ -49,4 +60,65 @@ export function registerIpcHandlers(): void {
   ipcMain.handle("app:settings:getAll", () => {
     return getAllSettings();
   });
+
+  // ── Menu export ──────────────────────────────────────────
+  ipcMain.handle(
+    "menu:exportPdf",
+    async (_event, payload: MenuPdfExportPayload): Promise<MenuPdfExportResult> => {
+      const htmlContent = payload?.htmlContent?.trim();
+      if (!htmlContent) {
+        return { status: "error", message: "Missing menu content for PDF export." };
+      }
+
+      const suggestedFileName =
+        payload?.suggestedFileName?.trim().toLowerCase().endsWith(".pdf")
+          ? payload.suggestedFileName.trim()
+          : `${payload?.suggestedFileName?.trim() || "meal-plan-menu"}.pdf`;
+
+      const parentWindow = BrowserWindow.getFocusedWindow() ?? null;
+      const exportWindow = new BrowserWindow({
+        show: false,
+        width: 1200,
+        height: 1600,
+        webPreferences: {
+          sandbox: true,
+        },
+      });
+
+      try {
+        await exportWindow.loadURL(
+          `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`
+        );
+
+        const pdfBuffer = await exportWindow.webContents.printToPDF({
+          printBackground: true,
+          preferCSSPageSize: true,
+        });
+
+        const dialogResult = await dialog.showSaveDialog(parentWindow ?? undefined, {
+          title: "Save Menu PDF",
+          defaultPath: suggestedFileName,
+          buttonLabel: "Save PDF",
+          filters: [{ name: "PDF Files", extensions: ["pdf"] }],
+        });
+
+        if (dialogResult.canceled || !dialogResult.filePath) {
+          return { status: "canceled" };
+        }
+
+        await writeFile(dialogResult.filePath, pdfBuffer);
+        return { status: "saved", filePath: dialogResult.filePath };
+      } catch (error) {
+        return {
+          status: "error",
+          message:
+            error instanceof Error ? error.message : "Unable to export menu as PDF.",
+        };
+      } finally {
+        if (!exportWindow.isDestroyed()) {
+          exportWindow.destroy();
+        }
+      }
+    }
+  );
 }
