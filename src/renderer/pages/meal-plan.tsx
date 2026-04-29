@@ -243,10 +243,22 @@ export default function MealPlanPage() {
   }, [currentProfileContext.profile.id, visibleProfileContexts]);
   const highlightedProfile =
     visibleProfiles.find((profile) => profile.id === highlightedProfileId) ?? null;
-  const legendProfile =
-    mealTypeProfiles.find((profile) => profile.id === highlightedProfile?.id) ??
-    currentProfileContext.profile;
-  const legendMealTypeDefinitions = legendProfile.mealTypes;
+  const legendProfiles = useMemo(
+    () =>
+      visibleProfiles.map((visibleProfile) => {
+        const sourceProfile =
+          mealTypeProfiles.find((profile) => profile.id === visibleProfile.id) ??
+          currentProfileContext.profile;
+
+        return {
+          id: visibleProfile.id,
+          name: visibleProfile.name,
+          rangeLabel: visibleProfile.rangeLabel,
+          mealTypes: sourceProfile.mealTypes,
+        };
+      }),
+    [currentProfileContext.profile, mealTypeProfiles, visibleProfiles]
+  );
 
   useEffect(() => {
     if (highlightedProfileId && !visibleProfiles.some((profile) => profile.id === highlightedProfileId)) {
@@ -858,20 +870,6 @@ export default function MealPlanPage() {
       : view === "week"
         ? "Plan and review your meals week by week."
         : `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
-  const startsInRange = visibleProfiles
-    .filter((profile) => profile.startsInRange)
-    .map((profile) => `${profile.name} starts in view`)
-    .join(". ");
-  const profileSummary =
-    view === "day"
-      ? `Using the ${currentProfileContext.profile.name} profile${currentProfileContext.rangeLabel ? ` for ${currentProfileContext.rangeLabel.toLowerCase()}` : ""}.`
-      : visibleProfiles.length === 1
-        ? `${visibleProfiles[0].name} is the only meal type profile in this ${view}.`
-        : `${visibleProfiles.length} meal type profiles appear in this ${view}.${startsInRange ? ` ${startsInRange}.` : ""}`;
-  const mealTypeLegendTitle = highlightedProfile
-    ? `Meal types for ${highlightedProfile.name}`
-    : `Meal types for ${currentProfileContext.profile.name}`;
-
   return (
     <div className={styles.calendarPage}>
       <div className={styles.pageHeader}>
@@ -879,41 +877,6 @@ export default function MealPlanPage() {
           <div className={styles.eyebrow}>Meal Plan</div>
           <h1 className={styles.pageTitle}>{pageTitle}</h1>
           <p className={styles.pageSub}>{pageDateLabel}</p>
-          <p className={styles.profileSummary}>{profileSummary}</p>
-          <div className={styles.profileFilterRow}>
-            <span className={styles.profileFilterLabel}>Profile accents</span>
-            {visibleProfiles.length > 1 ? (
-              <button
-                aria-pressed={highlightedProfileId === null}
-                className={`${styles.profileFilterChip} ${highlightedProfileId === null ? styles.profileFilterChipActive : ""}`}
-                onClick={() => setHighlightedProfileId(null)}
-                type="button"
-              >
-                All Profiles
-              </button>
-            ) : null}
-            {visibleProfiles.map((profile) => (
-              <button
-                aria-pressed={highlightedProfileId === profile.id}
-                className={`${styles.profileFilterChip} ${highlightedProfileId === profile.id ? styles.profileFilterChipActive : ""}`}
-                key={profile.id}
-                onClick={() =>
-                  setHighlightedProfileId((current) =>
-                    current === profile.id ? null : profile.id
-                  )
-                }
-                style={{ borderColor: profile.accentColor, color: profile.accentColor }}
-                title={profile.rangeLabel ?? undefined}
-                type="button"
-              >
-                <span
-                  className={styles.profileFilterSwatch}
-                  style={{ background: profile.accentColor }}
-                />
-                {profile.name}
-              </button>
-            ))}
-          </div>
         </div>
         <div className={styles.pageHeaderRight}>
           <button
@@ -1028,7 +991,7 @@ export default function MealPlanPage() {
               {highlightedProfile
                 ? `Focusing ${highlightedProfile.name}. Other profile days stay visible but subdued.`
                 : visibleProfiles.length > 1
-                  ? "Use the chips above to focus one profile's accent cues."
+                  ? "Profile accents indicate which meal type profile applies to each day in view."
                   : `All visible days use the ${currentProfileContext.profile.name} profile.`}
             </p>
           </div>
@@ -1045,32 +1008,34 @@ export default function MealPlanPage() {
           </div>
         </div>
 
-        <div className={styles.legendSection}>
-          <div className={styles.legendHeadingRow}>
-            <h2 className={styles.legendTitle}>{mealTypeLegendTitle}</h2>
-            <p className={styles.legendHint}>
-              {highlightedProfile?.rangeLabel ?? currentProfileContext.rangeLabel ?? "Shown for the selected date."}
-            </p>
-          </div>
-          <div className={styles.legend}>
-            {legendMealTypeDefinitions
-          .filter((definition) => definition.enabled)
-          .sort((left, right) => left.sortOrder - right.sortOrder)
-          .map((definition) => {
-            const config = getTypeConfig(definition.slug, legendMealTypeDefinitions);
+        {legendProfiles.map((profile) => (
+          <div className={styles.legendSection} key={profile.id}>
+            <div className={styles.legendHeadingRow}>
+              <h2 className={styles.legendTitle}>{`Meal types for ${profile.name}`}</h2>
+              <p className={styles.legendHint}>
+                {profile.rangeLabel ?? "Shown for the selected date range."}
+              </p>
+            </div>
+            <div className={styles.legend}>
+              {profile.mealTypes
+                .filter((definition) => definition.enabled)
+                .sort((left, right) => left.sortOrder - right.sortOrder)
+                .map((definition) => {
+                  const config = getTypeConfig(definition.slug, profile.mealTypes);
 
-            return (
-              <div className={styles.legendItem} key={definition.id}>
-                <span
-                  className={styles.legendDot}
-                  style={{ background: config.dot }}
-                />
-                <span className={styles.legendText}>{config.label}</span>
-              </div>
-            );
-          })}
+                  return (
+                    <div className={styles.legendItem} key={definition.id}>
+                      <span
+                        className={styles.legendDot}
+                        style={{ background: config.dot }}
+                      />
+                      <span className={styles.legendText}>{config.label}</span>
+                    </div>
+                  );
+                })}
+            </div>
           </div>
-        </div>
+        ))}
       </div>
 
       {editMeal ? (

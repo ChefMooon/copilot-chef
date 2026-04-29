@@ -34,57 +34,6 @@
   margin-top: 0.3rem;
 }
 
-.profileSummary {
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  margin-top: 0.45rem;
-}
-
-.profileFilterRow {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  flex-wrap: wrap;
-  margin-top: 0.8rem;
-}
-
-.profileFilterLabel {
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.profileFilterChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.32rem 0.62rem;
-  border: 1px solid var(--cream-dark);
-  border-radius: 999px;
-  background: var(--white);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: border-color 0.16s, background 0.16s, box-shadow 0.16s, color 0.16s;
-}
-
-.profileFilterChip:hover {
-  background: rgba(59, 94, 69, 0.04);
-}
-
-.profileFilterChipActive {
-  box-shadow: 0 0 0 2px rgba(59, 94, 69, 0.1);
-  background: rgba(59, 94, 69, 0.06);
-}
-
-.profileFilterSwatch {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
 .pageHeaderRight {
   display: flex;
   align-items: center;
@@ -207,6 +156,7 @@
 
 .legendStack {
   display: grid;
+  grid-template-columns: 1fr;
   gap: 1rem;
   margin-top: 1rem;
 }
@@ -928,10 +878,6 @@
     flex-direction: column;
   }
 
-  .profileFilterRow {
-    align-items: flex-start;
-  }
-
   .dayNav,
   .weekNav,
   .monthNav {
@@ -949,6 +895,13 @@
   .trashZone {
     bottom: 0.8rem;
     left: 0.8rem;
+  }
+}
+
+@media (min-width: 901px) {
+  .legendStack {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    align-items: start;
   }
 }
 
