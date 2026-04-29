@@ -267,6 +267,87 @@
   gap: 1.25rem;
 }
 
+.overviewGridSingle {
+  grid-template-columns: auto;
+}
+
+.overviewStack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.upcomingCard {
+  width: 100%;
+}
+
+.upcomingCardCompact {
+  padding: 0.8rem 0.95rem;
+}
+
+.upcomingCardCompact .cardHeader {
+  margin-bottom: 0.55rem;
+}
+
+.upcomingList,
+.upcomingGroupedList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.upcomingGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.upcomingGroupTitle {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.upcomingMealRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.48rem 0.62rem;
+  border: 1px solid var(--cream-dark);
+  border-radius: 10px;
+  background: var(--cream);
+}
+
+.upcomingCardCompact .upcomingMealRow {
+  padding: 0.34rem 0.5rem;
+}
+
+.upcomingMealName {
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.upcomingMeta {
+  margin-top: 0.1rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.upcomingCardCompact .upcomingMeta {
+  margin-top: 0.05rem;
+  font-size: 0.68rem;
+}
+
+.upcomingEmptyMessage {
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
 .card {
   padding: 1.1rem 1.25rem;
   border: 1px solid rgba(59, 94, 69, 0.08);
@@ -566,41 +647,4 @@
     grid-row: 3;
     border-left: none;
   }
-}
-
-.quickLinks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
-}
-
-.quickLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.85rem;
-  border: 1.5px solid var(--cream-dark);
-  border-radius: 99px;
-  background: var(--white);
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-decoration: none;
-  transition: all 0.15s;
-}
-
-.quickLink:hover {
-  border-color: var(--green-light);
-  color: var(--green);
-  box-shadow: var(--shadow);
-}
-
-.quickLinkIcon {
-  font-size: 0.9rem;
-  line-height: 1;
-}
-
-.quickLinkLabel {
-  line-height: 1;
 }

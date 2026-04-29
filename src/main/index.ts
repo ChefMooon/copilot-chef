@@ -145,6 +145,14 @@ app.whenReady().then(async () => {
   ensureSetting("app_minimize_to_tray", true);
   ensureSetting("updates_check_on_startup", true);
   ensureSetting("copilot_model", "gpt-4.1");
+  ensureSetting("home_upcoming_days", 7);
+  ensureSetting("home_upcoming_layout", "list");
+  ensureSetting("home_upcoming_detail", "standard");
+  ensureSetting("home_upcoming_compact", false);
+  ensureSetting("home_show_upcoming_meals", true);
+  ensureSetting("home_show_meal_activity", true);
+  ensureSetting("home_show_grocery_list", true);
+  ensureSetting("home_show_greeting_subtitle", true);
 
   // Start in-process Hono server (unless remote mode)
   const serverMode = getSetting("server_mode") ?? "local";

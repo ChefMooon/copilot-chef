@@ -203,7 +203,62 @@ const recipeUnitOptions = [
   { label: "Grams", value: "grams" },
 ];
 
+const homeUpcomingLayoutOptions = [
+  { label: "List", value: "list" },
+  { label: "Grouped by day", value: "grouped" },
+];
+
+const homeUpcomingDetailOptions = [
+  { label: "Standard", value: "standard" },
+  { label: "Detailed", value: "detailed" },
+];
+
 type TabId = "dietary-profile" | "meal-plans" | "your-chef" | "app-settings";
+
+type HomeUpcomingLayout = "list" | "grouped";
+type HomeUpcomingDetail = "standard" | "detailed";
+
+type HomeDashboardSettings = {
+  upcomingDays: number;
+  upcomingLayout: HomeUpcomingLayout;
+  upcomingDetail: HomeUpcomingDetail;
+  upcomingCompact: boolean;
+  showUpcomingMeals: boolean;
+  showMealActivity: boolean;
+  showGroceryList: boolean;
+  showGreetingSubtitle: boolean;
+};
+
+const HOME_DASHBOARD_DEFAULTS: HomeDashboardSettings = {
+  upcomingDays: 7,
+  upcomingLayout: "list",
+  upcomingDetail: "standard",
+  upcomingCompact: false,
+  showUpcomingMeals: true,
+  showMealActivity: true,
+  showGroceryList: true,
+  showGreetingSubtitle: true,
+};
+
+function clampHomeUpcomingDays(input: unknown) {
+  if (typeof input !== "number" || !Number.isFinite(input)) {
+    return HOME_DASHBOARD_DEFAULTS.upcomingDays;
+  }
+
+  return Math.min(30, Math.max(1, Math.floor(input)));
+}
+
+function normalizeHomeLayout(input: unknown): HomeUpcomingLayout {
+  return input === "grouped" ? "grouped" : "list";
+}
+
+function normalizeHomeDetail(input: unknown): HomeUpcomingDetail {
+  return input === "detailed" ? "detailed" : "standard";
+}
+
+function normalizeHomeBool(input: unknown, fallback: boolean) {
+  return typeof input === "boolean" ? input : fallback;
+}
 
 const TABS: Array<{ id: TabId; label: string; panelId: string }> = [
   { id: "dietary-profile", label: "Dietary Profile", panelId: "panel-dietary-profile" },
@@ -325,6 +380,8 @@ export default function SettingsPage() {
   const [updatesCheckOnStartup, setUpdatesCheckOnStartup] = useState(true);
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
   const [manualUpdateCheckPending, setManualUpdateCheckPending] = useState(false);
+  const [homeDashboard, setHomeDashboard] =
+    useState<HomeDashboardSettings>(HOME_DASHBOARD_DEFAULTS);
 
   // Tab navigation
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -425,6 +482,60 @@ export default function SettingsPage() {
       })
       .catch(() => {
         setUpdatesCheckOnStartup(true);
+      });
+  }, []);
+
+  useEffect(() => {
+    Promise.all([
+      window.api.invoke("app:settings:get", "home_upcoming_days"),
+      window.api.invoke("app:settings:get", "home_upcoming_layout"),
+      window.api.invoke("app:settings:get", "home_upcoming_detail"),
+      window.api.invoke("app:settings:get", "home_upcoming_compact"),
+      window.api.invoke("app:settings:get", "home_show_upcoming_meals"),
+      window.api.invoke("app:settings:get", "home_show_meal_activity"),
+      window.api.invoke("app:settings:get", "home_show_grocery_list"),
+      window.api.invoke("app:settings:get", "home_show_greeting_subtitle"),
+    ])
+      .then(
+        ([
+          upcomingDays,
+          upcomingLayout,
+          upcomingDetail,
+          upcomingCompact,
+          showUpcomingMeals,
+          showMealActivity,
+          showGroceryList,
+          showGreetingSubtitle,
+        ]) => {
+          setHomeDashboard({
+            upcomingDays: clampHomeUpcomingDays(upcomingDays),
+            upcomingLayout: normalizeHomeLayout(upcomingLayout),
+            upcomingDetail: normalizeHomeDetail(upcomingDetail),
+            upcomingCompact: normalizeHomeBool(
+              upcomingCompact,
+              HOME_DASHBOARD_DEFAULTS.upcomingCompact
+            ),
+            showUpcomingMeals: normalizeHomeBool(
+              showUpcomingMeals,
+              HOME_DASHBOARD_DEFAULTS.showUpcomingMeals
+            ),
+            showMealActivity: normalizeHomeBool(
+              showMealActivity,
+              HOME_DASHBOARD_DEFAULTS.showMealActivity
+            ),
+            showGroceryList: normalizeHomeBool(
+              showGroceryList,
+              HOME_DASHBOARD_DEFAULTS.showGroceryList
+            ),
+            showGreetingSubtitle: normalizeHomeBool(
+              showGreetingSubtitle,
+              HOME_DASHBOARD_DEFAULTS.showGreetingSubtitle
+            ),
+          });
+        }
+      )
+      .catch(() => {
+        setHomeDashboard(HOME_DASHBOARD_DEFAULTS);
       });
   }, []);
 
@@ -825,6 +936,74 @@ export default function SettingsPage() {
         variant: "error",
       });
     }
+  };
+
+  const saveHomeSetting = async <K extends keyof HomeDashboardSettings>(
+    key: K,
+    value: HomeDashboardSettings[K],
+    settingKey: string,
+    normalize?: (input: HomeDashboardSettings[K]) => HomeDashboardSettings[K]
+  ) => {
+    const nextValue = normalize ? normalize(value) : value;
+    const previous = homeDashboard[key];
+
+    setHomeDashboard((prev) => ({
+      ...prev,
+      [key]: nextValue,
+    }));
+
+    try {
+      await window.api.invoke("app:settings:set", {
+        key: settingKey,
+        value: nextValue,
+      });
+    } catch {
+      setHomeDashboard((prev) => ({
+        ...prev,
+        [key]: previous,
+      }));
+      toast({
+        title: "Could not save Home Dashboard setting.",
+        variant: "error",
+      });
+    }
+  };
+
+  const handleHomeUpcomingDays = async (value: number) => {
+    await saveHomeSetting("upcomingDays", value, "home_upcoming_days", (input) =>
+      clampHomeUpcomingDays(input)
+    );
+  };
+
+  const handleHomeLayout = async (value: string) => {
+    await saveHomeSetting(
+      "upcomingLayout",
+      normalizeHomeLayout(value),
+      "home_upcoming_layout"
+    );
+  };
+
+  const handleHomeDetail = async (value: string) => {
+    await saveHomeSetting(
+      "upcomingDetail",
+      normalizeHomeDetail(value),
+      "home_upcoming_detail"
+    );
+  };
+
+  const handleHomeToggle = async (
+    key: keyof Pick<
+      HomeDashboardSettings,
+      | "upcomingCompact"
+      | "showUpcomingMeals"
+      | "showMealActivity"
+      | "showGroceryList"
+      | "showGreetingSubtitle"
+    >,
+    value: boolean,
+    settingKey: string
+  ) => {
+    await saveHomeSetting(key, value, settingKey);
   };
 
   const handleCheckForUpdates = async () => {
@@ -1316,6 +1495,130 @@ export default function SettingsPage() {
               >
                 {checkingForUpdates ? "Checking…" : "Check for updates"}
               </Button>
+            </div>
+          </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection id="home-dashboard" label="Home Dashboard">
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Home overview controls</h2>
+              <p className={styles.cardDescription}>
+                Choose what appears on the home screen and how upcoming meals are displayed.
+              </p>
+            </div>
+
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Upcoming meal range (days)</label>
+              <div className={styles.rangeRow}>
+                <input
+                  className={styles.rangeInput}
+                  max={30}
+                  min={1}
+                  onChange={(event) =>
+                    void handleHomeUpcomingDays(Number(event.target.value))
+                  }
+                  step={1}
+                  type="range"
+                  value={homeDashboard.upcomingDays}
+                />
+                <div className={styles.rangeValue}>{homeDashboard.upcomingDays}</div>
+              </div>
+            </div>
+
+            <div className={styles.twoColumn} style={{ marginTop: "1rem" }}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Upcoming layout</label>
+                <select
+                  className={styles.select}
+                  onChange={(event) => void handleHomeLayout(event.target.value)}
+                  value={homeDashboard.upcomingLayout}
+                >
+                  {homeUpcomingLayoutOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Upcoming detail level</label>
+                <select
+                  className={styles.select}
+                  onChange={(event) => void handleHomeDetail(event.target.value)}
+                  value={homeDashboard.upcomingDetail}
+                >
+                  {homeUpcomingDetailOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className={styles.toggleList} style={{ marginTop: "1rem" }}>
+              <ToggleRow
+                checked={homeDashboard.upcomingCompact}
+                description="Use tighter spacing for the upcoming-meals section."
+                label="Compact upcoming meals"
+                onChange={(checked) =>
+                  void handleHomeToggle(
+                    "upcomingCompact",
+                    checked,
+                    "home_upcoming_compact"
+                  )
+                }
+              />
+              <ToggleRow
+                checked={homeDashboard.showUpcomingMeals}
+                description="Show the upcoming-meals card on the home page."
+                label="Show upcoming meals"
+                onChange={(checked) =>
+                  void handleHomeToggle(
+                    "showUpcomingMeals",
+                    checked,
+                    "home_show_upcoming_meals"
+                  )
+                }
+              />
+              <ToggleRow
+                checked={homeDashboard.showMealActivity}
+                description="Show the meal activity heatmap card in Overview."
+                label="Show meal activity"
+                onChange={(checked) =>
+                  void handleHomeToggle(
+                    "showMealActivity",
+                    checked,
+                    "home_show_meal_activity"
+                  )
+                }
+              />
+              <ToggleRow
+                checked={homeDashboard.showGroceryList}
+                description="Show the grocery list card in Overview."
+                label="Show grocery list"
+                onChange={(checked) =>
+                  void handleHomeToggle(
+                    "showGroceryList",
+                    checked,
+                    "home_show_grocery_list"
+                  )
+                }
+              />
+              <ToggleRow
+                checked={homeDashboard.showGreetingSubtitle}
+                description="Show the date and subtitle under the greeting title on home."
+                label="Show greeting date and subtitle"
+                onChange={(checked) =>
+                  void handleHomeToggle(
+                    "showGreetingSubtitle",
+                    checked,
+                    "home_show_greeting_subtitle"
+                  )
+                }
+              />
             </div>
           </div>
         </CollapsibleSection>

@@ -3,6 +3,14 @@ import { mealService } from "../services.js";
 
 export const mealsRoutes = new Hono();
 
+function clampDays(days: number) {
+  if (!Number.isFinite(days)) {
+    return 7;
+  }
+
+  return Math.min(30, Math.max(1, Math.floor(days)));
+}
+
 function normalizeIngredients(input: unknown) {
   if (!Array.isArray(input)) {
     return [];
@@ -30,6 +38,32 @@ mealsRoutes.get("/meals", async (c) => {
 
   const data = await mealService.listMealsInRange(from, to);
   return c.json({ data });
+});
+
+mealsRoutes.get("/meals/upcoming", async (c) => {
+  const requestedDays = Number(c.req.query("days") ?? "7");
+  const days = clampDays(requestedDays);
+
+  const from = new Date();
+  from.setHours(0, 0, 0, 0);
+
+  const to = new Date(from);
+  to.setDate(to.getDate() + days - 1);
+  to.setHours(23, 59, 59, 999);
+
+  const meals = await mealService.listMealsInRange(
+    from.toISOString(),
+    to.toISOString()
+  );
+
+  return c.json({
+    data: {
+      days,
+      from: from.toISOString(),
+      to: to.toISOString(),
+      meals,
+    },
+  });
 });
 
 mealsRoutes.post("/meals", async (c) => {
