@@ -7,20 +7,23 @@ import type { ServerType } from "@hono/node-server";
 
 import { bootstrapDatabase } from "./lib/bootstrap";
 import { createApp } from "./app";
+import { LOOPBACK_HOST, resolveLanRuntimeSettings, type LanRuntimeSettings } from "./lib/lan";
 import { getSetting } from "../settings/store";
 import type { ServerConfig } from "@shared/config/server-config";
-
-const LOCAL_SERVER_HOST = "127.0.0.1";
 
 // ── State ────────────────────────────────────────────────────
 let httpServer: ServerType | null = null;
 let serverToken: string | null = null;
 let serverPort: number | null = null;
+let runtimeSettings: LanRuntimeSettings | null = null;
 
 export interface ServerInfo {
   url: string;
   token: string;
   port: number;
+  bindHost: string;
+  advertisedHost: string;
+  lanEnabled: boolean;
 }
 
 function readEnvOverrideFromFile(key: string): string | undefined {
@@ -87,10 +90,18 @@ function tryPort(config: ServerConfig, port: number): Promise<ServerInfo> {
         (info) => {
           httpServer = server;
           serverPort = info.port;
+          runtimeSettings = {
+            ...runtimeSettings!,
+            apiPort: info.port,
+            apiUrl: `http://${runtimeSettings!.apiAdvertisedHost}:${info.port}`,
+          };
           resolve({
-            url: `http://${LOCAL_SERVER_HOST}:${info.port}`,
+            url: runtimeSettings!.apiUrl,
             token: serverToken!,
             port: info.port,
+            bindHost: config.server.host,
+            advertisedHost: runtimeSettings!.apiAdvertisedHost,
+            lanEnabled: runtimeSettings!.lanEnabled,
           });
         }
       );
@@ -140,10 +151,11 @@ export async function startServer(): Promise<ServerInfo> {
 
   // Build server config (no TOML file — constructed from settings)
   const port = (getSetting("server_port") as number) || 3001;
+  runtimeSettings = resolveLanRuntimeSettings(port);
   const config: ServerConfig = {
     server: {
-      port,
-      host: LOCAL_SERVER_HOST,
+      port: runtimeSettings.apiPort,
+      host: runtimeSettings.apiBindHost,
       logLevel: "info",
     },
     database: {
@@ -159,12 +171,12 @@ export async function startServer(): Promise<ServerInfo> {
     },
     cors: {
       // Packaged Electron renderer requests can send Origin: null (file://)
-      origins: ["http://localhost:5173", "app://localhost", "null"],
+      origins: runtimeSettings.allowedOrigins,
     },
   };
 
   // Try configured port, then fallbacks
-  const portsToTry = [port, port + 1, port + 2, 0];
+  const portsToTry = [runtimeSettings.apiPort, runtimeSettings.apiPort + 1, runtimeSettings.apiPort + 2, 0];
   for (const p of portsToTry) {
     try {
       return await tryPort(config, p);
@@ -182,14 +194,23 @@ export async function stopServer(): Promise<void> {
     httpServer.close();
     httpServer = null;
     serverPort = null;
+    runtimeSettings = null;
   }
 }
 
+export async function restartServer(): Promise<ServerInfo> {
+  await stopServer();
+  return startServer();
+}
+
 export function getServerInfo(): ServerInfo | null {
-  if (!serverPort || !serverToken) return null;
+  if (!serverPort || !serverToken || !runtimeSettings) return null;
   return {
-    url: `http://${LOCAL_SERVER_HOST}:${serverPort}`,
+    url: runtimeSettings.apiUrl || `http://${LOOPBACK_HOST}:${serverPort}`,
     token: serverToken,
     port: serverPort,
+    bindHost: runtimeSettings.apiBindHost,
+    advertisedHost: runtimeSettings.apiAdvertisedHost,
+    lanEnabled: runtimeSettings.lanEnabled,
   };
 }

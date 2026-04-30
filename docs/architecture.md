@@ -20,11 +20,23 @@ Copilot Chef is a meal-planning Electron desktop application. The architecture s
 │  │ settings/app  │  │ routes, auth, chat, meals, etc.  │  │
 │  └───────────────┘  └──────────────┬───────────────────┘  │
 │                                    │                       │
-│                             ┌──────▼──────┐                │
-│                             │  SQLite     │                │
-│                             │  (WAL mode) │                │
-│                             └─────────────┘                │
-└────────────────────────────────────────────────────────────┘
+│  ┌────────────────────────────┐    │                       │
+│  │ Static Web Process         │    │                       │
+│  │ static-web.ts (port 4173)  │    │                       │
+│  │ serves browser renderer    │    │                       │
+│  └─────────────┬──────────────┘    │                       │
+│                │                   │                       │
+│                │            ┌──────▼──────┐                │
+│                │            │  SQLite     │                │
+│                │            │  (WAL mode) │                │
+│                │            └─────────────┘                │
+└────────────────┼───────────────────────────────────────────┘
+                 │ HTTP (browser assets + SPA)
+                 ▼
+        ┌─────────────────┐
+        │  Browser Client │  (iPad, desktop browser, etc.)
+        │  LAN / local    │──→ API on port 3001 (machine token)
+        └─────────────────┘
 
                            ▲
           PA / external    │  HTTP  (X-Machine-Caller-Id header)
@@ -48,7 +60,49 @@ The old Tauri and Next.js package layout has been removed.
 
 ---
 
-## 3. Data Flow
+## 3. Runtime Modes
+
+### Desktop Local Mode
+
+The default mode. Electron renderer connects to the embedded Hono server via IPC-provided config. The API binds to `127.0.0.1`. The static web process is not started unless LAN is enabled.
+
+### Desktop Remote Mode
+
+The Electron renderer connects to a configured remote API URL and token from settings. The embedded server and static web process are not started.
+
+### Browser LAN Mode
+
+A browser client (e.g., iPad Safari) opens the URL served by the static web process (default port 4173). The browser adapter (`src/renderer/lib/platform/browser.ts`) reads connection config from `localStorage` or a QR fragment (`#/connect?api=...&token=...`). The browser uses a machine token — not the per-session desktop token.
+
+When LAN is enabled:
+- API binds to `0.0.0.0` and advertises the selected LAN IPv4 address.
+- Static web process starts on port 4173.
+- CORS is extended to include the static web origin.
+
+---
+
+## 4. Platform Abstraction
+
+The renderer uses a `RendererPlatform` interface (`src/renderer/lib/platform/types.ts`) to avoid direct `window.api` calls outside the Electron adapter.
+
+`getPlatform()` in `src/renderer/lib/platform/index.ts` returns the correct adapter based on whether `window.api` is present:
+
+- **Electron adapter** (`electron.ts`) — wraps all `window.api.invoke(...)` and `window.api.on(...)` calls.
+- **Browser adapter** (`browser.ts`) — reads API URL and token from `localStorage`; returns `null` or disabled states for desktop-only capabilities (updates, PDF export, LAN management).
+
+Platform capabilities:
+
+| Capability | Electron | Browser |
+|---|---|---|
+| `pdfExport` | ✓ | — |
+| `updates` | ✓ | — |
+| `lanManagement` | ✓ | — |
+| `getServerConfig` | ✓ | ✓ (from localStorage) |
+| `getSetting` / `setSetting` | ✓ | ✓ (localStorage prefix) |
+
+---
+
+## 5. Data Flow
 
 A typical read request from user action to database and back:
 
@@ -67,7 +121,7 @@ A typical read request from user action to database and back:
 
 ---
 
-## 4. Chat Streaming
+## 6. Chat Streaming
 
 Chat is the most complex data path because it uses a streaming response with embedded sentinel events.
 
@@ -104,9 +158,7 @@ The sentinel parser extracts these from the raw text stream without buffering. N
 
 ---
 
-## 5. Configuration System
-
-Both server and client use TOML configuration files with environment variable overrides.
+## 7. Configuration System
 
 The app uses two configuration paths:
 
@@ -117,7 +169,7 @@ Important environment variables include `COPILOT_CHEF_DATABASE_URL`, `COPILOT_MO
 
 ---
 
-## 6. Authentication Model
+## 8. Authentication Model
 
 ### Client API key
 
@@ -133,9 +185,18 @@ Machine callers (the PA agent) also use `Authorization: Bearer <token>` but addi
 
 Routes that require machine identity use `requireMachineCallerIdentity` middleware, which rejects requests without these headers even when the Bearer token is valid.
 
+### LAN machine token
+
+Browser and LAN clients authenticate using a persistent machine token stored in `machine_api_key` settings. Unlike the per-session desktop token, the machine token survives restarts and is shown to users for manual entry or QR onboarding.
+
+Token lifecycle is managed by `src/main/server/lib/machine-token.ts`:
+- `generateMachineToken()` — creates and persists a new token
+- `revealMachineToken()` — returns the stored token for display
+- `clearMachineToken()` — removes the token from settings
+
 ---
 
-## 7. Update System
+## 9. Update System
 
 The desktop app release currently uses a single `v{semver}` tag in the same GitHub repository.
 
@@ -152,7 +213,7 @@ The desktop app release currently uses a single `v{semver}` tag in the same GitH
 
 ---
 
-## 8. Database
+## 10. Database
 
 ### SQLite in WAL mode
 
@@ -183,7 +244,7 @@ This checkpoints the WAL first (`PRAGMA wal_checkpoint(TRUNCATE)`), then copies 
 
 ---
 
-## 9. Connection Model
+## 11. Connection Model
 
 The renderer requires an active server connection. In local mode that server runs in the same Electron process; in remote mode it targets a configured external server.
 
@@ -199,7 +260,7 @@ When disconnected:
 
 ---
 
-## 10. SQLite Concurrency Model
+## 12. SQLite Concurrency Model
 
 ```
 Client A ──HTTP──┐

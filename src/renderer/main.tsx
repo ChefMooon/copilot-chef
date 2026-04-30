@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
 
 import { router } from "./router";
+import { getPlatform } from "./lib/platform";
 
 import "./globals.css";
 
@@ -14,3 +15,9 @@ createRoot(container).render(
     <RouterProvider router={router} />
   </StrictMode>
 );
+
+if (getPlatform().runtime === "browser" && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    void navigator.serviceWorker.register("/sw.js");
+  });
+}

@@ -18,6 +18,7 @@ export function useServerConnection(serverUrl: string) {
   const attemptRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const statusRef = useRef<ConnectionStatus>("connecting");
 
   const checkHealth = useCallback(async () => {
     const controller = new AbortController();
@@ -31,6 +32,7 @@ export function useServerConnection(serverUrl: string) {
 
       if (response.ok) {
         setStatus("connected");
+        statusRef.current = "connected";
         attemptRef.current = 0;
         return;
       }
@@ -39,11 +41,13 @@ export function useServerConnection(serverUrl: string) {
     }
 
     setStatus("disconnected");
+    statusRef.current = "disconnected";
     const delay = getBackoffDelay(attemptRef.current);
     attemptRef.current++;
 
     timerRef.current = setTimeout(() => {
       setStatus("connecting");
+      statusRef.current = "connecting";
       void checkHealth();
     }, delay);
   }, [serverUrl]);
@@ -55,6 +59,7 @@ export function useServerConnection(serverUrl: string) {
     }
     attemptRef.current = 0;
     setStatus("connecting");
+    statusRef.current = "connecting";
     void checkHealth();
   }, [checkHealth]);
 
@@ -68,6 +73,22 @@ export function useServerConnection(serverUrl: string) {
       }
     };
   }, [checkHealth]);
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && statusRef.current !== "connected") {
+        retry();
+      }
+    };
+
+    window.addEventListener("online", retry);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.removeEventListener("online", retry);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [retry]);
 
   return { status, retry };
 }

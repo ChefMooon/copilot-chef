@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { PersonaModal } from "@/components/settings/PersonaModal";
 import { MealTypesSection } from "@/components/settings/MealTypesSection";
+import { LanQrCodeModal } from "@/components/settings/LanQrCodeModal";
 
 import { ChipList } from "@/components/settings/ChipList";
 import { CollapsibleSection } from "@/components/settings/CollapsibleSection";
@@ -51,6 +52,7 @@ import {
   getCachedConfig,
   resetConfigCache,
 } from "@/lib/config";
+import { getPlatform, type LanStatus } from "@/lib/platform";
 import { CUISINE_OPTIONS } from "@shared/api/constants";
 
 const preferenceQueryKey = ["preferences"] as const;
@@ -212,6 +214,8 @@ const homeUpcomingDetailOptions = [
   { label: "Standard", value: "standard" },
   { label: "Detailed", value: "detailed" },
 ];
+
+const platform = getPlatform();
 
 type TabId = "dietary-profile" | "meal-plans" | "your-chef" | "app-settings";
 
@@ -380,6 +384,12 @@ export default function SettingsPage() {
   const [updatesCheckOnStartup, setUpdatesCheckOnStartup] = useState(true);
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
   const [manualUpdateCheckPending, setManualUpdateCheckPending] = useState(false);
+  const [lanStatus, setLanStatus] = useState<LanStatus | null>(null);
+  const [lanEnabledDraft, setLanEnabledDraft] = useState(false);
+  const [lanWebEnabledDraft, setLanWebEnabledDraft] = useState(false);
+  const [lanAdvertisedHostDraft, setLanAdvertisedHostDraft] = useState("");
+  const [lanSaving, setLanSaving] = useState(false);
+  const [lanQrModalOpen, setLanQrModalOpen] = useState(false);
   const [homeDashboard, setHomeDashboard] =
     useState<HomeDashboardSettings>(HOME_DASHBOARD_DEFAULTS);
 
@@ -449,8 +459,8 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    window.api
-      .invoke("app:settings:get", "machine_api_key")
+    platform
+      .getSetting("machine_api_key")
       .then((value) => {
         if (typeof value === "string") {
           setMachineApiKeyDraft(value);
@@ -460,8 +470,25 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    window.api
-      .invoke("app:settings:get", "copilot_model")
+    if (!platform.capabilities.lanManagement) {
+      return;
+    }
+
+    platform
+      .getLanStatus()
+      .then((status) => {
+        if (!status) return;
+        setLanStatus(status);
+        setLanEnabledDraft(status.lanEnabled);
+        setLanWebEnabledDraft(status.web.enabled);
+        setLanAdvertisedHostDraft(status.api.advertisedHost);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    platform
+      .getSetting("copilot_model")
       .then((value) => {
         if (typeof value === "string" && value) {
           setCopilotModelDraft(value);
@@ -471,8 +498,8 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    window.api
-      .invoke("app:settings:get", "updates_check_on_startup")
+    platform
+      .getSetting("updates_check_on_startup")
       .then((value) => {
         if (typeof value === "boolean") {
           setUpdatesCheckOnStartup(value);
@@ -487,14 +514,14 @@ export default function SettingsPage() {
 
   useEffect(() => {
     Promise.all([
-      window.api.invoke("app:settings:get", "home_upcoming_days"),
-      window.api.invoke("app:settings:get", "home_upcoming_layout"),
-      window.api.invoke("app:settings:get", "home_upcoming_detail"),
-      window.api.invoke("app:settings:get", "home_upcoming_compact"),
-      window.api.invoke("app:settings:get", "home_show_upcoming_meals"),
-      window.api.invoke("app:settings:get", "home_show_meal_activity"),
-      window.api.invoke("app:settings:get", "home_show_grocery_list"),
-      window.api.invoke("app:settings:get", "home_show_greeting_subtitle"),
+      platform.getSetting("home_upcoming_days"),
+      platform.getSetting("home_upcoming_layout"),
+      platform.getSetting("home_upcoming_detail"),
+      platform.getSetting("home_upcoming_compact"),
+      platform.getSetting("home_show_upcoming_meals"),
+      platform.getSetting("home_show_meal_activity"),
+      platform.getSetting("home_show_grocery_list"),
+      platform.getSetting("home_show_greeting_subtitle"),
     ])
       .then(
         ([
@@ -578,15 +605,11 @@ export default function SettingsPage() {
       });
     };
 
-    window.api.on("updates:available", handleUpdateAvailable);
-    window.api.on("updates:not-available", handleUpdateNotAvailable);
-    window.api.on("updates:error", handleUpdateError);
-
-    return () => {
-      window.api.off("updates:available", handleUpdateAvailable);
-      window.api.off("updates:not-available", handleUpdateNotAvailable);
-      window.api.off("updates:error", handleUpdateError);
-    };
+    return platform.subscribeUpdates({
+      onAvailable: handleUpdateAvailable,
+      onNotAvailable: handleUpdateNotAvailable,
+      onError: handleUpdateError,
+    });
   }, [manualUpdateCheckPending, toast]);
 
   useChatPageContext({ page: "settings" });
@@ -888,26 +911,14 @@ export default function SettingsPage() {
   const handleSaveConnection = async () => {
     setConnectionSaving(true);
     try {
-      await window.api.invoke("app:settings:set", {
-        key: "remote_server_url",
-        value: connectionDraft.serverUrl,
-      });
-      await window.api.invoke("app:settings:set", {
-        key: "remote_api_key",
-        value: connectionDraft.token,
-      });
-      await window.api.invoke("app:settings:set", {
-        key: "server_mode",
-        value: connectionDraft.mode,
-      });
-      await window.api.invoke("app:settings:set", {
-        key: "machine_api_key",
-        value: machineApiKeyDraft,
-      });
-      await window.api.invoke("app:settings:set", {
-        key: "copilot_model",
-        value: copilotModelDraft.trim() || "gpt-4.1",
-      });
+      await platform.setSetting("remote_server_url", connectionDraft.serverUrl);
+      await platform.setSetting("remote_api_key", connectionDraft.token);
+      await platform.setSetting("server_mode", connectionDraft.mode);
+      await platform.setSetting("machine_api_key", machineApiKeyDraft);
+      await platform.setSetting(
+        "copilot_model",
+        copilotModelDraft.trim() || "gpt-4.1"
+      );
       resetConfigCache();
       await loadServerConfig();
       setConnectionSaved(true);
@@ -920,15 +931,78 @@ export default function SettingsPage() {
     }
   };
 
+  const refreshLanStatus = async () => {
+    if (!platform.capabilities.lanManagement) return;
+    const status = await platform.getLanStatus();
+    if (!status) return;
+    setLanStatus(status);
+    setLanEnabledDraft(status.lanEnabled);
+    setLanWebEnabledDraft(status.web.enabled);
+    setLanAdvertisedHostDraft(status.api.advertisedHost);
+  };
+
+  const handleSaveLanSettings = async () => {
+    setLanSaving(true);
+    try {
+      await platform.setSetting("lan_enabled", lanEnabledDraft);
+      await platform.setSetting("lan_web_enabled", lanWebEnabledDraft);
+      if (lanAdvertisedHostDraft.trim()) {
+        await platform.setSetting("lan_advertised_host", lanAdvertisedHostDraft.trim());
+      }
+      await platform.restartLanServices();
+      await refreshLanStatus();
+      toast({ title: "LAN settings saved." });
+    } catch {
+      toast({ title: "Could not save LAN settings.", variant: "error" });
+    } finally {
+      setLanSaving(false);
+    }
+  };
+
+  const handleGenerateMachineToken = async () => {
+    try {
+      const result = await platform.generateMachineToken();
+      setMachineApiKeyDraft(result.token);
+      setLanQrModalOpen(false);
+      await refreshLanStatus();
+      toast({ title: "Machine token generated." });
+    } catch {
+      toast({ title: "Could not generate token.", variant: "error" });
+    }
+  };
+
+  const handleRotateMachineToken = async () => {
+    try {
+      const result = await platform.rotateMachineToken();
+      setMachineApiKeyDraft(result.token);
+      setLanQrModalOpen(false);
+      await refreshLanStatus();
+      toast({ title: "Machine token rotated." });
+    } catch {
+      toast({ title: "Could not rotate token.", variant: "error" });
+    }
+  };
+
+  const browserConnectionUrl =
+    lanStatus?.web.url && lanStatus?.api.url && machineApiKeyDraft
+      ? `${lanStatus.web.url}/connect#api=${encodeURIComponent(lanStatus.api.url)}&token=${encodeURIComponent(machineApiKeyDraft)}`
+      : "";
+
+  const canShowLanQrCode = Boolean(
+    lanEnabledDraft &&
+      lanWebEnabledDraft &&
+      lanStatus?.api.url &&
+      lanStatus?.web.url &&
+      machineApiKeyDraft &&
+      browserConnectionUrl
+  );
+
   const handleToggleStartupUpdateCheck = async (checked: boolean) => {
     const previous = updatesCheckOnStartup;
     setUpdatesCheckOnStartup(checked);
 
     try {
-      await window.api.invoke("app:settings:set", {
-        key: "updates_check_on_startup",
-        value: checked,
-      });
+      await platform.setSetting("updates_check_on_startup", checked);
     } catch {
       setUpdatesCheckOnStartup(previous);
       toast({
@@ -953,10 +1027,7 @@ export default function SettingsPage() {
     }));
 
     try {
-      await window.api.invoke("app:settings:set", {
-        key: settingKey,
-        value: nextValue,
-      });
+      await platform.setSetting(settingKey, nextValue);
     } catch {
       setHomeDashboard((prev) => ({
         ...prev,
@@ -1011,7 +1082,7 @@ export default function SettingsPage() {
     setManualUpdateCheckPending(true);
 
     try {
-      const result = await window.api.invoke("updates:check");
+      const result = await platform.checkForUpdates();
       if (result === null) {
         setManualUpdateCheckPending(false);
         setCheckingForUpdates(false);
@@ -1474,6 +1545,146 @@ export default function SettingsPage() {
                 placeholder="Token for external PA / automation access"
               />
             </div>
+            {platform.capabilities.lanManagement && (
+              <div style={{ marginTop: "1rem" }}>
+                <div className={styles.cardHeader}>
+                  <h3 className={styles.cardTitle}>LAN browser access</h3>
+                  <p className={styles.cardDescription}>
+                    Share the browser UI with trusted devices on this network.
+                  </p>
+                </div>
+                <div className={styles.toggleList}>
+                  <ToggleRow
+                    checked={lanEnabledDraft}
+                    description="Bind the API to the LAN instead of loopback only."
+                    label="Enable LAN API"
+                    onChange={setLanEnabledDraft}
+                  />
+                  <ToggleRow
+                    checked={lanWebEnabledDraft}
+                    description="Serve the browser UI from a separate static web server."
+                    label="Enable browser UI server"
+                    onChange={setLanWebEnabledDraft}
+                  />
+                </div>
+                <div className={styles.twoColumn} style={{ marginTop: "1rem" }}>
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel}>API URL</label>
+                    <input
+                      className={styles.select}
+                      readOnly
+                      value={lanStatus?.api.url ?? "Unavailable"}
+                    />
+                  </div>
+                  <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel}>Browser URL</label>
+                    <input
+                      className={styles.select}
+                      readOnly
+                      value={lanStatus?.web.url ?? "Unavailable"}
+                    />
+                  </div>
+                </div>
+                <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
+                  <label className={styles.fieldLabel}>Advertised host</label>
+                  {lanStatus?.candidates && lanStatus.candidates.length > 0 ? (
+                    <select
+                      className={styles.select}
+                      value={lanAdvertisedHostDraft}
+                      onChange={(event) => setLanAdvertisedHostDraft(event.target.value)}
+                    >
+                      {lanStatus.candidates.map((c) => (
+                        <option key={c.address} value={c.address}>
+                          {c.name} — {c.address}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      className={styles.select}
+                      type="text"
+                      value={lanAdvertisedHostDraft}
+                      onChange={(event) => setLanAdvertisedHostDraft(event.target.value)}
+                      placeholder="e.g. 192.168.1.100"
+                    />
+                  )}
+                </div>
+                {lanStatus?.firewallWarning && (
+                  <div
+                    style={{
+                      marginTop: "1rem",
+                      padding: "0.75rem 1rem",
+                      borderRadius: "0.5rem",
+                      background: "var(--color-warning-bg, #fef3c7)",
+                      color: "var(--color-warning-text, #92400e)",
+                      fontSize: "0.875rem",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    <strong>Firewall may be blocking LAN access.</strong> The API is not
+                    reachable on the advertised address. On Windows, run:{" "}
+                    <code style={{ fontFamily: "monospace", wordBreak: "break-all" }}>
+                      {`netsh advfirewall firewall add rule name="Copilot Chef" dir=in action=allow protocol=TCP localport=${lanStatus.api.port}`}
+                    </code>
+                  </div>
+                )}
+                <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
+                  <label className={styles.fieldLabel}>Connection URL</label>
+                  <input
+                    className={styles.select}
+                    readOnly
+                    type="text"
+                    value={browserConnectionUrl}
+                  />
+                </div>
+                <div className={styles.actionsRow} style={{ marginTop: "1rem" }}>
+                  <Button
+                    disabled={lanSaving}
+                    onClick={() => void handleSaveLanSettings()}
+                    type="button"
+                    variant="outline"
+                  >
+                    {lanSaving ? "Saving..." : "Save LAN settings"}
+                  </Button>
+                  <Button
+                    onClick={() => void handleGenerateMachineToken()}
+                    type="button"
+                    variant="outline"
+                  >
+                    Generate token
+                  </Button>
+                  <Button
+                    onClick={() => void handleRotateMachineToken()}
+                    type="button"
+                    variant="outline"
+                  >
+                    Rotate token
+                  </Button>
+                  <Button
+                    disabled={!canShowLanQrCode}
+                    onClick={() => setLanQrModalOpen(true)}
+                    title={
+                      canShowLanQrCode
+                        ? undefined
+                        : "Enable LAN API and browser UI, then generate a machine token first."
+                    }
+                    type="button"
+                    variant="outline"
+                  >
+                    Show QR code
+                  </Button>
+                </div>
+                {lanQrModalOpen && browserConnectionUrl && lanStatus?.api.url && lanStatus?.web.url ? (
+                  <LanQrCodeModal
+                    apiUrl={lanStatus.api.url}
+                    browserUrl={lanStatus.web.url}
+                    connectionUrl={browserConnectionUrl}
+                    onClose={() => setLanQrModalOpen(false)}
+                    onCopied={() => toast({ title: "Connection link copied." })}
+                  />
+                ) : null}
+              </div>
+            )}
             <div className={styles.actionsRow} style={{ marginTop: "1rem" }}>
               <Button
                 disabled={connectionSaving}

@@ -14,6 +14,7 @@ export default tseslint.config(
       "**/prisma/generated/**",
       "**/next-env.d.ts",
       "**/.github/**",
+      "src/renderer/public/**",
     ],
   },
   js.configs.recommended,
@@ -64,6 +65,24 @@ export default tseslint.config(
       globals: {
         ...globals.browser,
       },
+    },
+  },
+  {
+    files: ["src/renderer/**/*.{ts,tsx}"],
+    ignores: [
+      "src/renderer/lib/platform/**",
+      "src/renderer/**/*.test.ts",
+      "src/renderer/**/*.test.tsx",
+      "src/renderer/vite-env.d.ts",
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "MemberExpression[object.name='window'][property.name='api']",
+          message: "Use the renderer platform adapter instead of direct window.api access.",
+        },
+      ],
     },
   },
   prettierConfig

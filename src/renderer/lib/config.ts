@@ -1,8 +1,4 @@
-type ServerConfig = {
-  url: string;
-  token: string;
-  mode: "local" | "remote";
-};
+import { getPlatform, type ServerConfig } from "./platform";
 
 let cachedConfig: ServerConfig | null = null;
 
@@ -10,7 +6,7 @@ export async function loadServerConfig(): Promise<ServerConfig> {
   if (cachedConfig) return cachedConfig;
 
   try {
-    const config = (await window.api.invoke("server:getConfig")) as ServerConfig;
+    const config = await getPlatform().getServerConfig();
     cachedConfig = config;
     return config;
   } catch {

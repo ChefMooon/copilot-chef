@@ -1,4 +1,4 @@
-import { createHashRouter } from "react-router";
+import { createBrowserRouter } from "react-router";
 
 import { AppLayout } from "./app";
 import HomePage from "./pages/home";
@@ -9,9 +9,10 @@ import RecipesPage from "./pages/recipes";
 import RecipeDetailPage from "./pages/recipes/detail";
 import StatsPage from "./pages/stats";
 import SettingsPage from "./pages/settings";
+import ConnectPage from "./pages/connect";
 import { RouteErrorBoundary } from "./components/layout/route-error-boundary";
 
-export const router = createHashRouter([
+export const router = createBrowserRouter([
   {
     path: "/",
     element: <AppLayout />,
@@ -25,6 +26,7 @@ export const router = createHashRouter([
       { path: "recipes/:recipeId", element: <RecipeDetailPage /> },
       { path: "stats", element: <StatsPage /> },
       { path: "settings", element: <SettingsPage /> },
+      { path: "connect", element: <ConnectPage /> },
     ],
   },
 ]);

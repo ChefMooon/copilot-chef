@@ -25,11 +25,11 @@ function relativeTime(iso: string) {
 }
 
 function getApiBase() {
-  return getCachedConfig()?.connection.serverUrl ?? "http://localhost:3001";
+  return getCachedConfig()?.url ?? "http://localhost:3001";
 }
 
 function getAuthHeaders(): Record<string, string> {
-  const apiKey = getCachedConfig()?.connection.apiKey ?? "";
+  const apiKey = getCachedConfig()?.token ?? "";
   if (!apiKey) return {};
   return { "Authorization": `Bearer ${apiKey}` };
 }

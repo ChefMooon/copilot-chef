@@ -15,8 +15,15 @@
 ```
 copilot-chef/
 ├── src/main/      Electron main process, IPC, embedded Hono server
+│   └── server/
+│       ├── static-web.ts    Static web process — serves browser renderer build
+│       └── lib/
+│           ├── lan.ts        LAN settings resolution, IPv4 detection
+│           └── machine-token.ts  Machine token lifecycle (generate/rotate/clear)
 ├── src/preload/   Electron contextBridge surface
 ├── src/renderer/  React UI
+│   └── lib/
+│       └── platform/        Runtime platform abstraction (Electron vs browser adapters)
 ├── src/shared/    Shared types, config schemas, API constants
 ├── prisma/        Prisma schema
 ├── resources/     Icons and packaged app resources
@@ -75,6 +82,22 @@ npm run build
 npm run build:win
 ```
 
+### Build the browser UI
+
+```bash
+npm run build:web
+```
+
+Produces a standalone browser-ready build in `out/web/`. Used by the static web process when LAN mode is enabled and included in packaged builds.
+
+### Browser UI dev server
+
+```bash
+npm run dev:web
+```
+
+Starts a Vite dev server for the browser renderer only (no Electron). Useful for rapid browser UI iteration. Connect to a running local API via the connection page.
+
 ---
 
 ## 5. Configuration
@@ -102,6 +125,19 @@ Useful environment variables:
 | `COPILOT_MODEL` | Copilot model override |
 | `PA_MACHINE_AUTH_ENABLED` | Enables PA/machine auth middleware |
 | `PA_MACHINE_AUTH_TOKENS` | Machine auth token mappings |
+
+### LAN settings
+
+| Key | Default | Purpose |
+|---|---|---|
+| `lan_enabled` | `false` | Enables LAN binding for the API and starts the static web process |
+| `lan_web_enabled` | mirrors `lan_enabled` | Enables the static web process independently |
+| `lan_web_port` | `4173` | Port for the static browser UI |
+| `lan_api_port` | inherits `server_port` | API port when LAN is active |
+| `lan_advertised_host` | auto-detected | Override the LAN IPv4 address advertised to browser clients |
+| `lan_allowed_origins` | `[]` | Extra CORS origins approved by the user |
+| `machine_api_key` | generated on demand | Bearer token for browser/LAN clients |
+| `machine_api_key_updated_at` | — | ISO timestamp of last token generation/rotation |
 
 ---
 

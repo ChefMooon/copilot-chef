@@ -16,6 +16,7 @@ import {
   getMinimalContextForPath,
 } from "./page-context-routing";
 import { getCachedConfig } from "@/lib/config";
+import { createUuid } from "@/lib/uuid";
 
 export type ChatSize = "compact" | "medium" | "fullscreen";
 
@@ -288,7 +289,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               };
               if (event.type === "input_request") {
                 setPendingInputRequest({
-                  requestId: crypto.randomUUID(),
+                  requestId: createUuid(),
                   question: event.question,
                   choices: event.choices,
                   allowFreeform: event.allowFreeform,

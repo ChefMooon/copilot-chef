@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 
 import { registerIpcHandlers } from "./ipc/index";
 import { startServer, stopServer } from "./server/start";
+import { startStaticWebServer, stopStaticWebServer } from "./server/static-web";
 import { getSetting, ensureSetting } from "./settings/store";
 import { setupAutoUpdater } from "./updates/service";
 
@@ -153,6 +154,13 @@ app.whenReady().then(async () => {
   ensureSetting("home_show_meal_activity", true);
   ensureSetting("home_show_grocery_list", true);
   ensureSetting("home_show_greeting_subtitle", true);
+  ensureSetting("lan_enabled", false);
+  ensureSetting("lan_api_host", "127.0.0.1");
+  ensureSetting("lan_api_port", getSetting("server_port") ?? 3001);
+  ensureSetting("lan_web_enabled", false);
+  ensureSetting("lan_web_host", "127.0.0.1");
+  ensureSetting("lan_web_port", 4173);
+  ensureSetting("lan_allowed_origins", []);
 
   // Start in-process Hono server (unless remote mode)
   const serverMode = getSetting("server_mode") ?? "local";
@@ -160,8 +168,14 @@ app.whenReady().then(async () => {
     try {
       const serverInfo = await startServer();
       console.info(
-        `[copilot-chef] server started on http://127.0.0.1:${serverInfo.port}`
+        `[copilot-chef] server started on ${serverInfo.url} (bind ${serverInfo.bindHost}:${serverInfo.port})`
       );
+      const staticInfo = await startStaticWebServer();
+      if (staticInfo?.running) {
+        console.info(
+          `[copilot-chef] browser UI started on ${staticInfo.url} (bind ${staticInfo.bindHost}:${staticInfo.port})`
+        );
+      }
     } catch (err) {
       console.error("[copilot-chef] server startup failed:", err);
     }
@@ -184,6 +198,7 @@ app.whenReady().then(async () => {
 
 app.on("before-quit", async () => {
   quitting = true;
+  await stopStaticWebServer();
   await stopServer();
 });
 

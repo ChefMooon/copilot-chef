@@ -12,7 +12,7 @@
 
 ### Related UI Tests
 
-These behaviors are validated through manual smoke testing. Automated UI-level tests for modals and toasts have not been ported from the removed `src/web` package. See [docs/developer-guide.md](developer-guide.md) for how to add new Vitest tests to `@copilot-chef/client`.
+These behaviors are validated through manual smoke testing. Automated tests live primarily under `src/main/server/` and `src/shared/config/__tests__/`. See [docs/developer-guide.md](developer-guide.md) for how to run and add Vitest tests.
 
 ### Environment Variables
 
@@ -20,7 +20,7 @@ These behaviors are validated through manual smoke testing. Automated UI-level t
 | ----------------------------- | --------------------------------------------------- |
 | `COPILOT_CHEF_DATABASE_URL`   | SQLite database file path (preferred env override)  |
 | `COPILOT_CHEF_SERVER_PORT`    | Override server port (default: 3001)                |
-| `COPILOT_MODEL`               | AI model identifier used for chat (default: `gpt-4o-mini`) |
+| `COPILOT_MODEL`               | AI model identifier used for chat (default: `gpt-4.1`)      |
 
 ### User Preferences
 
@@ -49,7 +49,10 @@ These behaviors are validated through manual smoke testing. Automated UI-level t
 | `consolidateIngredients` | Whether to merge duplicate ingredients across meals in a grocery list     |
 | `defaultPlanLength`      | Default number of days for a generated meal plan                          |
 | `groceryGrouping`        | How grocery list items are grouped (by category, meal, or alphabetically) |
+| `defaultRecipeView`      | Default view mode when opening a recipe (basic, annotated, or cooking)    |
+| `defaultUnitMode`        | Default unit system for recipe ingredients (cup or grams)                 |
 | `saveChatHistory`        | Whether chat history is persisted between sessions                        |
+| `reasoningEffort`        | AI reasoning effort level passed to the model (default, low, medium, high)|
 
 ---
 
@@ -61,25 +64,25 @@ These behaviors are validated through manual smoke testing. Automated UI-level t
 
 - **Implemented:** Yes
 - **Default:** `file:./data/copilot-chef.db`
-- **Affects:** Overrides `database.url` in `copilot-chef-server.toml`
+- **Affects:** SQLite database path used by Prisma. Set automatically by the Electron main process; can be overridden externally before the process starts.
 
 #### `COPILOT_CHEF_SERVER_PORT`
 
 - **Implemented:** Yes
 - **Default:** `3001`
-- **Affects:** Overrides `server.port` in `copilot-chef-server.toml`
+- **Affects:** In-process Hono server port. Superseded by the `server_port` app setting when running inside Electron.
 
 #### `COPILOT_MODEL`
 
 - **Implemented:** Yes
-- **Default:** `gpt-4o-mini`
-- **Affects:** `src/server/src/index.ts` — model passed to the GitHub Copilot SDK for all AI completions. Can also be set via `auth.copilot_model` in `copilot-chef-server.toml`.
+- **Default:** `gpt-4.1`
+- **Affects:** `src/main/server/copilot/copilot-chef.ts` — model passed to the GitHub Copilot SDK for all AI completions. In the Electron app this is set from the `copilot_model` app setting at startup; direct env override is also respected.
 
 ---
 
 ### User Preferences
 
-All preferences are stored in the `UserPreference` Prisma model (`src/core/prisma/schema.prisma`) and managed by `src/core/src/services/preference-service.ts`. They are exposed via the `/api/preferences` route and rendered in `src/client/src/pages/settings.tsx`.
+All preferences are stored in the `UserPreference` Prisma model (`prisma/schema.prisma`) and managed by `src/main/server/services/preference-service.ts`. They are exposed via the `/api/preferences` route and rendered in `src/renderer/pages/settings.tsx`.
 
 #### `householdSize`
 
@@ -163,21 +166,21 @@ All preferences are stored in the `UserPreference` Prisma model (`src/core/prism
 - **Implemented:** Yes
 - **Default:** `"coach"`
 - **Options:** `coach`, `scientist`, `entertainer`, `minimalist`, `professor`, `michelin`
-- **Affects:** `preference-service.ts`, `settings.tsx` (Chef Personality card, persona grid), `src/core/src/copilot/system-prompt.ts` (maps to persona instruction injected at prompt start)
+- **Affects:** `preference-service.ts`, `settings.tsx` (Chef Personality card, persona grid), `src/main/server/copilot/system-prompt.ts` (maps to persona instruction injected at prompt start)
 
 #### `replyLength`
 
 - **Implemented:** Yes
 - **Default:** `"balanced"`
 - **Options:** `concise`, `balanced`, `detailed`
-- **Affects:** `preference-service.ts`, `settings.tsx` (Response Style card, segmented control), `src/core/src/copilot/system-prompt.ts` (injects length instruction)
+- **Affects:** `preference-service.ts`, `settings.tsx` (Response Style card, segmented control), `src/main/server/copilot/system-prompt.ts` (injects length instruction)
 
 #### `emojiUsage`
 
 - **Implemented:** Yes
 - **Default:** `"occasional"`
 - **Options:** `none`, `occasional`, `frequent`
-- **Affects:** `preference-service.ts`, `settings.tsx` (Response Style card, segmented control), `src/core/src/copilot/system-prompt.ts` (injects emoji instruction)
+- **Affects:** `preference-service.ts`, `settings.tsx` (Response Style card, segmented control), `src/main/server/copilot/system-prompt.ts` (injects emoji instruction)
 
 #### `autoImproveChef`
 
@@ -240,4 +243,25 @@ All preferences are stored in the `UserPreference` Prisma model (`src/core/prism
 
 - **Implemented:** Yes
 - **Default:** `true`
-- **Affects:** `preference-service.ts`, `settings.tsx` (Data & Privacy card, toggle switch), `src/core/src/services/chat-history-service.ts`
+- **Affects:** `preference-service.ts`, `settings.tsx` (Data & Privacy card, toggle switch), `src/main/server/services/chat-history-service.ts`
+
+#### `defaultRecipeView`
+
+- **Implemented:** Yes
+- **Default:** `"basic"`
+- **Options:** `basic`, `detailed` (Annotated), `cooking`
+- **Affects:** `preference-service.ts`, `settings.tsx` (Grocery & Planning card, segmented control), recipe page initial view mode
+
+#### `defaultUnitMode`
+
+- **Implemented:** Yes
+- **Default:** `"cup"`
+- **Options:** `cup`, `grams`
+- **Affects:** `preference-service.ts`, `settings.tsx` (Grocery & Planning card, segmented control), recipe ingredient unit display
+
+#### `reasoningEffort`
+
+- **Implemented:** Yes
+- **Default:** `""` (uses model default)
+- **Options:** `""` (Default), `low`, `medium`, `high`
+- **Affects:** `preference-service.ts`, `settings.tsx` (AI Behavior card, segmented control), `src/main/server/copilot/copilot-chef.ts` (passed as `reasoningEffort` to Copilot SDK calls)

@@ -1,6 +1,14 @@
 import { app, BrowserWindow, dialog, ipcMain } from "electron";
 import { writeFile } from "node:fs/promises";
-import { getServerInfo } from "../server/start";
+import { getServerInfo, restartServer } from "../server/start";
+import { resolveLanRuntimeSettings, probeLanReachability } from "../server/lib/lan";
+import { getStaticWebInfo, restartStaticWebServer } from "../server/static-web";
+import {
+  clearMachineToken,
+  generateMachineToken,
+  getMachineTokenMetadata,
+  revealMachineToken,
+} from "../server/lib/machine-token";
 import { getSetting, setSetting, getAllSettings } from "../settings/store";
 
 type MenuPdfExportPayload = {
@@ -35,7 +43,49 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle("server:getStatus", () => {
     const info = getServerInfo();
-    return { running: info !== null, port: info?.port ?? null };
+    return {
+      running: info !== null,
+      port: info?.port ?? null,
+      bindHost: info?.bindHost ?? null,
+      advertisedHost: info?.advertisedHost ?? null,
+      url: info?.url ?? null,
+      lanEnabled: info?.lanEnabled ?? false,
+    };
+  });
+
+  ipcMain.handle("lan:getStatus", async () => {
+    const info = getServerInfo();
+    const settings = resolveLanRuntimeSettings(
+      (getSetting("server_port") as number | undefined) ?? 3001
+    );
+
+    let firewallWarning = false;
+    if (settings.lanEnabled && info !== null) {
+      const reachable = await probeLanReachability(settings.apiAdvertisedHost, settings.apiPort);
+      firewallWarning = !reachable;
+    }
+
+    return {
+      api: {
+        running: info !== null,
+        bindHost: info?.bindHost ?? settings.apiBindHost,
+        advertisedHost: info?.advertisedHost ?? settings.apiAdvertisedHost,
+        url: info?.url ?? settings.apiUrl,
+        port: info?.port ?? settings.apiPort,
+      },
+      web: {
+        running: getStaticWebInfo().running,
+        enabled: settings.webEnabled,
+        bindHost: getStaticWebInfo().bindHost ?? settings.webBindHost,
+        advertisedHost: getStaticWebInfo().advertisedHost ?? settings.webAdvertisedHost,
+        url: getStaticWebInfo().url ?? settings.webUrl,
+        port: getStaticWebInfo().port ?? settings.webPort,
+      },
+      lanEnabled: settings.lanEnabled,
+      firewallWarning,
+      candidates: settings.candidates,
+      machineToken: getMachineTokenMetadata(),
+    };
   });
 
   // ── App info ─────────────────────────────────────────────
@@ -48,17 +98,60 @@ export function registerIpcHandlers(): void {
     return getSetting(key);
   });
 
-  ipcMain.handle("app:settings:set", (_event, payload: { key: string; value: unknown }) => {
+  ipcMain.handle("app:settings:set", async (_event, payload: { key: string; value: unknown }) => {
     setSetting(payload.key, payload.value);
     // Apply model change immediately so new sessions pick it up without a restart.
     if (payload.key === "copilot_model") {
       const model = (payload.value as string)?.trim() || "gpt-4.1";
       process.env["COPILOT_MODEL"] = model;
     }
+    if (
+      payload.key === "machine_api_key" ||
+      payload.key.startsWith("lan_") ||
+      payload.key === "server_port"
+    ) {
+      if (getSetting("server_mode") !== "remote" && getServerInfo()) {
+        await restartServer();
+        await restartStaticWebServer();
+      }
+    }
+  });
+
+  ipcMain.handle("lan:restart", async () => {
+    if (getSetting("server_mode") === "remote") {
+      return { api: null, web: null };
+    }
+    const api = await restartServer();
+    const web = await restartStaticWebServer();
+    return { api, web };
   });
 
   ipcMain.handle("app:settings:getAll", () => {
     return getAllSettings();
+  });
+
+  ipcMain.handle("machine-token:metadata", () => getMachineTokenMetadata());
+  ipcMain.handle("machine-token:reveal", () => revealMachineToken());
+  ipcMain.handle("machine-token:generate", async () => {
+    const result = generateMachineToken();
+    if (getServerInfo()) {
+      await restartServer();
+    }
+    return result;
+  });
+  ipcMain.handle("machine-token:rotate", async () => {
+    const result = generateMachineToken();
+    if (getServerInfo()) {
+      await restartServer();
+    }
+    return result;
+  });
+  ipcMain.handle("machine-token:clear", async () => {
+    const result = clearMachineToken();
+    if (getServerInfo()) {
+      await restartServer();
+    }
+    return result;
   });
 
   // ── Menu export ──────────────────────────────────────────

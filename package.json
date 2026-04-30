@@ -19,27 +19,37 @@
       {
         "from": "resources",
         "to": "resources",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "prisma",
         "to": "prisma",
-        "filter": ["schema.prisma"]
+        "filter": [
+          "schema.prisma"
+        ]
       },
       {
         "from": "node_modules/.prisma",
         "to": "node_modules/.prisma",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "node_modules/@prisma/client",
         "to": "node_modules/@prisma/client",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "node_modules/@prisma/engines",
         "to": "node_modules/@prisma/engines",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
@@ -48,7 +58,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "artifactName": "${productName}-${version}-Setup-${arch}.${ext}"
@@ -67,7 +79,9 @@
   "scripts": {
     "dev": "electron-vite dev",
     "prebuild": "npm run db:generate",
-    "build": "electron-vite build",
+    "build": "npm run build:web && electron-vite build",
+    "build:web": "vite build --config vite.web.config.ts",
+    "dev:web": "vite --config vite.web.config.ts --host 127.0.0.1",
     "start": "electron-vite preview",
     "postinstall": "npm run db:generate && electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
@@ -99,6 +113,7 @@
     "hono": "^4.7.0",
     "lucide-react": "^0.510.0",
     "parse-ingredient": "^2.1.0",
+    "qrcode": "^1.5.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router": "^7.0.0",

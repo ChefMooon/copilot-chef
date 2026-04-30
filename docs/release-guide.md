@@ -49,7 +49,7 @@ git push origin v1.0.0
 1. Checks out the repo.
 2. Installs dependencies with `npm ci`.
 3. Generates the Prisma client.
-4. Builds the Electron app with `npm run build`.
+4. Builds the Electron app with `npm run build` (which includes a prebuild step that runs `build:web` first, producing both the browser renderer bundle and the Electron app).
 5. Reruns `npm run lint`.
 6. Reruns `npm run test`.
 7. Packages and publishes the Windows installer with `electron-builder --win --publish always`.
@@ -64,7 +64,8 @@ The workflow uses the repository `GITHUB_TOKEN` to publish the release assets de
 2. Confirm the Windows installer artifacts were uploaded.
 3. Download and install the build on Windows.
 4. Launch the app and confirm startup, local server boot, and settings persistence.
-5. If auto-update is part of the release you are testing, confirm the updater can see the GitHub-hosted release feed.
+5. Confirm the browser web bundle is included — open the static URL on a LAN device or check that browser assets are present in the packaged output.
+6. If auto-update is part of the release you are testing, confirm the updater can see the GitHub-hosted release feed.
 
 ---
 

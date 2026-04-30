@@ -1,10 +1,12 @@
+import { createUuid } from "./uuid";
+
 export type InstructionDraft = {
   id: string;
   text: string;
 };
 
 export function createEmptyInstructionDraft(): InstructionDraft {
-  return { id: crypto.randomUUID(), text: "" };
+  return { id: createUuid(), text: "" };
 }
 
 export function instructionDraftsToPayload(drafts: InstructionDraft[]): string[] {
@@ -12,5 +14,5 @@ export function instructionDraftsToPayload(drafts: InstructionDraft[]): string[]
 }
 
 export function payloadToInstructionDrafts(instructions: string[]): InstructionDraft[] {
-  return instructions.map((text) => ({ id: crypto.randomUUID(), text }));
+  return instructions.map((text) => ({ id: createUuid(), text }));
 }

@@ -94,7 +94,7 @@ export function serializePageContext(ctx: PageContext): string {
         : "";
       const draftText =
         ctx.recipeEditor?.isOpen && ctx.recipeEditor.draft
-          ? ` Draft so far: title=\"${ctx.recipeEditor.draft.title || "(untitled)"}\", servings=${ctx.recipeEditor.draft.servings ?? "(unset)"}, ingredients=${ctx.recipeEditor.draft.ingredientCount}, instructions=${ctx.recipeEditor.draft.instructionCount}, cuisine=${ctx.recipeEditor.draft.cuisine ?? "(unset)"}, difficulty=${ctx.recipeEditor.draft.difficulty ?? "(unset)"}, tags=${ctx.recipeEditor.draft.tagsCount}.`
+          ? ` Draft so far: title="${ctx.recipeEditor.draft.title || "(untitled)"}", servings=${ctx.recipeEditor.draft.servings ?? "(unset)"}, ingredients=${ctx.recipeEditor.draft.ingredientCount}, instructions=${ctx.recipeEditor.draft.instructionCount}, cuisine=${ctx.recipeEditor.draft.cuisine ?? "(unset)"}, difficulty=${ctx.recipeEditor.draft.difficulty ?? "(unset)"}, tags=${ctx.recipeEditor.draft.tagsCount}.`
           : "";
 
       return (

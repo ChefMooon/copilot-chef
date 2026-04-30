@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { exportMenu, fetchJson } from "@/lib/api";
+import { getPlatform, type MenuPdfExportResult } from "@/lib/platform";
 import {
   buildMenuDocument,
   formatMenuAsHtml,
@@ -30,11 +31,6 @@ const FORMAT_OPTIONS: Array<{ value: MenuExportSelection; label: string }> = [
   { value: "csv", label: "CSV" },
   { value: "html", label: "HTML" },
 ];
-
-type MenuPdfExportResult =
-  | { status: "saved"; filePath: string }
-  | { status: "canceled" }
-  | { status: "error"; message: string };
 
 type MenuPrintExportModalProps = {
   initialFrom: Date;
@@ -248,7 +244,7 @@ export function MenuPrintExportModal({
     setIsExporting(true);
     setError(null);
     try {
-      const result = (await window.api.invoke("menu:exportPdf", {
+      const result = (await getPlatform().exportMenuPdf({
         htmlContent: formatMenuAsHtml(menuDocument),
         suggestedFileName: buildPdfFileName(menuDocument),
       })) as MenuPdfExportResult;

@@ -731,6 +731,7 @@
 .personaModalPanel {
   width: min(520px, 94vw);
   border-radius: 20px;
+  overflow: hidden;
   background: var(--white);
   border: 1px solid var(--cream-dark);
   box-shadow: 0 24px 64px rgba(44, 36, 22, 0.26);
@@ -940,6 +941,80 @@
   cursor: not-allowed;
 }
 
+.lanQrModalPanel {
+  width: min(760px, 94vw);
+}
+
+.lanQrModalGrid {
+  display: grid;
+  grid-template-columns: minmax(220px, 256px) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.lanQrCodeCard {
+  display: grid;
+  place-items: center;
+  min-height: 288px;
+  padding: 1rem;
+  border: 1px solid var(--cream-dark);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.lanQrCodeSvg {
+  width: min(100%, 256px);
+}
+
+.lanQrCodeSvg svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.lanQrCodeLoading {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  text-align: center;
+}
+
+.lanQrInfo {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.lanQrFieldGroup {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.lanQrCodeText {
+  display: block;
+  padding: 0.72rem 0.85rem;
+  border: 1px solid var(--cream-dark);
+  border-radius: 12px;
+  background: var(--cream);
+  color: var(--text);
+  font-size: 0.87rem;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.lanQrWarning {
+  padding: 0.72rem 0.85rem;
+  border: 1px solid #efcfac;
+  border-radius: 12px;
+  background: #fff5e7;
+  color: #8a4b16;
+  font-size: 0.9rem;
+}
+
+.lanQrFooterNote {
+  max-width: 26rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
 .mealTypeProfileModalPanel {
   width: min(760px, 96vw);
 }
@@ -972,6 +1047,14 @@
 @media (max-width: 600px) {
   .personaGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lanQrModalGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .lanQrFooterNote {
+    display: none;
   }
 
   .mealTypeProfileModalPanel {

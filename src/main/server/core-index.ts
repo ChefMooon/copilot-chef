@@ -55,6 +55,10 @@ export {
   type GroceryListSnapshot,
   type GrocerySnapshotItem,
 } from "./lib/chat-command-utils";
+export {
+  type MealPlanPageContext,
+  type GroceryListPageContext,
+} from "../../shared/schemas/page-context";
 export { ChatHistoryService } from "./services/chat-history-service";
 export { GroceryService } from "./services/grocery-service";
 export { MealService } from "./services/meal-service";

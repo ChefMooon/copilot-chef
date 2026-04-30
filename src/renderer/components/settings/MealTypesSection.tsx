@@ -45,15 +45,6 @@ type ProfileFormState = {
   endDate: string;
 };
 
-type DefinitionDraftMap = Record<
-  string,
-  {
-    name: string;
-    color: string;
-    enabled: boolean;
-  }
->;
-
 type EditableMealTypeDraft = {
   id: string;
   definitionId: string | null;
@@ -108,43 +99,6 @@ function buildProfileMealTypeDrafts(
     buildEditableMealTypeDraft(definition, {
       definitionId: profile ? definition.id : null,
     })
-  );
-}
-
-function ColorSwatches(props: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="grid gap-2">
-      <div className="flex flex-wrap gap-2">
-        {PRESET_COLORS.map((color) => (
-          <button
-            key={color}
-            aria-label={`Select ${color}`}
-            className={`h-7 w-7 rounded-full border ${props.value === color ? "border-[3px] border-neutral-900" : "border-white/70"}`}
-            onClick={() => props.onChange(color)}
-            style={{ backgroundColor: color }}
-            type="button"
-          />
-        ))}
-      </div>
-      <div className="flex items-center gap-3">
-        <input
-          className="h-10 w-14 cursor-pointer rounded border border-[var(--cream-dark)] bg-transparent p-1"
-          onChange={(event) => props.onChange(event.target.value.toUpperCase())}
-          type="color"
-          value={props.value}
-        />
-        <input
-          className={styles.select}
-          onChange={(event) => props.onChange(event.target.value.toUpperCase())}
-          placeholder="#E8885A"
-          type="text"
-          value={props.value}
-        />
-      </div>
-    </div>
   );
 }
 

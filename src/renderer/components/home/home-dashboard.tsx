@@ -4,6 +4,7 @@ import { Link } from "react-router";
 
 import { useChatPageContext } from "@/context/chat-context";
 import { fetchJson } from "@/lib/api";
+import { getPlatform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 
 import styles from "./home-dashboard.module.css";
@@ -68,6 +69,8 @@ const HOME_SETTINGS_DEFAULTS: HomeDashboardSettings = {
   showGroceryList: true,
   showGreetingSubtitle: true,
 };
+
+const platform = getPlatform();
 
 function clampUpcomingDays(input: unknown) {
   if (typeof input !== "number" || !Number.isFinite(input)) {
@@ -156,14 +159,14 @@ export function HomeDashboard() {
           showGroceryList,
           showGreetingSubtitle,
         ] = await Promise.all([
-          window.api.invoke("app:settings:get", "home_upcoming_days"),
-          window.api.invoke("app:settings:get", "home_upcoming_layout"),
-          window.api.invoke("app:settings:get", "home_upcoming_detail"),
-          window.api.invoke("app:settings:get", "home_upcoming_compact"),
-          window.api.invoke("app:settings:get", "home_show_upcoming_meals"),
-          window.api.invoke("app:settings:get", "home_show_meal_activity"),
-          window.api.invoke("app:settings:get", "home_show_grocery_list"),
-          window.api.invoke("app:settings:get", "home_show_greeting_subtitle"),
+          platform.getSetting("home_upcoming_days"),
+          platform.getSetting("home_upcoming_layout"),
+          platform.getSetting("home_upcoming_detail"),
+          platform.getSetting("home_upcoming_compact"),
+          platform.getSetting("home_show_upcoming_meals"),
+          platform.getSetting("home_show_meal_activity"),
+          platform.getSetting("home_show_grocery_list"),
+          platform.getSetting("home_show_greeting_subtitle"),
         ]);
 
         if (canceled) {

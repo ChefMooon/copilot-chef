@@ -134,6 +134,9 @@ describe("MenuPrintExportModal", () => {
   it("can exclude empty days from export", async () => {
     renderModal();
 
+    fireEvent.change(await screen.findByLabelText(/download format/i), {
+      target: { value: "markdown" },
+    });
     const checkbox = await screen.findByRole("checkbox", {
       name: /include days without meals/i,
     });

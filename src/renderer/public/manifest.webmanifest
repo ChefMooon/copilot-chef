@@ -1,0 +1,9 @@
+{
+  "name": "Copilot Chef",
+  "short_name": "Chef",
+  "start_url": "/#/connect",
+  "display": "standalone",
+  "background_color": "#fffaf1",
+  "theme_color": "#2f6f4e",
+  "icons": []
+}

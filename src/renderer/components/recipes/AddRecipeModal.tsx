@@ -23,6 +23,7 @@ import {
   instructionDraftsToPayload,
   payloadToInstructionDrafts,
 } from "@/lib/recipe-instructions";
+import { createUuid } from "@/lib/uuid";
 
 type IngredientDraft = {
   id: string;
@@ -76,7 +77,7 @@ type AddRecipeModalProps = {
 
 function createEmptyIngredient(): IngredientDraft {
   return {
-    id: crypto.randomUUID(),
+    id: createUuid(),
     name: "",
     amount: "",
     notes: "",
@@ -86,7 +87,7 @@ function createEmptyIngredient(): IngredientDraft {
 
 function createEmptyIngredientGroup(name = ""): IngredientGroupDraft {
   return {
-    id: crypto.randomUUID(),
+    id: createUuid(),
     name,
     ingredients: [createEmptyIngredient()],
   };
@@ -122,7 +123,7 @@ function toIngredientGroups(recipe?: RecipePayload | null): IngredientGroupDraft
     }
 
     groupsByName.set(groupKey, {
-      id: crypto.randomUUID(),
+      id: createUuid(),
       name: groupName,
       ingredients: [
         {

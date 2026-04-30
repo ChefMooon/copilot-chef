@@ -7,6 +7,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { ConnectionBanner } from "@/components/layout/connection-banner";
 import { useServerConnection } from "@/lib/connection";
 import { loadServerConfig } from "@/lib/config";
+import { getBrowserConnection, getPlatform } from "@/lib/platform";
 
 type ServerConfig = {
   url: string;
@@ -31,6 +32,15 @@ export function AppLayout() {
   const [config, setConfig] = useState<ServerConfig | null>(null);
 
   useEffect(() => {
+    if (
+      getPlatform().runtime === "browser" &&
+      !getBrowserConnection() &&
+      !window.location.pathname.startsWith("/connect")
+    ) {
+      window.location.replace("/connect");
+      return;
+    }
+
     loadServerConfig().then((cfg) => {
       setConfig(cfg);
     });
