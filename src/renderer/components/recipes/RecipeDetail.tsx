@@ -195,8 +195,8 @@ export function RecipeDetail({
   return (
     <div className="recipe-print-root space-y-5">
       <header className="recipe-print-hero rounded-[18px] border border-[rgba(59,94,69,0.1)] bg-white p-5 shadow-card md:p-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 flex-1">
             <p className="mb-1 text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-orange">
               Recipe Library
             </p>
@@ -223,7 +223,7 @@ export function RecipeDetail({
               </p>
             )}
           </div>
-          <div className="print-hidden mt-1 flex flex-wrap gap-2">
+          <div className="print-hidden mt-1 flex shrink-0 flex-wrap gap-2">
             <Button asChild size="sm" type="button" variant="outline">
               <Link to="/recipes">Back to Recipes</Link>
             </Button>
