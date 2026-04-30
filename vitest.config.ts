@@ -11,5 +11,6 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    setupFiles: ["src/renderer/test/setup-tests.ts"],
   },
 });

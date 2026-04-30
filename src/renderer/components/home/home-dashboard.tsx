@@ -4,6 +4,7 @@ import { Link } from "react-router";
 
 import { useChatPageContext } from "@/context/chat-context";
 import { fetchJson } from "@/lib/api";
+import { getCachedConfig, isServerConfigReady } from "@/lib/config";
 import { getPlatform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 
@@ -135,6 +136,7 @@ function getGreeting() {
 }
 
 export function HomeDashboard() {
+  const apiReady = isServerConfigReady(getCachedConfig());
   const [settings, setSettings] = useState<HomeDashboardSettings>(
     HOME_SETTINGS_DEFAULTS
   );
@@ -214,6 +216,7 @@ export function HomeDashboard() {
 
   const mealSummaryQuery = useQuery({
     queryKey: ["stats", "meal-summary"],
+    enabled: apiReady,
     queryFn: () =>
       fetchJson<{ data: MealSummaryPayload }>("/api/stats/meal-summary").then(
         (response) => response.data
@@ -222,7 +225,7 @@ export function HomeDashboard() {
 
   const groceryListQuery = useQuery({
     queryKey: ["grocery-list", "current"],
-    enabled: settings.showGroceryList,
+    enabled: apiReady && settings.showGroceryList,
     queryFn: () =>
       fetchJson<{ data: GroceryListPayload | null }>(
         "/api/grocery-lists?current=1"
@@ -231,7 +234,7 @@ export function HomeDashboard() {
 
   const heatmapQuery = useQuery({
     queryKey: ["meals", "heatmap", 13],
-    enabled: settings.showMealActivity,
+    enabled: apiReady && settings.showMealActivity,
     queryFn: () =>
       fetchJson<{ data: HeatmapPayload }>("/api/meals/heatmap?weeks=13").then(
         (response) => response.data
@@ -240,7 +243,7 @@ export function HomeDashboard() {
 
   const upcomingMealsQuery = useQuery({
     queryKey: ["meals", "upcoming", settings.upcomingDays],
-    enabled: settings.showUpcomingMeals,
+    enabled: apiReady && settings.showUpcomingMeals,
     queryFn: () =>
       fetchJson<{ data: UpcomingMealsPayload }>(
         `/api/meals/upcoming?days=${settings.upcomingDays}`

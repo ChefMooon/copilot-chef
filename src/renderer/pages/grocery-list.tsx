@@ -3,6 +3,7 @@ import { useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { fetchJson } from "@/lib/api";
+import { getCachedConfig, isServerConfigReady } from "@/lib/config";
 import { useChatPageContext } from "@/context/chat-context";
 import {
   deriveGroceryList,
@@ -23,6 +24,7 @@ import { NewListModal } from "@/components/grocery-list/NewListModal";
 import { QuickReference } from "@/components/grocery-list/QuickReference";
 
 export default function GroceryListPage() {
+  const apiReady = isServerConfigReady(getCachedConfig());
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const listsQueryKey = ["grocery-lists"] as const;
@@ -33,6 +35,7 @@ export default function GroceryListPage() {
 
   const listsQuery = useQuery({
     queryKey: ["grocery-lists"],
+    enabled: apiReady,
     queryFn: () =>
       fetchJson<{ data: GroceryList[] }>("/api/grocery-lists").then(
         (response) => response.data

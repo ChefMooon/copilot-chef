@@ -1,3 +1,4 @@
+import { getCachedConfig, isServerConfigReady } from "@/lib/config";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Download, Maximize2, Printer, X } from "lucide-react";
@@ -126,6 +127,7 @@ export function MenuPrintExportModal({
   initialTo,
   onClose,
 }: MenuPrintExportModalProps) {
+  const apiReady = isServerConfigReady(getCachedConfig());
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [from, setFrom] = useState(() => toDateInputValue(initialFrom));
   const [to, setTo] = useState(() => toDateInputValue(initialTo));
@@ -144,6 +146,7 @@ export function MenuPrintExportModal({
 
   const mealsQuery = useQuery({
     queryKey: ["menu-export-preview", fromIso, toIso],
+    enabled: apiReady,
     queryFn: () =>
       fetchJson<{ data: MealPayload[] }>(
         `/api/meals?from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}`

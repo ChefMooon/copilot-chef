@@ -39,10 +39,10 @@ import {
 } from "@/lib/calendar";
 
 import { createRecipe, fetchJson } from "@/lib/api";
+import { getCachedConfig, isServerConfigReady } from "@/lib/config";
 import { useChatPageContext } from "@/context/chat-context";
 import { useToast } from "@/components/providers/toast-provider";
 import { useMealUndoRedo } from "@/components/meal-plan/use-meal-undo-redo";
-import { getCachedConfig } from "@/lib/config";
 import { mealToRecipePayload } from "@/lib/meal-to-recipe";
 import { useMealTypeProfiles } from "@/lib/use-meal-types";
 import type { CreateRecipeInput, RecipeConflict } from "@shared/types";
@@ -127,6 +127,7 @@ async function readChatResponse(message: string) {
 }
 
 export default function MealPlanPage() {
+  const apiReady = isServerConfigReady(getCachedConfig());
   const [view, setView] = useState<CalView>("week");
   const [highlightedProfileId, setHighlightedProfileId] = useState<string | null>(null);
 
@@ -173,6 +174,7 @@ export default function MealPlanPage() {
 
   const mealsQuery = useQuery({
     queryKey: mealsQueryKey,
+    enabled: apiReady,
     queryFn: () =>
       fetchJson<{ data: CalendarMeal[] }>(
         `/api/meals?from=${encodeURIComponent(toIsoString(dateRange.from))}&to=${encodeURIComponent(

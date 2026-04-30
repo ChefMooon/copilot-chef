@@ -6,7 +6,12 @@ import { ToastProvider } from "@/components/providers/toast-provider";
 import { AppShell } from "@/components/layout/app-shell";
 import { ConnectionBanner } from "@/components/layout/connection-banner";
 import { useServerConnection } from "@/lib/connection";
-import { loadServerConfig } from "@/lib/config";
+import {
+  ConfigNotReadyError,
+  isServerConfigReady,
+  loadServerConfig,
+  subscribeConfigUpdates,
+} from "@/lib/config";
 import { getBrowserConnection, getPlatform } from "@/lib/platform";
 
 type ServerConfig = {
@@ -30,8 +35,52 @@ function AppContent({ config }: { config: ServerConfig }) {
 
 export function AppLayout() {
   const [config, setConfig] = useState<ServerConfig | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    let retryTimer: number | null = null;
+
+    const loadConfig = async (attempt = 0) => {
+      try {
+        const cfg = await loadServerConfig();
+        if (cancelled) {
+          return;
+        }
+        setLoadError(null);
+        setConfig(cfg);
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        const isBrowser = getPlatform().runtime === "browser";
+        const onConnectRoute = window.location.pathname.startsWith("/connect");
+
+        if (isBrowser && !getBrowserConnection() && !onConnectRoute) {
+          window.location.replace("/connect");
+          return;
+        }
+
+        const shouldRetry =
+          attempt < 5 &&
+          (!(error instanceof ConfigNotReadyError) || (isBrowser && onConnectRoute));
+
+        if (shouldRetry) {
+          retryTimer = window.setTimeout(() => {
+            void loadConfig(attempt + 1);
+          }, 750);
+          return;
+        }
+
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load app configuration."
+        );
+      }
+    };
+
     if (
       getPlatform().runtime === "browser" &&
       !getBrowserConnection() &&
@@ -41,12 +90,22 @@ export function AppLayout() {
       return;
     }
 
-    loadServerConfig().then((cfg) => {
-      setConfig(cfg);
+    void loadConfig();
+
+    const unsubscribe = subscribeConfigUpdates(() => {
+      void loadConfig();
     });
+
+    return () => {
+      cancelled = true;
+      if (retryTimer !== null) {
+        window.clearTimeout(retryTimer);
+      }
+      unsubscribe();
+    };
   }, []);
 
-  if (!config) {
+  if (!isServerConfigReady(config)) {
     return (
       <div
         style={{
@@ -58,7 +117,7 @@ export function AppLayout() {
           color: "var(--text-muted)",
         }}
       >
-        Loading…
+        {loadError ?? "Loading..."}
       </div>
     );
   }

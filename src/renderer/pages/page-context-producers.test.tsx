@@ -49,6 +49,7 @@ const apiMocks = vi.hoisted(() => ({
 const configMocks = vi.hoisted(() => ({
   loadServerConfig: vi.fn(),
   getCachedConfig: vi.fn(),
+  isServerConfigReady: vi.fn(),
   resetConfigCache: vi.fn(),
 }));
 
@@ -83,6 +84,7 @@ vi.mock("@/lib/api", () => ({
 vi.mock("@/lib/config", () => ({
   loadServerConfig: configMocks.loadServerConfig,
   getCachedConfig: configMocks.getCachedConfig,
+  isServerConfigReady: configMocks.isServerConfigReady,
   resetConfigCache: configMocks.resetConfigCache,
 }));
 
@@ -318,6 +320,7 @@ describe("page context producers", () => {
 
     configMocks.loadServerConfig.mockReset();
     configMocks.getCachedConfig.mockReset();
+    configMocks.isServerConfigReady.mockReset();
     configMocks.resetConfigCache.mockReset();
 
     configMocks.loadServerConfig.mockResolvedValue({
@@ -330,6 +333,7 @@ describe("page context producers", () => {
       url: "http://127.0.0.1:3001",
       token: "test-token",
     });
+    configMocks.isServerConfigReady.mockReturnValue(true);
 
     apiMocks.listRecipes.mockResolvedValue([]);
     apiMocks.createRecipe.mockResolvedValue(undefined);

@@ -13,6 +13,7 @@ import {
   type MealTypeDefinitionPayload,
   type MealTypeProfilePayload,
 } from "@/lib/api";
+import { getCachedConfig, isServerConfigReady } from "@/lib/config";
 import type {
   CreateMealTypeProfileInput,
   UpdateMealTypeProfileInput,
@@ -109,6 +110,7 @@ function buildProfileMealTypeDrafts(
 }
 
 export function MealTypesSection() {
+  const apiReady = isServerConfigReady(getCachedConfig());
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isProfileFormOpen, setIsProfileFormOpen] = useState(false);
@@ -120,6 +122,7 @@ export function MealTypesSection() {
 
   const profilesQuery = useQuery({
     queryKey: profilesQueryKey,
+    enabled: apiReady,
     queryFn: listMealTypeProfiles,
   });
 

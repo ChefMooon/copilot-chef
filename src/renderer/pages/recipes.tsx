@@ -11,6 +11,7 @@ import {
   updateRecipe,
   type RecipePayload,
 } from "@/lib/api";
+import { getCachedConfig, isServerConfigReady } from "@/lib/config";
 import { recipeKeys } from "@/lib/query-keys";
 
 import { AddRecipeModal } from "@/components/recipes/AddRecipeModal";
@@ -41,6 +42,7 @@ function downloadJson(data: unknown, fileName: string) {
 }
 
 export default function RecipesPage() {
+  const apiReady = isServerConfigReady(getCachedConfig());
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
@@ -67,6 +69,7 @@ export default function RecipesPage() {
 
   const recipesQuery = useQuery({
     queryKey: recipesKey,
+    enabled: apiReady,
     queryFn: () => listRecipes(),
   });
 

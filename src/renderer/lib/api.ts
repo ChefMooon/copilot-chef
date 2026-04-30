@@ -18,7 +18,11 @@ import {
 } from "@shared/types";
 import { MEAL_TYPE_API_PATHS } from "@shared/api/constants";
 
-import { getCachedConfig } from "./config";
+import {
+  ConfigNotReadyError,
+  assertServerConfigReady,
+  getCachedConfig,
+} from "./config";
 
 export type SettingsPreferences = PreferencesPayload;
 export type { CustomPersonaPayload };
@@ -101,15 +105,19 @@ export function isRecipeConflictError(
       error.code === "RECIPE_DUPLICATE_SOURCE_URL")
   );
 }
-
 function getApiBase(): string {
   const config = getCachedConfig();
-  return config?.url ?? "http://127.0.0.1:3001";
+  assertServerConfigReady(config, "Cannot call API before server configuration is ready.");
+  const baseUrl = config.url.trim().replace(/\/+$/, "");
+  if (!baseUrl) {
+    throw new ConfigNotReadyError("API base URL is missing.");
+  }
+  return baseUrl;
 }
 
 function getAuthHeaders(): Record<string, string> {
   const config = getCachedConfig();
-  const token = config?.token ?? "";
+  const token = config?.token?.trim() ?? "";
   if (!token) return {};
   return { "Authorization": `Bearer ${token}` };
 }

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { fetchJson } from "@/lib/api";
+import { getCachedConfig, isServerConfigReady } from "@/lib/config";
 import { useChatPageContext } from "@/context/chat-context";
 import {
   deriveGroceryList,
@@ -125,6 +126,7 @@ function GroceryShopContent({
 }
 
 export default function GroceryShopPage() {
+  const apiReady = isServerConfigReady(getCachedConfig());
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -135,7 +137,7 @@ export default function GroceryShopPage() {
       fetchJson<{ data: GroceryList }>(`/api/grocery-lists/${id}`).then(
         (response) => response.data
       ),
-    enabled: Boolean(id),
+    enabled: apiReady && Boolean(id),
   });
 
   const list = listQuery.data;

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router";
 
 import { deleteRecipe, fetchJson } from "@/lib/api";
+import { getCachedConfig, isServerConfigReady } from "@/lib/config";
 import { RecipeDetail } from "@/components/recipes/RecipeDetail";
 import { RecipeDeleteDialog } from "@/components/recipes/RecipeDeleteDialog";
 import { type RecipePayload } from "@/lib/api";
@@ -80,6 +81,7 @@ function RecipeDetailContent({
 }
 
 export default function RecipeDetailPage() {
+  const apiReady = isServerConfigReady(getCachedConfig());
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { recipeId } = useParams<{ recipeId: string }>();
@@ -93,11 +95,12 @@ export default function RecipeDetailPage() {
       fetchJson<RecipeDetailResponse>(`/api/recipes/${recipeId}`).then(
         (response) => response.data
       ),
-    enabled: Boolean(recipeId),
+    enabled: apiReady && Boolean(recipeId),
   });
 
   const preferencesQuery = useQuery({
     queryKey: ["preferences"],
+    enabled: apiReady,
     queryFn: () =>
       fetchJson<PreferencesResponse>("/api/preferences").then(
         (response) => response.data

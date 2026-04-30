@@ -1,11 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { fetchJson } from "@/lib/api";
+import { getCachedConfig, isServerConfigReady } from "@/lib/config";
 import { StatsDashboard, type StatsPayload } from "@/components/stats/StatsDashboard";
 
 export default function StatsPage() {
+  const apiReady = isServerConfigReady(getCachedConfig());
   const statsQuery = useQuery({
     queryKey: ["stats"],
+    enabled: apiReady,
     queryFn: () =>
       fetchJson<{ data: StatsPayload }>("/api/stats").then(
         (response) => response.data

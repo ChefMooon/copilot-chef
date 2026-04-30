@@ -48,8 +48,9 @@ import {
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import {
-  loadServerConfig,
   getCachedConfig,
+  isServerConfigReady,
+  loadServerConfig,
   resetConfigCache,
 } from "@/lib/config";
 import { getPlatform, type LanStatus } from "@/lib/platform";
@@ -322,6 +323,7 @@ function clearBrowserTimer(timerRef: MutableRefObject<number | null>) {
 }
 
 export default function SettingsPage() {
+  const apiReady = isServerConfigReady(getCachedConfig());
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { clearSession } = useChatContext();
@@ -331,6 +333,7 @@ export default function SettingsPage() {
 
   const preferencesQuery = useQuery({
     queryKey: preferenceQueryKey,
+    enabled: apiReady,
     queryFn: getPreferences,
   });
 
@@ -339,6 +342,7 @@ export default function SettingsPage() {
   const customPersonasQueryKey = ["personas"] as const;
   const customPersonasQuery = useQuery({
     queryKey: customPersonasQueryKey,
+    enabled: apiReady,
     queryFn: getPersonas,
   });
   const customPersonas = customPersonasQuery.data ?? [];
@@ -921,6 +925,7 @@ export default function SettingsPage() {
       );
       resetConfigCache();
       await loadServerConfig();
+      queryClient.clear();
       setConnectionSaved(true);
       window.setTimeout(() => setConnectionSaved(false), 2000);
       toast({ title: "Connection settings saved." });

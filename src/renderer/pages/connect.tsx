@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -8,7 +9,7 @@ import {
   importBrowserConnectionFromLocation,
   saveBrowserConnection,
 } from "@/lib/platform";
-import { getCachedConfig, resetConfigCache } from "@/lib/config";
+import { getCachedConfig, loadServerConfig, resetConfigCache } from "@/lib/config";
 
 type ConnectionState = "idle" | "checking" | "connected" | "error";
 
@@ -40,6 +41,7 @@ async function verifyConnection(apiUrl: string, token: string): Promise<void> {
 
 export default function ConnectPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const imported = useMemo(() => importBrowserConnectionFromLocation(), []);
   const saved = imported ?? getBrowserConnection();
   const cachedConfig = getCachedConfig();
@@ -65,6 +67,8 @@ export default function ConnectPage() {
       await verifyConnection(nextApiUrl, nextToken);
       saveBrowserConnection({ apiUrl: nextApiUrl, token: nextToken });
       resetConfigCache();
+      await loadServerConfig();
+      queryClient.clear();
       setState("connected");
       navigate("/");
     } catch (connectionError) {
@@ -80,6 +84,7 @@ export default function ConnectPage() {
   function handleDisconnect() {
     clearBrowserConnection();
     resetConfigCache();
+    queryClient.clear();
     setApiUrl("");
     setToken("");
     setState("idle");
