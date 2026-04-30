@@ -1,0 +1,4 @@
+- Symptom on `npm run dev`: `Error: Electron uninstall` from `electron-vite`.
+- Cause: `node_modules/electron` exists but binary payload is missing (`dist/` and `path.txt` absent), so `getElectronPath()` fails.
+- Fast repair (Windows): `node node_modules/electron/install.js`.
+- Verify: `Get-ChildItem node_modules/electron` shows `dist` and `path.txt`; `Get-Content node_modules/electron/path.txt` returns `electron.exe`.

@@ -67,17 +67,129 @@ export function AppShell({ children }: PropsWithChildren) {
 
   return (
     <ChatProvider>
-      <header className={cn(styles.header, isMac && styles.headerMac)}>
-        <Link className={cn(styles.logo, styles.noDrag)} to="/">
-          Copilot Chef
-        </Link>
+      <div className={styles.shell}>
+        <header className={cn(styles.header, isMac && styles.headerMac)}>
+          <Link className={cn(styles.logo, styles.noDrag)} to="/">
+            Copilot Chef
+          </Link>
 
-        <nav className={cn(styles.navDesktop, styles.noDrag)}>
+          <nav className={cn(styles.navDesktop, styles.noDrag)}>
+            {navigationItems.map((item) => (
+              <Link
+                className={cn(
+                  styles.navLink,
+                  pathname === item.href && styles.navLinkActive
+                )}
+                to={item.href}
+                key={item.href}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className={cn(styles.navRight, styles.noDrag)}>
+            <button
+              aria-label="Open navigation"
+              className={styles.hamburger}
+              onClick={() => setMenuOpen((open) => !open)}
+              type="button"
+            >
+              <span className={styles.hamburgerBar} />
+              <span className={styles.hamburgerBar} />
+              <span className={styles.hamburgerBar} />
+            </button>
+
+            <Link
+              className={cn(
+                styles.settingsButton,
+                pathname === "/settings" && styles.settingsButtonActive
+              )}
+              to="/settings"
+              title="Settings"
+            >
+              ⚙
+            </Link>
+
+            {isElectron && !isMac ? (
+              <div
+                className={cn(
+                  styles.windowControls,
+                  isWindows && styles.windowControlsWindows,
+                  isLinux && styles.windowControlsLinux
+                )}
+              >
+                <button
+                  aria-label="Minimize window"
+                  className={cn(
+                    styles.windowControlButton,
+                    isWindows && styles.windowControlButtonWindows,
+                    isLinux && styles.windowControlButtonLinux
+                  )}
+                  onClick={() => {
+                    void platform.minimizeWindow?.();
+                  }}
+                  title="Minimize"
+                  type="button"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(styles.windowControlIcon, styles.iconMinimize)}
+                  />
+                </button>
+                <button
+                  aria-label={isMaximized ? "Restore window" : "Maximize window"}
+                  className={cn(
+                    styles.windowControlButton,
+                    isWindows && styles.windowControlButtonWindows,
+                    isLinux && styles.windowControlButtonLinux
+                  )}
+                  onClick={() => {
+                    void handleToggleMaximize();
+                  }}
+                  title={isMaximized ? "Restore" : "Maximize"}
+                  type="button"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      styles.windowControlIcon,
+                      isMaximized ? styles.iconRestore : styles.iconMaximize
+                    )}
+                  />
+                </button>
+                <button
+                  aria-label="Close window"
+                  className={cn(
+                    styles.windowControlButton,
+                    styles.windowControlClose,
+                    isWindows && styles.windowControlButtonWindows,
+                    isWindows && styles.windowControlCloseWindows,
+                    isLinux && styles.windowControlButtonLinux,
+                    isLinux && styles.windowControlCloseLinux
+                  )}
+                  onClick={() => {
+                    void platform.closeWindow?.();
+                  }}
+                  title="Close"
+                  type="button"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(styles.windowControlIcon, styles.iconClose)}
+                  />
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </header>
+
+        <div className={cn(styles.mobileMenu, menuOpen && styles.mobileMenuOpen)}>
           {navigationItems.map((item) => (
             <Link
               className={cn(
-                styles.navLink,
-                pathname === item.href && styles.navLinkActive
+                styles.mobileNavLink,
+                pathname === item.href && styles.mobileNavLinkActive
               )}
               to={item.href}
               key={item.href}
@@ -85,129 +197,21 @@ export function AppShell({ children }: PropsWithChildren) {
               {item.label}
             </Link>
           ))}
-        </nav>
-
-        <div className={cn(styles.navRight, styles.noDrag)}>
-          <button
-            aria-label="Open navigation"
-            className={styles.hamburger}
-            onClick={() => setMenuOpen((open) => !open)}
-            type="button"
-          >
-            <span className={styles.hamburgerBar} />
-            <span className={styles.hamburgerBar} />
-            <span className={styles.hamburgerBar} />
-          </button>
-
-          <Link
-            className={cn(
-              styles.settingsButton,
-              pathname === "/settings" && styles.settingsButtonActive
-            )}
-            to="/settings"
-            title="Settings"
-          >
-            ⚙
-          </Link>
-
-          {isElectron && !isMac ? (
-            <div
-              className={cn(
-                styles.windowControls,
-                isWindows && styles.windowControlsWindows,
-                isLinux && styles.windowControlsLinux
-              )}
-            >
-              <button
-                aria-label="Minimize window"
-                className={cn(
-                  styles.windowControlButton,
-                  isWindows && styles.windowControlButtonWindows,
-                  isLinux && styles.windowControlButtonLinux
-                )}
-                onClick={() => {
-                  void platform.minimizeWindow?.();
-                }}
-                title="Minimize"
-                type="button"
-              >
-                <span
-                  aria-hidden="true"
-                  className={cn(styles.windowControlIcon, styles.iconMinimize)}
-                />
-              </button>
-              <button
-                aria-label={isMaximized ? "Restore window" : "Maximize window"}
-                className={cn(
-                  styles.windowControlButton,
-                  isWindows && styles.windowControlButtonWindows,
-                  isLinux && styles.windowControlButtonLinux
-                )}
-                onClick={() => {
-                  void handleToggleMaximize();
-                }}
-                title={isMaximized ? "Restore" : "Maximize"}
-                type="button"
-              >
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    styles.windowControlIcon,
-                    isMaximized ? styles.iconRestore : styles.iconMaximize
-                  )}
-                />
-              </button>
-              <button
-                aria-label="Close window"
-                className={cn(
-                  styles.windowControlButton,
-                  styles.windowControlClose,
-                  isWindows && styles.windowControlButtonWindows,
-                  isWindows && styles.windowControlCloseWindows,
-                  isLinux && styles.windowControlButtonLinux,
-                  isLinux && styles.windowControlCloseLinux
-                )}
-                onClick={() => {
-                  void platform.closeWindow?.();
-                }}
-                title="Close"
-                type="button"
-              >
-                <span
-                  aria-hidden="true"
-                  className={cn(styles.windowControlIcon, styles.iconClose)}
-                />
-              </button>
-            </div>
-          ) : null}
-        </div>
-      </header>
-
-      <div className={cn(styles.mobileMenu, menuOpen && styles.mobileMenuOpen)}>
-        {navigationItems.map((item) => (
           <Link
             className={cn(
               styles.mobileNavLink,
-              pathname === item.href && styles.mobileNavLinkActive
+              pathname === "/settings" && styles.mobileNavLinkActive
             )}
-            to={item.href}
-            key={item.href}
+            to="/settings"
           >
-            {item.label}
+            Settings
           </Link>
-        ))}
-        <Link
-          className={cn(
-            styles.mobileNavLink,
-            pathname === "/settings" && styles.mobileNavLinkActive
-          )}
-          to="/settings"
-        >
-          Settings
-        </Link>
-      </div>
+        </div>
 
-      <main className={styles.page}>{children}</main>
+        <div className={styles.contentScroller}>
+          <main className={styles.page}>{children}</main>
+        </div>
+      </div>
       <ChatWidget />
     </ChatProvider>
   );

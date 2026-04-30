@@ -78,7 +78,7 @@
     }
   },
   "scripts": {
-    "dev": "electron-vite dev",
+    "dev": "node scripts/ensure-electron-install.mjs && electron-vite dev",
     "prebuild": "npm run db:generate",
     "build": "npm run build:web && electron-vite build",
     "build:web": "vite build --config vite.web.config.ts",

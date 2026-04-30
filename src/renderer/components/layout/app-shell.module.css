@@ -1,3 +1,10 @@
+.shell {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .header {
   position: sticky;
   top: 0;
@@ -283,9 +290,19 @@
   color: #fffdf8;
 }
 
+.contentScroller {
+  min-height: 0;
+  flex: 1;
+  overflow-x: hidden;
+  overflow-y: overlay;
+  overflow-y: auto;
+}
+
 .page {
+  min-height: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
   padding: 2rem 2rem 4rem;
 }
 
