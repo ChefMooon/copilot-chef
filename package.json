@@ -2,6 +2,7 @@
   "name": "copilot-chef",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@10.9.3",
   "description": "AI-powered meal-planning desktop app",
   "main": "./out/main/index.js",
   "productName": "Copilot Chef",
