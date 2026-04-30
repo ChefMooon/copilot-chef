@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, createHashRouter } from "react-router";
 
 import { AppLayout } from "./app";
 import HomePage from "./pages/home";
@@ -11,8 +11,9 @@ import StatsPage from "./pages/stats";
 import SettingsPage from "./pages/settings";
 import ConnectPage from "./pages/connect";
 import { RouteErrorBoundary } from "./components/layout/route-error-boundary";
+import { getPlatform } from "./lib/platform";
 
-export const router = createBrowserRouter([
+const routes = [
   {
     path: "/",
     element: <AppLayout />,
@@ -29,4 +30,9 @@ export const router = createBrowserRouter([
       { path: "connect", element: <ConnectPage /> },
     ],
   },
-]);
+];
+
+export const router =
+  getPlatform().runtime === "electron"
+    ? createHashRouter(routes)
+    : createBrowserRouter(routes);
