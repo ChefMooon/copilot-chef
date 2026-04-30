@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useParams } from "react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useParams } from "react-router";
 
-import { fetchJson } from "@/lib/api";
+import { deleteRecipe, fetchJson } from "@/lib/api";
 import { RecipeDetail } from "@/components/recipes/RecipeDetail";
+import { RecipeDeleteDialog } from "@/components/recipes/RecipeDeleteDialog";
 import { type RecipePayload } from "@/lib/api";
 import { recipeKeys } from "@/lib/query-keys";
 import { useChatPageContext } from "@/context/chat-context";
@@ -23,10 +24,14 @@ function RecipeDetailContent({
   recipe,
   defaultUnitMode,
   defaultView,
+  isDeleting,
+  onDeleteRequest,
 }: {
   recipe: RecipePayload;
   defaultUnitMode: "cup" | "grams";
   defaultView: "basic" | "detailed" | "cooking";
+  isDeleting: boolean;
+  onDeleteRequest: () => void;
 }) {
   const [liveState, setLiveState] = useState<{
     activeView: "basic" | "detailed" | "cooking";
@@ -66,14 +71,21 @@ function RecipeDetailContent({
     <RecipeDetail
       defaultUnitMode={defaultUnitMode}
       defaultView={defaultView}
+      isDeleting={isDeleting}
       onContextStateChange={setLiveState}
+      onDeleteRequest={onDeleteRequest}
       recipe={recipe}
     />
   );
 }
 
 export default function RecipeDetailPage() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { recipeId } = useParams<{ recipeId: string }>();
+  const [recipePendingDelete, setRecipePendingDelete] = useState<RecipePayload | null>(
+    null
+  );
 
   const recipeQuery = useQuery({
     queryKey: recipeId ? recipeKeys.detail(recipeId) : recipeKeys.detail(""),
@@ -90,6 +102,17 @@ export default function RecipeDetailPage() {
       fetchJson<PreferencesResponse>("/api/preferences").then(
         (response) => response.data
       ),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteRecipe,
+    onSuccess: async (_, deletedRecipeId) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: recipeKeys.all }),
+        queryClient.removeQueries({ queryKey: recipeKeys.detail(deletedRecipeId) }),
+      ]);
+      navigate("/recipes", { replace: true });
+    },
   });
 
   if (recipeQuery.isLoading) {
@@ -133,7 +156,27 @@ export default function RecipeDetailPage() {
       <RecipeDetailContent
         defaultUnitMode={defaultUnitMode}
         defaultView={defaultView}
+        isDeleting={deleteMutation.isPending}
+        onDeleteRequest={() => setRecipePendingDelete(recipeQuery.data)}
         recipe={recipeQuery.data}
+      />
+      <RecipeDeleteDialog
+        isDeleting={deleteMutation.isPending}
+        onConfirm={() => {
+          if (!recipePendingDelete) {
+            return;
+          }
+
+          void deleteMutation.mutateAsync(recipePendingDelete.id).then(() => {
+            setRecipePendingDelete(null);
+          });
+        }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRecipePendingDelete(null);
+          }
+        }}
+        recipe={recipePendingDelete}
       />
     </div>
   );

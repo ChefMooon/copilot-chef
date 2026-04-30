@@ -14,21 +14,12 @@ import {
 import { recipeKeys } from "@/lib/query-keys";
 
 import { AddRecipeModal } from "@/components/recipes/AddRecipeModal";
+import { RecipeDeleteDialog } from "@/components/recipes/RecipeDeleteDialog";
 import { IngestModal } from "@/components/recipes/IngestModal";
 import { RecipeExportModal } from "@/components/recipes/RecipeExportModal";
 import { RecipeFilterSidebar } from "@/components/recipes/RecipeFilterSidebar";
 import { RecipeGrid } from "@/components/recipes/RecipeGrid";
 import { useToast } from "@/components/providers/toast-provider";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useChatPageContext } from "@/context/chat-context";
 import { getCuisineLabel } from "@shared/api/constants";
@@ -414,54 +405,29 @@ export default function RecipesPage() {
         />
       ) : null}
 
-      <AlertDialog
+      <RecipeDeleteDialog
+        isDeleting={deleteMutation.isPending}
+        onConfirm={() => {
+          if (!recipePendingDelete) {
+            return;
+          }
+
+          void deleteMutation.mutateAsync(recipePendingDelete.id).then(() => {
+            setRecipePendingDelete(null);
+            setSelectedIds((current) => {
+              const next = new Set(current);
+              next.delete(recipePendingDelete.id);
+              return next;
+            });
+          });
+        }}
         onOpenChange={(open) => {
           if (!open) {
             setRecipePendingDelete(null);
           }
         }}
-        open={Boolean(recipePendingDelete)}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete recipe?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {recipePendingDelete
-                ? `This will permanently delete ${recipePendingDelete.title}.`
-                : "This action cannot be undone."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel asChild>
-              <Button type="button" variant="outline">
-                Cancel
-              </Button>
-            </AlertDialogCancel>
-            <AlertDialogAction asChild>
-              <Button
-                disabled={deleteMutation.isPending || !recipePendingDelete}
-                onClick={() => {
-                  if (!recipePendingDelete) {
-                    return;
-                  }
-                  void deleteMutation.mutateAsync(recipePendingDelete.id).then(() => {
-                    setRecipePendingDelete(null);
-                    setSelectedIds((current) => {
-                      const next = new Set(current);
-                      next.delete(recipePendingDelete.id);
-                      return next;
-                    });
-                  });
-                }}
-                type="button"
-                variant="accent"
-              >
-                {deleteMutation.isPending ? "Deleting..." : "Delete"}
-              </Button>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        recipe={recipePendingDelete}
+      />
     </div>
   );
 }

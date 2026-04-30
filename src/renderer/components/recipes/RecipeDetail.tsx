@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { convertIngredient, type UnitMode } from "@/lib/recipe-units";
 import { formatFraction } from "@/lib/fractions";
@@ -8,7 +8,6 @@ import { recipeKeys } from "@/lib/query-keys";
 import { getCuisineLabel } from "@shared/api/constants";
 
 import {
-  deleteRecipe,
   updateRecipe,
   type RecipePayload,
 } from "@/lib/api";
@@ -24,11 +23,13 @@ type RecipeDetailProps = {
   recipe: RecipePayload;
   defaultView: "basic" | "detailed" | "cooking";
   defaultUnitMode: UnitMode;
+  isDeleting?: boolean;
   onContextStateChange?: (state: {
     activeView: "basic" | "detailed" | "cooking";
     activeUnitMode: "cup" | "grams";
     cookingStepNumber: number | null;
   }) => void;
+  onDeleteRequest?: () => void;
 };
 
 const VIEW_LABELS = {
@@ -41,9 +42,10 @@ export function RecipeDetail({
   recipe,
   defaultView,
   defaultUnitMode,
+  isDeleting = false,
   onContextStateChange,
+  onDeleteRequest,
 }: RecipeDetailProps) {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [view, setView] = useState<"basic" | "detailed" | "cooking">(defaultView);
   const [servings, setServings] = useState(recipe.servings);
@@ -53,7 +55,6 @@ export function RecipeDetail({
   );
   const [showEditModal, setShowEditModal] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const cuisineLabel = getCuisineLabel(recipe.cuisine);
 
   useEffect(() => {
@@ -177,23 +178,6 @@ export function RecipeDetail({
     }
   }
 
-  async function handleDelete(): Promise<void> {
-    const confirmed = window.confirm(
-      "Delete this recipe? This action cannot be undone."
-    );
-    if (!confirmed) {
-      return;
-    }
-
-    setIsDeleting(true);
-    try {
-      await deleteRecipe(recipe.id);
-      navigate("/recipes");
-    } finally {
-      setIsDeleting(false);
-    }
-  }
-
   if (view === "cooking") {
     return (
       <CookingMode
@@ -253,7 +237,7 @@ export function RecipeDetail({
             </Button>
             <Button
               disabled={isDeleting}
-              onClick={() => void handleDelete()}
+              onClick={onDeleteRequest}
               size="sm"
               type="button"
               variant="accent"
