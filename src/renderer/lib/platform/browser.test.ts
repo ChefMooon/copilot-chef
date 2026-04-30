@@ -5,8 +5,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   clearBrowserConnection,
   createBrowserPlatform,
+  getBrowserConnectionMetadata,
   getBrowserConnection,
   importBrowserConnectionFromLocation,
+  markBrowserConnectionStale,
   saveBrowserConnection,
 } from "./browser";
 
@@ -27,9 +29,36 @@ describe("browser platform connection storage", () => {
       apiUrl: "http://192.168.1.25:3001",
       token: "machine-token",
     });
+    expect(getBrowserConnectionMetadata()).toEqual({
+      connectedAt: expect.any(String) as string,
+      lastImportedAt: null,
+      staleReason: null,
+    });
 
     clearBrowserConnection();
     expect(getBrowserConnection()).toBeNull();
+    expect(getBrowserConnectionMetadata()).toEqual({
+      connectedAt: null,
+      lastImportedAt: null,
+      staleReason: null,
+    });
+  });
+
+  it("marks a saved browser connection stale without removing it", () => {
+    saveBrowserConnection({
+      apiUrl: "http://192.168.1.25:3001",
+      token: "machine-token",
+    });
+
+    markBrowserConnectionStale("The saved token was rejected.");
+
+    expect(getBrowserConnection()).toEqual({
+      apiUrl: "http://192.168.1.25:3001",
+      token: "machine-token",
+    });
+    expect(getBrowserConnectionMetadata().staleReason).toBe(
+      "The saved token was rejected."
+    );
   });
 
   it("imports credentials from the hash fragment and clears visible token state", () => {
@@ -37,6 +66,29 @@ describe("browser platform connection storage", () => {
       null,
       "",
       "/connect#api=http%3A%2F%2F192.168.1.25%3A3001&token=machine-token"
+    );
+
+    expect(importBrowserConnectionFromLocation()).toEqual({
+      apiUrl: "http://192.168.1.25:3001",
+      token: "machine-token",
+    });
+    expect(window.location.hash).toBe("");
+    expect(getBrowserConnection()).toEqual({
+      apiUrl: "http://192.168.1.25:3001",
+      token: "machine-token",
+    });
+    expect(getBrowserConnectionMetadata()).toEqual({
+      connectedAt: expect.any(String) as string,
+      lastImportedAt: expect.any(String) as string,
+      staleReason: null,
+    });
+  });
+
+  it("imports credentials from old hash-router connection links", () => {
+    window.history.replaceState(
+      null,
+      "",
+      "/#/connect?api=http%3A%2F%2F192.168.1.25%3A3001&token=machine-token"
     );
 
     expect(importBrowserConnectionFromLocation()).toEqual({

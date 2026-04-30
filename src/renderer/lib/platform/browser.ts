@@ -7,11 +7,18 @@ import type {
 
 const API_URL_KEY = "copilot-chef.browser.api-url";
 const API_TOKEN_KEY = "copilot-chef.browser.api-token";
+const CONNECTION_METADATA_KEY = "copilot-chef.browser.connection-metadata";
 const SETTING_PREFIX = "copilot-chef.browser.setting.";
 
 export type BrowserConnection = {
   apiUrl: string;
   token: string;
+};
+
+export type BrowserConnectionMetadata = {
+  connectedAt: string | null;
+  lastImportedAt: string | null;
+  staleReason: string | null;
 };
 
 type BrowserRuntimeConfig = {
@@ -32,6 +39,56 @@ function normalizeApiUrl(value: string): string {
   return value.trim().replace(/\/+$/, "");
 }
 
+function getConnectionParamsFromFragment(fragment: string): URLSearchParams {
+  const normalized = fragment.replace(/^#/, "");
+  if (normalized.startsWith("/") && normalized.includes("?")) {
+    return new URLSearchParams(normalized.slice(normalized.indexOf("?") + 1));
+  }
+
+  return new URLSearchParams(normalized);
+}
+
+function getDefaultConnectionMetadata(): BrowserConnectionMetadata {
+  return {
+    connectedAt: null,
+    lastImportedAt: null,
+    staleReason: null,
+  };
+}
+
+export function getBrowserConnectionMetadata(): BrowserConnectionMetadata {
+  const storage = getStorage();
+  if (!storage) return getDefaultConnectionMetadata();
+
+  const raw = storage.getItem(CONNECTION_METADATA_KEY);
+  if (!raw) return getDefaultConnectionMetadata();
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<BrowserConnectionMetadata>;
+    return {
+      connectedAt:
+        typeof parsed.connectedAt === "string" ? parsed.connectedAt : null,
+      lastImportedAt:
+        typeof parsed.lastImportedAt === "string"
+          ? parsed.lastImportedAt
+          : null,
+      staleReason:
+        typeof parsed.staleReason === "string" ? parsed.staleReason : null,
+    };
+  } catch {
+    return getDefaultConnectionMetadata();
+  }
+}
+
+function saveBrowserConnectionMetadata(
+  metadata: BrowserConnectionMetadata
+): void {
+  const storage = getStorage();
+  if (!storage) return;
+
+  storage.setItem(CONNECTION_METADATA_KEY, JSON.stringify(metadata));
+}
+
 export function getBrowserConnection(): BrowserConnection | null {
   const storage = getStorage();
   if (!storage) return null;
@@ -47,8 +104,16 @@ export function saveBrowserConnection(connection: BrowserConnection): void {
   const storage = getStorage();
   if (!storage) return;
 
+  const now = new Date().toISOString();
+  const existing = getBrowserConnectionMetadata();
+
   storage.setItem(API_URL_KEY, normalizeApiUrl(connection.apiUrl));
   storage.setItem(API_TOKEN_KEY, connection.token.trim());
+  saveBrowserConnectionMetadata({
+    connectedAt: existing.connectedAt ?? now,
+    lastImportedAt: existing.lastImportedAt,
+    staleReason: null,
+  });
 }
 
 export function clearBrowserConnection(): void {
@@ -57,6 +122,17 @@ export function clearBrowserConnection(): void {
 
   storage.removeItem(API_URL_KEY);
   storage.removeItem(API_TOKEN_KEY);
+  storage.removeItem(CONNECTION_METADATA_KEY);
+}
+
+export function markBrowserConnectionStale(reason: string): void {
+  const storage = getStorage();
+  if (!storage) return;
+
+  saveBrowserConnectionMetadata({
+    ...getBrowserConnectionMetadata(),
+    staleReason: reason,
+  });
 }
 
 export function importBrowserConnectionFromLocation(): BrowserConnection | null {
@@ -65,13 +141,18 @@ export function importBrowserConnectionFromLocation(): BrowserConnection | null 
   const fragment = window.location.hash.replace(/^#/, "");
   if (!fragment) return null;
 
-  const params = new URLSearchParams(fragment);
+  const params = getConnectionParamsFromFragment(fragment);
   const apiUrl = normalizeApiUrl(params.get("api") ?? "");
   const token = params.get("token")?.trim() ?? "";
   if (!apiUrl || !token) return null;
 
   const connection = { apiUrl, token };
   saveBrowserConnection(connection);
+  saveBrowserConnectionMetadata({
+    ...getBrowserConnectionMetadata(),
+    lastImportedAt: new Date().toISOString(),
+    staleReason: null,
+  });
   // Strip the fragment so the token is no longer visible in the address bar
   window.history.replaceState(null, "", window.location.pathname);
   return connection;

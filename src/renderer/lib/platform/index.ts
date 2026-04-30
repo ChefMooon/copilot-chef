@@ -31,7 +31,9 @@ export type {
 
 export {
   clearBrowserConnection,
+  getBrowserConnectionMetadata,
   getBrowserConnection,
   importBrowserConnectionFromLocation,
+  markBrowserConnectionStale,
   saveBrowserConnection,
 } from "./browser";

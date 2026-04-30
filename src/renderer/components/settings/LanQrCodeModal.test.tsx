@@ -36,7 +36,7 @@ describe("LanQrCodeModal", () => {
       <LanQrCodeModal
         apiUrl="http://192.168.1.25:3001"
         browserUrl="http://192.168.1.25:4173"
-        connectionUrl="http://192.168.1.25:4173/#/connect?api=http%3A%2F%2F192.168.1.25%3A3001&token=machine-token"
+        connectionUrl="http://192.168.1.25:4173/connect#api=http%3A%2F%2F192.168.1.25%3A3001&token=machine-token"
         onClose={onClose}
         onCopied={onCopied}
       />
@@ -62,7 +62,7 @@ describe("LanQrCodeModal", () => {
 
     await waitFor(() => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        "http://192.168.1.25:4173/#/connect?api=http%3A%2F%2F192.168.1.25%3A3001&token=machine-token"
+        "http://192.168.1.25:4173/connect#api=http%3A%2F%2F192.168.1.25%3A3001&token=machine-token"
       );
     });
     expect(onCopied).toHaveBeenCalled();
@@ -96,7 +96,9 @@ describe("LanQrCodeModal", () => {
     renderModal();
 
     expect(
-      screen.getByText(/only share this qr code with devices you trust/i)
+      screen.getByText(
+        /only share this qr code or connection link with devices you trust/i
+      )
     ).toBeTruthy();
   });
 });

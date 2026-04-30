@@ -102,7 +102,21 @@ If the UI cannot connect:
 - Verify the URL matches the server host/port.
 - Verify API key if server auth tokens are enabled.
 
-## 9. Typical Daily Workflow
+## 9. Browser Access on Trusted Devices
+
+Use the desktop app to enable LAN access and pair phones, tablets, or another browser on your local network.
+
+1. Open Settings in the desktop app.
+2. Enable LAN API and the browser UI server.
+3. Generate a browser access token if one is not already configured.
+4. Open the QR code or copy the connection link on a trusted device.
+5. After the device connects, bookmark the normal Browser URL.
+
+The browser stores the API URL and access token locally, so bookmarks and home-screen icons can reopen the app without signing in again. The connection link and QR code contain the access token in the URL fragment; treat them like a password and only save or share them on trusted devices.
+
+To reset connected browser devices, use **Reset browser access** in Settings. This rotates the machine token, invalidates saved browser sessions and old connection links, and requires each trusted device to reconnect with the new QR code or connection link.
+
+## 10. Typical Daily Workflow
 
 1. Start server:
 
@@ -117,7 +131,7 @@ npm run dev
 - Stats: review planning and meal trends.
 - Chat: ask Copilot for meal planning help, grocery suggestions, and recipe ideas.
 
-## 10. Build for Production
+## 11. Build for Production
 
 From the repository root:
 
@@ -128,7 +142,7 @@ npm run build:win
 
 This builds the production app bundle and, with `build:win`, the Windows installer.
 
-## 11. Common Issues
+## 12. Common Issues
 
 ### Chat returns auth errors (401)
 Cause:
@@ -160,7 +174,16 @@ Fix:
 - Confirm client `serverUrl` points to that host/port.
 - If `auth.tokens` is not empty, set matching API key in client config.
 
-## 12. Useful Commands Reference
+### Browser bookmark asks to reconnect
+
+Cause:
+- Browser storage was cleared, the home-screen app uses separate storage, or browser access was reset from the desktop app.
+
+Fix:
+- Open the current QR code or connection link from desktop Settings on that device again.
+- After reconnecting, bookmark the normal Browser URL.
+
+## 13. Useful Commands Reference
 
 ```bash
 npm run dev

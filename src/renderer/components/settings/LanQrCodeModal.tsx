@@ -201,7 +201,9 @@ export function LanQrCodeModal({
         <div className={styles.personaModalHeader}>
           <div className={styles.personaModalHeading}>
             <span className={styles.personaModalEyebrow}>LAN Access</span>
-            <span className={styles.personaModalTitle}>Scan to connect</span>
+            <span className={styles.personaModalTitle}>
+              Pair a trusted device
+            </span>
           </div>
           <button
             className={styles.personaModalClose}
@@ -251,7 +253,8 @@ export function LanQrCodeModal({
               </div>
 
               <div className={styles.lanQrWarning}>
-                Only share this QR code with devices you trust on this network.
+                Only share this QR code or connection link with devices you
+                trust. After pairing, bookmark the Browser URL for daily access.
               </div>
 
               {copyError ? (
@@ -263,7 +266,8 @@ export function LanQrCodeModal({
 
         <div className={styles.personaModalFooter}>
           <span className={styles.lanQrFooterNote}>
-            The token stays in the URL fragment so it is not sent to the server.
+            The token is saved in the browser and stripped from the address bar
+            after pairing.
           </span>
           <div className={styles.personaModalFooterRight}>
             <Button onClick={onClose} type="button" variant="outline">

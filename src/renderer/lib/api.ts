@@ -22,7 +22,9 @@ import {
   ConfigNotReadyError,
   assertServerConfigReady,
   getCachedConfig,
+  resetConfigCache,
 } from "./config";
+import { getPlatform, markBrowserConnectionStale } from "./platform";
 
 export type SettingsPreferences = PreferencesPayload;
 export type { CustomPersonaPayload };
@@ -122,6 +124,19 @@ function getAuthHeaders(): Record<string, string> {
   return { "Authorization": `Bearer ${token}` };
 }
 
+function handleRejectedBrowserToken(): void {
+  if (getPlatform().runtime !== "browser") return;
+
+  markBrowserConnectionStale(
+    "The saved token was rejected. Scan the current QR code or paste a new connection link from the desktop app."
+  );
+  resetConfigCache();
+
+  if (!window.location.pathname.startsWith("/connect")) {
+    window.location.replace("/connect");
+  }
+}
+
 export async function fetchJson<T>(
   path: string,
   init?: RequestInit
@@ -139,6 +154,10 @@ export async function fetchJson<T>(
 
   if (!response.ok) {
     let payload: ApiErrorBody | undefined;
+
+    if (response.status === 401) {
+      handleRejectedBrowserToken();
+    }
 
     try {
       payload = (await response.json()) as ApiErrorBody;

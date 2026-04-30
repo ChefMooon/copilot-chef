@@ -977,12 +977,17 @@ export default function SettingsPage() {
   };
 
   const handleRotateMachineToken = async () => {
+    const confirmed = window.confirm(
+      "Rotate the browser access token? Existing browser bookmarks and saved devices will need to reconnect with the new QR code or connection link."
+    );
+    if (!confirmed) return;
+
     try {
       const result = await platform.rotateMachineToken();
       setMachineApiKeyDraft(result.token);
-      setLanQrModalOpen(false);
       await refreshLanStatus();
-      toast({ title: "Machine token rotated." });
+      setLanQrModalOpen(true);
+      toast({ title: "Browser access token rotated." });
     } catch {
       toast({ title: "Could not rotate token.", variant: "error" });
     }
@@ -1588,6 +1593,10 @@ export default function SettingsPage() {
                       readOnly
                       value={lanStatus?.web.url ?? "Unavailable"}
                     />
+                    <p className={styles.fieldHint}>
+                      Bookmark this after connecting once. The saved browser
+                      token keeps trusted devices signed in.
+                    </p>
                   </div>
                 </div>
                 <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
@@ -1641,6 +1650,10 @@ export default function SettingsPage() {
                     type="text"
                     value={browserConnectionUrl}
                   />
+                  <p className={styles.fieldHint}>
+                    Use this link or QR code to pair a trusted device. It
+                    contains the browser access token in the URL fragment.
+                  </p>
                 </div>
                 <div className={styles.actionsRow} style={{ marginTop: "1rem" }}>
                   <Button
@@ -1663,7 +1676,7 @@ export default function SettingsPage() {
                     type="button"
                     variant="outline"
                   >
-                    Rotate token
+                    Reset browser access
                   </Button>
                   <Button
                     disabled={!canShowLanQrCode}
