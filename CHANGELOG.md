@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2026-04-30
+
+### Added
+
+- Browser clients now detect when their access token has been revoked or expired and are automatically redirected to the pairing screen with a clear reason message.
+- Added helpful field hints in Settings for the browser URL and access link to make LAN pairing easier to understand.
+- Confirmation dialog added before resetting browser access to prevent accidental disconnects.
+
+### Fixed
+
+- The app now retries loading its server connection on startup (up to 5 attempts) and displays a meaningful error message instead of a blank loading screen when the server is unreachable.
+- Pages and components now update immediately after the server reconnects, eliminating stale data shown after a reconnect.
+- Progressive web app start URL corrected so that pairing links work correctly when Copilot Chef is installed as a PWA.
+- Browser clients connected via old link formats are now recognized and handled automatically without requiring manual re-pairing.
+
+### Changed
+
+- The "Rotate token" button in Settings has been renamed to "Reset browser access" for clarity.
+
 ## [0.1.0] - 2026-03-30
 
 Initial release of Copilot Chef.
