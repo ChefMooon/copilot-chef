@@ -13,6 +13,10 @@ import {
   type MealTypeDefinitionPayload,
   type MealTypeProfilePayload,
 } from "@/lib/api";
+import type {
+  CreateMealTypeProfileInput,
+  UpdateMealTypeProfileInput,
+} from "@shared/types";
 import { CollapsibleSection } from "@/components/settings/CollapsibleSection";
 import { MealTypeProfileModal } from "@/components/settings/MealTypeProfileModal";
 import { useToast } from "@/components/providers/toast-provider";
@@ -57,7 +61,9 @@ function toDateInputValue(value: string | null) {
   return value ? value.slice(0, 10) : "";
 }
 
-function buildProfileForm(profile?: MealTypeProfilePayload | null): ProfileFormState {
+function buildProfileForm(
+  profile?: MealTypeProfilePayload | null
+): ProfileFormState {
   return {
     id: profile?.id ?? null,
     name: profile?.name ?? "",
@@ -106,9 +112,8 @@ export function MealTypesSection() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isProfileFormOpen, setIsProfileFormOpen] = useState(false);
-  const [profileForm, setProfileForm] = useState<ProfileFormState>(
-    buildProfileForm()
-  );
+  const [profileForm, setProfileForm] =
+    useState<ProfileFormState>(buildProfileForm());
   const [profileMealTypeDrafts, setProfileMealTypeDrafts] = useState<
     EditableMealTypeDraft[]
   >([]);
@@ -122,7 +127,10 @@ export function MealTypesSection() {
 
   const invalidateMealTypes = async () => {
     await queryClient.invalidateQueries({ queryKey: profilesQueryKey });
-    await queryClient.invalidateQueries({ queryKey: ["meal-types"], exact: false });
+    await queryClient.invalidateQueries({
+      queryKey: ["meal-types"],
+      exact: false,
+    });
   };
 
   const saveProfileMutation = useMutation({
@@ -132,14 +140,23 @@ export function MealTypesSection() {
     }) => {
       const { form, mealTypeDrafts } = input;
       const isCreating = !form.id;
-      const payload = {
+      const existingProfile = form.id
+        ? (profiles.find((profile) => profile.id === form.id) ?? null)
+        : null;
+      const basePayload = {
         name: form.name,
         color: form.color.trim().toUpperCase(),
         description: form.description || null,
         priority: form.priority,
-        startDate: form.startDate || null,
-        endDate: form.endDate || null,
       };
+      const payload: CreateMealTypeProfileInput | UpdateMealTypeProfileInput =
+        existingProfile?.isDefault
+          ? basePayload
+          : {
+              ...basePayload,
+              startDate: form.startDate || null,
+              endDate: form.endDate || null,
+            };
 
       const normalizedDrafts = mealTypeDrafts.map((draft) => ({
         ...draft,
@@ -149,16 +166,17 @@ export function MealTypesSection() {
       }));
 
       if (normalizedDrafts.length === 0) {
-        throw new Error("Add at least one meal type before saving this profile.");
+        throw new Error(
+          "Add at least one meal type before saving this profile."
+        );
       }
 
       if (normalizedDrafts.some((draft) => !draft.name)) {
-        throw new Error("Each meal type needs a name before saving this profile.");
+        throw new Error(
+          "Each meal type needs a name before saving this profile."
+        );
       }
 
-      const existingProfile = form.id
-        ? profiles.find((profile) => profile.id === form.id) ?? null
-        : null;
       let createdProfileId: string | null = null;
 
       try {
@@ -175,7 +193,9 @@ export function MealTypesSection() {
           existingDefinitions
             .filter(
               (definition) =>
-                !normalizedDrafts.some((draft) => draft.definitionId === definition.id)
+                !normalizedDrafts.some(
+                  (draft) => draft.definitionId === definition.id
+                )
             )
             .map((definition) => definition.id)
         );
@@ -188,20 +208,27 @@ export function MealTypesSection() {
 
         for (const draft of normalizedDrafts) {
           if (draft.definitionId) {
-            await updateMealTypeDefinition(savedProfile.id, draft.definitionId, {
-              name: draft.name,
-              color: draft.color,
-              enabled: draft.enabled,
-            });
+            await updateMealTypeDefinition(
+              savedProfile.id,
+              draft.definitionId,
+              {
+                name: draft.name,
+                color: draft.color,
+                enabled: draft.enabled,
+              }
+            );
             orderedIds.push(draft.definitionId);
             continue;
           }
 
-          const createdDefinition = await createMealTypeDefinition(savedProfile.id, {
-            name: draft.name,
-            color: draft.color,
-            enabled: draft.enabled,
-          });
+          const createdDefinition = await createMealTypeDefinition(
+            savedProfile.id,
+            {
+              name: draft.name,
+              color: draft.color,
+              enabled: draft.enabled,
+            }
+          );
           orderedIds.push(createdDefinition.id);
         }
 
@@ -280,7 +307,10 @@ export function MealTypesSection() {
   };
 
   const addProfileMealTypeDraft = () => {
-    setProfileMealTypeDrafts((current) => [...current, buildEditableMealTypeDraft()]);
+    setProfileMealTypeDrafts((current) => [
+      ...current,
+      buildEditableMealTypeDraft(),
+    ]);
   };
 
   const updateProfileMealTypeDraft = (
@@ -363,7 +393,8 @@ export function MealTypesSection() {
             <h2 className={styles.cardTitle}>Custom Profiles</h2>
           </div>
           <p className={styles.cardDescription}>
-            Create alternate meal type profiles for seasonal routines, diets, or events like Ramadan. Higher priority wins when date ranges overlap.
+            Create alternate meal type profiles for seasonal routines, diets, or
+            events like Ramadan. Higher priority wins when date ranges overlap.
           </p>
         </div>
 
@@ -399,7 +430,10 @@ export function MealTypesSection() {
                 return (
                   <div className="grid gap-4" key={profile.id}>
                     <div className="grid gap-3 rounded-2xl border border-[rgba(59,94,69,0.12)] bg-white/70 p-4">
-                      <div className={styles.cardHeader} style={{ marginBottom: 0 }}>
+                      <div
+                        className={styles.cardHeader}
+                        style={{ marginBottom: 0 }}
+                      >
                         <div className={styles.cardTitleRow}>
                           <span
                             className="h-4 w-4 rounded-full border border-white/70"
@@ -428,7 +462,9 @@ export function MealTypesSection() {
                         </button>
                         <button
                           className="rounded-xl border border-[rgba(157,43,43,0.28)] px-4 py-2 font-semibold text-[#9D2B2B]"
-                          onClick={() => deleteProfileMutation.mutate(profile.id)}
+                          onClick={() =>
+                            deleteProfileMutation.mutate(profile.id)
+                          }
                           type="button"
                         >
                           Delete
@@ -445,6 +481,10 @@ export function MealTypesSection() {
 
       <MealTypeProfileModal
         form={profileForm}
+        isDefaultProfile={Boolean(
+          profileForm.id &&
+          profiles.find((profile) => profile.id === profileForm.id)?.isDefault
+        )}
         isOpen={isProfileFormOpen}
         isSaving={saveProfileMutation.isPending}
         mealTypeDrafts={profileMealTypeDrafts}

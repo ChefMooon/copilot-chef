@@ -142,18 +142,16 @@ function normalizeText(value: string) {
 }
 
 function humanizeSlug(value: string) {
-  return value
-    .toLowerCase()
-    .split("_")
-    .filter(Boolean)
-    .join(" ");
+  return value.toLowerCase().split("_").filter(Boolean).join(" ");
 }
 
 const LEGACY_BASE_TEMPLATE_COLORS: Record<string, string> = {
   DINNER: "#3B5E45",
 };
 
-function serializeDefinition(definition: MealTypeProfileRecord["mealTypes"][number]): MealTypeDefinitionPayload {
+function serializeDefinition(
+  definition: MealTypeProfileRecord["mealTypes"][number]
+): MealTypeDefinitionPayload {
   return {
     id: definition.id,
     profileId: definition.profileId,
@@ -167,7 +165,9 @@ function serializeDefinition(definition: MealTypeProfileRecord["mealTypes"][numb
   };
 }
 
-function serializeProfile(profile: MealTypeProfileRecord): MealTypeProfilePayload {
+function serializeProfile(
+  profile: MealTypeProfileRecord
+): MealTypeProfilePayload {
   return {
     id: profile.id,
     name: profile.name,
@@ -223,7 +223,8 @@ export class MealTypeService {
 
     const duplicate = profiles.find(
       (profile) =>
-        profile.id !== excludeId && normalizeText(profile.name) === normalizeText(name)
+        profile.id !== excludeId &&
+        normalizeText(profile.name) === normalizeText(name)
     );
 
     if (duplicate) {
@@ -246,12 +247,16 @@ export class MealTypeService {
     );
 
     if (duplicate) {
-      throw new Error("A meal type with that name already exists in this profile.");
+      throw new Error(
+        "A meal type with that name already exists in this profile."
+      );
     }
   }
 
   private async ensureProfileDateRange(
-    input: Pick<CreateMealTypeProfileInput, "startDate" | "endDate"> | Pick<UpdateMealTypeProfileInput, "startDate" | "endDate">
+    input:
+      | Pick<CreateMealTypeProfileInput, "startDate" | "endDate">
+      | Pick<UpdateMealTypeProfileInput, "startDate" | "endDate">
   ) {
     const startDate = normalizeDateInput(input.startDate);
     const endDate = normalizeDateInput(input.endDate);
@@ -328,7 +333,10 @@ export class MealTypeService {
 
     const aliasMap = new Map<string, { id: string; slug: string }>();
     for (const definition of defaultProfile.mealTypes) {
-      aliasMap.set(definition.slug, { id: definition.id, slug: definition.slug });
+      aliasMap.set(definition.slug, {
+        id: definition.id,
+        slug: definition.slug,
+      });
       aliasMap.set(definition.slug.toLowerCase(), {
         id: definition.id,
         slug: definition.slug,
@@ -360,7 +368,10 @@ export class MealTypeService {
 
     for (const meal of meals) {
       const normalized = normalizeSlug(meal.mealType.replace(/_/g, " "));
-      const alias = aliasMap.get(meal.mealType) ?? aliasMap.get(normalized) ?? aliasMap.get(meal.mealType.toLowerCase());
+      const alias =
+        aliasMap.get(meal.mealType) ??
+        aliasMap.get(normalized) ??
+        aliasMap.get(meal.mealType.toLowerCase());
       if (!alias) {
         continue;
       }
@@ -380,10 +391,16 @@ export class MealTypeService {
 
     const profiles = await prisma.mealTypeProfile.findMany({
       include: this.profileInclude,
-      orderBy: [{ isDefault: "desc" }, { priority: "desc" }, { createdAt: "asc" }],
+      orderBy: [
+        { isDefault: "desc" },
+        { priority: "desc" },
+        { createdAt: "asc" },
+      ],
     });
 
-    return profiles.map((profile) => serializeProfile(profile as MealTypeProfileRecord));
+    return profiles.map((profile) =>
+      serializeProfile(profile as MealTypeProfileRecord)
+    );
   }
 
   async getProfile(id: string) {
@@ -402,12 +419,16 @@ export class MealTypeService {
     });
 
     const matchingProfile = profiles.find(
-      (profile) => !profile.isDefault && inDateRange(date, profile.startDate, profile.endDate)
+      (profile) =>
+        !profile.isDefault &&
+        inDateRange(date, profile.startDate, profile.endDate)
     );
     const fallbackProfile = profiles.find((profile) => profile.isDefault);
     const resolved = matchingProfile ?? fallbackProfile ?? profiles[0] ?? null;
 
-    return resolved ? serializeProfile(resolved as MealTypeProfileRecord) : null;
+    return resolved
+      ? serializeProfile(resolved as MealTypeProfileRecord)
+      : null;
   }
 
   async resolveMealTypeForDate(dateInput: string | Date, rawMealType: string) {
@@ -423,9 +444,11 @@ export class MealTypeService {
         return true;
       }
 
-      return [definition.name, definition.slug, humanizeSlug(definition.slug)].some(
-        (value) => normalizeText(value) === normalizedText
-      );
+      return [
+        definition.name,
+        definition.slug,
+        humanizeSlug(definition.slug),
+      ].some((value) => normalizeText(value) === normalizedText);
     });
 
     return {
@@ -509,11 +532,27 @@ export class MealTypeService {
       await this.ensureUniqueProfileName(nextName, id);
     }
 
-    const nextStart = input.startDate !== undefined ? input.startDate : existing.startDate?.toISOString() ?? null;
-    const nextEnd = input.endDate !== undefined ? input.endDate : existing.endDate?.toISOString() ?? null;
-    await this.ensureProfileDateRange({ startDate: nextStart, endDate: nextEnd });
+    const nextStart =
+      input.startDate !== undefined
+        ? input.startDate
+        : (existing.startDate?.toISOString() ?? null);
+    const nextEnd =
+      input.endDate !== undefined
+        ? input.endDate
+        : (existing.endDate?.toISOString() ?? null);
+    await this.ensureProfileDateRange({
+      startDate: nextStart,
+      endDate: nextEnd,
+    });
 
-    if (existing.isDefault && (input.startDate !== undefined || input.endDate !== undefined)) {
+    const requestedDefaultStart =
+      input.startDate !== undefined
+        ? normalizeDateInput(input.startDate)
+        : null;
+    const requestedDefaultEnd =
+      input.endDate !== undefined ? normalizeDateInput(input.endDate) : null;
+
+    if (existing.isDefault && (requestedDefaultStart || requestedDefaultEnd)) {
       throw new Error("The default profile cannot have a date range.");
     }
 
@@ -521,7 +560,9 @@ export class MealTypeService {
       where: { id },
       data: {
         ...(input.name !== undefined ? { name: input.name.trim() } : {}),
-        ...(input.color !== undefined ? { color: normalizeHexColor(input.color) } : {}),
+        ...(input.color !== undefined
+          ? { color: normalizeHexColor(input.color) }
+          : {}),
         ...(input.description !== undefined
           ? { description: input.description?.trim() || null }
           : {}),
@@ -600,7 +641,10 @@ export class MealTypeService {
     return serializeProfile(duplicated as MealTypeProfileRecord);
   }
 
-  async createDefinition(profileId: string, input: CreateMealTypeDefinitionInput) {
+  async createDefinition(
+    profileId: string,
+    input: CreateMealTypeDefinitionInput
+  ) {
     await bootstrapDatabase();
 
     const profile = await this.getProfileRecord(profileId);
@@ -664,7 +708,9 @@ export class MealTypeService {
       const next = await tx.mealTypeDefinition.update({
         where: { id },
         data: {
-          ...(input.name !== undefined ? { name: input.name.trim(), slug: nextSlug } : {}),
+          ...(input.name !== undefined
+            ? { name: input.name.trim(), slug: nextSlug }
+            : {}),
           ...(input.color !== undefined
             ? { color: normalizeHexColor(input.color) }
             : {}),
@@ -715,12 +761,18 @@ export class MealTypeService {
       orderBy: { sortOrder: "asc" },
     });
     if (definitions.length !== orderedIds.length) {
-      throw new Error("The reorder payload must include every meal type in the profile.");
+      throw new Error(
+        "The reorder payload must include every meal type in the profile."
+      );
     }
 
-    const definitionIds = new Set(definitions.map((definition) => definition.id));
+    const definitionIds = new Set(
+      definitions.map((definition) => definition.id)
+    );
     if (orderedIds.some((id) => !definitionIds.has(id))) {
-      throw new Error("The reorder payload includes an unknown meal type definition.");
+      throw new Error(
+        "The reorder payload includes an unknown meal type definition."
+      );
     }
 
     await prisma.$transaction(

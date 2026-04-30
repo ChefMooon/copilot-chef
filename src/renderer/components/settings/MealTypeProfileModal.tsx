@@ -78,6 +78,7 @@ function ColorSwatches(props: {
 
 type MealTypeProfileModalProps = {
   form: ProfileFormState;
+  isDefaultProfile: boolean;
   isOpen: boolean;
   isSaving: boolean;
   mealTypeDrafts: EditableMealTypeDraft[];
@@ -95,6 +96,7 @@ type MealTypeProfileModalProps = {
 
 export function MealTypeProfileModal({
   form,
+  isDefaultProfile,
   isOpen,
   isSaving,
   mealTypeDrafts,
@@ -170,7 +172,9 @@ export function MealTypeProfileModal({
       Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
 
     const initialTarget =
-      panel.querySelector<HTMLElement>("[autofocus]") ?? getFocusable()[0] ?? panel;
+      panel.querySelector<HTMLElement>("[autofocus]") ??
+      getFocusable()[0] ??
+      panel;
     initialTarget.focus();
 
     const tabHandler = (event: KeyboardEvent) => {
@@ -216,6 +220,11 @@ export function MealTypeProfileModal({
   }
 
   const isEditing = Boolean(form.id);
+  const dialogLabel = isDefaultProfile
+    ? "Update default meal type profile"
+    : isEditing
+      ? "Update custom meal type profile"
+      : "Add custom meal type profile";
 
   const handleSave = async () => {
     setError(undefined);
@@ -240,7 +249,7 @@ export function MealTypeProfileModal({
       }}
     >
       <div
-        aria-label={isEditing ? "Update custom meal type profile" : "Add custom meal type profile"}
+        aria-label={dialogLabel}
         aria-modal="true"
         className={`${styles.personaModalPanel} ${styles.mealTypeProfileModalPanel} flex max-h-[90vh] w-full flex-col overflow-hidden`}
         ref={panelRef}
@@ -249,9 +258,15 @@ export function MealTypeProfileModal({
       >
         <div className={`${styles.personaModalHeader} flex-shrink-0`}>
           <div className={styles.personaModalHeading}>
-            <span className={styles.personaModalEyebrow}>Custom Profiles</span>
+            <span className={styles.personaModalEyebrow}>
+              {isDefaultProfile ? "Default Profile" : "Custom Profiles"}
+            </span>
             <span className={styles.personaModalTitle}>
-              {isEditing ? "Update Custom Profile" : "Add Custom Profile"}
+              {isDefaultProfile
+                ? "Update Default Profile"
+                : isEditing
+                  ? "Update Custom Profile"
+                  : "Add Custom Profile"}
             </span>
           </div>
           <button
@@ -263,9 +278,13 @@ export function MealTypeProfileModal({
           </button>
         </div>
 
-        <div className={`${styles.personaModalBody} ${styles.mealTypeProfileModalBody} flex-1 overflow-y-auto`}>
+        <div
+          className={`${styles.personaModalBody} ${styles.mealTypeProfileModalBody} flex-1 overflow-y-auto`}
+        >
           <p className={styles.cardDescription}>
-            Set an optional date range and priority for this custom meal plan profile, then tailor the meal types before saving.
+            {isDefaultProfile
+              ? "Tailor the everyday meal types used whenever no dated custom profile matches."
+              : "Set an optional date range and priority for this custom meal plan profile, then tailor the meal types before saving."}
           </p>
 
           <div className={styles.twoColumn}>
@@ -287,24 +306,32 @@ export function MealTypeProfileModal({
                 value={form.color}
               />
             </div>
-            <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Start date</label>
-              <input
-                className={styles.select}
-                onChange={(event) => onUpdateForm({ startDate: event.target.value })}
-                type="date"
-                value={form.startDate}
-              />
-            </div>
-            <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>End date</label>
-              <input
-                className={styles.select}
-                onChange={(event) => onUpdateForm({ endDate: event.target.value })}
-                type="date"
-                value={form.endDate}
-              />
-            </div>
+            {!isDefaultProfile ? (
+              <>
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel}>Start date</label>
+                  <input
+                    className={styles.select}
+                    onChange={(event) =>
+                      onUpdateForm({ startDate: event.target.value })
+                    }
+                    type="date"
+                    value={form.startDate}
+                  />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel}>End date</label>
+                  <input
+                    className={styles.select}
+                    onChange={(event) =>
+                      onUpdateForm({ endDate: event.target.value })
+                    }
+                    type="date"
+                    value={form.endDate}
+                  />
+                </div>
+              </>
+            ) : null}
           </div>
 
           <div className={styles.fieldGroup}>
@@ -325,7 +352,9 @@ export function MealTypeProfileModal({
             <label className={styles.fieldLabel}>Description</label>
             <textarea
               className={styles.textarea}
-              onChange={(event) => onUpdateForm({ description: event.target.value })}
+              onChange={(event) =>
+                onUpdateForm({ description: event.target.value })
+              }
               placeholder="Use Suhoor and Iftar during Ramadan."
               value={form.description}
             />
@@ -335,7 +364,9 @@ export function MealTypeProfileModal({
             <div className={styles.cardHeader} style={{ marginBottom: 0 }}>
               <h3 className={styles.cardTitle}>Meal Types</h3>
               <p className={styles.cardDescription}>
-                Add, edit, reorder, or remove meal types before saving this custom profile.
+                {isDefaultProfile
+                  ? "Add, edit, reorder, or remove default meal types before saving."
+                  : "Add, edit, reorder, or remove meal types before saving this custom profile."}
               </p>
             </div>
 
@@ -359,7 +390,9 @@ export function MealTypeProfileModal({
                   </div>
 
                   <ColorSwatches
-                    onChange={(value) => onUpdateMealType(draft.id, { color: value })}
+                    onChange={(value) =>
+                      onUpdateMealType(draft.id, { color: value })
+                    }
                     value={draft.color}
                   />
 

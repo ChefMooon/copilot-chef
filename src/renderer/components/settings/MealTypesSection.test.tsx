@@ -1,7 +1,14 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+  cleanup,
+} from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const apiMocks = vi.hoisted(() => ({
@@ -38,6 +45,32 @@ vi.mock("@/components/providers/toast-provider", () => ({
 
 import { MealTypesSection } from "./MealTypesSection";
 
+const defaultMealTypeProfile = {
+  id: "profile-1",
+  name: "Default",
+  color: "#3B5E45",
+  description: "Default meal types",
+  isDefault: true,
+  priority: 0,
+  startDate: null,
+  endDate: null,
+  createdAt: "2026-04-17T00:00:00.000Z",
+  updatedAt: "2026-04-17T00:00:00.000Z",
+  mealTypes: [
+    {
+      id: "definition-1",
+      profileId: "profile-1",
+      name: "Dinner",
+      slug: "DINNER",
+      color: "#8FB7D4",
+      enabled: true,
+      sortOrder: 0,
+      createdAt: "2026-04-17T00:00:00.000Z",
+      updatedAt: "2026-04-17T00:00:00.000Z",
+    },
+  ],
+};
+
 function renderWithQueryClient() {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -62,33 +95,7 @@ describe("MealTypesSection", () => {
     toastMock.mockReset();
     localStorage.clear();
 
-    apiMocks.listMealTypeProfiles.mockResolvedValue([
-      {
-        id: "profile-1",
-        name: "Default",
-        color: "#3B5E45",
-        description: "Default meal types",
-        isDefault: true,
-        priority: 0,
-        startDate: null,
-        endDate: null,
-        createdAt: "2026-04-17T00:00:00.000Z",
-        updatedAt: "2026-04-17T00:00:00.000Z",
-        mealTypes: [
-          {
-            id: "definition-1",
-            profileId: "profile-1",
-            name: "Dinner",
-            slug: "DINNER",
-            color: "#8FB7D4",
-            enabled: true,
-            sortOrder: 0,
-            createdAt: "2026-04-17T00:00:00.000Z",
-            updatedAt: "2026-04-17T00:00:00.000Z",
-          },
-        ],
-      },
-    ]);
+    apiMocks.listMealTypeProfiles.mockResolvedValue([defaultMealTypeProfile]);
 
     apiMocks.updateMealTypeDefinition.mockResolvedValue({
       id: "definition-1",
@@ -115,11 +122,14 @@ describe("MealTypesSection", () => {
       updatedAt: "2026-04-17T00:00:00.000Z",
       mealTypes: [],
     });
-    apiMocks.updateMealTypeProfile.mockResolvedValue(null);
+    apiMocks.updateMealTypeProfile.mockResolvedValue(defaultMealTypeProfile);
     apiMocks.deleteMealTypeProfile.mockResolvedValue(null);
     apiMocks.duplicateMealTypeProfile.mockResolvedValue(null);
     apiMocks.createMealTypeDefinition.mockImplementation(
-      async (profileId: string, input: { name: string; color: string; enabled?: boolean }) => ({
+      async (
+        profileId: string,
+        input: { name: string; color: string; enabled?: boolean }
+      ) => ({
         id: `${profileId}-${input.name.toLowerCase()}`,
         profileId,
         name: input.name,
@@ -136,36 +146,87 @@ describe("MealTypesSection", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.clearAllMocks();
   });
 
   it("shows only the update profile action for the default profile", async () => {
     renderWithQueryClient();
 
-    expect(await screen.findByRole("button", { name: "Update profile" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Edit meal types" })).toBeNull();
+    expect(
+      await screen.findByRole("button", { name: "Update profile" })
+    ).toBeTruthy();
+    expect(
+      screen.queryByRole("button", { name: "Edit meal types" })
+    ).toBeNull();
   });
 
   it("keeps the update profile modal flow intact", async () => {
     renderWithQueryClient();
 
-    fireEvent.click(await screen.findByRole("button", { name: "Update profile" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Update profile" })
+    );
 
     const dialog = await screen.findByRole("dialog", {
-      name: "Update custom meal type profile",
+      name: "Update default meal type profile",
     });
     const modal = within(dialog);
 
     expect(modal.getByDisplayValue("Default")).toBeTruthy();
     expect(modal.getByText("Meal Types")).toBeTruthy();
     expect(modal.getByDisplayValue("Dinner")).toBeTruthy();
+    expect(modal.queryByLabelText("Start date")).toBeNull();
+    expect(modal.queryByLabelText("End date")).toBeNull();
+  });
+
+  it("omits date fields when saving the default profile", async () => {
+    renderWithQueryClient();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Update profile" })
+    );
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "Update default meal type profile",
+    });
+    const modal = within(dialog);
+
+    fireEvent.change(modal.getByDisplayValue("Dinner"), {
+      target: { value: "Supper" },
+    });
+
+    fireEvent.click(modal.getByRole("button", { name: "Update profile" }));
+
+    await waitFor(() => {
+      expect(apiMocks.updateMealTypeProfile).toHaveBeenCalledWith("profile-1", {
+        name: "Default",
+        color: "#3B5E45",
+        description: "Default meal types",
+        priority: 0,
+      });
+    });
+
+    expect(apiMocks.updateMealTypeDefinition).toHaveBeenCalledWith(
+      "profile-1",
+      "definition-1",
+      {
+        name: "Supper",
+        color: "#8FB7D4",
+        enabled: true,
+      }
+    );
   });
 
   it("shows the custom profiles empty state without edit profile actions", async () => {
     renderWithQueryClient();
 
-    expect((await screen.findAllByText("Custom Profiles")).length).toBeGreaterThan(0);
-    expect(screen.getAllByText("No custom meal plan profiles yet.").length).toBeGreaterThan(0);
+    expect(
+      (await screen.findAllByText("Custom Profiles")).length
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("No custom meal plan profiles yet.").length
+    ).toBeGreaterThan(0);
     expect(
       screen.getAllByRole("button", { name: "Add custom profile" }).length
     ).toBeGreaterThan(0);
@@ -207,7 +268,9 @@ describe("MealTypesSection", () => {
     });
 
     expect(modal.getByDisplayValue("Iftar")).toBeTruthy();
-    expect(modal.getAllByRole("button", { name: "Remove" }).length).toBeGreaterThan(0);
+    expect(
+      modal.getAllByRole("button", { name: "Remove" }).length
+    ).toBeGreaterThan(0);
 
     fireEvent.click(modal.getByRole("button", { name: "Create profile" }));
 
@@ -223,20 +286,26 @@ describe("MealTypesSection", () => {
     });
 
     await waitFor(() => {
-      expect(apiMocks.createMealTypeDefinition).toHaveBeenCalledWith("profile-2", {
-        name: "Dinner",
-        color: "#E8885A",
-        enabled: true,
-      });
-      expect(apiMocks.createMealTypeDefinition).toHaveBeenCalledWith("profile-2", {
-        name: "Iftar",
-        color: "#E8885A",
-        enabled: true,
-      });
-      expect(apiMocks.reorderMealTypeDefinitions).toHaveBeenCalledWith("profile-2", [
-        "profile-2-dinner",
-        "profile-2-iftar",
-      ]);
+      expect(apiMocks.createMealTypeDefinition).toHaveBeenCalledWith(
+        "profile-2",
+        {
+          name: "Dinner",
+          color: "#E8885A",
+          enabled: true,
+        }
+      );
+      expect(apiMocks.createMealTypeDefinition).toHaveBeenCalledWith(
+        "profile-2",
+        {
+          name: "Iftar",
+          color: "#E8885A",
+          enabled: true,
+        }
+      );
+      expect(apiMocks.reorderMealTypeDefinitions).toHaveBeenCalledWith(
+        "profile-2",
+        ["profile-2-dinner", "profile-2-iftar"]
+      );
       expect(apiMocks.updateMealTypeDefinition).toHaveBeenCalledTimes(0);
     });
   });
