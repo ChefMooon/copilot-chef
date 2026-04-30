@@ -35,6 +35,7 @@ function AppContent({ config }: { config: ServerConfig }) {
 
 export function AppLayout() {
   const [config, setConfig] = useState<ServerConfig | null>(null);
+  const [configVersion, setConfigVersion] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export function AppLayout() {
         }
         setLoadError(null);
         setConfig(cfg);
+        setConfigVersion((version) => version + 1);
       } catch (error) {
         if (cancelled) {
           return;
@@ -64,7 +66,8 @@ export function AppLayout() {
 
         const shouldRetry =
           attempt < 5 &&
-          (!(error instanceof ConfigNotReadyError) || (isBrowser && onConnectRoute));
+          (!(error instanceof ConfigNotReadyError) ||
+            (isBrowser && onConnectRoute));
 
         if (shouldRetry) {
           retryTimer = window.setTimeout(() => {
@@ -123,7 +126,7 @@ export function AppLayout() {
   }
 
   return (
-    <QueryProvider>
+    <QueryProvider key={configVersion}>
       <ToastProvider>
         <AppContent config={config} />
       </ToastProvider>

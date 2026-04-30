@@ -3,7 +3,8 @@ import { useParams, useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { fetchJson } from "@/lib/api";
-import { getCachedConfig, isServerConfigReady } from "@/lib/config";
+import { isServerConfigReady } from "@/lib/config";
+import { useServerConfig } from "@/lib/use-server-config";
 import { useChatPageContext } from "@/context/chat-context";
 import {
   deriveGroceryList,
@@ -126,7 +127,8 @@ function GroceryShopContent({
 }
 
 export default function GroceryShopPage() {
-  const apiReady = isServerConfigReady(getCachedConfig());
+  const config = useServerConfig();
+  const apiReady = isServerConfigReady(config);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();

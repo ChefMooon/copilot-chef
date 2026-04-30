@@ -1,5 +1,7 @@
 import { getPlatform, type ServerConfig } from "./platform";
 
+export type { ServerConfig } from "./platform";
+
 let cachedConfig: ServerConfig | null = null;
 
 const CONFIG_UPDATED_EVENT = "copilot-chef:config-updated";
@@ -96,4 +98,3 @@ export function resetConfigCache(): void {
 export function setCachedConfigForTests(config: ServerConfig | null): void {
   cachedConfig = config;
 }
-

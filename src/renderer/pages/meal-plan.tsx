@@ -40,6 +40,7 @@ import {
 
 import { createRecipe, fetchJson } from "@/lib/api";
 import { getCachedConfig, isServerConfigReady } from "@/lib/config";
+import { useServerConfig } from "@/lib/use-server-config";
 import { useChatPageContext } from "@/context/chat-context";
 import { useToast } from "@/components/providers/toast-provider";
 import { useMealUndoRedo } from "@/components/meal-plan/use-meal-undo-redo";
@@ -94,7 +95,9 @@ async function readChatResponse(message: string) {
   const config = getCachedConfig();
   const serverUrl = config?.url ?? "http://127.0.0.1:3001";
   const token = config?.token ?? "";
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
@@ -127,9 +130,12 @@ async function readChatResponse(message: string) {
 }
 
 export default function MealPlanPage() {
-  const apiReady = isServerConfigReady(getCachedConfig());
+  const config = useServerConfig();
+  const apiReady = isServerConfigReady(config);
   const [view, setView] = useState<CalView>("week");
-  const [highlightedProfileId, setHighlightedProfileId] = useState<string | null>(null);
+  const [highlightedProfileId, setHighlightedProfileId] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     try {
@@ -142,14 +148,20 @@ export default function MealPlanPage() {
   const [date, setDate] = useState(() => new Date());
   const [editMeal, setEditMeal] = useState<EditableMeal | null>(null);
   const [isDraggingMeal, setIsDraggingMeal] = useState(false);
-  const [trashPendingMeal, setTrashPendingMeal] = useState<EditableMeal | null>(null);
+  const [trashPendingMeal, setTrashPendingMeal] = useState<EditableMeal | null>(
+    null
+  );
   const [isTrashDeleting, setIsTrashDeleting] = useState(false);
-  const [trashDeleteError, setTrashDeleteError] = useState<string | undefined>();
+  const [trashDeleteError, setTrashDeleteError] = useState<
+    string | undefined
+  >();
   const deletedMealRef = useRef<DeletedMealSnapshot | null>(null);
   const queryClient = useQueryClient();
   const { toast, dismissAll, setDragging } = useToast();
   const { recordAction, discardLast, undo, redo } = useMealUndoRedo();
-  const [saveAsRecipeMeal, setSaveAsRecipeMeal] = useState<EditableMeal | null>(null);
+  const [saveAsRecipeMeal, setSaveAsRecipeMeal] = useState<EditableMeal | null>(
+    null
+  );
   const [isMenuExportOpen, setIsMenuExportOpen] = useState(false);
   const [saveAsRecipeConflict, setSaveAsRecipeConflict] =
     useState<RecipeConflict | null>(null);
@@ -163,12 +175,13 @@ export default function MealPlanPage() {
 
   const dateRange = useMemo(() => toRangeByView(view, date), [view, date]);
   const mealsQueryKey = useMemo(
-    () => [
-      "meals",
-      view,
-      dateRange.from.toISOString(),
-      dateRange.to.toISOString(),
-    ] as const,
+    () =>
+      [
+        "meals",
+        view,
+        dateRange.from.toISOString(),
+        dateRange.to.toISOString(),
+      ] as const,
     [dateRange.from, dateRange.to, view]
   );
 
@@ -185,11 +198,13 @@ export default function MealPlanPage() {
 
   const meals = mealsQuery.data ?? [];
   const mealTypeProfilesQuery = useMealTypeProfiles();
-  const mealTypeProfiles =
-    mealTypeProfilesQuery.data?.length
-      ? mealTypeProfilesQuery.data
-      : [getDefaultMealTypeProfile()];
-  const mealTypeDefinitions = getMealTypeDefinitionsForDate(date, mealTypeProfiles);
+  const mealTypeProfiles = mealTypeProfilesQuery.data?.length
+    ? mealTypeProfilesQuery.data
+    : [getDefaultMealTypeProfile()];
+  const mealTypeDefinitions = getMealTypeDefinitionsForDate(
+    date,
+    mealTypeProfiles
+  );
   const currentProfileContext = useMemo(
     () => getMealTypeProfileContext(date, mealTypeProfiles),
     [date, mealTypeProfiles]
@@ -221,8 +236,11 @@ export default function MealPlanPage() {
 
       if (existing) {
         existing.occurrenceCount += 1;
-        existing.startsInRange = existing.startsInRange || context.isProfileStart;
-        existing.isCurrent = existing.isCurrent || context.profile.id === currentProfileContext.profile.id;
+        existing.startsInRange =
+          existing.startsInRange || context.isProfileStart;
+        existing.isCurrent =
+          existing.isCurrent ||
+          context.profile.id === currentProfileContext.profile.id;
         continue;
       }
 
@@ -242,17 +260,22 @@ export default function MealPlanPage() {
         return left.isCurrent ? -1 : 1;
       }
 
-      return right.occurrenceCount - left.occurrenceCount || left.name.localeCompare(right.name);
+      return (
+        right.occurrenceCount - left.occurrenceCount ||
+        left.name.localeCompare(right.name)
+      );
     });
   }, [currentProfileContext.profile.id, visibleProfileContexts]);
   const highlightedProfile =
-    visibleProfiles.find((profile) => profile.id === highlightedProfileId) ?? null;
+    visibleProfiles.find((profile) => profile.id === highlightedProfileId) ??
+    null;
   const legendProfiles = useMemo(
     () =>
       visibleProfiles.map((visibleProfile) => {
         const sourceProfile =
-          mealTypeProfiles.find((profile) => profile.id === visibleProfile.id) ??
-          currentProfileContext.profile;
+          mealTypeProfiles.find(
+            (profile) => profile.id === visibleProfile.id
+          ) ?? currentProfileContext.profile;
 
         return {
           id: visibleProfile.id,
@@ -265,7 +288,10 @@ export default function MealPlanPage() {
   );
 
   useEffect(() => {
-    if (highlightedProfileId && !visibleProfiles.some((profile) => profile.id === highlightedProfileId)) {
+    if (
+      highlightedProfileId &&
+      !visibleProfiles.some((profile) => profile.id === highlightedProfileId)
+    ) {
       setHighlightedProfileId(null);
     }
   }, [highlightedProfileId, visibleProfiles]);
@@ -274,7 +300,9 @@ export default function MealPlanPage() {
     getMealTypeDefinitionsForDate(value, mealTypeProfiles);
 
   const findMealTypeDefinition = (mealType: string, value: Date) =>
-    getMealTypesForDate(value).find((definition) => definition.slug === mealType) ?? null;
+    getMealTypesForDate(value).find(
+      (definition) => definition.slug === mealType
+    ) ?? null;
 
   useEffect(() => {
     if (view === "month") {
@@ -403,7 +431,8 @@ export default function MealPlanPage() {
     }
 
     if (changes.type) {
-      const effectiveDate = changes.date ?? meals.find((meal) => meal.id === mealId)?.date ?? date;
+      const effectiveDate =
+        changes.date ?? meals.find((meal) => meal.id === mealId)?.date ?? date;
       payload.mealType = fromCalendarMealType(changes.type);
       payload.mealTypeDefinitionId =
         findMealTypeDefinition(changes.type, effectiveDate)?.id ?? null;
@@ -492,7 +521,10 @@ export default function MealPlanPage() {
       return;
     }
 
-    const targetDefinition = findMealTypeDefinition(targetType, normalizedTargetDate);
+    const targetDefinition = findMealTypeDefinition(
+      targetType,
+      normalizedTargetDate
+    );
 
     const previousMeals = updateMealsCache((current) =>
       current.map((currentMeal) =>
@@ -526,11 +558,17 @@ export default function MealPlanPage() {
       queryClient.setQueryData(mealsQueryKey, previousMeals);
       throw error;
     } finally {
-      await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+      await queryClient.invalidateQueries({
+        queryKey: ["meals"],
+        exact: false,
+      });
     }
   };
 
-  const onSwapMeals = async (draggedMeal: EditableMeal, targetMeal: EditableMeal) => {
+  const onSwapMeals = async (
+    draggedMeal: EditableMeal,
+    targetMeal: EditableMeal
+  ) => {
     if (!draggedMeal.id || !targetMeal.id || draggedMeal.id === targetMeal.id) {
       return;
     }
@@ -550,7 +588,10 @@ export default function MealPlanPage() {
     const previousMeals = updateMealsCache((current) =>
       current.map((currentMeal) => {
         if (currentMeal.id === draggedMeal.id) {
-          const nextDefinition = findMealTypeDefinition(targetMeal.type, targetSourceDate);
+          const nextDefinition = findMealTypeDefinition(
+            targetMeal.type,
+            targetSourceDate
+          );
           return {
             ...currentMeal,
             date: targetSourceDate,
@@ -561,7 +602,10 @@ export default function MealPlanPage() {
         }
 
         if (currentMeal.id === targetMeal.id) {
-          const nextDefinition = findMealTypeDefinition(draggedMeal.type, draggedSourceDate);
+          const nextDefinition = findMealTypeDefinition(
+            draggedMeal.type,
+            draggedSourceDate
+          );
           return {
             ...currentMeal,
             date: draggedSourceDate,
@@ -600,7 +644,10 @@ export default function MealPlanPage() {
       queryClient.setQueryData(mealsQueryKey, previousMeals);
       throw error;
     } finally {
-      await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+      await queryClient.invalidateQueries({
+        queryKey: ["meals"],
+        exact: false,
+      });
     }
   };
 
@@ -777,11 +824,20 @@ export default function MealPlanPage() {
 
     // Link the meal back to the new recipe if it has been persisted
     if (saveAsRecipeMeal.id) {
-      await fetchJson<{ data: CalendarMeal }>(`/api/meals/${saveAsRecipeMeal.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ recipeId: recipe.id, cuisine: recipe.cuisine }),
+      await fetchJson<{ data: CalendarMeal }>(
+        `/api/meals/${saveAsRecipeMeal.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            recipeId: recipe.id,
+            cuisine: recipe.cuisine,
+          }),
+        }
+      );
+      await queryClient.invalidateQueries({
+        queryKey: ["meals"],
+        exact: false,
       });
-      await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
     }
 
     closeSaveAsRecipeFlow();
@@ -799,13 +855,16 @@ export default function MealPlanPage() {
       return;
     }
 
-    await fetchJson<{ data: CalendarMeal }>(`/api/meals/${saveAsRecipeMeal.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({
-        recipeId: saveAsRecipeConflict.existing.id,
-        cuisine: saveAsRecipeConflict.existing.cuisine ?? null,
-      }),
-    });
+    await fetchJson<{ data: CalendarMeal }>(
+      `/api/meals/${saveAsRecipeMeal.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          recipeId: saveAsRecipeConflict.existing.id,
+          cuisine: saveAsRecipeConflict.existing.cuisine ?? null,
+        }),
+      }
+    );
     await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
 
     const existingTitle = saveAsRecipeConflict.existing.title;
@@ -889,10 +948,13 @@ export default function MealPlanPage() {
               setEditMeal(
                 createEmptyMeal(
                   new Date(date),
-                  mealTypeDefinitions.find((definition) => definition.enabled)?.slug ??
+                  mealTypeDefinitions.find((definition) => definition.enabled)
+                    ?.slug ??
                     mealTypeDefinitions[0]?.slug ??
                     "DINNER",
-                  mealTypeDefinitions.find((definition) => definition.enabled) ??
+                  mealTypeDefinitions.find(
+                    (definition) => definition.enabled
+                  ) ??
                     mealTypeDefinitions[0] ??
                     null
                 )
@@ -989,10 +1051,7 @@ export default function MealPlanPage() {
         ) : null}
       </div>
 
-      <TrashDropZone
-        visible={isDraggingMeal}
-        onDropMeal={onTrashDropMeal}
-      />
+      <TrashDropZone visible={isDraggingMeal} onDropMeal={onTrashDropMeal} />
 
       {isMenuExportOpen ? (
         <MenuPrintExportModal
@@ -1030,7 +1089,9 @@ export default function MealPlanPage() {
         {legendProfiles.map((profile) => (
           <div className={styles.legendSection} key={profile.id}>
             <div className={styles.legendHeadingRow}>
-              <h2 className={styles.legendTitle}>{`Meal types for ${profile.name}`}</h2>
+              <h2
+                className={styles.legendTitle}
+              >{`Meal types for ${profile.name}`}</h2>
               <p className={styles.legendHint}>
                 {profile.rangeLabel ?? "Shown for the selected date range."}
               </p>
@@ -1040,7 +1101,10 @@ export default function MealPlanPage() {
                 .filter((definition) => definition.enabled)
                 .sort((left, right) => left.sortOrder - right.sortOrder)
                 .map((definition) => {
-                  const config = getTypeConfig(definition.slug, profile.mealTypes);
+                  const config = getTypeConfig(
+                    definition.slug,
+                    profile.mealTypes
+                  );
 
                   return (
                     <div className={styles.legendItem} key={definition.id}>
@@ -1095,7 +1159,9 @@ export default function MealPlanPage() {
             <AlertDialogDescription>
               {saveAsRecipeConflict?.code === "RECIPE_DUPLICATE_SOURCE_URL"
                 ? `The source URL for "${saveAsRecipeConflict?.existing.title ?? "this recipe"}" is already in your Recipe Book.`
-                : `"${saveAsRecipeConflict?.existing.title ?? "This recipe"}" is already in your Recipe Book.`} You can link this meal to the existing recipe, or keep editing and rename the draft before saving.
+                : `"${saveAsRecipeConflict?.existing.title ?? "This recipe"}" is already in your Recipe Book.`}{" "}
+              You can link this meal to the existing recipe, or keep editing and
+              rename the draft before saving.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

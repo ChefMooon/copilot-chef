@@ -1,12 +1,7 @@
 // @vitest-environment jsdom
 
 import { useEffect } from "react";
-import {
-  cleanup,
-  fireEvent,
-  render,
-  waitFor,
-} from "@testing-library/react";
+import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -18,7 +13,10 @@ import GroceryShopPage from "@/pages/grocery-list/shop";
 import RecipesPage from "@/pages/recipes";
 import RecipeDetailPage from "@/pages/recipes/detail";
 import SettingsPage from "@/pages/settings";
-import { StatsDashboard, type StatsPayload } from "@/components/stats/StatsDashboard";
+import {
+  StatsDashboard,
+  type StatsPayload,
+} from "@/components/stats/StatsDashboard";
 
 const chatMocks = vi.hoisted(() => ({
   useChatPageContext: vi.fn(),
@@ -51,6 +49,7 @@ const configMocks = vi.hoisted(() => ({
   getCachedConfig: vi.fn(),
   isServerConfigReady: vi.fn(),
   resetConfigCache: vi.fn(),
+  subscribeConfigUpdates: vi.fn(() => vi.fn()),
 }));
 
 vi.mock("@/context/chat-context", () => ({
@@ -86,6 +85,7 @@ vi.mock("@/lib/config", () => ({
   getCachedConfig: configMocks.getCachedConfig,
   isServerConfigReady: configMocks.isServerConfigReady,
   resetConfigCache: configMocks.resetConfigCache,
+  subscribeConfigUpdates: configMocks.subscribeConfigUpdates,
 }));
 
 vi.mock("@/components/providers/toast-provider", () => ({
@@ -160,16 +160,22 @@ vi.mock("@/components/recipes/RecipeFilterSidebar", () => ({
 vi.mock("@/components/recipes/RecipeGrid", () => ({
   RecipeGrid: () => null,
 }));
-vi.mock("@/components/recipes/IngestModal", () => ({ IngestModal: () => null }));
+vi.mock("@/components/recipes/IngestModal", () => ({
+  IngestModal: () => null,
+}));
 vi.mock("@/components/recipes/RecipeExportModal", () => ({
   RecipeExportModal: () => null,
 }));
 vi.mock("@/components/recipes/RecipeDetail", () => ({
-  RecipeDetail: ({ onContextStateChange }: { onContextStateChange?: (state: {
-    activeView: "basic" | "detailed" | "cooking";
-    activeUnitMode: "cup" | "grams";
-    cookingStepNumber: number | null;
-  }) => void }) => {
+  RecipeDetail: ({
+    onContextStateChange,
+  }: {
+    onContextStateChange?: (state: {
+      activeView: "basic" | "detailed" | "cooking";
+      activeUnitMode: "cup" | "grams";
+      cookingStepNumber: number | null;
+    }) => void;
+  }) => {
     useEffect(() => {
       onContextStateChange?.({
         activeView: "cooking",
@@ -187,16 +193,18 @@ vi.mock("@/components/recipes/AddRecipeModal", () => ({
     onDraftContextChange,
   }: {
     open: boolean;
-    onDraftContextChange?: (draft: {
-      title: string;
-      description: string | null;
-      servings: number | null;
-      ingredientCount: number;
-      instructionCount: number;
-      cuisine: string | null;
-      difficulty: string | null;
-      tagsCount: number;
-    } | null) => void;
+    onDraftContextChange?: (
+      draft: {
+        title: string;
+        description: string | null;
+        servings: number | null;
+        ingredientCount: number;
+        instructionCount: number;
+        cuisine: string | null;
+        difficulty: string | null;
+        tagsCount: number;
+      } | null
+    ) => void;
   }) => {
     useEffect(() => {
       if (!onDraftContextChange) {
@@ -224,15 +232,20 @@ vi.mock("@/components/recipes/AddRecipeModal", () => ({
   },
 }));
 
-vi.mock("@/components/settings/PersonaModal", () => ({ PersonaModal: () => null }));
+vi.mock("@/components/settings/PersonaModal", () => ({
+  PersonaModal: () => null,
+}));
 vi.mock("@/components/settings/MealTypesSection", () => ({
   MealTypesSection: () => null,
 }));
 vi.mock("@/components/settings/ChipList", () => ({ ChipList: () => null }));
 vi.mock("@/components/settings/CollapsibleSection", () => ({
-  CollapsibleSection: ({ children }: { children?: React.ReactNode }) => children ?? null,
+  CollapsibleSection: ({ children }: { children?: React.ReactNode }) =>
+    children ?? null,
 }));
-vi.mock("@/components/settings/PersonaGrid", () => ({ PersonaGrid: () => null }));
+vi.mock("@/components/settings/PersonaGrid", () => ({
+  PersonaGrid: () => null,
+}));
 vi.mock("@/components/settings/SegmentedControl", () => ({
   SegmentedControl: () => null,
 }));
@@ -392,7 +405,9 @@ describe("page context producers", () => {
   it("captures Home page context from dashboard data", async () => {
     apiMocks.fetchJson.mockImplementation(async (url: string) => {
       if (url === "/api/stats/meal-summary") {
-        return { data: { from: "2026-04-21", to: "2026-04-27", totalMeals: 5 } };
+        return {
+          data: { from: "2026-04-21", to: "2026-04-27", totalMeals: 5 },
+        };
       }
       if (url === "/api/grocery-lists?current=1") {
         return {

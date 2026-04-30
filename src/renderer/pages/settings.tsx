@@ -53,6 +53,7 @@ import {
   loadServerConfig,
   resetConfigCache,
 } from "@/lib/config";
+import { useServerConfig } from "@/lib/use-server-config";
 import { getPlatform, type LanStatus } from "@/lib/platform";
 import { CUISINE_OPTIONS } from "@shared/api/constants";
 
@@ -266,7 +267,11 @@ function normalizeHomeBool(input: unknown, fallback: boolean) {
 }
 
 const TABS: Array<{ id: TabId; label: string; panelId: string }> = [
-  { id: "dietary-profile", label: "Dietary Profile", panelId: "panel-dietary-profile" },
+  {
+    id: "dietary-profile",
+    label: "Dietary Profile",
+    panelId: "panel-dietary-profile",
+  },
   { id: "meal-plans", label: "Meal Plans", panelId: "panel-meal-plans" },
   { id: "your-chef", label: "Your Chef", panelId: "panel-your-chef" },
   { id: "app-settings", label: "App Settings", panelId: "panel-app-settings" },
@@ -323,7 +328,8 @@ function clearBrowserTimer(timerRef: MutableRefObject<number | null>) {
 }
 
 export default function SettingsPage() {
-  const apiReady = isServerConfigReady(getCachedConfig());
+  const config = useServerConfig();
+  const apiReady = isServerConfigReady(config);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { clearSession } = useChatContext();
@@ -387,15 +393,17 @@ export default function SettingsPage() {
   const [connectionSaved, setConnectionSaved] = useState(false);
   const [updatesCheckOnStartup, setUpdatesCheckOnStartup] = useState(true);
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
-  const [manualUpdateCheckPending, setManualUpdateCheckPending] = useState(false);
+  const [manualUpdateCheckPending, setManualUpdateCheckPending] =
+    useState(false);
   const [lanStatus, setLanStatus] = useState<LanStatus | null>(null);
   const [lanEnabledDraft, setLanEnabledDraft] = useState(false);
   const [lanWebEnabledDraft, setLanWebEnabledDraft] = useState(false);
   const [lanAdvertisedHostDraft, setLanAdvertisedHostDraft] = useState("");
   const [lanSaving, setLanSaving] = useState(false);
   const [lanQrModalOpen, setLanQrModalOpen] = useState(false);
-  const [homeDashboard, setHomeDashboard] =
-    useState<HomeDashboardSettings>(HOME_DASHBOARD_DEFAULTS);
+  const [homeDashboard, setHomeDashboard] = useState<HomeDashboardSettings>(
+    HOME_DASHBOARD_DEFAULTS
+  );
 
   // Tab navigation
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -403,7 +411,8 @@ export default function SettingsPage() {
   function getInitialTab(): TabId {
     try {
       const stored = window.localStorage.getItem("settings-active-tab");
-      if (stored && (TAB_IDS as string[]).includes(stored)) return stored as TabId;
+      if (stored && (TAB_IDS as string[]).includes(stored))
+        return stored as TabId;
     } catch {
       // ignore storage failures
     }
@@ -427,7 +436,8 @@ export default function SettingsPage() {
   ) {
     let next: number | null = null;
     if (e.key === "ArrowRight") next = (index + 1) % TABS.length;
-    else if (e.key === "ArrowLeft") next = (index - 1 + TABS.length) % TABS.length;
+    else if (e.key === "ArrowLeft")
+      next = (index - 1 + TABS.length) % TABS.length;
     else if (e.key === "Home") next = 0;
     else if (e.key === "End") next = TABS.length - 1;
     if (next !== null) {
@@ -952,7 +962,10 @@ export default function SettingsPage() {
       await platform.setSetting("lan_enabled", lanEnabledDraft);
       await platform.setSetting("lan_web_enabled", lanWebEnabledDraft);
       if (lanAdvertisedHostDraft.trim()) {
-        await platform.setSetting("lan_advertised_host", lanAdvertisedHostDraft.trim());
+        await platform.setSetting(
+          "lan_advertised_host",
+          lanAdvertisedHostDraft.trim()
+        );
       }
       await platform.restartLanServices();
       await refreshLanStatus();
@@ -1000,11 +1013,11 @@ export default function SettingsPage() {
 
   const canShowLanQrCode = Boolean(
     lanEnabledDraft &&
-      lanWebEnabledDraft &&
-      lanStatus?.api.url &&
-      lanStatus?.web.url &&
-      machineApiKeyDraft &&
-      browserConnectionUrl
+    lanWebEnabledDraft &&
+    lanStatus?.api.url &&
+    lanStatus?.web.url &&
+    machineApiKeyDraft &&
+    browserConnectionUrl
   );
 
   const handleToggleStartupUpdateCheck = async (checked: boolean) => {
@@ -1051,8 +1064,11 @@ export default function SettingsPage() {
   };
 
   const handleHomeUpcomingDays = async (value: number) => {
-    await saveHomeSetting("upcomingDays", value, "home_upcoming_days", (input) =>
-      clampHomeUpcomingDays(input)
+    await saveHomeSetting(
+      "upcomingDays",
+      value,
+      "home_upcoming_days",
+      (input) => clampHomeUpcomingDays(input)
     );
   };
 
@@ -1151,7 +1167,11 @@ export default function SettingsPage() {
       </header>
 
       {/* ── Tab strip ── */}
-      <div role="tablist" aria-label="Settings sections" className={styles.tabStrip}>
+      <div
+        role="tablist"
+        aria-label="Settings sections"
+        className={styles.tabStrip}
+      >
         {TABS.map((tab, index) => (
           <button
             key={tab.id}
@@ -1232,7 +1252,10 @@ export default function SettingsPage() {
                 <select
                   className={styles.select}
                   onChange={(event) =>
-                    void handleImmediateField("cookingLength", event.target.value)
+                    void handleImmediateField(
+                      "cookingLength",
+                      event.target.value
+                    )
                   }
                   value={preferences.cookingLength}
                 >
@@ -1291,7 +1314,9 @@ export default function SettingsPage() {
               <ChipList
                 description="Allergies or hard avoidances. Drag to reprioritize."
                 items={preferences.avoidIngredients}
-                onAdd={(values) => void handleChipAdd("avoidIngredients", values)}
+                onAdd={(values) =>
+                  void handleChipAdd("avoidIngredients", values)
+                }
                 onRemove={(value) =>
                   void handleChipRemove("avoidIngredients", value)
                 }
@@ -1427,7 +1452,9 @@ export default function SettingsPage() {
             </div>
             <div className={styles.twoColumn}>
               <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>Default reply length</label>
+                <label className={styles.fieldLabel}>
+                  Default reply length
+                </label>
                 <SegmentedControl
                   onChange={(value) =>
                     void handleImmediateField("replyLength", value)
@@ -1531,7 +1558,9 @@ export default function SettingsPage() {
             <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
               <label className={styles.fieldLabel}>
                 AI model{" "}
-                <span style={{ fontWeight: 400, opacity: 0.6 }}>(requires restart)</span>
+                <span style={{ fontWeight: 400, opacity: 0.6 }}>
+                  (requires restart)
+                </span>
               </label>
               <select
                 className={styles.select}
@@ -1599,13 +1628,18 @@ export default function SettingsPage() {
                     </p>
                   </div>
                 </div>
-                <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
+                <div
+                  className={styles.fieldGroup}
+                  style={{ marginTop: "1rem" }}
+                >
                   <label className={styles.fieldLabel}>Advertised host</label>
                   {lanStatus?.candidates && lanStatus.candidates.length > 0 ? (
                     <select
                       className={styles.select}
                       value={lanAdvertisedHostDraft}
-                      onChange={(event) => setLanAdvertisedHostDraft(event.target.value)}
+                      onChange={(event) =>
+                        setLanAdvertisedHostDraft(event.target.value)
+                      }
                     >
                       {lanStatus.candidates.map((c) => (
                         <option key={c.address} value={c.address}>
@@ -1618,7 +1652,9 @@ export default function SettingsPage() {
                       className={styles.select}
                       type="text"
                       value={lanAdvertisedHostDraft}
-                      onChange={(event) => setLanAdvertisedHostDraft(event.target.value)}
+                      onChange={(event) =>
+                        setLanAdvertisedHostDraft(event.target.value)
+                      }
                       placeholder="e.g. 192.168.1.100"
                     />
                   )}
@@ -1635,14 +1671,23 @@ export default function SettingsPage() {
                       lineHeight: 1.5,
                     }}
                   >
-                    <strong>Firewall may be blocking LAN access.</strong> The API is not
-                    reachable on the advertised address. On Windows, run:{" "}
-                    <code style={{ fontFamily: "monospace", wordBreak: "break-all" }}>
+                    <strong>Firewall may be blocking LAN access.</strong> The
+                    API is not reachable on the advertised address. On Windows,
+                    run:{" "}
+                    <code
+                      style={{
+                        fontFamily: "monospace",
+                        wordBreak: "break-all",
+                      }}
+                    >
                       {`netsh advfirewall firewall add rule name="Copilot Chef" dir=in action=allow protocol=TCP localport=${lanStatus.api.port}`}
                     </code>
                   </div>
                 )}
-                <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
+                <div
+                  className={styles.fieldGroup}
+                  style={{ marginTop: "1rem" }}
+                >
                   <label className={styles.fieldLabel}>Connection URL</label>
                   <input
                     className={styles.select}
@@ -1655,7 +1700,10 @@ export default function SettingsPage() {
                     contains the browser access token in the URL fragment.
                   </p>
                 </div>
-                <div className={styles.actionsRow} style={{ marginTop: "1rem" }}>
+                <div
+                  className={styles.actionsRow}
+                  style={{ marginTop: "1rem" }}
+                >
                   <Button
                     disabled={lanSaving}
                     onClick={() => void handleSaveLanSettings()}
@@ -1692,7 +1740,10 @@ export default function SettingsPage() {
                     Show QR code
                   </Button>
                 </div>
-                {lanQrModalOpen && browserConnectionUrl && lanStatus?.api.url && lanStatus?.web.url ? (
+                {lanQrModalOpen &&
+                browserConnectionUrl &&
+                lanStatus?.api.url &&
+                lanStatus?.web.url ? (
                   <LanQrCodeModal
                     apiUrl={lanStatus.api.url}
                     browserUrl={lanStatus.web.url}
@@ -1733,12 +1784,15 @@ export default function SettingsPage() {
             <div className={styles.cardHeader}>
               <h2 className={styles.cardTitle}>Home overview controls</h2>
               <p className={styles.cardDescription}>
-                Choose what appears on the home screen and how upcoming meals are displayed.
+                Choose what appears on the home screen and how upcoming meals
+                are displayed.
               </p>
             </div>
 
             <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Upcoming meal range (days)</label>
+              <label className={styles.fieldLabel}>
+                Upcoming meal range (days)
+              </label>
               <div className={styles.rangeRow}>
                 <input
                   className={styles.rangeInput}
@@ -1751,7 +1805,9 @@ export default function SettingsPage() {
                   type="range"
                   value={homeDashboard.upcomingDays}
                 />
-                <div className={styles.rangeValue}>{homeDashboard.upcomingDays}</div>
+                <div className={styles.rangeValue}>
+                  {homeDashboard.upcomingDays}
+                </div>
               </div>
             </div>
 
@@ -1760,7 +1816,9 @@ export default function SettingsPage() {
                 <label className={styles.fieldLabel}>Upcoming layout</label>
                 <select
                   className={styles.select}
-                  onChange={(event) => void handleHomeLayout(event.target.value)}
+                  onChange={(event) =>
+                    void handleHomeLayout(event.target.value)
+                  }
                   value={homeDashboard.upcomingLayout}
                 >
                   {homeUpcomingLayoutOptions.map((option) => (
@@ -1772,10 +1830,14 @@ export default function SettingsPage() {
               </div>
 
               <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>Upcoming detail level</label>
+                <label className={styles.fieldLabel}>
+                  Upcoming detail level
+                </label>
                 <select
                   className={styles.select}
-                  onChange={(event) => void handleHomeDetail(event.target.value)}
+                  onChange={(event) =>
+                    void handleHomeDetail(event.target.value)
+                  }
                   value={homeDashboard.upcomingDetail}
                 >
                   {homeUpcomingDetailOptions.map((option) => (
@@ -1853,276 +1915,278 @@ export default function SettingsPage() {
         </CollapsibleSection>
 
         <CollapsibleSection id="app" label="App Settings">
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>AI behavior</h2>
-          </div>
-          <div className={styles.toggleList}>
-            <ToggleRow
-              checked={preferences.autoImproveChef}
-              description="Chef learns from your feedback and adjusts suggestions over time."
-              label="Auto-improve chef"
-              onChange={(checked) =>
-                void handleImmediateField("autoImproveChef", checked)
-              }
-            />
-            <ToggleRow
-              checked={preferences.contextAwareness}
-              description="Include current meal plan and pantry when generating ideas."
-              label="Context-aware suggestions"
-              onChange={(checked) =>
-                void handleImmediateField("contextAwareness", checked)
-              }
-            />
-            <div>
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>AI behavior</h2>
+            </div>
+            <div className={styles.toggleList}>
               <ToggleRow
-                checked={preferences.seasonalAwareness}
-                description="Prioritize ingredients that are in season in your region."
-                label="Seasonal awareness"
+                checked={preferences.autoImproveChef}
+                description="Chef learns from your feedback and adjusts suggestions over time."
+                label="Auto-improve chef"
                 onChange={(checked) =>
-                  void handleImmediateField("seasonalAwareness", checked)
+                  void handleImmediateField("autoImproveChef", checked)
                 }
               />
-              <div
-                className={cn(
-                  styles.regionWrap,
-                  !preferences.seasonalAwareness && styles.regionWrapClosed
-                )}
-              >
-                <div className={styles.regionRow}>
-                  <select
-                    className={styles.select}
-                    onChange={(event) =>
-                      void handleImmediateField(
-                        "seasonalRegion",
-                        event.target.value
-                      )
-                    }
-                    value={preferences.seasonalRegion}
-                  >
-                    {regionOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+              <ToggleRow
+                checked={preferences.contextAwareness}
+                description="Include current meal plan and pantry when generating ideas."
+                label="Context-aware suggestions"
+                onChange={(checked) =>
+                  void handleImmediateField("contextAwareness", checked)
+                }
+              />
+              <div>
+                <ToggleRow
+                  checked={preferences.seasonalAwareness}
+                  description="Prioritize ingredients that are in season in your region."
+                  label="Seasonal awareness"
+                  onChange={(checked) =>
+                    void handleImmediateField("seasonalAwareness", checked)
+                  }
+                />
+                <div
+                  className={cn(
+                    styles.regionWrap,
+                    !preferences.seasonalAwareness && styles.regionWrapClosed
+                  )}
+                >
+                  <div className={styles.regionRow}>
+                    <select
+                      className={styles.select}
+                      onChange={(event) =>
+                        void handleImmediateField(
+                          "seasonalRegion",
+                          event.target.value
+                        )
+                      }
+                      value={preferences.seasonalRegion}
+                    >
+                      {regionOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      disabled={detectState === "detecting"}
+                      onClick={() => void handleDetectRegion()}
+                      type="button"
+                      variant="outline"
+                    >
+                      {detectState === "detecting"
+                        ? "Detecting…"
+                        : detectState === "success"
+                          ? "Detected ✓"
+                          : "Detect"}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <ToggleRow
+                checked={preferences.proactiveTips}
+                description="Chef offers unprompted suggestions and cooking tips in chat."
+                label="Proactive tips"
+                onChange={(checked) =>
+                  void handleImmediateField("proactiveTips", checked)
+                }
+              />
+            </div>
+            <div className={styles.fieldGroup} style={{ marginTop: "0.5rem" }}>
+              <label className={styles.fieldLabel}>AI reasoning effort</label>
+              <SegmentedControl
+                onChange={(value) =>
+                  void handleImmediateField("reasoningEffort", value)
+                }
+                options={reasoningEffortOptions}
+                value={preferences.reasoningEffort}
+              />
+            </div>
+          </div>
+
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Grocery & planning</h2>
+            </div>
+            <div className={styles.toggleList}>
+              <ToggleRow
+                checked={preferences.autoGenerateGrocery}
+                description="Automatically create a grocery list when a meal plan is finalized."
+                label="Auto-generate grocery list"
+                onChange={(checked) =>
+                  void handleImmediateField("autoGenerateGrocery", checked)
+                }
+              />
+              <ToggleRow
+                checked={preferences.consolidateIngredients}
+                description="Merge quantities of the same ingredient across multiple meals."
+                label="Consolidate similar ingredients"
+                onChange={(checked) =>
+                  void handleImmediateField("consolidateIngredients", checked)
+                }
+              />
+            </div>
+            <div className={styles.twoColumn} style={{ marginTop: "1rem" }}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Default plan length</label>
+                <select
+                  className={styles.select}
+                  onChange={(event) =>
+                    void handleImmediateField(
+                      "defaultPlanLength",
+                      event.target.value
+                    )
+                  }
+                  value={preferences.defaultPlanLength}
+                >
+                  {planLengthOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>
+                  Grocery list grouping
+                </label>
+                <select
+                  className={styles.select}
+                  onChange={(event) =>
+                    void handleImmediateField(
+                      "groceryGrouping",
+                      event.target.value
+                    )
+                  }
+                  value={preferences.groceryGrouping}
+                >
+                  {groupingOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className={styles.twoColumn} style={{ marginTop: "1rem" }}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Default recipe view</label>
+                <SegmentedControl
+                  onChange={(value) =>
+                    void handleImmediateField("defaultRecipeView", value)
+                  }
+                  options={recipeViewOptions}
+                  value={preferences.defaultRecipeView}
+                />
+              </div>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Default unit mode</label>
+                <SegmentedControl
+                  onChange={(value) =>
+                    void handleImmediateField("defaultUnitMode", value)
+                  }
+                  options={recipeUnitOptions}
+                  value={preferences.defaultUnitMode}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Data & privacy</h2>
+            </div>
+            <ToggleRow
+              checked={preferences.saveChatHistory}
+              description="Persist conversations for context across sessions."
+              label="Save chat history"
+              onChange={(checked) =>
+                void handleImmediateField("saveChatHistory", checked)
+              }
+            />
+
+            <div className={styles.actionsRow}>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
                   <Button
-                    disabled={detectState === "detecting"}
-                    onClick={() => void handleDetectRegion()}
+                    className={styles.dangerButton}
                     type="button"
                     variant="outline"
                   >
-                    {detectState === "detecting"
-                      ? "Detecting…"
-                      : detectState === "success"
-                        ? "Detected ✓"
-                        : "Detect"}
+                    Clear chat history
                   </Button>
-                </div>
-              </div>
-            </div>
-            <ToggleRow
-              checked={preferences.proactiveTips}
-              description="Chef offers unprompted suggestions and cooking tips in chat."
-              label="Proactive tips"
-              onChange={(checked) =>
-                void handleImmediateField("proactiveTips", checked)
-              }
-            />
-          </div>
-          <div className={styles.fieldGroup} style={{ marginTop: "0.5rem" }}>
-            <label className={styles.fieldLabel}>AI reasoning effort</label>
-            <SegmentedControl
-              onChange={(value) =>
-                void handleImmediateField("reasoningEffort", value)
-              }
-              options={reasoningEffortOptions}
-              value={preferences.reasoningEffort}
-            />
-          </div>
-        </div>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete all saved conversations. This
+                      cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel asChild>
+                      <Button type="button" variant="outline">
+                        Cancel
+                      </Button>
+                    </AlertDialogCancel>
+                    <AlertDialogAction asChild>
+                      <Button
+                        className={styles.dangerButton}
+                        onClick={() => void handleClearChatHistory()}
+                        type="button"
+                        variant="outline"
+                      >
+                        Clear history
+                      </Button>
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
 
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>Grocery & planning</h2>
-          </div>
-          <div className={styles.toggleList}>
-            <ToggleRow
-              checked={preferences.autoGenerateGrocery}
-              description="Automatically create a grocery list when a meal plan is finalized."
-              label="Auto-generate grocery list"
-              onChange={(checked) =>
-                void handleImmediateField("autoGenerateGrocery", checked)
-              }
-            />
-            <ToggleRow
-              checked={preferences.consolidateIngredients}
-              description="Merge quantities of the same ingredient across multiple meals."
-              label="Consolidate similar ingredients"
-              onChange={(checked) =>
-                void handleImmediateField("consolidateIngredients", checked)
-              }
-            />
-          </div>
-          <div className={styles.twoColumn} style={{ marginTop: "1rem" }}>
-            <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Default plan length</label>
-              <select
-                className={styles.select}
-                onChange={(event) =>
-                  void handleImmediateField(
-                    "defaultPlanLength",
-                    event.target.value
-                  )
-                }
-                value={preferences.defaultPlanLength}
+              <Button
+                onClick={() => void handleExport()}
+                type="button"
+                variant="outline"
               >
-                {planLengthOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Grocery list grouping</label>
-              <select
-                className={styles.select}
-                onChange={(event) =>
-                  void handleImmediateField(
-                    "groceryGrouping",
-                    event.target.value
-                  )
-                }
-                value={preferences.groceryGrouping}
-              >
-                {groupingOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className={styles.twoColumn} style={{ marginTop: "1rem" }}>
-            <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Default recipe view</label>
-              <SegmentedControl
-                onChange={(value) =>
-                  void handleImmediateField("defaultRecipeView", value)
-                }
-                options={recipeViewOptions}
-                value={preferences.defaultRecipeView}
-              />
-            </div>
-            <div className={styles.fieldGroup}>
-              <label className={styles.fieldLabel}>Default unit mode</label>
-              <SegmentedControl
-                onChange={(value) =>
-                  void handleImmediateField("defaultUnitMode", value)
-                }
-                options={recipeUnitOptions}
-                value={preferences.defaultUnitMode}
-              />
+                Export my data
+              </Button>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button type="button" variant="outline">
+                    Reset all preferences
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Reset all preferences?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will restore all settings to their defaults. Your
+                      meal plans and grocery lists will not be affected.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel asChild>
+                      <Button type="button" variant="outline">
+                        Cancel
+                      </Button>
+                    </AlertDialogCancel>
+                    <AlertDialogAction asChild>
+                      <Button
+                        onClick={() => void handleReset()}
+                        type="button"
+                        variant="outline"
+                      >
+                        Reset preferences
+                      </Button>
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
-        </div>
-
-        <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>Data & privacy</h2>
-          </div>
-          <ToggleRow
-            checked={preferences.saveChatHistory}
-            description="Persist conversations for context across sessions."
-            label="Save chat history"
-            onChange={(checked) =>
-              void handleImmediateField("saveChatHistory", checked)
-            }
-          />
-
-          <div className={styles.actionsRow}>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  className={styles.dangerButton}
-                  type="button"
-                  variant="outline"
-                >
-                  Clear chat history
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete all saved conversations. This
-                    cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel asChild>
-                    <Button type="button" variant="outline">
-                      Cancel
-                    </Button>
-                  </AlertDialogCancel>
-                  <AlertDialogAction asChild>
-                    <Button
-                      className={styles.dangerButton}
-                      onClick={() => void handleClearChatHistory()}
-                      type="button"
-                      variant="outline"
-                    >
-                      Clear history
-                    </Button>
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-
-            <Button
-              onClick={() => void handleExport()}
-              type="button"
-              variant="outline"
-            >
-              Export my data
-            </Button>
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button type="button" variant="outline">
-                  Reset all preferences
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Reset all preferences?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will restore all settings to their defaults. Your meal
-                    plans and grocery lists will not be affected.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel asChild>
-                    <Button type="button" variant="outline">
-                      Cancel
-                    </Button>
-                  </AlertDialogCancel>
-                  <AlertDialogAction asChild>
-                    <Button
-                      onClick={() => void handleReset()}
-                      type="button"
-                      variant="outline"
-                    >
-                      Reset preferences
-                    </Button>
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </div>
-      </CollapsibleSection>
+        </CollapsibleSection>
       </div>
 
       {personaModalState.open && (

@@ -3,7 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router";
 
 import { deleteRecipe, fetchJson } from "@/lib/api";
-import { getCachedConfig, isServerConfigReady } from "@/lib/config";
+import { isServerConfigReady } from "@/lib/config";
+import { useServerConfig } from "@/lib/use-server-config";
 import { RecipeDetail } from "@/components/recipes/RecipeDetail";
 import { RecipeDeleteDialog } from "@/components/recipes/RecipeDeleteDialog";
 import { type RecipePayload } from "@/lib/api";
@@ -81,13 +82,13 @@ function RecipeDetailContent({
 }
 
 export default function RecipeDetailPage() {
-  const apiReady = isServerConfigReady(getCachedConfig());
+  const config = useServerConfig();
+  const apiReady = isServerConfigReady(config);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { recipeId } = useParams<{ recipeId: string }>();
-  const [recipePendingDelete, setRecipePendingDelete] = useState<RecipePayload | null>(
-    null
-  );
+  const [recipePendingDelete, setRecipePendingDelete] =
+    useState<RecipePayload | null>(null);
 
   const recipeQuery = useQuery({
     queryKey: recipeId ? recipeKeys.detail(recipeId) : recipeKeys.detail(""),
@@ -112,7 +113,9 @@ export default function RecipeDetailPage() {
     onSuccess: async (_, deletedRecipeId) => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: recipeKeys.all }),
-        queryClient.removeQueries({ queryKey: recipeKeys.detail(deletedRecipeId) }),
+        queryClient.removeQueries({
+          queryKey: recipeKeys.detail(deletedRecipeId),
+        }),
       ]);
       navigate("/recipes", { replace: true });
     },

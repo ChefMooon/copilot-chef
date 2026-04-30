@@ -11,7 +11,8 @@ import {
   updateRecipe,
   type RecipePayload,
 } from "@/lib/api";
-import { getCachedConfig, isServerConfigReady } from "@/lib/config";
+import { isServerConfigReady } from "@/lib/config";
+import { useServerConfig } from "@/lib/use-server-config";
 import { recipeKeys } from "@/lib/query-keys";
 
 import { AddRecipeModal } from "@/components/recipes/AddRecipeModal";
@@ -42,7 +43,8 @@ function downloadJson(data: unknown, fileName: string) {
 }
 
 export default function RecipesPage() {
-  const apiReady = isServerConfigReady(getCachedConfig());
+  const config = useServerConfig();
+  const apiReady = isServerConfigReady(config);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
@@ -54,8 +56,11 @@ export default function RecipesPage() {
   const [showIngest, setShowIngest] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [editingRecipe, setEditingRecipe] = useState<RecipePayload | null>(null);
-  const [recipePendingDelete, setRecipePendingDelete] = useState<RecipePayload | null>(null);
+  const [editingRecipe, setEditingRecipe] = useState<RecipePayload | null>(
+    null
+  );
+  const [recipePendingDelete, setRecipePendingDelete] =
+    useState<RecipePayload | null>(null);
   const [recipeEditorDraft, setRecipeEditorDraft] = useState<{
     title: string;
     description: string | null;
@@ -81,8 +86,13 @@ export default function RecipesPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, recipe }: { id: string; recipe: Parameters<typeof createRecipe>[0] }) =>
-      updateRecipe(id, recipe),
+    mutationFn: ({
+      id,
+      recipe,
+    }: {
+      id: string;
+      recipe: Parameters<typeof createRecipe>[0];
+    }) => updateRecipe(id, recipe),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: recipesKey });
     },
@@ -136,6 +146,7 @@ export default function RecipesPage() {
   const favouriteCount =
     recipesQuery.data?.filter((recipe) => recipe.favourite).length ?? 0;
   const selectedCount = selectedIds.size;
+  const isInitialRecipeLoad = !recipesQuery.data && recipesQuery.isLoading;
 
   useChatPageContext({
     page: "recipes",
@@ -189,10 +200,12 @@ export default function RecipesPage() {
 
     try {
       const updated = await updateRecipe(recipe.id, { favourite: nextValue });
-      queryClient.setQueryData(recipesKey, (current: RecipePayload[] | undefined) =>
-        (current ?? nextRecipes).map((entry) =>
-          entry.id === updated.id ? updated : entry
-        )
+      queryClient.setQueryData(
+        recipesKey,
+        (current: RecipePayload[] | undefined) =>
+          (current ?? nextRecipes).map((entry) =>
+            entry.id === updated.id ? updated : entry
+          )
       );
       queryClient.setQueryData(recipeKeys.detail(recipe.id), updated);
     } catch {
@@ -348,19 +361,25 @@ export default function RecipesPage() {
           />
         </div>
 
-        <RecipeGrid
-          onDelete={(recipe) => setRecipePendingDelete(recipe)}
-          onEdit={(recipe) => {
-            setEditingRecipe(recipe);
-            setShowAddModal(true);
-          }}
-          onToggleFavourite={(recipe, nextValue) => {
-            void handleToggleFavourite(recipe, nextValue);
-          }}
-          onToggleSelect={toggleSelection}
-          recipes={filteredRecipes as RecipePayload[]}
-          selectedIds={selectedIds}
-        />
+        {isInitialRecipeLoad ? (
+          <div className="rounded-card border border-cream-dark bg-white p-8 text-center text-sm text-text-muted">
+            Loading recipes...
+          </div>
+        ) : (
+          <RecipeGrid
+            onDelete={(recipe) => setRecipePendingDelete(recipe)}
+            onEdit={(recipe) => {
+              setEditingRecipe(recipe);
+              setShowAddModal(true);
+            }}
+            onToggleFavourite={(recipe, nextValue) => {
+              void handleToggleFavourite(recipe, nextValue);
+            }}
+            onToggleSelect={toggleSelection}
+            recipes={filteredRecipes as RecipePayload[]}
+            selectedIds={selectedIds}
+          />
+        )}
       </div>
 
       <AddRecipeModal

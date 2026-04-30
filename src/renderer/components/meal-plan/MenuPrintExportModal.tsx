@@ -1,4 +1,5 @@
-import { getCachedConfig, isServerConfigReady } from "@/lib/config";
+import { isServerConfigReady } from "@/lib/config";
+import { useServerConfig } from "@/lib/use-server-config";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Download, Maximize2, Printer, X } from "lucide-react";
@@ -19,11 +20,31 @@ type MenuExportSelection = MenuExportFormat | "pdf";
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-const LAYOUT_OPTIONS: Array<{ value: MenuLayout; label: string; description: string }> = [
-  { value: "classic-grid", label: "Classic grid", description: "Day sections with meal type groupings." },
-  { value: "compact-list", label: "Compact list", description: "Dense day-by-day printout." },
-  { value: "card", label: "Card style", description: "Richer menu with meal notes." },
-  { value: "restaurant", label: "Restaurant style", description: "Polished short-range menu." },
+const LAYOUT_OPTIONS: Array<{
+  value: MenuLayout;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "classic-grid",
+    label: "Classic grid",
+    description: "Day sections with meal type groupings.",
+  },
+  {
+    value: "compact-list",
+    label: "Compact list",
+    description: "Dense day-by-day printout.",
+  },
+  {
+    value: "card",
+    label: "Card style",
+    description: "Richer menu with meal notes.",
+  },
+  {
+    value: "restaurant",
+    label: "Restaurant style",
+    description: "Polished short-range menu.",
+  },
 ];
 
 const FORMAT_OPTIONS: Array<{ value: MenuExportSelection; label: string }> = [
@@ -87,7 +108,8 @@ function MenuPreview({ document }: { document: MenuDocument }) {
     <div className={`menu-print-root menu-print-${document.layout}`}>
       <header className="menu-print-header">
         <p>
-          {document.days[0]?.label ?? document.from} - {document.days.at(-1)?.label ?? document.to}
+          {document.days[0]?.label ?? document.from} -{" "}
+          {document.days.at(-1)?.label ?? document.to}
         </p>
         <h2>{document.title}</h2>
       </header>
@@ -105,10 +127,13 @@ function MenuPreview({ document }: { document: MenuDocument }) {
                     <span>{meal.mealTypeLabel}</span>
                     <h4>{meal.name}</h4>
                     {meal.description &&
-                    (document.layout === "card" || document.layout === "restaurant") ? (
+                    (document.layout === "card" ||
+                      document.layout === "restaurant") ? (
                       <p>{meal.description}</p>
                     ) : null}
-                    {meal.notes && document.layout === "card" ? <p>Notes: {meal.notes}</p> : null}
+                    {meal.notes && document.layout === "card" ? (
+                      <p>Notes: {meal.notes}</p>
+                    ) : null}
                   </article>
                 ))
               ) : (
@@ -127,7 +152,8 @@ export function MenuPrintExportModal({
   initialTo,
   onClose,
 }: MenuPrintExportModalProps) {
-  const apiReady = isServerConfigReady(getCachedConfig());
+  const config = useServerConfig();
+  const apiReady = isServerConfigReady(config);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [from, setFrom] = useState(() => toDateInputValue(initialFrom));
   const [to, setTo] = useState(() => toDateInputValue(initialTo));
@@ -196,7 +222,9 @@ export function MenuPrintExportModal({
 
   useEffect(() => {
     if (!portalRoot) return;
-    const panel = isFullscreenPreview ? fullscreenPanelRef.current : panelRef.current;
+    const panel = isFullscreenPreview
+      ? fullscreenPanelRef.current
+      : panelRef.current;
     if (!panel) return;
     const previousFocus =
       globalThis.document.activeElement instanceof HTMLElement
@@ -205,7 +233,9 @@ export function MenuPrintExportModal({
     const getFocusable = () =>
       Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
     const firstTarget =
-      panel.querySelector<HTMLElement>("[autofocus]") ?? getFocusable()[0] ?? panel;
+      panel.querySelector<HTMLElement>("[autofocus]") ??
+      getFocusable()[0] ??
+      panel;
     firstTarget.focus();
 
     const tabHandler = (event: KeyboardEvent) => {
@@ -220,11 +250,15 @@ export function MenuPrintExportModal({
       const last = focusable[focusable.length - 1];
       if (
         event.shiftKey &&
-        (globalThis.document.activeElement === first || globalThis.document.activeElement === panel)
+        (globalThis.document.activeElement === first ||
+          globalThis.document.activeElement === panel)
       ) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && globalThis.document.activeElement === last) {
+      } else if (
+        !event.shiftKey &&
+        globalThis.document.activeElement === last
+      ) {
         event.preventDefault();
         first.focus();
       }
@@ -268,7 +302,11 @@ export function MenuPrintExportModal({
         setError(result.message);
       }
     } catch (pdfExportError) {
-      setError(pdfExportError instanceof Error ? pdfExportError.message : "Unable to export menu.");
+      setError(
+        pdfExportError instanceof Error
+          ? pdfExportError.message
+          : "Unable to export menu."
+      );
     } finally {
       setIsExporting(false);
     }
@@ -293,7 +331,11 @@ export function MenuPrintExportModal({
       });
       triggerDownload(result.blob, result.fileName);
     } catch (downloadError) {
-      setError(downloadError instanceof Error ? downloadError.message : "Unable to export menu.");
+      setError(
+        downloadError instanceof Error
+          ? downloadError.message
+          : "Unable to export menu."
+      );
     } finally {
       setIsExporting(false);
     }
@@ -324,7 +366,9 @@ export function MenuPrintExportModal({
               <p className="mb-1 text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-orange">
                 Menu Export
               </p>
-              <h2 className="font-serif text-2xl font-semibold text-text">Print or export a menu</h2>
+              <h2 className="font-serif text-2xl font-semibold text-text">
+                Print or export a menu
+              </h2>
             </div>
             <button
               aria-label="Close menu export dialog"
@@ -378,8 +422,12 @@ export function MenuPrintExportModal({
                     onClick={() => setLayout(option.value)}
                     type="button"
                   >
-                    <span className="block text-sm font-extrabold text-text">{option.label}</span>
-                    <span className="block text-xs leading-5 text-text-muted">{option.description}</span>
+                    <span className="block text-sm font-extrabold text-text">
+                      {option.label}
+                    </span>
+                    <span className="block text-xs leading-5 text-text-muted">
+                      {option.description}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -388,11 +436,15 @@ export function MenuPrintExportModal({
                 Download format
                 <select
                   className="rounded-btn border border-cream-dark px-3 py-2 font-normal"
-                  onChange={(event) => setFormat(event.target.value as MenuExportSelection)}
+                  onChange={(event) =>
+                    setFormat(event.target.value as MenuExportSelection)
+                  }
                   value={format}
                 >
                   {FORMAT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -401,7 +453,9 @@ export function MenuPrintExportModal({
                 <input
                   checked={includeEmptyDays}
                   className="h-4 w-4"
-                  onChange={(event) => setIncludeEmptyDays(event.target.checked)}
+                  onChange={(event) =>
+                    setIncludeEmptyDays(event.target.checked)
+                  }
                   type="checkbox"
                 />
                 Include days without meals
@@ -414,14 +468,29 @@ export function MenuPrintExportModal({
               ) : null}
 
               <div className="menu-export-actions flex flex-wrap gap-2 border-t border-cream-dark pt-4">
-                <Button disabled={isExporting || mealsQuery.isLoading} onClick={handlePrint} type="button" variant="outline">
+                <Button
+                  disabled={isExporting || mealsQuery.isLoading}
+                  onClick={handlePrint}
+                  type="button"
+                  variant="outline"
+                >
                   <Printer aria-hidden="true" size={16} /> Print
                 </Button>
-                <Button disabled={isExporting || mealsQuery.isLoading} onClick={openFullscreenPreview} type="button" variant="outline">
+                <Button
+                  disabled={isExporting || mealsQuery.isLoading}
+                  onClick={openFullscreenPreview}
+                  type="button"
+                  variant="outline"
+                >
                   <Maximize2 aria-hidden="true" size={16} /> Preview
                 </Button>
-                <Button disabled={isExporting || mealsQuery.isLoading} onClick={handleDownload} type="button">
-                  <Download aria-hidden="true" size={16} /> {isExporting ? "Exporting..." : "Download"}
+                <Button
+                  disabled={isExporting || mealsQuery.isLoading}
+                  onClick={handleDownload}
+                  type="button"
+                >
+                  <Download aria-hidden="true" size={16} />{" "}
+                  {isExporting ? "Exporting..." : "Download"}
                 </Button>
               </div>
             </div>
@@ -462,13 +531,25 @@ export function MenuPrintExportModal({
             tabIndex={-1}
           >
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cream-dark bg-white px-4 py-3 sm:px-6">
-              <h3 className="font-serif text-xl font-semibold text-text">Previewing {title || "Meal Plan Menu"}</h3>
+              <h3 className="font-serif text-xl font-semibold text-text">
+                Previewing {title || "Meal Plan Menu"}
+              </h3>
               <div className="menu-export-fullscreen-actions flex flex-wrap items-center gap-2">
-                <Button disabled={isExporting || mealsQuery.isLoading} onClick={handlePrint} type="button" variant="outline">
+                <Button
+                  disabled={isExporting || mealsQuery.isLoading}
+                  onClick={handlePrint}
+                  type="button"
+                  variant="outline"
+                >
                   <Printer aria-hidden="true" size={16} /> Print
                 </Button>
-                <Button disabled={isExporting || mealsQuery.isLoading} onClick={handleDownload} type="button">
-                  <Download aria-hidden="true" size={16} /> {isExporting ? "Exporting..." : "Download"}
+                <Button
+                  disabled={isExporting || mealsQuery.isLoading}
+                  onClick={handleDownload}
+                  type="button"
+                >
+                  <Download aria-hidden="true" size={16} />{" "}
+                  {isExporting ? "Exporting..." : "Download"}
                 </Button>
                 <Button
                   disabled={isExporting}
@@ -498,7 +579,9 @@ export function MenuPrintExportModal({
         </div>
       ) : null}
       <div aria-hidden="true" className="menu-export-print-surface print-only">
-        {mealsQuery.isLoading || mealsQuery.isError ? null : <MenuPreview document={menuDocument} />}
+        {mealsQuery.isLoading || mealsQuery.isError ? null : (
+          <MenuPreview document={menuDocument} />
+        )}
       </div>
     </>,
     portalRoot

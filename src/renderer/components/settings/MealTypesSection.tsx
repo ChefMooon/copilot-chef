@@ -13,7 +13,8 @@ import {
   type MealTypeDefinitionPayload,
   type MealTypeProfilePayload,
 } from "@/lib/api";
-import { getCachedConfig, isServerConfigReady } from "@/lib/config";
+import { isServerConfigReady } from "@/lib/config";
+import { useServerConfig } from "@/lib/use-server-config";
 import type {
   CreateMealTypeProfileInput,
   UpdateMealTypeProfileInput,
@@ -110,7 +111,8 @@ function buildProfileMealTypeDrafts(
 }
 
 export function MealTypesSection() {
-  const apiReady = isServerConfigReady(getCachedConfig());
+  const config = useServerConfig();
+  const apiReady = isServerConfigReady(config);
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isProfileFormOpen, setIsProfileFormOpen] = useState(false);

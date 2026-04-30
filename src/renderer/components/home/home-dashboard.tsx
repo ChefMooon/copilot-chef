@@ -4,7 +4,8 @@ import { Link } from "react-router";
 
 import { useChatPageContext } from "@/context/chat-context";
 import { fetchJson } from "@/lib/api";
-import { getCachedConfig, isServerConfigReady } from "@/lib/config";
+import { isServerConfigReady } from "@/lib/config";
+import { useServerConfig } from "@/lib/use-server-config";
 import { getPlatform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 
@@ -96,8 +97,9 @@ function normalizeBoolean(input: unknown, fallback: boolean) {
 function formatMealType(mealType: string) {
   return mealType
     .replace(/_/g, " ")
-    .replace(/\w\S*/g, (value) =>
-      value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
+    .replace(
+      /\w\S*/g,
+      (value) => value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
     );
 }
 
@@ -136,7 +138,8 @@ function getGreeting() {
 }
 
 export function HomeDashboard() {
-  const apiReady = isServerConfigReady(getCachedConfig());
+  const config = useServerConfig();
+  const apiReady = isServerConfigReady(config);
   const [settings, setSettings] = useState<HomeDashboardSettings>(
     HOME_SETTINGS_DEFAULTS
   );
@@ -296,7 +299,8 @@ export function HomeDashboard() {
 
   const visibleOverviewCount =
     Number(settings.showMealActivity) + Number(settings.showGroceryList);
-  const hasOverviewContent = settings.showUpcomingMeals || visibleOverviewCount > 0;
+  const hasOverviewContent =
+    settings.showUpcomingMeals || visibleOverviewCount > 0;
 
   useChatPageContext({
     page: "home",
@@ -323,7 +327,9 @@ export function HomeDashboard() {
 
       {hasOverviewContent ? (
         <>
-          <div className={cn(styles.sectionDivider, styles.fadeIn)}>Overview</div>
+          <div className={cn(styles.sectionDivider, styles.fadeIn)}>
+            Overview
+          </div>
           <section className={cn(styles.overviewStack, styles.fadeIn)}>
             {settings.showUpcomingMeals ? (
               <div
@@ -341,7 +347,9 @@ export function HomeDashboard() {
                 </div>
 
                 {upcomingMealsQuery.isLoading ? (
-                  <p className={styles.upcomingEmptyMessage}>Loading upcoming meals...</p>
+                  <p className={styles.upcomingEmptyMessage}>
+                    Loading upcoming meals...
+                  </p>
                 ) : upcomingMeals.length === 0 ? (
                   <p className={styles.upcomingEmptyMessage}>
                     No upcoming meals are planned.
@@ -360,14 +368,22 @@ export function HomeDashboard() {
 
                       return (
                         <div className={styles.upcomingGroup} key={dateKey}>
-                          <div className={styles.upcomingGroupTitle}>{label}</div>
+                          <div className={styles.upcomingGroupTitle}>
+                            {label}
+                          </div>
                           {groupedUpcomingMeals[dateKey].map((meal) => (
-                            <div className={styles.upcomingMealRow} key={meal.id}>
+                            <div
+                              className={styles.upcomingMealRow}
+                              key={meal.id}
+                            >
                               <div>
-                                <div className={styles.upcomingMealName}>{meal.name}</div>
+                                <div className={styles.upcomingMealName}>
+                                  {meal.name}
+                                </div>
                                 <div className={styles.upcomingMeta}>
                                   {formatMealType(meal.mealType)}
-                                  {settings.upcomingDetail === "detailed" && meal.cuisine
+                                  {settings.upcomingDetail === "detailed" &&
+                                  meal.cuisine
                                     ? ` · ${meal.cuisine}`
                                     : ""}
                                   {settings.upcomingDetail === "detailed" &&
@@ -387,20 +403,27 @@ export function HomeDashboard() {
                     {upcomingMeals.map((meal) => (
                       <div className={styles.upcomingMealRow} key={meal.id}>
                         <div>
-                          <div className={styles.upcomingMealName}>{meal.name}</div>
+                          <div className={styles.upcomingMealName}>
+                            {meal.name}
+                          </div>
                           <div className={styles.upcomingMeta}>
                             {meal.date
-                              ? new Date(meal.date).toLocaleDateString("en-US", {
-                                  weekday: "short",
-                                  month: "short",
-                                  day: "numeric",
-                                })
+                              ? new Date(meal.date).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    weekday: "short",
+                                    month: "short",
+                                    day: "numeric",
+                                  }
+                                )
                               : "Unscheduled"}
                             {` · ${formatMealType(meal.mealType)}`}
-                            {settings.upcomingDetail === "detailed" && meal.cuisine
+                            {settings.upcomingDetail === "detailed" &&
+                            meal.cuisine
                               ? ` · ${meal.cuisine}`
                               : ""}
-                            {settings.upcomingDetail === "detailed" && meal.linkedRecipe?.title
+                            {settings.upcomingDetail === "detailed" &&
+                            meal.linkedRecipe?.title
                               ? ` · ${meal.linkedRecipe.title}`
                               : ""}
                           </div>
@@ -439,25 +462,26 @@ export function HomeDashboard() {
                       </div>
 
                       <div className={styles.heatmapGrid}>
-                        {["M", "", "W", "", "F", "", ""].map((label, dayIndex) => (
-                          <div
-                            className={styles.dayLabel}
-                            key={`label-${dayIndex}`}
-                            style={{ gridColumn: 1, gridRow: dayIndex + 1 }}
-                          >
-                            {label}
-                          </div>
-                        ))}
+                        {["M", "", "W", "", "F", "", ""].map(
+                          (label, dayIndex) => (
+                            <div
+                              className={styles.dayLabel}
+                              key={`label-${dayIndex}`}
+                              style={{ gridColumn: 1, gridRow: dayIndex + 1 }}
+                            >
+                              {label}
+                            </div>
+                          )
+                        )}
 
                         {heatmap.map((week, weekIndex) =>
                           week.map((cell, dayIndex) => {
-                            const dateLabel = new Date(cell.date).toLocaleDateString(
-                              "en-US",
-                              {
-                                month: "short",
-                                day: "numeric",
-                              }
-                            );
+                            const dateLabel = new Date(
+                              cell.date
+                            ).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            });
 
                             return (
                               <button
@@ -476,7 +500,10 @@ export function HomeDashboard() {
                                 style={{
                                   gridColumn: weekIndex + 2,
                                   gridRow: dayIndex + 1,
-                                  background: getHeatColor(cell.meals, cell.isFuture),
+                                  background: getHeatColor(
+                                    cell.meals,
+                                    cell.isFuture
+                                  ),
                                 }}
                                 type="button"
                               />
@@ -487,13 +514,15 @@ export function HomeDashboard() {
 
                       <div className={styles.heatmapLegend}>
                         <span className={styles.legendLabel}>Less</span>
-                        {["#E4DDD0", "#A8C8B0", "#6FA882", "#3B5E45"].map((color) => (
-                          <div
-                            className={styles.legendSquare}
-                            key={color}
-                            style={{ background: color }}
-                          />
-                        ))}
+                        {["#E4DDD0", "#A8C8B0", "#6FA882", "#3B5E45"].map(
+                          (color) => (
+                            <div
+                              className={styles.legendSquare}
+                              key={color}
+                              style={{ background: color }}
+                            />
+                          )
+                        )}
                         <span className={styles.legendLabel}>More</span>
                       </div>
                     </div>
@@ -532,15 +561,22 @@ export function HomeDashboard() {
                             <span className={styles.groceryStatBig}>
                               {groceryList?.checkedCount ?? 0}
                             </span>
-                            <span className={styles.groceryStatLabel}> collected</span>
+                            <span className={styles.groceryStatLabel}>
+                              {" "}
+                              collected
+                            </span>
                           </div>
                           <div>
                             <span className={styles.groceryStatBig}>
                               {groceryList
-                                ? groceryList.totalItems - groceryList.checkedCount
+                                ? groceryList.totalItems -
+                                  groceryList.checkedCount
                                 : 0}
                             </span>
-                            <span className={styles.groceryStatLabel}> remaining</span>
+                            <span className={styles.groceryStatLabel}>
+                              {" "}
+                              remaining
+                            </span>
                           </div>
                         </div>
                         <div className={styles.groceryBar}>
