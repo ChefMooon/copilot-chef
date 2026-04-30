@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Download, Printer, X } from "lucide-react";
+import { Download, Maximize2, Printer, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
@@ -134,8 +134,10 @@ export function MenuPrintExportModal({
   const [includeEmptyDays, setIncludeEmptyDays] = useState(true);
   const [title, setTitle] = useState("Meal Plan Menu");
   const [isExporting, setIsExporting] = useState(false);
+  const [isFullscreenPreview, setIsFullscreenPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const fullscreenPanelRef = useRef<HTMLDivElement | null>(null);
 
   const fromIso = useMemo(() => toRangeIso(from), [from]);
   const toIso = useMemo(() => toRangeIso(to, true), [to]);
@@ -178,15 +180,20 @@ export function MenuPrintExportModal({
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isExporting) onClose();
+      if (event.key !== "Escape" || isExporting) return;
+      if (isFullscreenPreview) {
+        setIsFullscreenPreview(false);
+        return;
+      }
+      onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isExporting, onClose]);
+  }, [isExporting, isFullscreenPreview, onClose]);
 
   useEffect(() => {
     if (!portalRoot) return;
-    const panel = panelRef.current;
+    const panel = isFullscreenPreview ? fullscreenPanelRef.current : panelRef.current;
     if (!panel) return;
     const previousFocus =
       globalThis.document.activeElement instanceof HTMLElement
@@ -225,7 +232,12 @@ export function MenuPrintExportModal({
       window.removeEventListener("keydown", tabHandler);
       previousFocus?.focus();
     };
-  }, [portalRoot]);
+  }, [isFullscreenPreview, portalRoot]);
+
+  const openFullscreenPreview = () => {
+    setError(null);
+    setIsFullscreenPreview(true);
+  };
 
   const handlePrint = () => {
     setError(null);
@@ -398,9 +410,12 @@ export function MenuPrintExportModal({
                 </p>
               ) : null}
 
-              <div className="flex flex-wrap gap-2 border-t border-cream-dark pt-4">
+              <div className="menu-export-actions flex flex-wrap gap-2 border-t border-cream-dark pt-4">
                 <Button disabled={isExporting || mealsQuery.isLoading} onClick={handlePrint} type="button" variant="outline">
                   <Printer aria-hidden="true" size={16} /> Print
+                </Button>
+                <Button disabled={isExporting || mealsQuery.isLoading} onClick={openFullscreenPreview} type="button" variant="outline">
+                  <Maximize2 aria-hidden="true" size={16} /> Preview
                 </Button>
                 <Button disabled={isExporting || mealsQuery.isLoading} onClick={handleDownload} type="button">
                   <Download aria-hidden="true" size={16} /> {isExporting ? "Exporting..." : "Download"}
@@ -424,6 +439,61 @@ export function MenuPrintExportModal({
           </div>
         </div>
       </div>
+      {isFullscreenPreview ? (
+        <div
+          className="fixed inset-0 z-[520] flex bg-black/70 backdrop-blur-[2px]"
+          onMouseDown={(event) => {
+            if (!isExporting && event.target === event.currentTarget) {
+              setIsFullscreenPreview(false);
+            }
+          }}
+          role="presentation"
+        >
+          <div
+            aria-label="Fullscreen menu preview"
+            aria-modal="true"
+            className="mx-auto flex h-full w-full max-w-[1400px] flex-col bg-cream"
+            onClick={(event) => event.stopPropagation()}
+            ref={fullscreenPanelRef}
+            role="dialog"
+            tabIndex={-1}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cream-dark bg-white px-4 py-3 sm:px-6">
+              <h3 className="font-serif text-xl font-semibold text-text">Previewing {title || "Meal Plan Menu"}</h3>
+              <div className="menu-export-fullscreen-actions flex flex-wrap items-center gap-2">
+                <Button disabled={isExporting || mealsQuery.isLoading} onClick={handlePrint} type="button" variant="outline">
+                  <Printer aria-hidden="true" size={16} /> Print
+                </Button>
+                <Button disabled={isExporting || mealsQuery.isLoading} onClick={handleDownload} type="button">
+                  <Download aria-hidden="true" size={16} /> {isExporting ? "Exporting..." : "Download"}
+                </Button>
+                <Button
+                  disabled={isExporting}
+                  onClick={() => setIsFullscreenPreview(false)}
+                  type="button"
+                  variant="outline"
+                >
+                  Exit Preview
+                </Button>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
+              {mealsQuery.isLoading ? (
+                <div className="rounded-card border border-cream-dark bg-white p-6 text-sm text-text-muted">
+                  Loading menu preview...
+                </div>
+              ) : mealsQuery.isError ? (
+                <div className="rounded-card border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+                  Unable to load menu preview.
+                </div>
+              ) : (
+                <MenuPreview document={menuDocument} />
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
       <div aria-hidden="true" className="menu-export-print-surface print-only">
         {mealsQuery.isLoading || mealsQuery.isError ? null : <MenuPreview document={menuDocument} />}
       </div>

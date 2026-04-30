@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MenuPrintExportModal } from "./MenuPrintExportModal";
@@ -98,6 +98,20 @@ describe("MenuPrintExportModal", () => {
     expect(window.print).toHaveBeenCalled();
   });
 
+  it("shows Preview between Print and Download actions", async () => {
+    renderModal();
+
+    await waitForMenuPreview();
+
+    const actionRow = document.querySelector(".menu-export-actions");
+    expect(actionRow).toBeTruthy();
+    const labels = Array.from(actionRow?.querySelectorAll("button") ?? []).map((button) =>
+      button.textContent?.replace(/\s+/g, " ").trim()
+    );
+
+    expect(labels).toEqual(["Print", "Preview", "Download"]);
+  });
+
   it("renders a separate print-only menu surface", async () => {
     renderModal();
 
@@ -168,6 +182,62 @@ describe("MenuPrintExportModal", () => {
     });
     expect(window.print).not.toHaveBeenCalled();
     expect(apiMocks.exportMenu).not.toHaveBeenCalled();
+  });
+
+  it("opens and closes fullscreen preview", async () => {
+    renderModal();
+
+    await waitForMenuPreview();
+    fireEvent.click(screen.getByRole("button", { name: /^preview$/i }));
+
+    const fullscreenDialog = screen.getByRole("dialog", { name: /fullscreen menu preview/i });
+    expect(fullscreenDialog).toBeTruthy();
+    expect(screen.getByRole("button", { name: /exit preview/i })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /exit preview/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: /fullscreen menu preview/i })).toBeNull();
+    });
+  });
+
+  it("can print and download from fullscreen preview", async () => {
+    renderModal();
+
+    fireEvent.change(await screen.findByLabelText(/download format/i), {
+      target: { value: "markdown" },
+    });
+    await waitForMenuPreview();
+
+    fireEvent.click(screen.getByRole("button", { name: /^preview$/i }));
+    const fullscreenDialog = screen.getByRole("dialog", { name: /fullscreen menu preview/i });
+    fireEvent.click(within(fullscreenDialog).getByRole("button", { name: /^print$/i }));
+    fireEvent.click(within(fullscreenDialog).getByRole("button", { name: /^download$/i }));
+
+    expect(window.print).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(apiMocks.exportMenu).toHaveBeenCalledWith(
+        expect.objectContaining({
+          format: "markdown",
+        })
+      );
+    });
+  });
+
+  it("uses Escape to exit fullscreen preview before closing the modal", async () => {
+    const onClose = renderModal();
+
+    await waitForMenuPreview();
+    fireEvent.click(screen.getByRole("button", { name: /^preview$/i }));
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: /fullscreen menu preview/i })).toBeNull();
+    });
+    expect(onClose).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onClose).toHaveBeenCalled();
   });
 
   it("closes on Escape", async () => {
