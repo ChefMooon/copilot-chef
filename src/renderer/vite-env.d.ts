@@ -3,6 +3,10 @@
 interface Window {
   api?: {
     invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
+    minimizeWindow: () => Promise<unknown>;
+    toggleMaximizeWindow: () => Promise<unknown>;
+    isWindowMaximized: () => Promise<boolean>;
+    closeWindow: () => Promise<unknown>;
     on: (channel: string, listener: (...args: unknown[]) => void) => void;
     off: (channel: string, listener: (...args: unknown[]) => void) => void;
   };

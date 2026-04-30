@@ -212,5 +212,9 @@ export function createBrowserPlatform(): RendererPlatform {
       throw new Error("Machine token management is available in the desktop app.");
     },
     clearMachineToken: async () => null,
+    minimizeWindow: async () => {},
+    toggleMaximizeWindow: async () => {},
+    isWindowMaximized: async () => false,
+    closeWindow: async () => {},
   };
 }

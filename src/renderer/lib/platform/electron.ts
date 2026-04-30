@@ -76,5 +76,17 @@ export function createElectronPlatform(): RendererPlatform {
     clearMachineToken: async () => {
       return (await api.invoke("machine-token:clear")) as LanStatus["machineToken"];
     },
+    minimizeWindow: async () => {
+      await api.minimizeWindow();
+    },
+    toggleMaximizeWindow: async () => {
+      await api.toggleMaximizeWindow();
+    },
+    isWindowMaximized: async () => {
+      return api.isWindowMaximized();
+    },
+    closeWindow: async () => {
+      await api.closeWindow();
+    },
   };
 }

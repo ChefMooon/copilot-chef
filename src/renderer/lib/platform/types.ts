@@ -74,4 +74,8 @@ export type RendererPlatform = {
   generateMachineToken: () => Promise<MachineTokenResult>;
   rotateMachineToken: () => Promise<MachineTokenResult>;
   clearMachineToken: () => Promise<LanStatus["machineToken"] | null>;
+  minimizeWindow?: () => Promise<void>;
+  toggleMaximizeWindow?: () => Promise<void>;
+  isWindowMaximized?: () => Promise<boolean>;
+  closeWindow?: () => Promise<void>;
 };

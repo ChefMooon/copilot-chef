@@ -93,6 +93,32 @@ export function registerIpcHandlers(): void {
     return app.getVersion();
   });
 
+  // ── Window controls ─────────────────────────────────────
+  ipcMain.handle("window:minimize", () => {
+    const win = BrowserWindow.getFocusedWindow();
+    win?.minimize();
+  });
+
+  ipcMain.handle("window:toggleMaximize", () => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (!win) return;
+    if (win.isMaximized()) {
+      win.unmaximize();
+      return;
+    }
+    win.maximize();
+  });
+
+  ipcMain.handle("window:isMaximized", () => {
+    const win = BrowserWindow.getFocusedWindow();
+    return win?.isMaximized() ?? false;
+  });
+
+  ipcMain.handle("window:close", () => {
+    const win = BrowserWindow.getFocusedWindow();
+    win?.close();
+  });
+
   // ── Settings ─────────────────────────────────────────────
   ipcMain.handle("app:settings:get", (_event, key: string) => {
     return getSetting(key);

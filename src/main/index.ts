@@ -34,6 +34,8 @@ function createWindow(): BrowserWindow {
     process.platform === "win32" ? "icon.ico" : "icon.png"
   );
 
+  const isMac = process.platform === "darwin";
+
   const win = new BrowserWindow({
     width: DEFAULT_WINDOW_WIDTH,
     height: DEFAULT_WINDOW_HEIGHT,
@@ -42,6 +44,8 @@ function createWindow(): BrowserWindow {
     show: false,
     title: "Copilot Chef",
     icon: windowIconPath,
+    frame: isMac,
+    titleBarStyle: isMac ? "hiddenInset" : undefined,
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       contextIsolation: true,
