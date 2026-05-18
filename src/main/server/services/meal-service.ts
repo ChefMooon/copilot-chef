@@ -31,6 +31,12 @@ type LinkedRecipeRow = {
 
 type MealIngredientInput = MealIngredient | string;
 
+type SlotGroupRow = {
+  date: Date;
+  mealType: string;
+  dishCount: number;
+};
+
 function toMealIngredient(
   ingredient: MealIngredientInput,
   order: number
@@ -188,11 +194,18 @@ function countStreak(counts: Map<string, number>, today: Date) {
   return streak;
 }
 
+function toWeekKey(date: Date) {
+  const year = date.getFullYear();
+  const weekNum = getISOWeek(date);
+  return `${year}-W${String(weekNum).padStart(2, "0")}`;
+}
+
 function serializeMeal(meal: {
   id: string;
   name: string;
   date: Date | null;
   mealType: string;
+  sortOrder?: number;
   mealTypeDefinitionId?: string | null;
   mealTypeDefinition?: {
     id: string;
@@ -267,6 +280,7 @@ function serializeMeal(meal: {
     name: meal.name,
     date: serializedDate,
     mealType: meal.mealType,
+    sortOrder: meal.sortOrder ?? 0,
     mealTypeDefinitionId: meal.mealTypeDefinitionId ?? null,
     mealTypeDefinition: serializeMealTypeDefinition(meal.mealTypeDefinition),
     notes: meal.notes,
@@ -319,6 +333,29 @@ export class MealService {
       },
     },
   };
+
+  private async groupBySlot(where?: Parameters<typeof prisma.meal.groupBy>[0]["where"]) {
+    const groups = await prisma.meal.groupBy({
+      by: ["date", "mealType"],
+      where: {
+        date: { not: null },
+        ...(where ?? {}),
+      },
+      _count: { id: true },
+      orderBy: [{ date: "asc" }, { mealType: "asc" }],
+    });
+
+    return groups
+      .filter((group): group is typeof group & { date: Date } => group.date !== null)
+      .map(
+        (group) =>
+          ({
+            date: group.date,
+            mealType: group.mealType,
+            dishCount: group._count.id,
+          }) satisfies SlotGroupRow
+      );
+  }
 
   private async resolveMealTypeInput(input: {
     mealType?: string;
@@ -383,6 +420,211 @@ export class MealService {
     return recipe?.cuisine ?? null;
   }
 
+  private async getNextSortOrder(
+    tx: Omit<
+      typeof prisma,
+      "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+    >,
+    date: Date | null,
+    mealType: string
+  ) {
+    if (!date) {
+      return 10;
+    }
+
+    const current = await tx.meal.aggregate({
+      where: { date, mealType },
+      _max: { sortOrder: true },
+    });
+
+    return (current._max.sortOrder ?? 0) + 10;
+  }
+
+  async reorderSlotMeals(slotDate: string, slotMealType: string, orderedIds: string[]) {
+    await bootstrapDatabase();
+
+    if (orderedIds.length === 0) {
+      throw new Error("At least one meal is required to reorder a slot.");
+    }
+
+    const normalizedDate = normalizeMealDateInput(slotDate);
+    if (!normalizedDate) {
+      throw new Error("Reordering requires a scheduled meal date.");
+    }
+
+    const normalizedMealType = normalizeMealType(slotMealType);
+
+    return prisma.$transaction(async (tx) => {
+      const slotMeals = await tx.meal.findMany({
+        where: {
+          date: normalizedDate,
+          mealType: normalizedMealType,
+        },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        include: this.mealInclude,
+      });
+
+      if (slotMeals.length !== orderedIds.length) {
+        throw new Error("Reorder payload must include every meal in the slot exactly once.");
+      }
+
+      const slotIds = new Set(slotMeals.map((meal) => meal.id));
+      const orderedIdSet = new Set(orderedIds);
+
+      if (orderedIdSet.size !== orderedIds.length) {
+        throw new Error("Reorder payload contains duplicate meal ids.");
+      }
+
+      for (const id of orderedIds) {
+        if (!slotIds.has(id)) {
+          throw new Error("Reorder payload contains a meal outside the target slot.");
+        }
+      }
+
+      for (let index = 0; index < orderedIds.length; index += 1) {
+        await tx.meal.update({
+          where: { id: orderedIds[index] },
+          data: { sortOrder: (index + 1) * 10 },
+        });
+      }
+
+      const updatedMeals = await tx.meal.findMany({
+        where: {
+          date: normalizedDate,
+          mealType: normalizedMealType,
+        },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        include: this.mealInclude,
+      });
+
+      return updatedMeals.map(serializeMeal);
+    });
+  }
+
+  async applySlotBatchAction(input: {
+    action: "move" | "swap";
+    sourceDate: string;
+    sourceMealType: string;
+    sourceMealTypeDefinitionId?: string | null;
+    targetDate: string;
+    targetMealType: string;
+    targetMealTypeDefinitionId?: string | null;
+  }) {
+    await bootstrapDatabase();
+
+    const sourceDate = normalizeMealDateInput(input.sourceDate);
+    const targetDate = normalizeMealDateInput(input.targetDate);
+
+    if (!sourceDate || !targetDate) {
+      throw new Error("Slot batch actions require valid source and target dates.");
+    }
+
+    const sourceMealType = normalizeMealType(input.sourceMealType);
+    const targetMealType = normalizeMealType(input.targetMealType);
+
+    const sameSlot =
+      sourceMealType === targetMealType &&
+      sourceDate.getTime() === targetDate.getTime();
+
+    if (sameSlot) {
+      return {
+        action: input.action,
+        sourceMeals: [] as MealPayload[],
+        targetMeals: [] as MealPayload[],
+        movedCount: 0,
+      };
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const sourceMeals = await tx.meal.findMany({
+        where: {
+          date: sourceDate,
+          mealType: sourceMealType,
+        },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        include: this.mealInclude,
+      });
+
+      if (sourceMeals.length === 0) {
+        throw new Error("Source slot has no meals to move.");
+      }
+
+      const targetMeals = await tx.meal.findMany({
+        where: {
+          date: targetDate,
+          mealType: targetMealType,
+        },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        include: this.mealInclude,
+      });
+
+      if (input.action === "move") {
+        for (let index = 0; index < sourceMeals.length; index += 1) {
+          await tx.meal.update({
+            where: { id: sourceMeals[index].id },
+            data: {
+              date: targetDate,
+              mealType: targetMealType,
+              mealTypeDefinitionId: input.targetMealTypeDefinitionId ?? null,
+              sortOrder: (targetMeals.length + index + 1) * 10,
+            },
+          });
+        }
+      }
+
+      if (input.action === "swap") {
+        for (let index = 0; index < sourceMeals.length; index += 1) {
+          await tx.meal.update({
+            where: { id: sourceMeals[index].id },
+            data: {
+              date: targetDate,
+              mealType: targetMealType,
+              mealTypeDefinitionId: input.targetMealTypeDefinitionId ?? null,
+              sortOrder: (index + 1) * 10,
+            },
+          });
+        }
+
+        for (let index = 0; index < targetMeals.length; index += 1) {
+          await tx.meal.update({
+            where: { id: targetMeals[index].id },
+            data: {
+              date: sourceDate,
+              mealType: sourceMealType,
+              mealTypeDefinitionId: input.sourceMealTypeDefinitionId ?? null,
+              sortOrder: (index + 1) * 10,
+            },
+          });
+        }
+      }
+
+      const nextSourceMeals = await tx.meal.findMany({
+        where: {
+          date: sourceDate,
+          mealType: sourceMealType,
+        },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        include: this.mealInclude,
+      });
+
+      const nextTargetMeals = await tx.meal.findMany({
+        where: {
+          date: targetDate,
+          mealType: targetMealType,
+        },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        include: this.mealInclude,
+      });
+
+      return {
+        action: input.action,
+        sourceMeals: nextSourceMeals.map(serializeMeal),
+        targetMeals: nextTargetMeals.map(serializeMeal),
+        movedCount: sourceMeals.length,
+      };
+    });
+  }
+
   async getMeal(id: string) {
     await bootstrapDatabase();
 
@@ -406,7 +648,7 @@ export class MealService {
           lte: end,
         },
       },
-      orderBy: [{ date: "asc" }, { mealType: "asc" }],
+      orderBy: [{ date: "asc" }, { mealType: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
       include: this.mealInclude,
     });
 
@@ -418,6 +660,7 @@ export class MealService {
     name: string;
     date?: string | null;
     mealType: string;
+    sortOrder?: number;
     mealTypeDefinitionId?: string | null;
     notes?: string | null;
     ingredients?: MealIngredientInput[];
@@ -442,24 +685,33 @@ export class MealService {
       recipeId: input.recipeId,
     });
 
-    const meal = await prisma.meal.create({
-      data: {
-        ...(input.id ? { id: input.id } : {}),
-        name: input.name,
-        ...(normalizedDate === undefined ? {} : { date: normalizedDate }),
-        ...mealTypeFields,
-        notes: input.notes ?? null,
-        ingredientsJson: stringifyMealIngredients(input.ingredients),
-        description: input.description ?? null,
-        cuisine: cuisine ?? null,
-        instructionsJson: JSON.stringify(input.instructions ?? []),
-        servings: input.servings ?? 2,
-        prepTime: input.prepTime ?? null,
-        cookTime: input.cookTime ?? null,
-        servingsOverride: input.servingsOverride ?? null,
-        ...(input.recipeId !== undefined ? { recipeId: input.recipeId } : {}),
-      },
-      include: this.mealInclude,
+    const mealType = mealTypeFields.mealType ?? normalizeMealType(input.mealType);
+
+    const meal = await prisma.$transaction(async (tx) => {
+      const sortOrder =
+        input.sortOrder ??
+        (await this.getNextSortOrder(tx, normalizedDate === undefined ? null : normalizedDate, mealType));
+
+      return tx.meal.create({
+        data: {
+          ...(input.id ? { id: input.id } : {}),
+          name: input.name,
+          ...(normalizedDate === undefined ? {} : { date: normalizedDate }),
+          ...mealTypeFields,
+          sortOrder,
+          notes: input.notes ?? null,
+          ingredientsJson: stringifyMealIngredients(input.ingredients),
+          description: input.description ?? null,
+          cuisine: cuisine ?? null,
+          instructionsJson: JSON.stringify(input.instructions ?? []),
+          servings: input.servings ?? 2,
+          prepTime: input.prepTime ?? null,
+          cookTime: input.cookTime ?? null,
+          servingsOverride: input.servingsOverride ?? null,
+          ...(input.recipeId !== undefined ? { recipeId: input.recipeId } : {}),
+        },
+        include: this.mealInclude,
+      });
     });
 
     return serializeMeal(meal);
@@ -471,6 +723,7 @@ export class MealService {
       name?: string;
       date?: string | null;
       mealType?: string;
+      sortOrder?: number;
       mealTypeDefinitionId?: string | null;
       notes?: string | null;
       ingredients?: MealIngredientInput[];
@@ -502,6 +755,7 @@ export class MealService {
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(normalizedDate !== undefined ? { date: normalizedDate } : {}),
         ...mealTypeFields,
+        ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
         ...(input.ingredients !== undefined
           ? { ingredientsJson: stringifyMealIngredients(input.ingredients) }
@@ -562,21 +816,21 @@ export class MealService {
     const start = new Date(from);
     const end = new Date(to);
 
-    return prisma.meal.count({
-      where: {
-        date: {
-          gte: start,
-          lte: end,
-        },
+    const slotGroups = await this.groupBySlot({
+      date: {
+        gte: start,
+        lte: end,
       },
     });
+
+    return slotGroups.length;
   }
 
   async listAllMeals() {
     await bootstrapDatabase();
 
     const meals = await prisma.meal.findMany({
-      orderBy: [{ date: "asc" }, { mealType: "asc" }],
+      orderBy: [{ date: "asc" }, { mealType: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
       include: this.mealInclude,
     });
 
@@ -589,25 +843,16 @@ export class MealService {
     const today = startOfDay(new Date());
     const start = startOfWeek(addDays(today, -(weeks * 7) + 1));
 
-    const meals = await prisma.meal.findMany({
-      where: {
-        date: {
-          gte: start,
-          lte: today,
-        },
-      },
-      select: {
-        date: true,
+    const slotGroups = await this.groupBySlot({
+      date: {
+        gte: start,
+        lte: today,
       },
     });
 
     const counts = new Map<string, number>();
-    meals.forEach((meal) => {
-      if (!meal.date) {
-        return;
-      }
-
-      const key = formatDayKey(meal.date);
+    slotGroups.forEach((slot) => {
+      const key = formatDayKey(slot.date);
       counts.set(key, (counts.get(key) ?? 0) + 1);
     });
 
@@ -625,10 +870,11 @@ export class MealService {
       });
     });
 
-    const totalMeals = Array.from(counts.values()).reduce(
+    const totalSlots = Array.from(counts.values()).reduce(
       (sum, value) => sum + value,
       0
     );
+    const totalDishes = slotGroups.reduce((sum, slot) => sum + slot.dishCount, 0);
     const activeDays = Array.from(counts.values()).filter(
       (value) => value > 0
     ).length;
@@ -636,7 +882,8 @@ export class MealService {
     return {
       weeks: data,
       monthStarts: getMonthStarts(data),
-      totalMeals,
+      totalSlots,
+      totalDishes,
       activeDays,
       streak: countStreak(counts, today),
     };
@@ -645,16 +892,18 @@ export class MealService {
   async getMealTypeBreakdown() {
     await bootstrapDatabase();
 
-    const groups = await prisma.meal.groupBy({
-      by: ["mealType"],
-      _count: { _all: true },
+    const slotGroups = await this.groupBySlot();
+    const counts = new Map<string, number>();
+
+    slotGroups.forEach((group) => {
+      counts.set(group.mealType, (counts.get(group.mealType) ?? 0) + 1);
     });
 
-    return groups
-      .sort((a, b) => b._count._all - a._count._all)
-      .map((group) => ({
-        mealType: group.mealType.toLowerCase().replace(/_/g, " "),
-        count: group._count._all,
+    return Array.from(counts.entries())
+      .sort((left, right) => right[1] - left[1])
+      .map(([mealType, slotCount]) => ({
+        mealType: mealType.toLowerCase().replace(/_/g, " "),
+        slotCount,
       }));
   }
 
@@ -693,30 +942,20 @@ export class MealService {
     const today = startOfDay(new Date());
     const start = addDays(today, -(weeks * 7));
 
-    const meals = await prisma.meal.findMany({
-      where: { date: { gte: start, lte: today } },
-      select: { date: true },
+    const slotGroups = await this.groupBySlot({
+      date: { gte: start, lte: today },
     });
 
     const weekCounts = new Map<string, number>();
-    for (const meal of meals) {
-      if (!meal.date) {
-        continue;
-      }
-
-      const d = new Date(meal.date);
-      const year = d.getFullYear();
-      const weekNum = getISOWeek(d);
-      const key = `${year}-W${String(weekNum).padStart(2, "0")}`;
+    for (const slot of slotGroups) {
+      const key = toWeekKey(new Date(slot.date));
       weekCounts.set(key, (weekCounts.get(key) ?? 0) + 1);
     }
 
     const result: { weekLabel: string; meals: number }[] = [];
     for (let i = 0; i < weeks; i++) {
       const weekStart = startOfWeek(addDays(today, -(weeks - 1 - i) * 7));
-      const year = weekStart.getFullYear();
-      const weekNum = getISOWeek(weekStart);
-      const key = `${year}-W${String(weekNum).padStart(2, "0")}`;
+      const key = toWeekKey(weekStart);
       const label = weekStart.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
@@ -730,19 +969,13 @@ export class MealService {
   async getDayOfWeekBreakdown() {
     await bootstrapDatabase();
 
-    const meals = await prisma.meal.findMany({
-      select: { date: true },
-    });
+    const slotGroups = await this.groupBySlot();
 
     const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const counts = new Array(7).fill(0) as number[];
 
-    for (const meal of meals) {
-      if (!meal.date) {
-        continue;
-      }
-
-      const dayIndex = new Date(meal.date).getDay();
+    for (const slot of slotGroups) {
+      const dayIndex = new Date(slot.date).getDay();
       counts[dayIndex]++;
     }
 
@@ -756,23 +989,27 @@ export class MealService {
     const today = startOfDay(new Date());
     const start = addDays(today, -days);
 
-    const meals = await prisma.meal.findMany({
-      where: { date: { gte: start, lte: today } },
-      select: { date: true },
+    const slotGroups = await this.groupBySlot({
+      date: { gte: start, lte: today },
     });
 
-    const totalMeals = meals.length;
+    const totalSlots = slotGroups.length;
+    const totalDishes = slotGroups.reduce((sum, slot) => sum + slot.dishCount, 0);
     const activeDays = new Set(
-      meals
-        .filter((meal) => meal.date)
-        .map((meal) => formatDayKey(meal.date as Date))
+      slotGroups.map((slot) => formatDayKey(slot.date))
     ).size;
+    const multiCourseSlots = slotGroups.filter((slot) => slot.dishCount > 1).length;
 
     return {
-      totalMeals,
+      totalSlots,
+      totalDishes,
       activeDays,
-      avgMealsPerActiveDay:
-        activeDays > 0 ? Number((totalMeals / activeDays).toFixed(1)) : 0,
+      avgSlotsPerActiveDay:
+        activeDays > 0 ? Number((totalSlots / activeDays).toFixed(1)) : 0,
+      avgDishesPerSlot:
+        totalSlots > 0 ? Number((totalDishes / totalSlots).toFixed(1)) : 0,
+      multiCourseRate:
+        totalSlots > 0 ? Number((multiCourseSlots / totalSlots).toFixed(2)) : 0,
     };
   }
 

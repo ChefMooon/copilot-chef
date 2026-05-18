@@ -185,8 +185,7 @@ describe("profile-aware meal plan views", () => {
         mealTypeProfiles={[defaultProfile, weekendProfile]}
         setDate={vi.fn()}
         onEdit={vi.fn()}
-        onMoveMeal={vi.fn().mockResolvedValue(undefined)}
-        onSwapMeals={vi.fn().mockResolvedValue(undefined)}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
       />
     );
 
@@ -301,8 +300,7 @@ describe("profile-aware meal plan views", () => {
         mealTypeProfiles={[filteredProfile]}
         setDate={vi.fn()}
         onEdit={vi.fn()}
-        onMoveMeal={vi.fn().mockResolvedValue(undefined)}
-        onSwapMeals={vi.fn().mockResolvedValue(undefined)}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
       />
     );
 
@@ -317,8 +315,7 @@ describe("profile-aware meal plan views", () => {
         mealTypeProfiles={[filteredProfile]}
         setDate={vi.fn()}
         onEdit={vi.fn()}
-        onMoveMeal={vi.fn().mockResolvedValue(undefined)}
-        onSwapMeals={vi.fn().mockResolvedValue(undefined)}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
       />
     );
 
@@ -336,8 +333,7 @@ describe("profile-aware meal plan views", () => {
         mealTypeProfiles={[defaultProfile, weekendProfile]}
         setDate={vi.fn()}
         onEdit={onEdit}
-        onMoveMeal={vi.fn().mockResolvedValue(undefined)}
-        onSwapMeals={vi.fn().mockResolvedValue(undefined)}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
       />
     );
 
@@ -354,6 +350,30 @@ describe("profile-aware meal plan views", () => {
     expect(payload.date.getDate()).toBe(13);
   });
 
+  it("uses the full + Add button for week slots with a single meal", () => {
+    render(
+      <WeekView
+        date={new Date("2026-04-17T12:00:00")}
+        meals={[
+          {
+            id: "single-breakfast",
+            date: new Date("2026-04-13T08:00:00"),
+            type: "breakfast",
+            name: "Avocado Toast",
+            mealTypeDefinitionId: "default-breakfast",
+          },
+        ]}
+        mealTypeProfiles={[defaultProfile, weekendProfile]}
+        setDate={vi.fn()}
+        onEdit={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getAllByRole("button", { name: "+ Add" }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Add breakfast meal" })).toBeNull();
+  });
+
   it("dims the day view when the focused profile is not active on the selected date", () => {
     const { container } = render(
       <DayView
@@ -363,8 +383,7 @@ describe("profile-aware meal plan views", () => {
         mealTypeProfiles={[defaultProfile, weekendProfile]}
         setDate={vi.fn()}
         onEdit={vi.fn()}
-        onMoveMeal={vi.fn().mockResolvedValue(undefined)}
-        onSwapMeals={vi.fn().mockResolvedValue(undefined)}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
       />
     );
 
@@ -382,8 +401,7 @@ describe("profile-aware meal plan views", () => {
         mealTypeProfiles={[filteredProfile]}
         setDate={vi.fn()}
         onEdit={vi.fn()}
-        onMoveMeal={vi.fn().mockResolvedValue(undefined)}
-        onSwapMeals={vi.fn().mockResolvedValue(undefined)}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
       />
     );
 
@@ -399,8 +417,7 @@ describe("profile-aware meal plan views", () => {
         mealTypeProfiles={[filteredProfile]}
         setDate={vi.fn()}
         onEdit={vi.fn()}
-        onMoveMeal={vi.fn().mockResolvedValue(undefined)}
-        onSwapMeals={vi.fn().mockResolvedValue(undefined)}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
       />
     );
 

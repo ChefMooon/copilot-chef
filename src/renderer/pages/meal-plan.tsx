@@ -3,9 +3,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { DayView } from "@/components/meal-plan/DayView";
 import { DeleteConfirmationModal } from "@/components/meal-plan/DeleteConfirmationModal";
+import { DropIntentPopover } from "@/components/meal-plan/DropIntentPopover";
 import { EditModal } from "@/components/meal-plan/EditModal";
 import { MenuPrintExportModal } from "@/components/meal-plan/MenuPrintExportModal";
 import { MonthView } from "@/components/meal-plan/MonthView";
+import { SlotManagerModal } from "@/components/meal-plan/SlotManagerModal";
 import { TrashDropZone } from "@/components/meal-plan/TrashDropZone";
 import { WeekView } from "@/components/meal-plan/WeekView";
 import { AddRecipeModal } from "@/components/recipes/AddRecipeModal";
@@ -29,6 +31,9 @@ import {
   getMealTypeProfileContexts,
   getMealTypeDefinitionsForDate,
   getTypeConfig,
+  type MealPlanDropAnchor,
+  type MealPlanDropTarget,
+  type MealPlanDragPayload,
   MONTHS,
   normalizeMealDate,
   toEditableMeal,
@@ -38,7 +43,12 @@ import {
   type EditableMeal,
 } from "@/lib/calendar";
 
-import { createRecipe, fetchJson } from "@/lib/api";
+import {
+  applySlotBatchAction,
+  createRecipe,
+  fetchJson,
+  reorderSlotMeals as reorderSlotMealsApi,
+} from "@/lib/api";
 import { getCachedConfig, isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
 import { useChatPageContext } from "@/context/chat-context";
@@ -50,11 +60,25 @@ import type { CreateRecipeInput, RecipeConflict } from "@shared/types";
 
 type CalView = "day" | "week" | "month";
 
+type SlotManagerState = {
+  date: Date;
+  type: CalendarMealType;
+};
+
+type DropIntentAction = "insert" | "swap";
+
+type PendingDropIntent = {
+  payload: MealPlanDragPayload;
+  target: MealPlanDropTarget;
+  anchor: MealPlanDropAnchor;
+};
+
 type DeletedMealSnapshot = Pick<
   EditableMeal,
   | "name"
   | "date"
   | "type"
+  | "sortOrder"
   | "mealTypeDefinitionId"
   | "notes"
   | "ingredients"
@@ -73,6 +97,7 @@ function toDeletedMealSnapshot(meal: EditableMeal): DeletedMealSnapshot {
     name: meal.name,
     date: meal.date,
     type: meal.type,
+    sortOrder: meal.sortOrder,
     mealTypeDefinitionId: meal.mealTypeDefinitionId,
     notes: meal.notes,
     ingredients: [...meal.ingredients],
@@ -147,6 +172,11 @@ export default function MealPlanPage() {
   }, []);
   const [date, setDate] = useState(() => new Date());
   const [editMeal, setEditMeal] = useState<EditableMeal | null>(null);
+  const [slotManagerState, setSlotManagerState] =
+    useState<SlotManagerState | null>(null);
+  const [pendingDropIntent, setPendingDropIntent] =
+    useState<PendingDropIntent | null>(null);
+  const [isApplyingPendingDrop, setIsApplyingPendingDrop] = useState(false);
   const [isDraggingMeal, setIsDraggingMeal] = useState(false);
   const [trashPendingMeal, setTrashPendingMeal] = useState<EditableMeal | null>(
     null
@@ -347,7 +377,7 @@ export default function MealPlanPage() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (editMeal || trashPendingMeal) return;
+      if (editMeal || trashPendingMeal || slotManagerState) return;
 
       const active = document.activeElement;
       if (
@@ -379,7 +409,7 @@ export default function MealPlanPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [editMeal, trashPendingMeal, undo, redo]);
+  }, [editMeal, slotManagerState, trashPendingMeal, undo, redo]);
 
   useChatPageContext({
     page: "meal-plan",
@@ -414,6 +444,146 @@ export default function MealPlanPage() {
       updater(current ?? [])
     );
     return previousMeals;
+  };
+
+  const isMealInSlot = (
+    meal: EditableMeal,
+    slotDate: Date,
+    slotType: CalendarMealType
+  ) => {
+    const normalizedSlotDate = normalizeMealDate(slotDate);
+    const mealDate = normalizeMealDate(meal.date);
+
+    return (
+      meal.type === slotType &&
+      mealDate.getFullYear() === normalizedSlotDate.getFullYear() &&
+      mealDate.getMonth() === normalizedSlotDate.getMonth() &&
+      mealDate.getDate() === normalizedSlotDate.getDate()
+    );
+  };
+
+  const getOrderedSlotMeals = (
+    sourceMeals: EditableMeal[],
+    slotDate: Date,
+    slotType: CalendarMealType
+  ) => sourceMeals.filter((meal) => isMealInSlot(meal, slotDate, slotType));
+
+  const applySlotOrderToMeals = (
+    sourceMeals: EditableMeal[],
+    slotDate: Date,
+    slotType: CalendarMealType,
+    orderedIds: string[]
+  ) => {
+    const orderedSlotMeals = orderedIds
+      .map((mealId) =>
+        sourceMeals.find(
+          (meal) => meal.id === mealId && isMealInSlot(meal, slotDate, slotType)
+        )
+      )
+      .filter((meal): meal is EditableMeal => Boolean(meal));
+
+    let orderIndex = 0;
+
+    return sourceMeals.map((meal) => {
+      if (!isMealInSlot(meal, slotDate, slotType)) {
+        return meal;
+      }
+
+      const nextMeal = orderedSlotMeals[orderIndex];
+      orderIndex += 1;
+
+      if (!nextMeal) {
+        return meal;
+      }
+
+      return {
+        ...nextMeal,
+        sortOrder: orderIndex * 10,
+      };
+    });
+  };
+
+  const isSameSlotIdentity = (
+    leftDate: Date,
+    leftType: CalendarMealType,
+    rightDate: Date,
+    rightType: CalendarMealType
+  ) => {
+    const normalizedLeft = normalizeMealDate(leftDate);
+    const normalizedRight = normalizeMealDate(rightDate);
+
+    return (
+      leftType === rightType &&
+      normalizedLeft.getFullYear() === normalizedRight.getFullYear() &&
+      normalizedLeft.getMonth() === normalizedRight.getMonth() &&
+      normalizedLeft.getDate() === normalizedRight.getDate()
+    );
+  };
+
+  const resolveDropTargetSlot = (
+    target: MealPlanDropTarget,
+    sourceMeals: EditableMeal[]
+  ) => {
+    if (target.kind === "slot") {
+      return {
+        date: normalizeMealDate(new Date(target.slotDate)),
+        type: target.slotType,
+      };
+    }
+
+    const targetMeal = sourceMeals.find((meal) => meal.id === target.mealId);
+    if (!targetMeal) {
+      return null;
+    }
+
+    return {
+      date: normalizeMealDate(targetMeal.date),
+      type: targetMeal.type,
+    };
+  };
+
+  const reorderMealsInSlot = async (
+    slotDate: Date,
+    slotType: CalendarMealType,
+    orderedIds: string[],
+    summary: string
+  ) => {
+    const currentSlotMeals = getOrderedSlotMeals(meals, slotDate, slotType);
+    const previousOrderedIds = currentSlotMeals
+      .map((meal) => meal.id)
+      .filter((mealId): mealId is string => Boolean(mealId));
+
+    if (
+      previousOrderedIds.length < 2 ||
+      previousOrderedIds.length !== orderedIds.length ||
+      previousOrderedIds.every((mealId, index) => mealId === orderedIds[index])
+    ) {
+      return;
+    }
+
+    const previousMeals = updateMealsCache((current) =>
+      applySlotOrderToMeals(current, slotDate, slotType, orderedIds)
+    );
+
+    try {
+      await reorderSlotMealsApi(slotDate, slotType, orderedIds);
+      recordAction({
+        type: "reorder",
+        slotDate: normalizeMealDate(slotDate).toISOString(),
+        slotType: fromCalendarMealType(slotType),
+        previousOrderedIds,
+        nextOrderedIds: orderedIds,
+        summary,
+      });
+    } catch (error) {
+      queryClient.setQueryData(mealsQueryKey, previousMeals);
+      throw error;
+    } finally {
+      await queryClient.invalidateQueries({
+        queryKey: ["meals"],
+        exact: false,
+      });
+    }
   };
 
   const patchMeal = async (
@@ -483,6 +653,7 @@ export default function MealPlanPage() {
           name: payload.name,
           date: payload.date,
           mealType: payload.mealType,
+          sortOrder: response.data.sortOrder,
           notes: payload.notes || null,
           ingredients: payload.ingredients ?? [],
           description: payload.description,
@@ -567,7 +738,8 @@ export default function MealPlanPage() {
 
   const onSwapMeals = async (
     draggedMeal: EditableMeal,
-    targetMeal: EditableMeal
+    targetMeal: EditableMeal,
+    insertAfter: boolean
   ) => {
     if (!draggedMeal.id || !targetMeal.id || draggedMeal.id === targetMeal.id) {
       return;
@@ -582,6 +754,29 @@ export default function MealPlanPage() {
       draggedSourceDate.getDate() === targetSourceDate.getDate();
 
     if (sameSlot) {
+      const slotMeals = getOrderedSlotMeals(meals, draggedSourceDate, draggedMeal.type);
+      const orderedIds = slotMeals
+        .map((meal) => meal.id)
+        .filter((mealId): mealId is string => Boolean(mealId));
+      const draggedIndex = orderedIds.indexOf(draggedMeal.id);
+      const targetIndex = orderedIds.indexOf(targetMeal.id);
+
+      if (draggedIndex < 0 || targetIndex < 0) {
+        return;
+      }
+
+      const nextOrderedIds = orderedIds.filter((mealId) => mealId !== draggedMeal.id);
+      const baseTargetIndex = nextOrderedIds.indexOf(targetMeal.id);
+      const insertionIndex = insertAfter ? baseTargetIndex + 1 : baseTargetIndex;
+
+      nextOrderedIds.splice(insertionIndex, 0, draggedMeal.id);
+
+      await reorderMealsInSlot(
+        draggedSourceDate,
+        draggedMeal.type,
+        nextOrderedIds,
+        `Reordered ${draggedMeal.name}`
+      );
       return;
     }
 
@@ -651,6 +846,215 @@ export default function MealPlanPage() {
     }
   };
 
+  const applySlotAction = async (
+    action: "move" | "swap",
+    sourceSlot: { date: Date; type: CalendarMealType },
+    targetSlot: { date: Date; type: CalendarMealType }
+  ) => {
+    if (
+      isSameSlotIdentity(
+        sourceSlot.date,
+        sourceSlot.type,
+        targetSlot.date,
+        targetSlot.type
+      )
+    ) {
+      return;
+    }
+
+    await applySlotBatchAction({
+      action,
+      source: {
+        date: normalizeMealDate(sourceSlot.date).toISOString(),
+        mealType: fromCalendarMealType(sourceSlot.type),
+        mealTypeDefinitionId:
+          findMealTypeDefinition(sourceSlot.type, sourceSlot.date)?.id ?? null,
+      },
+      target: {
+        date: normalizeMealDate(targetSlot.date).toISOString(),
+        mealType: fromCalendarMealType(targetSlot.type),
+        mealTypeDefinitionId:
+          findMealTypeDefinition(targetSlot.type, targetSlot.date)?.id ?? null,
+      },
+    });
+
+    await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+  };
+
+  const insertMealIntoTargetSlot = async (
+    draggedMeal: EditableMeal,
+    targetMeal: EditableMeal,
+    insertAfter: boolean
+  ) => {
+    if (!draggedMeal.id || !targetMeal.id) {
+      return;
+    }
+
+    const targetSlotDate = normalizeMealDate(targetMeal.date);
+    const targetSlotType = targetMeal.type;
+
+    await onMoveMeal(draggedMeal, targetSlotDate, targetSlotType);
+
+    const latestMeals =
+      queryClient.getQueryData<EditableMeal[]>(mealsQueryKey) ?? meals;
+    const slotMeals = getOrderedSlotMeals(latestMeals, targetSlotDate, targetSlotType);
+    const orderedIds = slotMeals
+      .map((meal) => meal.id)
+      .filter((mealId): mealId is string => Boolean(mealId));
+
+    const nextOrderedIds = orderedIds.filter((mealId) => mealId !== draggedMeal.id);
+    const targetIndex = nextOrderedIds.indexOf(targetMeal.id);
+
+    if (targetIndex < 0) {
+      return;
+    }
+
+    const insertionIndex = insertAfter ? targetIndex + 1 : targetIndex;
+    nextOrderedIds.splice(insertionIndex, 0, draggedMeal.id);
+
+    await reorderMealsInSlot(
+      targetSlotDate,
+      targetSlotType,
+      nextOrderedIds,
+      `Inserted ${draggedMeal.name}`
+    );
+  };
+
+  const applyDropIntentAction = async (
+    payload: MealPlanDragPayload,
+    target: MealPlanDropTarget,
+    action: DropIntentAction
+  ) => {
+    if (payload.kind === "meal") {
+      const draggedMeal = meals.find((meal) => meal.id === payload.mealId);
+      if (!draggedMeal) {
+        return;
+      }
+
+      if (target.kind === "slot") {
+        const targetDate = normalizeMealDate(new Date(target.slotDate));
+        await onMoveMeal(draggedMeal, targetDate, target.slotType);
+        return;
+      }
+
+      const targetMeal = meals.find((meal) => meal.id === target.mealId);
+      if (!targetMeal) {
+        return;
+      }
+
+      if (action === "swap") {
+        await onSwapMeals(draggedMeal, targetMeal, target.insertAfter);
+        return;
+      }
+
+      await insertMealIntoTargetSlot(draggedMeal, targetMeal, target.insertAfter);
+      return;
+    }
+
+    const sourceSlot = {
+      date: normalizeMealDate(new Date(payload.slotDate)),
+      type: payload.slotType,
+    };
+    const targetSlot = resolveDropTargetSlot(target, meals);
+
+    if (!targetSlot) {
+      return;
+    }
+
+    await applySlotAction(action === "swap" ? "swap" : "move", sourceSlot, targetSlot);
+  };
+
+  const onDropPayload = async (
+    payload: MealPlanDragPayload,
+    target: MealPlanDropTarget,
+    anchor: MealPlanDropAnchor
+  ) => {
+    if (payload.kind === "meal") {
+      const draggedMeal = meals.find((meal) => meal.id === payload.mealId);
+      if (!draggedMeal) {
+        return;
+      }
+
+      if (target.kind === "slot") {
+        const targetDate = normalizeMealDate(new Date(target.slotDate));
+
+        if (isSameSlotIdentity(draggedMeal.date, draggedMeal.type, targetDate, target.slotType)) {
+          return;
+        }
+
+        await onMoveMeal(draggedMeal, targetDate, target.slotType);
+        return;
+      }
+
+      const targetMeal = meals.find((meal) => meal.id === target.mealId);
+      if (!targetMeal) {
+        return;
+      }
+
+      const sameSlot = isSameSlotIdentity(
+        draggedMeal.date,
+        draggedMeal.type,
+        targetMeal.date,
+        targetMeal.type
+      );
+
+      if (sameSlot) {
+        await onSwapMeals(draggedMeal, targetMeal, target.insertAfter);
+        return;
+      }
+
+      setPendingDropIntent({ payload, target, anchor });
+      return;
+    }
+
+    const sourceSlot = {
+      date: normalizeMealDate(new Date(payload.slotDate)),
+      type: payload.slotType,
+    };
+    const targetSlot = resolveDropTargetSlot(target, meals);
+
+    if (!targetSlot) {
+      return;
+    }
+
+    if (
+      isSameSlotIdentity(
+        sourceSlot.date,
+        sourceSlot.type,
+        targetSlot.date,
+        targetSlot.type
+      )
+    ) {
+      return;
+    }
+
+    const targetSlotMeals = getOrderedSlotMeals(meals, targetSlot.date, targetSlot.type);
+
+    if (targetSlotMeals.length === 0) {
+      await applySlotAction("move", sourceSlot, targetSlot);
+      return;
+    }
+
+    setPendingDropIntent({ payload, target, anchor });
+  };
+
+  const onApplyPendingDropIntent = async (action: DropIntentAction) => {
+    const nextIntent = pendingDropIntent;
+
+    if (!nextIntent || isApplyingPendingDrop) {
+      return;
+    }
+
+    setIsApplyingPendingDrop(true);
+
+    try {
+      await applyDropIntentAction(nextIntent.payload, nextIntent.target, action);
+      setPendingDropIntent(null);
+    } finally {
+      setIsApplyingPendingDrop(false);
+    }
+  };
+
   const deleteMealById = async (mealId: string) => {
     await fetchJson<{ data: { id: string } }>(`/api/meals/${mealId}`, {
       method: "DELETE",
@@ -666,6 +1070,7 @@ export default function MealPlanPage() {
         name: snapshot.name,
         date: normalizeMealDate(snapshot.date).toISOString(),
         mealType: fromCalendarMealType(snapshot.type),
+        sortOrder: snapshot.sortOrder,
         mealTypeDefinitionId: snapshot.mealTypeDefinitionId,
         notes: snapshot.notes ? snapshot.notes : null,
         ingredients: snapshot.ingredients,
@@ -730,6 +1135,7 @@ export default function MealPlanPage() {
           name: mealToDelete.name,
           date: normalizeMealDate(mealToDelete.date).toISOString(),
           mealType: fromCalendarMealType(mealToDelete.type),
+          sortOrder: mealToDelete.sortOrder,
           notes: mealToDelete.notes || null,
           ingredients: [...mealToDelete.ingredients],
           description: mealToDelete.description || null,
@@ -777,6 +1183,7 @@ export default function MealPlanPage() {
           name: snapshot.name,
           date: normalizeMealDate(snapshot.date).toISOString(),
           mealType: fromCalendarMealType(snapshot.type),
+          sortOrder: snapshot.sortOrder,
           notes: snapshot.notes || null,
           ingredients: [...snapshot.ingredients],
           description: snapshot.description || null,
@@ -818,11 +1225,35 @@ export default function MealPlanPage() {
     setSaveAsRecipeMeal(null);
   };
 
+  const openSlotManager = (slotDate: Date, slotType: CalendarMealType) => {
+    setSlotManagerState({
+      date: normalizeMealDate(slotDate),
+      type: slotType,
+    });
+  };
+
+  const closeSlotManager = (didMutate: boolean) => {
+    setSlotManagerState(null);
+
+    if (didMutate) {
+      void queryClient.invalidateQueries({
+        queryKey: ["meals"],
+        exact: false,
+      });
+    }
+  };
+
+  const slotManagerMeals = slotManagerState
+    ? getOrderedSlotMeals(meals, slotManagerState.date, slotManagerState.type)
+    : [];
+  const slotManagerMealTypeDefinition = slotManagerState
+    ? findMealTypeDefinition(slotManagerState.type, slotManagerState.date)
+    : null;
+
   const handleSaveRecipeFromMeal = async (input: CreateRecipeInput) => {
     if (!saveAsRecipeMeal) return;
     const recipe = await createRecipeMutation.mutateAsync(input);
 
-    // Link the meal back to the new recipe if it has been persisted
     if (saveAsRecipeMeal.id) {
       await fetchJson<{ data: CalendarMeal }>(
         `/api/meals/${saveAsRecipeMeal.id}`,
@@ -879,7 +1310,6 @@ export default function MealPlanPage() {
   const handleUnlinkRecipe = async (meal: EditableMeal) => {
     if (!meal.id || !meal.linkedRecipe) return;
 
-    // Copy recipe data into standalone meal fields, then clear the link
     await fetchJson<{ data: CalendarMeal }>(`/api/meals/${meal.id}`, {
       method: "PATCH",
       body: JSON.stringify({
@@ -933,6 +1363,7 @@ export default function MealPlanPage() {
       : view === "week"
         ? "Plan and review your meals week by week."
         : `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+
   return (
     <div className={styles.calendarPage}>
       <div className={styles.pageHeader}>
@@ -1018,24 +1449,26 @@ export default function MealPlanPage() {
         {view === "day" ? (
           <DayView
             date={date}
+            dragDisabled={false}
             meals={meals}
             mealTypeProfiles={mealTypeProfiles}
             highlightedProfileId={highlightedProfileId}
             onEdit={setEditMeal}
-            onMoveMeal={onMoveMeal}
-            onSwapMeals={onSwapMeals}
+            onOpenSlotManager={openSlotManager}
+            onDropPayload={onDropPayload}
             setDate={setDate}
           />
         ) : null}
         {view === "week" ? (
           <WeekView
             date={date}
+            dragDisabled={false}
             meals={meals}
             mealTypeProfiles={mealTypeProfiles}
             highlightedProfileId={highlightedProfileId}
             onEdit={setEditMeal}
-            onMoveMeal={onMoveMeal}
-            onSwapMeals={onSwapMeals}
+            onOpenSlotManager={openSlotManager}
+            onDropPayload={onDropPayload}
             setDate={setDate}
           />
         ) : null}
@@ -1050,6 +1483,16 @@ export default function MealPlanPage() {
           />
         ) : null}
       </div>
+
+      <DropIntentPopover
+        anchor={pendingDropIntent?.anchor ?? null}
+        isApplying={isApplyingPendingDrop}
+        isOpen={Boolean(pendingDropIntent)}
+        onCancel={() => setPendingDropIntent(null)}
+        onSelect={(action) => {
+          void onApplyPendingDropIntent(action);
+        }}
+      />
 
       <TrashDropZone visible={isDraggingMeal} onDropMeal={onTrashDropMeal} />
 
@@ -1131,6 +1574,40 @@ export default function MealPlanPage() {
           onSave={onSaveMeal}
           onSaveAsRecipe={handleSaveAsRecipe}
           onUnlinkRecipe={handleUnlinkRecipe}
+        />
+      ) : null}
+
+      {slotManagerState ? (
+        <SlotManagerModal
+          mealTypeDefinition={slotManagerMealTypeDefinition}
+          onAddMeal={() => {
+            const slot = slotManagerState;
+            closeSlotManager(false);
+            setEditMeal(
+              createEmptyMeal(
+                new Date(slot.date),
+                slot.type,
+                findMealTypeDefinition(slot.type, slot.date)
+              )
+            );
+          }}
+          onClose={closeSlotManager}
+          onDelete={onDeleteMeal}
+          onEdit={(meal) => {
+            closeSlotManager(false);
+            setEditMeal(meal);
+          }}
+          onReorder={async (orderedIds) => {
+            await reorderMealsInSlot(
+              slotManagerState.date,
+              slotManagerState.type,
+              orderedIds,
+              `Reordered ${getTypeConfig(slotManagerState.type, mealTypeDefinitions).label.toLowerCase()} slot`
+            );
+          }}
+          slotDate={slotManagerState.date}
+          slotMeals={slotManagerMeals}
+          slotType={slotManagerState.type}
         />
       ) : null}
 

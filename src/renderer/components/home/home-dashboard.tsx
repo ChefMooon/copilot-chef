@@ -14,7 +14,7 @@ import styles from "./home-dashboard.module.css";
 type MealSummaryPayload = {
   from: string;
   to: string;
-  totalMeals: number;
+  totalSlots: number;
 };
 
 type GroceryListPayload = {
@@ -274,7 +274,7 @@ export function HomeDashboard() {
     );
   }, [heatmapQuery.data?.monthStarts]);
 
-  const totalMeals = mealSummaryQuery.data?.totalMeals ?? 0;
+  const totalMeals = mealSummaryQuery.data?.totalSlots ?? 0;
   const groceryList = groceryListQuery.data;
   const heatmap = heatmapQuery.data?.weeks ?? [];
   const upcomingMeals = upcomingMealsQuery.data?.meals ?? [];

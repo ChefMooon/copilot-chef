@@ -10,7 +10,7 @@ const globalForPrisma = globalThis as typeof globalThis & {
 
 let _client: PrismaClient | undefined;
 
-function normalizeDatabaseUrl(databaseUrl: string): string {
+export function resolveDatabaseUrl(databaseUrl: string): string {
   if (!databaseUrl.startsWith("file:")) return databaseUrl;
 
   const filePart = databaseUrl.slice("file:".length);
@@ -49,7 +49,7 @@ function getClient(): PrismaClient {
 
   const rawDatabaseUrl =
     process.env.COPILOT_CHEF_DATABASE_URL ?? DEFAULT_DATABASE_URL;
-  const databaseUrl = normalizeDatabaseUrl(rawDatabaseUrl);
+  const databaseUrl = resolveDatabaseUrl(rawDatabaseUrl);
   ensureSqliteDirectory(databaseUrl);
 
   _client = new PrismaClient({

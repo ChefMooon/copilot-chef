@@ -28,6 +28,7 @@ export type EditableMeal = {
   name: string;
   date: Date;
   type: CalendarMealType;
+  sortOrder: number;
   mealTypeDefinitionId: string | null;
   mealTypeDefinition: MealTypeDefinitionPayload | null;
   notes: string;
@@ -42,6 +43,94 @@ export type EditableMeal = {
   recipeId: string | null;
   linkedRecipe: LinkedRecipeSummary | null;
 };
+
+export type MealPlanDragPayload =
+  | {
+      kind: "meal";
+      mealId: string;
+    }
+  | {
+      kind: "slot";
+      slotDate: string;
+      slotType: CalendarMealType;
+      mealIds: string[];
+    };
+
+export type MealPlanDropTarget =
+  | {
+      kind: "slot";
+      slotDate: string;
+      slotType: CalendarMealType;
+    }
+  | {
+      kind: "meal";
+      mealId: string;
+      insertAfter: boolean;
+    };
+
+export type MealPlanDropAnchor = {
+  x: number;
+  y: number;
+};
+
+const MEAL_PLAN_DRAG_MIME_TYPE = "application/x-copilot-chef-meal-plan-drag";
+
+export function setMealPlanDragPayload(
+  dataTransfer: DataTransfer,
+  payload: MealPlanDragPayload
+) {
+  dataTransfer.setData(MEAL_PLAN_DRAG_MIME_TYPE, JSON.stringify(payload));
+
+  if (payload.kind === "meal") {
+    dataTransfer.setData("text/plain", payload.mealId);
+  } else {
+    dataTransfer.setData("text/plain", "");
+  }
+}
+
+export function getMealPlanDragPayload(
+  dataTransfer: DataTransfer
+): MealPlanDragPayload | null {
+  const structuredPayload = dataTransfer.getData(MEAL_PLAN_DRAG_MIME_TYPE).trim();
+
+  if (structuredPayload) {
+    try {
+      const parsed = JSON.parse(structuredPayload) as MealPlanDragPayload;
+
+      if (parsed.kind === "meal" && typeof parsed.mealId === "string") {
+        return parsed;
+      }
+
+      if (
+        parsed.kind === "slot" &&
+        typeof parsed.slotDate === "string" &&
+        typeof parsed.slotType === "string" &&
+        Array.isArray(parsed.mealIds)
+      ) {
+        return {
+          kind: "slot",
+          slotDate: parsed.slotDate,
+          slotType: parsed.slotType,
+          mealIds: parsed.mealIds.filter(
+            (mealId): mealId is string => typeof mealId === "string"
+          ),
+        };
+      }
+    } catch {
+      // Ignore malformed payload and fall back to plain meal id payload.
+    }
+  }
+
+  const mealId = dataTransfer.getData("text/plain").trim();
+  if (!mealId) {
+    return null;
+  }
+
+  return {
+    kind: "meal",
+    mealId,
+  };
+}
 
 export function formatMealIngredient(ingredient: MealIngredient) {
   const parts = [ingredient.quantity, ingredient.unit, ingredient.name]
@@ -467,6 +556,7 @@ export function toEditableMeal(meal: CalendarMeal): EditableMeal {
     name: meal.name,
     date: new Date(meal.date ?? new Date().toISOString()),
     type: toCalendarMealType(meal.mealTypeDefinition?.slug ?? meal.mealType),
+    sortOrder: meal.sortOrder,
     mealTypeDefinitionId: meal.mealTypeDefinitionId,
     mealTypeDefinition: meal.mealTypeDefinition,
     notes: meal.notes ?? "",
@@ -521,7 +611,8 @@ export const mealsForDay = (
       (left, right) =>
         (orderIndex.get(left.type) ?? Number.MAX_SAFE_INTEGER) -
           (orderIndex.get(right.type) ?? Number.MAX_SAFE_INTEGER) ||
-        left.name.localeCompare(right.name)
+        left.sortOrder - right.sortOrder ||
+        left.id.localeCompare(right.id)
     );
 };
 
@@ -606,6 +697,7 @@ export function createEmptyMeal(
     name: "",
     date: normalizeMealDate(date),
     type,
+    sortOrder: 0,
     mealTypeDefinitionId: mealTypeDefinition?.id ?? null,
     mealTypeDefinition: mealTypeDefinition ?? null,
     notes: "",

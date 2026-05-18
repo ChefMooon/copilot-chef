@@ -18,18 +18,22 @@ export type StatsPayload = {
   heatmap: {
     weeks: HeatmapCell[][];
     monthStarts: Record<string, number>;
-    totalMeals: number;
+    totalSlots: number;
+    totalDishes: number;
     activeDays: number;
     streak: number;
   };
-  mealTypeBreakdown: { mealType: string; count: number }[];
+  mealTypeBreakdown: { mealType: string; slotCount: number }[];
   cuisineBreakdown: { cuisine: string; count: number }[];
   weeklyTrend: { weekLabel: string; meals: number }[];
   dayOfWeekBreakdown: { day: string; count: number }[];
   planningWindow: {
-    totalMeals: number;
+    totalSlots: number;
+    totalDishes: number;
     activeDays: number;
-    avgMealsPerActiveDay: number;
+    avgSlotsPerActiveDay: number;
+    avgDishesPerSlot: number;
+    multiCourseRate: number;
   };
   topMeals: { mealName: string; count: number }[];
   topIngredients: { ingredient: string; count: number }[];
@@ -52,11 +56,11 @@ export function StatsDashboard({ stats }: Props) {
 
   const avgMealsPerActiveDay =
     stats.heatmap.activeDays > 0
-      ? (stats.heatmap.totalMeals / stats.heatmap.activeDays).toFixed(1)
+      ? (stats.heatmap.totalSlots / stats.heatmap.activeDays).toFixed(1)
       : "—";
 
   const kpiCards = [
-    { label: "Tracked meals", value: stats.heatmap.totalMeals },
+    { label: "Tracked meals", value: stats.heatmap.totalSlots },
     { label: "Active days", value: stats.heatmap.activeDays },
     {
       label: "Current streak",
@@ -64,6 +68,18 @@ export function StatsDashboard({ stats }: Props) {
       sub: stats.heatmap.streak === 1 ? "day" : "days",
     },
     { label: "Avg meals / active day", value: avgMealsPerActiveDay },
+    {
+      label: "Avg dishes / meal",
+      value: stats.planningWindow.avgDishesPerSlot.toFixed(1),
+    },
+    ...(stats.planningWindow.multiCourseRate > 0
+      ? [
+          {
+            label: "Multi-course",
+            value: `${Math.round(stats.planningWindow.multiCourseRate * 100)}%`,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -106,8 +122,8 @@ export function StatsDashboard({ stats }: Props) {
       <div className="grid gap-4 lg:grid-cols-2">
         <PlanVsLogCard
           activeDays={stats.planningWindow.activeDays}
-          avgMealsPerActiveDay={stats.planningWindow.avgMealsPerActiveDay}
-          totalMeals={stats.planningWindow.totalMeals}
+          avgMealsPerActiveDay={stats.planningWindow.avgSlotsPerActiveDay}
+          totalMeals={stats.planningWindow.totalSlots}
         />
         <TopMealsList meals={stats.topMeals} />
       </div>

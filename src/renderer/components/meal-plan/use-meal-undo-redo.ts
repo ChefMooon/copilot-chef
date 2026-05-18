@@ -14,6 +14,7 @@ export type MealSnapshot = {
   name: string;
   date: string;
   mealType: string;
+  sortOrder?: number;
   notes: string | null;
   ingredients: MealIngredient[];
   description?: string | null;
@@ -61,7 +62,21 @@ type SwapAction = {
   summary: string;
 };
 
-export type MealUndoAction = AddAction | DeleteAction | MoveAction | SwapAction;
+type ReorderAction = {
+  type: "reorder";
+  slotDate: string;
+  slotMealType: string;
+  previousOrderedIds: string[];
+  nextOrderedIds: string[];
+  summary: string;
+};
+
+export type MealUndoAction =
+  | AddAction
+  | DeleteAction
+  | MoveAction
+  | SwapAction
+  | ReorderAction;
 
 // ---------------------------------------------------------------------------
 // Pure helpers (exported for testing)
@@ -90,6 +105,14 @@ export function rebindMealId(
       case "swap":
         if (action.meal1Id === oldId) action.meal1Id = newId;
         if (action.meal2Id === oldId) action.meal2Id = newId;
+        break;
+      case "reorder":
+        action.previousOrderedIds = action.previousOrderedIds.map((id) =>
+          id === oldId ? newId : id,
+        );
+        action.nextOrderedIds = action.nextOrderedIds.map((id) =>
+          id === oldId ? newId : id,
+        );
         break;
     }
   }
@@ -124,6 +147,7 @@ function createMealApi(snapshot: MealSnapshot) {
       name: snapshot.name,
       date: snapshot.date,
       mealType: snapshot.mealType,
+      sortOrder: snapshot.sortOrder,
       notes: snapshot.notes,
       ingredients: snapshot.ingredients,
       description: snapshot.description,
@@ -144,11 +168,22 @@ function deleteMealApi(mealId: string) {
 
 function patchMealApi(
   mealId: string,
-  body: { date?: string; mealType?: string },
+  body: { date?: string; mealType?: string; sortOrder?: number },
 ) {
   return fetchJson(`/api/meals/${mealId}`, {
     method: "PATCH",
     body: JSON.stringify(body),
+  });
+}
+
+function reorderSlotMealsApi(
+  date: string,
+  mealType: string,
+  orderedIds: string[],
+) {
+  return fetchJson("/api/meals/reorder", {
+    method: "PATCH",
+    body: JSON.stringify({ date, mealType, orderedIds }),
   });
 }
 
@@ -252,6 +287,15 @@ export function useMealUndoRedo() {
           redoStackRef.current.push(action);
           break;
         }
+        case "reorder": {
+          await reorderSlotMealsApi(
+            action.slotDate,
+            action.slotMealType,
+            action.previousOrderedIds,
+          );
+          redoStackRef.current.push(action);
+          break;
+        }
       }
 
       await invalidateMeals();
@@ -318,6 +362,15 @@ export function useMealUndoRedo() {
               mealType: action.meal1Type,
             }),
           ]);
+          undoStackRef.current.push(action);
+          break;
+        }
+        case "reorder": {
+          await reorderSlotMealsApi(
+            action.slotDate,
+            action.slotMealType,
+            action.nextOrderedIds,
+          );
           undoStackRef.current.push(action);
           break;
         }

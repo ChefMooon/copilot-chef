@@ -57,6 +57,6 @@ statsRoutes.get("/stats", async (c) => {
 
 statsRoutes.get("/stats/meal-summary", async (c) => {
   const { from, to } = getCurrentWeekRange();
-  const totalMeals = await mealService.getMealCountInRange(from, to);
-  return c.json({ data: { from, to, totalMeals } });
+  const totalSlots = await mealService.getMealCountInRange(from, to);
+  return c.json({ data: { from, to, totalSlots } });
 });

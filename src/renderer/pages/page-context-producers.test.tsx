@@ -406,7 +406,7 @@ describe("page context producers", () => {
     apiMocks.fetchJson.mockImplementation(async (url: string) => {
       if (url === "/api/stats/meal-summary") {
         return {
-          data: { from: "2026-04-21", to: "2026-04-27", totalMeals: 5 },
+          data: { from: "2026-04-21", to: "2026-04-27", totalSlots: 5 },
         };
       }
       if (url === "/api/grocery-lists?current=1") {
@@ -452,6 +452,7 @@ describe("page context producers", () => {
               name: "Taco Night",
               date: "2026-04-28T12:00:00.000Z",
               mealType: "dinner",
+              sortOrder: 0,
               mealTypeDefinitionId: null,
               mealTypeDefinition: null,
               notes: null,
@@ -751,7 +752,8 @@ describe("page context producers", () => {
       heatmap: {
         weeks: [],
         monthStarts: {},
-        totalMeals: 10,
+        totalSlots: 10,
+        totalDishes: 12,
         activeDays: 4,
         streak: 2,
       },
@@ -760,9 +762,12 @@ describe("page context producers", () => {
       weeklyTrend: [],
       dayOfWeekBreakdown: [],
       planningWindow: {
-        totalMeals: 10,
+        totalSlots: 10,
+        totalDishes: 12,
         activeDays: 4,
-        avgMealsPerActiveDay: 2.5,
+        avgSlotsPerActiveDay: 2.5,
+        avgDishesPerSlot: 1.2,
+        multiCourseRate: 0.25,
       },
       topMeals: [],
       topIngredients: [],

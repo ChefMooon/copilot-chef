@@ -8,6 +8,7 @@ import type { ServerType } from "@hono/node-server";
 import { bootstrapDatabase } from "./lib/bootstrap";
 import { createApp } from "./app";
 import { LOOPBACK_HOST, resolveLanRuntimeSettings, type LanRuntimeSettings } from "./lib/lan";
+import { resolveDatabaseUrl } from "./lib/prisma";
 import { getSetting } from "../settings/store";
 import type { ServerConfig } from "@shared/config/server-config";
 
@@ -66,7 +67,7 @@ function resolveDbPath(): string {
     process.env["COPILOT_CHEF_DATABASE_URL"] ??
     readEnvOverrideFromFile("COPILOT_CHEF_DATABASE_URL");
   if (dbOverride) {
-    return dbOverride;
+    return resolveDatabaseUrl(dbOverride);
   }
 
   const userDataPath = app.getPath("userData");
@@ -74,7 +75,7 @@ function resolveDbPath(): string {
   if (!existsSync(dataDir)) {
     mkdirSync(dataDir, { recursive: true });
   }
-  return `file:${join(dataDir, "copilot-chef.db")}`;
+  return resolveDatabaseUrl(`file:${join(dataDir, "copilot-chef.db")}`);
 }
 
 function tryPort(config: ServerConfig, port: number): Promise<ServerInfo> {

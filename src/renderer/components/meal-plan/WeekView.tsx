@@ -4,13 +4,18 @@ import {
   createEmptyMeal,
   createMealSlots,
   DAYS,
+  getMealPlanDragPayload,
   getMonday,
   getMealTypeProfileContexts,
+  setMealPlanDragPayload,
   getTypeConfig,
   mergeMealTypeDefinitions,
   type CalendarMealType,
   isSameDay,
   type EditableMeal,
+  type MealPlanDropAnchor,
+  type MealPlanDropTarget,
+  type MealPlanDragPayload,
 } from "@/lib/calendar";
 import type { MealTypeProfilePayload } from "@shared/types";
 
@@ -21,16 +26,14 @@ type WeekViewProps = {
   meals: EditableMeal[];
   mealTypeProfiles: MealTypeProfilePayload[];
   highlightedProfileId?: string | null;
+  dragDisabled?: boolean;
   setDate: (date: Date) => void;
   onEdit: (meal: EditableMeal) => void;
-  onMoveMeal: (
-    meal: EditableMeal,
-    targetDate: Date,
-    targetType: CalendarMealType
-  ) => Promise<void>;
-  onSwapMeals: (
-    draggedMeal: EditableMeal,
-    targetMeal: EditableMeal
+  onOpenSlotManager: (date: Date, type: CalendarMealType) => void;
+  onDropPayload: (
+    payload: MealPlanDragPayload,
+    target: MealPlanDropTarget,
+    anchor: MealPlanDropAnchor
   ) => Promise<void>;
 };
 
@@ -39,13 +42,16 @@ export function WeekView({
   meals,
   mealTypeProfiles,
   highlightedProfileId,
+  dragDisabled = false,
   setDate,
   onEdit,
-  onMoveMeal,
-  onSwapMeals,
+  onOpenSlotManager,
+  onDropPayload,
 }: WeekViewProps) {
   const weekStart = getMonday(date);
-  const [draggedMealId, setDraggedMealId] = useState<string | null>(null);
+  const [draggedPayload, setDraggedPayload] = useState<MealPlanDragPayload | null>(
+    null
+  );
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
   const [isApplyingDrop, setIsApplyingDrop] = useState(false);
 
@@ -117,51 +123,120 @@ export function WeekView({
       );
     });
   }, [mergedMealTypes, slotsByDay]);
-  const draggedMeal = weekMeals.find((meal) => meal.id === draggedMealId) ?? null;
+  const draggedMealId = draggedPayload?.kind === "meal" ? draggedPayload.mealId : null;
+  const draggedSlotMealIds =
+    draggedPayload?.kind === "slot" ? new Set(draggedPayload.mealIds) : null;
 
   const clearDragState = () => {
-    setDraggedMealId(null);
+    setDraggedPayload(null);
     setDropTargetKey(null);
     setIsApplyingDrop(false);
+  };
+
+  const scheduleClearDragState = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        clearDragState();
+      });
+    });
   };
 
   const onDragStartMeal = (
     event: DragEvent<HTMLButtonElement>,
     meal: EditableMeal
   ) => {
-    if (!meal.id || isApplyingDrop) {
+    if (!meal.id || isApplyingDrop || dragDisabled) {
       event.preventDefault();
       return;
     }
 
     event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData("text/plain", meal.id);
-    setDraggedMealId(meal.id);
+    setMealPlanDragPayload(event.dataTransfer, {
+      kind: "meal",
+      mealId: meal.id,
+    });
+    setDraggedPayload({
+      kind: "meal",
+      mealId: meal.id,
+    });
   };
 
-  const moveMealToSlot = async (targetDay: Date, targetType: CalendarMealType) => {
-    if (!draggedMeal || isApplyingDrop) {
+  const onDragStartSlot = (
+    event: DragEvent<HTMLButtonElement>,
+    slotMeals: EditableMeal[],
+    slotDay: Date,
+    slotType: CalendarMealType
+  ) => {
+    if (slotMeals.length < 2 || isApplyingDrop || dragDisabled) {
+      event.preventDefault();
+      return;
+    }
+
+    const mealIds = slotMeals
+      .map((meal) => meal.id)
+      .filter((mealId): mealId is string => Boolean(mealId));
+
+    if (mealIds.length < 2) {
+      event.preventDefault();
+      return;
+    }
+
+    const payload: MealPlanDragPayload = {
+      kind: "slot",
+      slotDate: slotDay.toISOString(),
+      slotType,
+      mealIds,
+    };
+
+    event.dataTransfer.effectAllowed = "move";
+    setMealPlanDragPayload(event.dataTransfer, payload);
+    setDraggedPayload(payload);
+
+    const preview = document.createElement("div");
+    preview.className = styles.slotDragPreview;
+
+    const heading = document.createElement("div");
+    heading.className = styles.slotDragPreviewTitle;
+    heading.textContent = `Dragging ${slotMeals.length} ${slotType} meals`;
+
+    const names = document.createElement("div");
+    names.className = styles.slotDragPreviewList;
+    names.textContent = slotMeals
+      .slice(0, 3)
+      .map((meal) => meal.name)
+      .join(" • ");
+
+    const suffix =
+      slotMeals.length > 3 ? ` +${slotMeals.length - 3} more` : "";
+    const meta = document.createElement("div");
+    meta.className = styles.slotDragPreviewMeta;
+    meta.textContent = `${slotDay.toLocaleDateString()}${suffix}`;
+
+    preview.append(heading, names, meta);
+    document.body.appendChild(preview);
+
+    if (typeof event.dataTransfer.setDragImage === "function") {
+      event.dataTransfer.setDragImage(preview, 24, 18);
+    }
+
+    requestAnimationFrame(() => {
+      preview.remove();
+    });
+  };
+
+  const applyDropTarget = async (
+    payload: MealPlanDragPayload,
+    target: MealPlanDropTarget,
+    anchor: MealPlanDropAnchor
+  ) => {
+    if (isApplyingDrop) {
       return;
     }
 
     setIsApplyingDrop(true);
 
     try {
-      await onMoveMeal(draggedMeal, targetDay, targetType);
-    } finally {
-      clearDragState();
-    }
-  };
-
-  const swapMeals = async (targetMeal: EditableMeal) => {
-    if (!draggedMeal || draggedMeal.id === targetMeal.id || isApplyingDrop) {
-      return;
-    }
-
-    setIsApplyingDrop(true);
-
-    try {
-      await onSwapMeals(draggedMeal, targetMeal);
+      await onDropPayload(payload, target, anchor);
     } finally {
       clearDragState();
     }
@@ -260,7 +335,7 @@ export function WeekView({
                               </span>
                             </div>
                           ) : slotMeals.length === 0 ? (
-                            draggedMeal ? (
+                            draggedPayload ? (
                               <div
                                 className={`${styles.weekSlotEmpty} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
                                 onDragLeave={() =>
@@ -269,7 +344,7 @@ export function WeekView({
                                   )
                                 }
                                 onDragOver={(event) => {
-                                  if (!draggedMeal || isApplyingDrop) {
+                                  if (!draggedPayload || isApplyingDrop) {
                                     return;
                                   }
 
@@ -279,7 +354,20 @@ export function WeekView({
                                 }}
                                 onDrop={async (event) => {
                                   event.preventDefault();
-                                  await moveMealToSlot(day, type);
+                                  const payload = getMealPlanDragPayload(event.dataTransfer);
+                                  if (!payload) {
+                                    return;
+                                  }
+
+                                  await applyDropTarget(
+                                    payload,
+                                    {
+                                      kind: "slot",
+                                      slotDate: day.toISOString(),
+                                      slotType: type,
+                                    },
+                                    { x: event.clientX, y: event.clientY }
+                                  );
                                 }}
                               >
                                 <span className={styles.slotDropHint}>Drop here</span>
@@ -303,38 +391,96 @@ export function WeekView({
                               </button>
                             )
                           ) : (
-                            <div className={styles.weekSlotStack}>
+                            <div
+                              className={`${styles.weekSlotStack} ${slotMeals.length === 1 ? styles.weekSlotStackSingle : ""} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
+                              onDragLeave={() =>
+                                setDropTargetKey((current) =>
+                                  current === emptyTargetKey ? null : current
+                                )
+                              }
+                              onDragOver={(event) => {
+                                if (!draggedPayload || isApplyingDrop) {
+                                  return;
+                                }
+
+                                event.preventDefault();
+                                event.dataTransfer.dropEffect = "move";
+                                setDropTargetKey(emptyTargetKey);
+                              }}
+                              onDrop={async (event) => {
+                                event.preventDefault();
+                                const payload = getMealPlanDragPayload(event.dataTransfer);
+                                if (!payload) {
+                                  return;
+                                }
+
+                                await applyDropTarget(
+                                  payload,
+                                  {
+                                    kind: "slot",
+                                    slotDate: day.toISOString(),
+                                    slotType: type,
+                                  },
+                                  { x: event.clientX, y: event.clientY }
+                                );
+                              }}
+                            >
                               {slotMeals.map((meal) => {
                                 const mealTargetKey = `week-meal-${meal.id}`;
 
                                 return (
                                   <button
-                                    className={`${styles.weekSlotMealCard} ${draggedMealId === meal.id ? styles.mealCardDragging : ""} ${dropTargetKey === mealTargetKey ? styles.slotDropTarget : ""}`}
-                                    draggable={!isApplyingDrop}
+                                    className={`${styles.weekSlotMealCard} ${draggedMealId === meal.id ? styles.mealCardDragging : ""} ${draggedSlotMealIds?.has(meal.id ?? "") ? styles.slotMealInDraggedGroup : ""} ${dropTargetKey === mealTargetKey ? styles.slotDropTarget : ""}`}
+                                    draggable={!isApplyingDrop && !dragDisabled}
                                     key={
                                       meal.id ||
                                       `${meal.type}-${meal.date.toISOString()}-${meal.name}`
                                     }
                                     onClick={() => onEdit(meal)}
-                                    onDragEnd={clearDragState}
+                                    onDragEnd={scheduleClearDragState}
                                     onDragLeave={() =>
                                       setDropTargetKey((current) =>
                                         current === mealTargetKey ? null : current
                                       )
                                     }
                                     onDragOver={(event) => {
-                                      if (!draggedMeal || draggedMeal.id === meal.id || isApplyingDrop) {
+                                      if (!draggedPayload || isApplyingDrop) {
+                                        return;
+                                      }
+
+                                      if (
+                                        draggedPayload.kind === "meal" &&
+                                        draggedPayload.mealId === meal.id
+                                      ) {
                                         return;
                                       }
 
                                       event.preventDefault();
+                                      event.stopPropagation();
                                       event.dataTransfer.dropEffect = "move";
                                       setDropTargetKey(mealTargetKey);
                                     }}
                                     onDragStart={(event) => onDragStartMeal(event, meal)}
                                     onDrop={async (event) => {
                                       event.preventDefault();
-                                      await swapMeals(meal);
+                                      event.stopPropagation();
+                                      const rect = event.currentTarget.getBoundingClientRect();
+                                      const insertAfter =
+                                        event.clientY > rect.top + rect.height / 2;
+                                      const payload = getMealPlanDragPayload(event.dataTransfer);
+                                      if (!payload) {
+                                        return;
+                                      }
+
+                                      await applyDropTarget(
+                                        payload,
+                                        {
+                                          kind: "meal",
+                                          mealId: meal.id,
+                                          insertAfter,
+                                        },
+                                        { x: event.clientX, y: event.clientY }
+                                      );
                                     }}
                                     style={{
                                       background: typeConfig.bg,
@@ -349,6 +495,93 @@ export function WeekView({
                                   </button>
                                 );
                               })}
+                              <div className={styles.slotActionsRow}>
+                                {slotMeals.length >= 2 ? (
+                                  <button
+                                    aria-label={`Add ${type} meal`}
+                                    className={styles.slotAddIconBtn}
+                                    disabled={Boolean(draggedPayload) || isApplyingDrop}
+                                    onClick={() =>
+                                      onEdit(
+                                        createEmptyMeal(
+                                          new Date(day),
+                                          type,
+                                          mealTypes.find((definition) => definition.slug === type) ??
+                                            null
+                                        )
+                                      )
+                                    }
+                                    title="Add meal"
+                                    type="button"
+                                  >
+                                    +
+                                  </button>
+                                ) : (
+                                  <button
+                                    className={`${styles.slotAddMoreBtn} ${styles.emptySlotButton}`}
+                                    disabled={Boolean(draggedPayload) || isApplyingDrop}
+                                    onClick={() =>
+                                      onEdit(
+                                        createEmptyMeal(
+                                          new Date(day),
+                                          type,
+                                          mealTypes.find((definition) => definition.slug === type) ??
+                                            null
+                                        )
+                                      )
+                                    }
+                                    type="button"
+                                  >
+                                    <span className={styles.btnAddSlot}>+ Add</span>
+                                  </button>
+                                )}
+                                {slotMeals.length >= 2 ? (
+                                  <button
+                                    aria-label={`Manage ${type} meals`}
+                                    className={styles.slotManageIconBtn}
+                                    disabled={Boolean(draggedPayload) || isApplyingDrop}
+                                    onClick={() => onOpenSlotManager(day, type)}
+                                    type="button"
+                                  >
+                                    <svg
+                                      aria-hidden="true"
+                                      className={styles.slotManageIcon}
+                                      viewBox="0 0 24 24"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                      <path
+                                        d="M15.07 4a0.49 0.49 0 0 0 -0.36 -0.15 0.5 0.5 0 0 0 -0.35 0.14L3.44 14.91a0.5 0.5 0 0 0 0 0.71l4.94 4.94a0.51 0.51 0 0 0 0.36 0.15 0.49 0.49 0 0 0 0.35 -0.15L20 9.65a0.51 0.51 0 0 0 0 -0.71Z"
+                                        fill="currentColor"
+                                      />
+                                      <path
+                                        d="M2.43 16.8a0.51 0.51 0 0 0 -0.84 0.24L0.08 23.31a0.49 0.49 0 0 0 0.14 0.47 0.51 0.51 0 0 0 0.47 0.14L7 22.41a0.49 0.49 0 0 0 0.36 -0.35 0.52 0.52 0 0 0 -0.12 -0.49Z"
+                                        fill="currentColor"
+                                      />
+                                      <path
+                                        d="M23.2 2.92 21.08 0.8a2.52 2.52 0 0 0 -3.54 0l-1.41 1.42a0.48 0.48 0 0 0 0 0.7l4.95 5a0.48 0.48 0 0 0 0.7 0l1.42 -1.47a2.5 2.5 0 0 0 0 -3.53Z"
+                                        fill="currentColor"
+                                      />
+                                    </svg>
+                                  </button>
+                                ) : null}
+                                {slotMeals.length >= 2 ? (
+                                  <button
+                                    aria-label={`Drag ${type} slot`}
+                                    className={styles.slotDragHandleBtn}
+                                    draggable={!isApplyingDrop && !dragDisabled}
+                                    onDragEnd={scheduleClearDragState}
+                                    onDragStart={(event) =>
+                                      onDragStartSlot(event, slotMeals, day, type)
+                                    }
+                                    title="Drag entire slot"
+                                    type="button"
+                                  >
+                                    <span aria-hidden="true" className={styles.slotDragHandleGlyph}>
+                                      ::
+                                    </span>
+                                  </button>
+                                ) : null}
+                              </div>
                             </div>
                           )}
                         </div>

@@ -31,6 +31,7 @@ const SCHEMA_STATEMENTS = [
       "ingredientsJson" TEXT NOT NULL DEFAULT '[]',
       "description" TEXT,
       "instructionsJson" TEXT NOT NULL DEFAULT '[]',
+      "sortOrder" INTEGER NOT NULL DEFAULT 0,
       "servings" INTEGER NOT NULL DEFAULT 2,
       "prepTime" INTEGER,
       "cookTime" INTEGER,
@@ -41,6 +42,7 @@ const SCHEMA_STATEMENTS = [
     )
   `,
   `CREATE INDEX IF NOT EXISTS "Meal_date_idx" ON "Meal"("date")`,
+  `CREATE INDEX IF NOT EXISTS "Meal_date_mealType_sortOrder_idx" ON "Meal"("date", "mealType", "sortOrder")`,
   `CREATE INDEX IF NOT EXISTS "Meal_mealTypeDefinitionId_idx" ON "Meal"("mealTypeDefinitionId")`,
   `CREATE INDEX IF NOT EXISTS "Meal_cuisine_idx" ON "Meal"("cuisine")`,
   `CREATE INDEX IF NOT EXISTS "Meal_recipeId_idx" ON "Meal"("recipeId")`,
@@ -310,10 +312,152 @@ async function ensureMissingColumns(
 
     try {
       await prisma.$executeRawUnsafe(statement);
-    } catch {
-      // Ignore duplicate-column failures for already-migrated databases.
+      existingColumns.add(columnName);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (/duplicate column name/i.test(message)) {
+        existingColumns.add(columnName);
+        continue;
+      }
+
+      throw new Error(
+        `Failed to add missing column "${columnName}" on table "${tableName}": ${message}`
+      );
     }
   }
+
+  const refreshedRows = await prisma.$queryRawUnsafe<TableInfoRow[]>(
+    `PRAGMA table_info("${tableName}")`
+  );
+  const refreshedColumns = new Set(refreshedRows.map((column) => column.name));
+
+  const stillMissing = Object.keys(safeAlterStatements).filter(
+    (columnName) => !refreshedColumns.has(columnName)
+  );
+
+  if (stillMissing.length > 0) {
+    throw new Error(
+      `Schema reconciliation could not add required columns on table "${tableName}": ${stillMissing.join(
+        ", "
+      )}`
+    );
+  }
+}
+
+async function normalizeMealSortOrderValues() {
+  await prisma.$executeRawUnsafe(`
+    UPDATE "Meal"
+    SET "sortOrder" = 0
+    WHERE "sortOrder" IS NULL
+  `);
+
+  await prisma.$executeRawUnsafe(`
+    UPDATE "Meal"
+    SET "sortOrder" = CAST("sortOrder" AS INTEGER)
+    WHERE typeof("sortOrder") != 'integer'
+  `);
+}
+
+async function mealSortOrderColumnNeedsRepair() {
+  const rows = await prisma.$queryRawUnsafe<Array<{ sortOrder: unknown }>>(`
+    SELECT "sortOrder"
+    FROM "Meal"
+    LIMIT 1
+  `);
+
+  if (rows.length === 0) {
+    return false;
+  }
+
+  return rows[0]?.sortOrder === "sortOrder";
+}
+
+async function rebuildMealTable() {
+  await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Meal__legacy_sort_order_fix"`);
+  await prisma.$executeRawUnsafe(`DROP TABLE IF EXISTS "Meal__rebuild"`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "Meal" RENAME TO "Meal__legacy_sort_order_fix"`);
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE "Meal__rebuild" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "name" TEXT NOT NULL,
+      "date" DATETIME DEFAULT CURRENT_TIMESTAMP,
+      "mealType" TEXT NOT NULL,
+      "mealTypeDefinitionId" TEXT,
+      "notes" TEXT,
+      "ingredientsJson" TEXT NOT NULL DEFAULT '[]',
+      "description" TEXT,
+      "instructionsJson" TEXT NOT NULL DEFAULT '[]',
+      "sortOrder" INTEGER NOT NULL DEFAULT 0,
+      "servings" INTEGER NOT NULL DEFAULT 2,
+      "prepTime" INTEGER,
+      "cookTime" INTEGER,
+      "cuisine" TEXT,
+      "servingsOverride" INTEGER,
+      "recipeId" TEXT,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "Meal_mealTypeDefinitionId_fkey"
+        FOREIGN KEY ("mealTypeDefinitionId") REFERENCES "MealTypeDefinition" ("id")
+        ON DELETE SET NULL ON UPDATE CASCADE,
+      CONSTRAINT "Meal_recipeId_fkey"
+        FOREIGN KEY ("recipeId") REFERENCES "Recipe" ("id")
+        ON DELETE SET NULL ON UPDATE CASCADE
+    )
+  `);
+  await prisma.$executeRawUnsafe(`
+    INSERT INTO "Meal__rebuild" (
+      "id",
+      "name",
+      "date",
+      "mealType",
+      "mealTypeDefinitionId",
+      "notes",
+      "ingredientsJson",
+      "description",
+      "instructionsJson",
+      "sortOrder",
+      "servings",
+      "prepTime",
+      "cookTime",
+      "cuisine",
+      "servingsOverride",
+      "recipeId",
+      "createdAt"
+    )
+    SELECT
+      "id",
+      "name",
+      "date",
+      "mealType",
+      "mealTypeDefinitionId",
+      "notes",
+      COALESCE("ingredientsJson", '[]'),
+      "description",
+      COALESCE("instructionsJson", '[]'),
+      CASE
+        WHEN typeof("sortOrder") = 'integer' THEN "sortOrder"
+        WHEN typeof("sortOrder") = 'text' AND trim(CAST("sortOrder" AS TEXT)) GLOB '-?[0-9]*'
+          THEN CAST("sortOrder" AS INTEGER)
+        ELSE 0
+      END,
+      COALESCE("servings", 2),
+      "prepTime",
+      "cookTime",
+      "cuisine",
+      "servingsOverride",
+      "recipeId",
+      COALESCE("createdAt", CURRENT_TIMESTAMP)
+    FROM "Meal__legacy_sort_order_fix"
+  `);
+  await prisma.$executeRawUnsafe(`DROP TABLE "Meal__legacy_sort_order_fix"`);
+  await prisma.$executeRawUnsafe(`ALTER TABLE "Meal__rebuild" RENAME TO "Meal"`);
+}
+
+async function repairBrokenMealSortOrderColumn() {
+  if (!(await mealSortOrderColumnNeedsRepair())) {
+    return;
+  }
+
+  await rebuildMealTable();
 }
 
 async function reconcileRecipeIdentityColumns() {
@@ -394,6 +538,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
     mealTypeDefinitionId: `ALTER TABLE "Meal" ADD COLUMN "mealTypeDefinitionId" TEXT`,
     description: `ALTER TABLE "Meal" ADD COLUMN "description" TEXT`,
     instructionsJson: `ALTER TABLE "Meal" ADD COLUMN "instructionsJson" TEXT NOT NULL DEFAULT '[]'`,
+    sortOrder: `ALTER TABLE "Meal" ADD COLUMN "sortOrder" INTEGER NOT NULL DEFAULT 0`,
     servings: `ALTER TABLE "Meal" ADD COLUMN "servings" INTEGER NOT NULL DEFAULT 2`,
     prepTime: `ALTER TABLE "Meal" ADD COLUMN "prepTime" INTEGER`,
     cookTime: `ALTER TABLE "Meal" ADD COLUMN "cookTime" INTEGER`,
@@ -416,6 +561,8 @@ export async function ensureDatabaseSchema(): Promise<void> {
   await ensureMissingColumns("Meal", safeMealAlterStatements);
   await ensureMissingColumns("MealTypeProfile", safeMealTypeProfileAlterStatements);
   await ensureMissingColumns("Recipe", safeRecipeAlterStatements);
+  await repairBrokenMealSortOrderColumn();
+  await normalizeMealSortOrderValues();
   await reconcileRecipeIdentityColumns();
   await ensureRecipeIdentityIndexes();
 }

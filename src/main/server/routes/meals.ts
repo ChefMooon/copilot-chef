@@ -86,6 +86,7 @@ mealsRoutes.post("/meals", async (c) => {
       ...body,
       name: body?.name ?? body?.title,
       mealType: body?.mealType ?? body?.type,
+      sortOrder: typeof body?.sortOrder === "number" ? body.sortOrder : undefined,
       mealTypeDefinitionId:
         typeof body?.mealTypeDefinitionId === "string" ||
         body?.mealTypeDefinitionId === null
@@ -114,12 +115,104 @@ mealsRoutes.post("/meals", async (c) => {
   }
 });
 
+mealsRoutes.patch("/meals/reorder", async (c) => {
+  try {
+    const body = await c.req.json();
+
+    if (
+      typeof body?.date !== "string" ||
+      typeof body?.mealType !== "string" ||
+      !Array.isArray(body?.orderedIds)
+    ) {
+      return c.json(
+        { error: "date, mealType, and orderedIds are required" },
+        400
+      );
+    }
+
+    const data = await mealService.reorderSlotMeals(
+      body.date,
+      body.mealType,
+      body.orderedIds
+    );
+
+    return c.json({ data: { updated: data.length, meals: data } });
+  } catch (error) {
+    return c.json(
+      { error: error instanceof Error ? error.message : "Unable to reorder meals" },
+      400
+    );
+  }
+});
+
+mealsRoutes.patch("/meals/slot-batch", async (c) => {
+  try {
+    const body = await c.req.json();
+
+    const action = body?.action;
+    const source = body?.source;
+    const target = body?.target;
+
+    if (
+      (action !== "move" && action !== "swap") ||
+      typeof source?.date !== "string" ||
+      typeof source?.mealType !== "string" ||
+      typeof target?.date !== "string" ||
+      typeof target?.mealType !== "string"
+    ) {
+      return c.json(
+        {
+          error:
+            "action, source.date, source.mealType, target.date, and target.mealType are required",
+        },
+        400
+      );
+    }
+
+    const data = await mealService.applySlotBatchAction({
+      action,
+      sourceDate: source.date,
+      sourceMealType: source.mealType,
+      sourceMealTypeDefinitionId:
+        typeof source?.mealTypeDefinitionId === "string" ||
+        source?.mealTypeDefinitionId === null
+          ? source.mealTypeDefinitionId
+          : undefined,
+      targetDate: target.date,
+      targetMealType: target.mealType,
+      targetMealTypeDefinitionId:
+        typeof target?.mealTypeDefinitionId === "string" ||
+        target?.mealTypeDefinitionId === null
+          ? target.mealTypeDefinitionId
+          : undefined,
+    });
+
+    return c.json({
+      data: {
+        action: data.action,
+        sourceCount: data.sourceMeals.length,
+        targetCount: data.targetMeals.length,
+        movedCount: data.movedCount,
+      },
+    });
+  } catch (error) {
+    return c.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Unable to process slot batch action",
+      },
+      400
+    );
+  }
+});
+
 mealsRoutes.patch("/meals/:id", async (c) => {
   try {
     const id = c.req.param("id");
     const body = await c.req.json();
     const data = await mealService.updateMeal(id, {
       ...body,
+      sortOrder: typeof body?.sortOrder === "number" ? body.sortOrder : undefined,
       mealTypeDefinitionId:
         typeof body?.mealTypeDefinitionId === "string" ||
         body?.mealTypeDefinitionId === null

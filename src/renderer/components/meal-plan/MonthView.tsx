@@ -2,6 +2,7 @@ import { useEffect, useState, type MouseEvent } from "react";
 
 import {
   buildMonthCellAriaLabel,
+  createEmptyMeal,
   createMealSlots,
   formatMealTypeProfileRange,
   getMealTypeProfileContext,
@@ -86,8 +87,8 @@ export function MonthView({
     ? getMealTypeProfileContext(popover.date, mealTypeProfiles)
     : null;
   const popoverMeals = popover ? mealsForDay(meals, popover.date, popoverMealTypes) : [];
-  const popoverVisibleMealTypes = popover
-    ? createMealSlots(meals, popover.date, popoverMealTypes).map((slot) => slot.type)
+  const popoverSlots = popover
+    ? createMealSlots(meals, popover.date, popoverMealTypes)
     : [];
 
   return (
@@ -225,62 +226,77 @@ export function MonthView({
                 x
               </button>
             </div>
-            {popoverProfileContext ? (
-              <div className={styles.popoverMealTypes}>
-                {popoverVisibleMealTypes.map((type) => {
-                  const typeConfig = getTypeConfig(type, popoverProfileContext.mealTypes);
-
-                  return (
-                    <span
-                      className={styles.popoverMealTypeChip}
-                      key={type}
-                      style={{ borderColor: typeConfig.dot, color: typeConfig.text }}
-                    >
-                      {typeConfig.label}
-                    </span>
-                  );
-                })}
-              </div>
-            ) : null}
             <div className={styles.popoverMeals}>
               {popoverMeals.length === 0 ? (
                 <div className={styles.popoverEmptyState}>No meals planned.</div>
-              ) : (
-                popoverMeals.map((meal) => {
-                  const typeConfig = getTypeConfig(meal.type, popoverMealTypes);
-                  return (
-                    <button
-                      className={styles.popoverMealRow}
-                      key={
-                        meal.id ||
-                        `${meal.type}-${meal.date.toISOString()}-${meal.name}`
-                      }
-                      onClick={() => {
-                        onEdit(meal);
-                        setPopover(null);
-                      }}
-                      type="button"
-                    >
+              ) : null}
+              {popoverSlots.map((slot) => {
+                const typeConfig = getTypeConfig(slot.type, popoverMealTypes);
+
+                return (
+                  <section className={styles.popoverMealGroup} key={slot.type}>
+                    <div className={styles.popoverMealGroupHeader}>
                       <span
-                        className={styles.popoverDot}
-                        style={{ background: typeConfig.dot }}
-                      />
-                      <div className={styles.popoverMealInfo}>
-                        <span className={styles.popoverMealName}>
-                          {meal.name}
-                        </span>
-                        <span
-                          className={styles.popoverMealType}
-                          style={{ color: typeConfig.text }}
+                        className={styles.popoverMealTypeChip}
+                        style={{ borderColor: typeConfig.dot, color: typeConfig.text }}
+                      >
+                        {typeConfig.label}
+                      </span>
+                      <button
+                        className={styles.slotAddMoreBtn}
+                        onClick={() => {
+                          onEdit(
+                            createEmptyMeal(
+                              new Date(popover.date),
+                              slot.type,
+                              popoverMealTypes.find(
+                                (definition) => definition.slug === slot.type
+                              ) ?? null
+                            )
+                          );
+                          setPopover(null);
+                        }}
+                        type="button"
+                      >
+                        + Add {typeConfig.label}
+                      </button>
+                    </div>
+                    {slot.meals.length === 0 ? (
+                      <div className={styles.popoverGroupEmpty}>No meal planned.</div>
+                    ) : (
+                      slot.meals.map((meal) => (
+                        <button
+                          className={styles.popoverMealRow}
+                          key={
+                            meal.id ||
+                            `${meal.type}-${meal.date.toISOString()}-${meal.name}`
+                          }
+                          onClick={() => {
+                            onEdit(meal);
+                            setPopover(null);
+                          }}
+                          type="button"
                         >
-                          {typeConfig.label}
-                        </span>
-                      </div>
-                      <span className={styles.popoverEditHint}>Edit -&gt;</span>
-                    </button>
-                  );
-                })
-              )}
+                          <span
+                            className={styles.popoverDot}
+                            style={{ background: typeConfig.dot }}
+                          />
+                          <div className={styles.popoverMealInfo}>
+                            <span className={styles.popoverMealName}>{meal.name}</span>
+                            <span
+                              className={styles.popoverMealType}
+                              style={{ color: typeConfig.text }}
+                            >
+                              {typeConfig.label}
+                            </span>
+                          </div>
+                          <span className={styles.popoverEditHint}>Edit -&gt;</span>
+                        </button>
+                      ))
+                    )}
+                  </section>
+                );
+              })}
             </div>
           </div>
         </>

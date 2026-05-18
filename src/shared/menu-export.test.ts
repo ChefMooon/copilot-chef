@@ -13,6 +13,7 @@ const meal: MealPayload = {
   name: "Tomato Soup",
   date: "2026-04-01T12:00:00.000Z",
   mealType: "DINNER",
+  sortOrder: 0,
   mealTypeDefinitionId: "dinner",
   mealTypeDefinition: {
     id: "dinner",

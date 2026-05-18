@@ -19,6 +19,7 @@ model Meal {
   ingredientsJson      String              @default("[]")
   description          String?
   instructionsJson     String              @default("[]")
+  sortOrder            Int                 @default(0)
   servings             Int                 @default(2)
   prepTime             Int?
   cookTime             Int?
@@ -29,6 +30,7 @@ model Meal {
   createdAt            DateTime            @default(now())
 
   @@index([date])
+  @@index([date, mealType, sortOrder])
   @@index([mealTypeDefinitionId])
   @@index([cuisine])
   @@index([recipeId])

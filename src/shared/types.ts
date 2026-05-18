@@ -118,6 +118,7 @@ export type MealPayload = {
   name: string;
   date: string | null;
   mealType: string;
+  sortOrder: number;
   mealTypeDefinitionId: string | null;
   mealTypeDefinition: MealTypeDefinitionPayload | null;
   notes: string | null;

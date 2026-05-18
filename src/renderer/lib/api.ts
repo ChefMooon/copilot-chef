@@ -176,6 +176,51 @@ export async function fetchJson<T>(
   return response.json() as Promise<T>;
 }
 
+export async function reorderSlotMeals(
+  date: string,
+  mealType: string,
+  orderedIds: string[]
+) {
+  const response = await fetchJson<{
+    data: { updated: number; meals: Array<{ id: string }> };
+  }>("/api/meals/reorder", {
+    method: "PATCH",
+    body: JSON.stringify({ date, mealType, orderedIds }),
+  });
+
+  return response.data;
+}
+
+export type SlotBatchActionInput = {
+  action: "move" | "swap";
+  source: {
+    date: string;
+    mealType: string;
+    mealTypeDefinitionId?: string | null;
+  };
+  target: {
+    date: string;
+    mealType: string;
+    mealTypeDefinitionId?: string | null;
+  };
+};
+
+export async function applySlotBatchAction(input: SlotBatchActionInput) {
+  const response = await fetchJson<{
+    data: {
+      action: "move" | "swap";
+      sourceCount: number;
+      targetCount: number;
+      movedCount: number;
+    };
+  }>("/api/meals/slot-batch", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+
+  return response.data;
+}
+
 export async function getPreferences() {
   const response = await fetchJson<{ data: SettingsPreferences }>(
     "/api/preferences"

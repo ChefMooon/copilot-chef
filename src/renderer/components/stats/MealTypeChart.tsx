@@ -12,7 +12,7 @@ import {
 } from "recharts";
 
 type Props = {
-  data: { mealType: string; count: number }[];
+  data: { mealType: string; slotCount: number }[];
 };
 
 const COLORS = [
@@ -64,7 +64,7 @@ export function MealTypeChart({ data }: Props) {
               background: "#fffdf8",
             }}
           />
-          <Bar dataKey="count" name="Meals" radius={[0, 3, 3, 0]}>
+          <Bar dataKey="slotCount" name="Meals" radius={[0, 3, 3, 0]}>
             {data.map((_, index) => (
               <Cell
                 fill={COLORS[index % COLORS.length]}
