@@ -81,6 +81,7 @@
     "dev": "node scripts/ensure-electron-install.mjs && npm run build:web && electron-vite dev",
     "prebuild": "npm run db:generate",
     "build": "npm run build:web && electron-vite build",
+    "analyze:bundle": "npm run build:web && electron-vite build && node scripts/report-bundle-sizes.mjs",
     "build:web": "vite build --config vite.web.config.ts",
     "dev:web": "vite --config vite.web.config.ts --host 127.0.0.1",
     "start": "electron-vite preview",

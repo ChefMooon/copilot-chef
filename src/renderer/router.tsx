@@ -1,17 +1,33 @@
+import { Suspense, lazy } from "react";
 import { createBrowserRouter, createHashRouter } from "react-router";
 
 import { AppLayout } from "./app";
-import HomePage from "./pages/home";
-import MealPlanPage from "./pages/meal-plan";
-import GroceryListPage from "./pages/grocery-list";
-import ShoppingPage from "./pages/grocery-list/shop";
-import RecipesPage from "./pages/recipes";
-import RecipeDetailPage from "./pages/recipes/detail";
-import StatsPage from "./pages/stats";
-import SettingsPage from "./pages/settings";
-import ConnectPage from "./pages/connect";
 import { RouteErrorBoundary } from "./components/layout/route-error-boundary";
 import { getPlatform } from "./lib/platform";
+
+const HomePage = lazy(() => import("./pages/home"));
+const MealPlanPage = lazy(() => import("./pages/meal-plan"));
+const GroceryListPage = lazy(() => import("./pages/grocery-list"));
+const ShoppingPage = lazy(() => import("./pages/grocery-list/shop"));
+const RecipesPage = lazy(() => import("./pages/recipes"));
+const RecipeDetailPage = lazy(() => import("./pages/recipes/detail"));
+const StatsPage = lazy(() => import("./pages/stats"));
+const SettingsPage = lazy(() => import("./pages/settings"));
+const ConnectPage = lazy(() => import("./pages/connect"));
+
+function withRouteFallback(element: React.ReactNode) {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-4 md:p-6">
+          <p className="text-sm text-text-muted">Loading page...</p>
+        </div>
+      }
+    >
+      {element}
+    </Suspense>
+  );
+}
 
 const routes = [
   {
@@ -19,15 +35,24 @@ const routes = [
     element: <AppLayout />,
     errorElement: <RouteErrorBoundary />,
     children: [
-      { index: true, element: <HomePage /> },
-      { path: "meal-plan", element: <MealPlanPage /> },
-      { path: "grocery-list", element: <GroceryListPage /> },
-      { path: "grocery-list/shop/:id", element: <ShoppingPage /> },
-      { path: "recipes", element: <RecipesPage /> },
-      { path: "recipes/:recipeId", element: <RecipeDetailPage /> },
-      { path: "stats", element: <StatsPage /> },
-      { path: "settings", element: <SettingsPage /> },
-      { path: "connect", element: <ConnectPage /> },
+      { index: true, element: withRouteFallback(<HomePage />) },
+      { path: "meal-plan", element: withRouteFallback(<MealPlanPage />) },
+      {
+        path: "grocery-list",
+        element: withRouteFallback(<GroceryListPage />),
+      },
+      {
+        path: "grocery-list/shop/:id",
+        element: withRouteFallback(<ShoppingPage />),
+      },
+      { path: "recipes", element: withRouteFallback(<RecipesPage />) },
+      {
+        path: "recipes/:recipeId",
+        element: withRouteFallback(<RecipeDetailPage />),
+      },
+      { path: "stats", element: withRouteFallback(<StatsPage />) },
+      { path: "settings", element: withRouteFallback(<SettingsPage />) },
+      { path: "connect", element: withRouteFallback(<ConnectPage />) },
     ],
   },
 ];

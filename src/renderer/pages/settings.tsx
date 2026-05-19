@@ -1,5 +1,7 @@
 import {
+  Suspense,
   useEffect,
+  lazy,
   useMemo,
   useRef,
   useState,
@@ -7,9 +9,7 @@ import {
 } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { PersonaModal } from "@/components/settings/PersonaModal";
 import { MealTypesSection } from "@/components/settings/MealTypesSection";
-import { LanQrCodeModal } from "@/components/settings/LanQrCodeModal";
 
 import { ChipList } from "@/components/settings/ChipList";
 import { CollapsibleSection } from "@/components/settings/CollapsibleSection";
@@ -218,6 +218,16 @@ const homeUpcomingDetailOptions = [
 ];
 
 const platform = getPlatform();
+
+const PersonaModal = lazy(async () => {
+  const module = await import("@/components/settings/PersonaModal");
+  return { default: module.PersonaModal };
+});
+
+const LanQrCodeModal = lazy(async () => {
+  const module = await import("@/components/settings/LanQrCodeModal");
+  return { default: module.LanQrCodeModal };
+});
 
 type TabId = "dietary-profile" | "meal-plans" | "your-chef" | "app-settings";
 
@@ -1744,13 +1754,15 @@ export default function SettingsPage() {
                 browserConnectionUrl &&
                 lanStatus?.api.url &&
                 lanStatus?.web.url ? (
-                  <LanQrCodeModal
-                    apiUrl={lanStatus.api.url}
-                    browserUrl={lanStatus.web.url}
-                    connectionUrl={browserConnectionUrl}
-                    onClose={() => setLanQrModalOpen(false)}
-                    onCopied={() => toast({ title: "Connection link copied." })}
-                  />
+                  <Suspense fallback={null}>
+                    <LanQrCodeModal
+                      apiUrl={lanStatus.api.url}
+                      browserUrl={lanStatus.web.url}
+                      connectionUrl={browserConnectionUrl}
+                      onClose={() => setLanQrModalOpen(false)}
+                      onCopied={() => toast({ title: "Connection link copied." })}
+                    />
+                  </Suspense>
                 ) : null}
               </div>
             )}
@@ -2190,20 +2202,22 @@ export default function SettingsPage() {
       </div>
 
       {personaModalState.open && (
-        <PersonaModal
-          modalMode={
-            personaModalState.mode === "create"
-              ? { mode: "create" }
-              : { mode: "edit", persona: personaModalState.persona }
-          }
-          onClose={() => setPersonaModalState({ open: false })}
-          onDelete={
-            personaModalState.mode === "edit"
-              ? (id) => handlePersonaDelete(id)
-              : undefined
-          }
-          onSave={(input) => handlePersonaModalSave(input)}
-        />
+        <Suspense fallback={null}>
+          <PersonaModal
+            modalMode={
+              personaModalState.mode === "create"
+                ? { mode: "create" }
+                : { mode: "edit", persona: personaModalState.persona }
+            }
+            onClose={() => setPersonaModalState({ open: false })}
+            onDelete={
+              personaModalState.mode === "edit"
+                ? (id) => handlePersonaDelete(id)
+                : undefined
+            }
+            onSave={(input) => handlePersonaModalSave(input)}
+          />
+        </Suspense>
       )}
     </div>
   );

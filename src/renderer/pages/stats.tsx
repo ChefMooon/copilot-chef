@@ -1,12 +1,15 @@
+import { Suspense, lazy } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { fetchJson } from "@/lib/api";
 import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
-import {
-  StatsDashboard,
-  type StatsPayload,
-} from "@/components/stats/StatsDashboard";
+import { type StatsPayload } from "@/components/stats/StatsDashboard";
+
+const StatsDashboard = lazy(async () => {
+  const module = await import("@/components/stats/StatsDashboard");
+  return { default: module.StatsDashboard };
+});
 
 export default function StatsPage() {
   const config = useServerConfig();
@@ -38,7 +41,11 @@ export default function StatsPage() {
 
   return (
     <div className="p-4 md:p-6">
-      <StatsDashboard stats={statsQuery.data} />
+      <Suspense
+        fallback={<p className="text-sm text-text-muted">Loading charts...</p>}
+      >
+        <StatsDashboard stats={statsQuery.data} />
+      </Suspense>
     </div>
   );
 }

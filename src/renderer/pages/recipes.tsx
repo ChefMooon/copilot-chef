@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Suspense, lazy, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -15,10 +15,7 @@ import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
 import { recipeKeys } from "@/lib/query-keys";
 
-import { AddRecipeModal } from "@/components/recipes/AddRecipeModal";
 import { RecipeDeleteDialog } from "@/components/recipes/RecipeDeleteDialog";
-import { IngestModal } from "@/components/recipes/IngestModal";
-import { RecipeExportModal } from "@/components/recipes/RecipeExportModal";
 import { RecipeFilterSidebar } from "@/components/recipes/RecipeFilterSidebar";
 import { RecipeGrid } from "@/components/recipes/RecipeGrid";
 import { useToast } from "@/components/providers/toast-provider";
@@ -27,6 +24,21 @@ import { useChatPageContext } from "@/context/chat-context";
 import { getCuisineLabel } from "@shared/api/constants";
 
 const recipesKey = recipeKeys.all;
+
+const AddRecipeModal = lazy(async () => {
+  const module = await import("@/components/recipes/AddRecipeModal");
+  return { default: module.AddRecipeModal };
+});
+
+const IngestModal = lazy(async () => {
+  const module = await import("@/components/recipes/IngestModal");
+  return { default: module.IngestModal };
+});
+
+const RecipeExportModal = lazy(async () => {
+  const module = await import("@/components/recipes/RecipeExportModal");
+  return { default: module.RecipeExportModal };
+});
 
 function downloadJson(data: unknown, fileName: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -382,49 +394,57 @@ export default function RecipesPage() {
         )}
       </div>
 
-      <AddRecipeModal
-        key={editingRecipe?.id ?? "new-recipe"}
-        initialRecipe={editingRecipe}
-        isSaving={createMutation.isPending || updateMutation.isPending}
-        onClose={() => {
-          if (createMutation.isPending || updateMutation.isPending) {
-            return;
-          }
-          setShowAddModal(false);
-          setEditingRecipe(null);
-          setRecipeEditorDraft(null);
-        }}
-        onDraftContextChange={setRecipeEditorDraft}
-        onSave={handleSaveRecipe}
-        open={showAddModal}
-      />
+      {showAddModal ? (
+        <Suspense fallback={null}>
+          <AddRecipeModal
+            key={editingRecipe?.id ?? "new-recipe"}
+            initialRecipe={editingRecipe}
+            isSaving={createMutation.isPending || updateMutation.isPending}
+            onClose={() => {
+              if (createMutation.isPending || updateMutation.isPending) {
+                return;
+              }
+              setShowAddModal(false);
+              setEditingRecipe(null);
+              setRecipeEditorDraft(null);
+            }}
+            onDraftContextChange={setRecipeEditorDraft}
+            onSave={handleSaveRecipe}
+            open={showAddModal}
+          />
+        </Suspense>
+      ) : null}
 
       {showIngest ? (
-        <IngestModal
-          onClose={() => setShowIngest(false)}
-          onDraft={async (draft) => {
-            if (!draft.duplicate) {
-              await confirmIngestMutation.mutateAsync(draft.recipe);
-            }
-            setShowIngest(false);
-          }}
-        />
+        <Suspense fallback={null}>
+          <IngestModal
+            onClose={() => setShowIngest(false)}
+            onDraft={async (draft) => {
+              if (!draft.duplicate) {
+                await confirmIngestMutation.mutateAsync(draft.recipe);
+              }
+              setShowIngest(false);
+            }}
+          />
+        </Suspense>
       ) : null}
 
       {showExportModal ? (
-        <RecipeExportModal
-          isExporting={isExporting}
-          onClose={() => {
-            if (isExporting) {
-              return;
-            }
-            setShowExportModal(false);
-          }}
-          onExportAll={() => void handleExportRequest("all")}
-          onExportSelected={() => void handleExportRequest("selected")}
-          selectedCount={selectedCount}
-          totalRecipes={totalRecipes}
-        />
+        <Suspense fallback={null}>
+          <RecipeExportModal
+            isExporting={isExporting}
+            onClose={() => {
+              if (isExporting) {
+                return;
+              }
+              setShowExportModal(false);
+            }}
+            onExportAll={() => void handleExportRequest("all")}
+            onExportSelected={() => void handleExportRequest("selected")}
+            selectedCount={selectedCount}
+            totalRecipes={totalRecipes}
+          />
+        </Suspense>
       ) : null}
 
       <RecipeDeleteDialog

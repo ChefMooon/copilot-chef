@@ -1,14 +1,24 @@
+import { Suspense, lazy } from "react";
+
 import { useChatContext } from "@/context/chat-context";
 
-import { ChatPanel } from "./ChatPanel";
 import styles from "./ChatWidget.module.css";
+
+const ChatPanel = lazy(async () => {
+  const module = await import("./ChatPanel");
+  return { default: module.ChatPanel };
+});
 
 export function ChatWidget() {
   const { isOpen, openChat } = useChatContext();
 
   return (
     <>
-      {isOpen ? <ChatPanel /> : null}
+      {isOpen ? (
+        <Suspense fallback={null}>
+          <ChatPanel />
+        </Suspense>
+      ) : null}
       {!isOpen && (
         <button
           aria-label="Open Copilot Chef chat"

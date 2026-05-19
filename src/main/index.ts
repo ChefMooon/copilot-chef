@@ -174,11 +174,13 @@ app.whenReady().then(async () => {
       console.info(
         `[copilot-chef] server started on ${serverInfo.url} (bind ${serverInfo.bindHost}:${serverInfo.port})`
       );
-      const staticInfo = await startStaticWebServer();
-      if (staticInfo?.running) {
-        console.info(
-          `[copilot-chef] browser UI started on ${staticInfo.url} (bind ${staticInfo.bindHost}:${staticInfo.port})`
-        );
+      if (getSetting("lan_web_enabled") === true) {
+        const staticInfo = await startStaticWebServer();
+        if (staticInfo?.running) {
+          console.info(
+            `[copilot-chef] browser UI started on ${staticInfo.url} (bind ${staticInfo.bindHost}:${staticInfo.port})`
+          );
+        }
       }
     } catch (err) {
       console.error("[copilot-chef] server startup failed:", err);
