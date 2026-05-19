@@ -172,8 +172,55 @@ const sampleMeals: EditableMeal[] = [
   },
 ];
 
+const denseMonthMeals: EditableMeal[] = Array.from({ length: 21 }, (_, index) => ({
+  id: `dense-meal-${index + 1}`,
+  name: `Dense Meal ${index + 1}`,
+  date: new Date("2026-04-22T12:00:00"),
+  type: "breakfast",
+  mealTypeDefinitionId: "filtered-breakfast",
+  mealTypeDefinition: filteredProfile.mealTypes[0],
+  notes: "",
+  ingredients: [],
+  description: "",
+  instructions: [],
+  servings: 1,
+  prepTime: null,
+  cookTime: null,
+  servingsOverride: null,
+  recipeId: null,
+  linkedRecipe: null,
+}));
+
+const makeRect = ({
+  left,
+  top,
+  width,
+  height,
+}: {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}): DOMRect => {
+  const right = left + width;
+  const bottom = top + height;
+
+  return {
+    x: left,
+    y: top,
+    left,
+    top,
+    right,
+    bottom,
+    width,
+    height,
+    toJSON: () => ({}),
+  } as DOMRect;
+};
+
 describe("profile-aware meal plan views", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     cleanup();
   });
 
@@ -248,6 +295,80 @@ describe("profile-aware meal plan views", () => {
     expect(screen.queryByText("Lunch")).toBeNull();
   });
 
+  it("repositions month popover above and clamps to viewport edges on small windows", () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 320,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 240,
+    });
+
+    const { container } = render(
+      <MonthView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[filteredProfile]}
+        setDate={vi.fn()}
+        onEdit={vi.fn()}
+      />
+    );
+
+    const dayButton = screen.getByRole("button", {
+      name: /Wednesday, April 22.*Active profile Filtered.*No meals planned\./i,
+    });
+
+    vi.spyOn(dayButton, "getBoundingClientRect").mockReturnValue(
+      makeRect({ left: 300, top: 210, width: 20, height: 20 })
+    );
+
+    fireEvent.click(dayButton);
+
+    const popover = container.querySelector(`.${styles.monthPopover}`) as HTMLElement;
+
+    expect(popover).toBeTruthy();
+    expect(popover.style.left).toBe("68px");
+    expect(popover.style.top).toBe("12px");
+  });
+
+  it("keeps month popover below the trigger when there is enough space", () => {
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 1200,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 900,
+    });
+
+    const { container } = render(
+      <MonthView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[filteredProfile]}
+        setDate={vi.fn()}
+        onEdit={vi.fn()}
+      />
+    );
+
+    const dayButton = screen.getByRole("button", {
+      name: /Wednesday, April 22.*Active profile Filtered.*No meals planned\./i,
+    });
+
+    vi.spyOn(dayButton, "getBoundingClientRect").mockReturnValue(
+      makeRect({ left: 120, top: 240, width: 30, height: 30 })
+    );
+
+    fireEvent.click(dayButton);
+
+    const popover = container.querySelector(`.${styles.monthPopover}`) as HTMLElement;
+
+    expect(popover).toBeTruthy();
+    expect(popover.style.left).toBe("120px");
+    expect(popover.style.top).toBe("278px");
+  });
+
   it("keeps disabled meal type chips visible in month popover when meals exist in that type", () => {
     render(
       <MonthView
@@ -267,6 +388,89 @@ describe("profile-aware meal plan views", () => {
 
     expect(screen.getAllByText("Lunch").length).toBeGreaterThan(0);
     expect(screen.getByText("Leftover Lunch")).toBeTruthy();
+  });
+
+  it("shows always-visible Open Day and Open Week actions in month popover", () => {
+    render(
+      <MonthView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[filteredProfile]}
+        setDate={vi.fn()}
+        onEdit={vi.fn()}
+      />
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Wednesday, April 22.*Active profile Filtered.*No meals planned\./i,
+      })
+    );
+
+    expect(screen.getByRole("button", { name: /Open Day/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Open Week/i })).toBeTruthy();
+  });
+
+  it("opens day view from month popover with selected date", () => {
+    const setDate = vi.fn();
+    const onRequestDayView = vi.fn();
+
+    render(
+      <MonthView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={denseMonthMeals}
+        mealTypeProfiles={[filteredProfile]}
+        setDate={setDate}
+        onRequestDayView={onRequestDayView}
+        onEdit={vi.fn()}
+      />
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Wednesday, April 22.*Active profile Filtered.*21 meals planned\./i,
+      })
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Open Day/i }));
+
+    expect(onRequestDayView).toHaveBeenCalledTimes(1);
+    expect(setDate).toHaveBeenCalledTimes(1);
+
+    const nextDate = setDate.mock.calls[0]?.[0] as Date;
+    expect(nextDate).toBeInstanceOf(Date);
+    expect(nextDate.toISOString()).toContain("2026-04-22");
+  });
+
+  it("opens week view from month popover with selected date", () => {
+    const setDate = vi.fn();
+    const onRequestWeekView = vi.fn();
+
+    render(
+      <MonthView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={denseMonthMeals}
+        mealTypeProfiles={[filteredProfile]}
+        setDate={setDate}
+        onRequestWeekView={onRequestWeekView}
+        onEdit={vi.fn()}
+      />
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Wednesday, April 22.*Active profile Filtered.*21 meals planned\./i,
+      })
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Open Week/i }));
+
+    expect(onRequestWeekView).toHaveBeenCalledTimes(1);
+    expect(setDate).toHaveBeenCalledTimes(1);
+
+    const nextDate = setDate.mock.calls[0]?.[0] as Date;
+    expect(nextDate).toBeInstanceOf(Date);
+    expect(nextDate.toISOString()).toContain("2026-04-22");
   });
 
   it("dims non-matching month cells when a profile is focused", () => {

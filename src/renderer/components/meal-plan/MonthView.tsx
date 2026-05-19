@@ -1,4 +1,4 @@
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 
 import {
   buildMonthCellAriaLabel,
@@ -23,14 +23,24 @@ type MonthViewProps = {
   mealTypeProfiles: MealTypeProfilePayload[];
   highlightedProfileId?: string | null;
   setDate: (date: Date) => void;
+  onRequestDayView?: () => void;
+  onRequestWeekView?: () => void;
   onEdit: (meal: EditableMeal) => void;
 };
 
 type PopoverState = {
   date: Date;
-  x: number;
-  y: number;
+  anchor: {
+    left: number;
+    top: number;
+    bottom: number;
+  };
 };
+
+const POPOVER_VIEWPORT_PADDING = 12;
+const POPOVER_TRIGGER_SPACING = 8;
+const POPOVER_FALLBACK_WIDTH = 240;
+const POPOVER_FALLBACK_HEIGHT = 320;
 
 export function MonthView({
   date,
@@ -38,9 +48,16 @@ export function MonthView({
   mealTypeProfiles,
   highlightedProfileId,
   setDate,
+  onRequestDayView,
+  onRequestWeekView,
   onEdit,
 }: MonthViewProps) {
   const [popover, setPopover] = useState<PopoverState | null>(null);
+  const [popoverPosition, setPopoverPosition] = useState<{
+    left: number;
+    top: number;
+  } | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
 
   const year = date.getFullYear();
   const month = date.getMonth();
@@ -65,8 +82,73 @@ export function MonthView({
 
   const handleDayClick = (event: MouseEvent<HTMLButtonElement>, day: Date) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    setPopover({ date: day, x: rect.left, y: rect.bottom + 8 });
+    setPopover({
+      date: day,
+      anchor: {
+        left: rect.left,
+        top: rect.top,
+        bottom: rect.bottom,
+      },
+    });
   };
+
+  useLayoutEffect(() => {
+    if (!popover) {
+      setPopoverPosition(null);
+      return;
+    }
+
+    const reposition = () => {
+      const panelRect = popoverRef.current?.getBoundingClientRect();
+      const panelWidth =
+        panelRect?.width && panelRect.width > 0
+          ? panelRect.width
+          : POPOVER_FALLBACK_WIDTH;
+      const panelHeight =
+        panelRect?.height && panelRect.height > 0
+          ? panelRect.height
+          : POPOVER_FALLBACK_HEIGHT;
+
+      const minLeft = POPOVER_VIEWPORT_PADDING;
+      const maxLeft = Math.max(
+        minLeft,
+        window.innerWidth - panelWidth - POPOVER_VIEWPORT_PADDING
+      );
+      const minTop = POPOVER_VIEWPORT_PADDING;
+      const maxTop = Math.max(
+        minTop,
+        window.innerHeight - panelHeight - POPOVER_VIEWPORT_PADDING
+      );
+
+      const belowTop = popover.anchor.bottom + POPOVER_TRIGGER_SPACING;
+      const aboveTop = popover.anchor.top - panelHeight - POPOVER_TRIGGER_SPACING;
+
+      const canFitBelow = belowTop <= maxTop;
+      const canFitAbove = aboveTop >= minTop;
+
+      let preferredTop = belowTop;
+
+      if (!canFitBelow && canFitAbove) {
+        preferredTop = aboveTop;
+      } else if (!canFitBelow && !canFitAbove) {
+        const belowOverflow = belowTop - maxTop;
+        const aboveOverflow = minTop - aboveTop;
+        preferredTop = belowOverflow <= aboveOverflow ? belowTop : aboveTop;
+      }
+
+      const nextLeft = Math.min(Math.max(popover.anchor.left, minLeft), maxLeft);
+      const nextTop = Math.min(Math.max(preferredTop, minTop), maxTop);
+
+      setPopoverPosition({ left: nextLeft, top: nextTop });
+    };
+
+    reposition();
+    window.addEventListener("resize", reposition);
+
+    return () => {
+      window.removeEventListener("resize", reposition);
+    };
+  }, [popover]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -90,6 +172,26 @@ export function MonthView({
   const popoverSlots = popover
     ? createMealSlots(meals, popover.date, popoverMealTypes)
     : [];
+
+  const openDayViewFromPopover = () => {
+    if (!popover) {
+      return;
+    }
+
+    setDate(new Date(popover.date));
+    onRequestDayView?.();
+    setPopover(null);
+  };
+
+  const openWeekViewFromPopover = () => {
+    if (!popover) {
+      return;
+    }
+
+    setDate(new Date(popover.date));
+    onRequestWeekView?.();
+    setPopover(null);
+  };
 
   return (
     <div className={styles.monthView}>
@@ -180,51 +282,80 @@ export function MonthView({
           />
           <div
             className={styles.monthPopover}
+            role="dialog"
+            aria-modal="false"
+            aria-label="Month day meals"
+            ref={popoverRef}
             style={{
-              top: Math.min(popover.y, window.innerHeight - 320),
-              left: Math.min(popover.x, window.innerWidth - 260),
+              top:
+                popoverPosition?.top ??
+                popover.anchor.bottom + POPOVER_TRIGGER_SPACING,
+              left: popoverPosition?.left ?? popover.anchor.left,
             }}
           >
             <div className={styles.popoverHeader}>
-              <div className={styles.popoverHeaderBody}>
-                <span className={styles.popoverDate}>
-                  {popover.date.toLocaleDateString("default", {
-                    weekday: "long",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </span>
-                {popoverProfileContext ? (
-                  <div className={styles.popoverProfileSummary}>
-                    <span
-                      className={styles.popoverProfileChip}
-                      style={{
-                        borderColor: popoverProfileContext.accentColor,
-                        color: popoverProfileContext.accentColor,
-                      }}
-                    >
-                      {popoverProfileContext.profile.name}
-                    </span>
-                    {popoverProfileContext.rangeLabel ? (
-                      <span className={styles.popoverProfileRange}>
-                        {formatMealTypeProfileRange(popoverProfileContext.profile)}
+              <div className={styles.popoverHeaderTopRow}>
+                <div className={styles.popoverHeaderBody}>
+                  <span className={styles.popoverDate}>
+                    {popover.date.toLocaleDateString("default", {
+                      weekday: "long",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </span>
+                  {popoverProfileContext ? (
+                    <div className={styles.popoverProfileSummary}>
+                      <span
+                        className={styles.popoverProfileChip}
+                        style={{
+                          borderColor: popoverProfileContext.accentColor,
+                          color: popoverProfileContext.accentColor,
+                        }}
+                      >
+                        {popoverProfileContext.profile.name}
                       </span>
-                    ) : null}
-                    {popoverProfileContext.isProfileStart ? (
-                      <span className={styles.popoverProfileTransition}>
-                        Profile starts on this day
-                      </span>
-                    ) : null}
-                  </div>
-                ) : null}
+                      {popoverProfileContext.rangeLabel ? (
+                        <span className={styles.popoverProfileRange}>
+                          {formatMealTypeProfileRange(popoverProfileContext.profile)}
+                        </span>
+                      ) : null}
+                      {popoverProfileContext.isProfileStart ? (
+                        <span className={styles.popoverProfileTransition}>
+                          Profile starts on this day
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+                <button
+                  className={styles.popoverClose}
+                  aria-label="Close month details"
+                  onClick={() => setPopover(null)}
+                  type="button"
+                >
+                  <span className={styles.popoverCloseGlyph}>x</span>
+                </button>
               </div>
-              <button
-                className={styles.popoverClose}
-                onClick={() => setPopover(null)}
-                type="button"
-              >
-                x
-              </button>
+              <div className={styles.popoverHeaderActionsRow}>
+                <div className={styles.popoverHeaderActions}>
+                  <button
+                    className={styles.popoverHeaderActionBtn}
+                    aria-label="Open day view"
+                    onClick={openDayViewFromPopover}
+                    type="button"
+                  >
+                    Open Day
+                  </button>
+                  <button
+                    className={styles.popoverHeaderActionBtn}
+                    aria-label="Open week view"
+                    onClick={openWeekViewFromPopover}
+                    type="button"
+                  >
+                    Open Week
+                  </button>
+                </div>
+              </div>
             </div>
             <div className={styles.popoverMeals}>
               {popoverMeals.length === 0 ? (
@@ -290,7 +421,7 @@ export function MonthView({
                               {typeConfig.label}
                             </span>
                           </div>
-                          <span className={styles.popoverEditHint}>Edit -&gt;</span>
+                          <span className={styles.popoverEditHint}>Edit</span>
                         </button>
                       ))
                     )}

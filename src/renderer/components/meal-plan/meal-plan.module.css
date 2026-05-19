@@ -1051,6 +1051,9 @@
   box-shadow: var(--shadow-lg);
   border: 1px solid var(--cream-dark);
   width: 240px;
+  max-height: calc(100vh - 24px);
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   animation: popIn 0.15s ease;
 }
@@ -1068,17 +1071,62 @@
 
 .popoverHeader {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 0.5rem;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--cream-dark);
 }
 
+.popoverHeaderTopRow {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
 .popoverHeaderBody {
+  flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+}
+
+.popoverHeaderActionsRow {
+  width: 100%;
+}
+
+.popoverHeaderActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.popoverHeaderActionBtn {
+  min-height: 1.9rem;
+  border-radius: 10px;
+  border: 1px solid var(--cream-dark);
+  background: rgba(255, 253, 248, 0.96);
+  color: var(--green);
+  padding: 0 0.54rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s, color 0.14s, box-shadow 0.14s;
+}
+
+.popoverHeaderActionBtn:hover {
+  border-color: rgba(59, 94, 69, 0.32);
+  background: var(--green-pale);
+}
+
+.popoverHeaderActionBtn:focus-visible {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(59, 94, 69, 0.14);
 }
 
 .popoverDate {
@@ -1135,22 +1183,78 @@
 }
 
 .popoverClose {
-  background: none;
-  border: none;
+  width: 1.9rem;
+  min-width: 1.9rem;
+  height: 1.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 253, 248, 0.96);
+  border: 1px solid var(--cream-dark);
   cursor: pointer;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  padding: 2px 4px;
-  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 0;
+  border-radius: 10px;
+  transition: border-color 0.14s, background 0.14s, color 0.14s, box-shadow 0.14s;
+}
+
+.popoverCloseGlyph {
+  display: inline-block;
+  transform: translate(0.6px, -0.6px);
 }
 
 .popoverClose:hover {
-  background: var(--cream-dark);
+  border-color: rgba(59, 94, 69, 0.32);
+  background: var(--green-pale);
+  color: var(--green);
+}
+
+.popoverClose:focus-visible {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(59, 94, 69, 0.14);
 }
 
 .popoverMeals {
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.popoverOverflowActions {
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid var(--cream-dark);
+  background: rgba(245, 240, 232, 0.72);
+}
+
+.popoverOpenDayBtn {
+  width: 100%;
+  min-height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--cream-dark);
+  background: rgba(255, 253, 248, 0.96);
+  color: var(--green);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s, color 0.14s, box-shadow 0.14s;
+}
+
+.popoverOpenDayBtn:hover {
+  border-color: rgba(59, 94, 69, 0.32);
+  background: var(--green-pale);
+}
+
+.popoverOpenDayBtn:focus-visible {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(59, 94, 69, 0.14);
 }
 
 .popoverMealGroup {
@@ -1164,6 +1268,9 @@
 }
 
 .popoverMealGroupHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1173,7 +1280,7 @@
 }
 
 .popoverGroupEmpty {
-  padding: 0 1rem 0.8rem;
+  padding: 0.55rem 1rem 0.75rem;
   font-size: 0.7rem;
   color: var(--text-muted);
 }
@@ -1193,7 +1300,7 @@
   background: none;
   cursor: pointer;
   text-align: left;
-  transition: background 0.12s;
+  transition: background 0.12s, box-shadow 0.12s;
   border-bottom: 1px solid var(--cream-dark);
 }
 
@@ -1203,6 +1310,12 @@
 
 .popoverMealRow:hover {
   background: var(--cream);
+}
+
+.popoverMealRow:focus-visible {
+  outline: none;
+  background: var(--cream);
+  box-shadow: inset 0 0 0 2px rgba(59, 94, 69, 0.14);
 }
 
 .popoverDot {
@@ -1237,15 +1350,35 @@
 }
 
 .popoverEditHint {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--green-light);
-  opacity: 0.7;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.5rem;
+  padding: 0.18rem 0.58rem;
+  border: 1px solid rgba(59, 94, 69, 0.24);
+  border-radius: 999px;
+  background: rgba(212, 228, 216, 0.24);
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--green);
+  text-transform: uppercase;
   flex-shrink: 0;
+  opacity: 0.92;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.12s;
 }
 
 .popoverMealRow:hover .popoverEditHint {
   opacity: 1;
+  border-color: rgba(59, 94, 69, 0.4);
+  background: var(--green-pale);
+  transform: translateX(1px);
+}
+
+.popoverMealRow:focus-visible .popoverEditHint {
+  opacity: 1;
+  border-color: var(--green);
+  background: var(--green-pale);
 }
 
 .modalOverlay {

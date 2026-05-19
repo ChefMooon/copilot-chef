@@ -1479,6 +1479,8 @@ export default function MealPlanPage() {
             mealTypeProfiles={mealTypeProfiles}
             highlightedProfileId={highlightedProfileId}
             onEdit={setEditMeal}
+            onRequestDayView={() => switchView("day")}
+            onRequestWeekView={() => switchView("week")}
             setDate={setDate}
           />
         ) : null}
