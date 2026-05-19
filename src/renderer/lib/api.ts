@@ -4,6 +4,7 @@ import {
   type CreateRecipeInput,
   type CustomPersonaPayload,
   type IngestResult,
+  type MealIngredient,
   type MealTypeDefinitionPayload,
   type MealSubTypeDefinitionPayload,
   type MealTypeProfilePayload,
@@ -181,6 +182,37 @@ export async function fetchJson<T>(
   }
 
   return response.json() as Promise<T>;
+}
+
+export type CreateMealInput = {
+  name: string;
+  date?: string | null;
+  mealType: string;
+  sortOrder?: number;
+  mealTypeDefinitionId?: string | null;
+  mealSubTypeDefinitionId?: string | null;
+  notes?: string | null;
+  ingredients?: MealIngredient[];
+  description?: string | null;
+  cuisine?: string | null;
+  instructions?: string[];
+  servings?: number;
+  prepTime?: number | null;
+  cookTime?: number | null;
+  servingsOverride?: number | null;
+  recipeId?: string | null;
+};
+
+export async function createMeal(input: CreateMealInput) {
+  const response = await fetchJson<{ data: { id: string } & Record<string, unknown> }>(
+    "/api/meals",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    }
+  );
+
+  return response.data;
 }
 
 export async function reorderSlotMeals(

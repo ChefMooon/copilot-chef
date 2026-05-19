@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { DayView } from "@/components/meal-plan/DayView";
+import { DuplicateMealModal } from "@/components/meal-plan/DuplicateMealModal";
 import { DeleteConfirmationModal } from "@/components/meal-plan/DeleteConfirmationModal";
 import { DropIntentPopover } from "@/components/meal-plan/DropIntentPopover";
 import { EditModal } from "@/components/meal-plan/EditModal";
@@ -46,6 +47,7 @@ import {
 import {
   applySlotBatchAction,
   createRecipe,
+  createMeal,
   fetchJson,
   reorderSlotMeals as reorderSlotMealsApi,
 } from "@/lib/api";
@@ -193,6 +195,11 @@ export default function MealPlanPage() {
   const { toast, dismissAll, setDragging } = useToast();
   const { recordAction, discardLast, undo, redo } = useMealUndoRedo();
   const [saveAsRecipeMeal, setSaveAsRecipeMeal] = useState<EditableMeal | null>(
+    null
+  );
+  const [duplicateMeal, setDuplicateMeal] = useState<EditableMeal | null>(null);
+  const [isDuplicatingMeal, setIsDuplicatingMeal] = useState(false);
+  const [duplicateMealError, setDuplicateMealError] = useState<string | null>(
     null
   );
   const [isMenuExportOpen, setIsMenuExportOpen] = useState(false);
@@ -1337,6 +1344,74 @@ export default function MealPlanPage() {
     setEditMeal(null);
   };
 
+  const handleDuplicateMeal = async ({
+    date,
+    mealType,
+    mealTypeDefinitionId,
+  }: {
+    date: Date;
+    mealType: string;
+    mealTypeDefinitionId: string | null;
+  }) => {
+    if (!duplicateMeal) {
+      return;
+    }
+
+    setIsDuplicatingMeal(true);
+    setDuplicateMealError(null);
+
+    try {
+      const created = await createMeal({
+        name: duplicateMeal.name,
+        date: date.toISOString(),
+        mealType,
+        mealTypeDefinitionId,
+        mealSubTypeDefinitionId: duplicateMeal.mealSubTypeDefinitionId ?? null,
+        notes: duplicateMeal.notes || null,
+        ingredients: duplicateMeal.ingredients,
+        description: duplicateMeal.description,
+        cuisine: duplicateMeal.cuisine,
+        instructions: duplicateMeal.instructions,
+        servings: duplicateMeal.servings,
+        prepTime: duplicateMeal.prepTime,
+        cookTime: duplicateMeal.cookTime,
+        servingsOverride: duplicateMeal.servingsOverride,
+        recipeId: duplicateMeal.recipeId,
+      });
+
+      recordAction({
+        type: "add",
+        mealId: created.id,
+        snapshot: {
+          name: duplicateMeal.name,
+          date: date.toISOString(),
+          mealType,
+          mealSubTypeDefinitionId: duplicateMeal.mealSubTypeDefinitionId ?? null,
+          notes: duplicateMeal.notes || null,
+          ingredients: duplicateMeal.ingredients,
+          description: duplicateMeal.description,
+          cuisine: duplicateMeal.cuisine,
+          instructions: duplicateMeal.instructions,
+          servings: duplicateMeal.servings,
+          prepTime: duplicateMeal.prepTime,
+          cookTime: duplicateMeal.cookTime,
+          servingsOverride: duplicateMeal.servingsOverride,
+          recipeId: duplicateMeal.recipeId,
+        },
+        summary: `Duplicated ${duplicateMeal.name}`,
+      });
+
+      setDuplicateMeal(null);
+      await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+    } catch (error) {
+      setDuplicateMealError(
+        error instanceof Error ? error.message : "Unable to duplicate meal"
+      );
+    } finally {
+      setIsDuplicatingMeal(false);
+    }
+  };
+
   const onResuggest = async (meal: EditableMeal) => {
     const answer = await readChatResponse(
       `Re-suggest a ${meal.type} meal for ${meal.date.toDateString()} based on my preferences. Return a short meal name and one sentence.`
@@ -1475,6 +1550,7 @@ export default function MealPlanPage() {
             mealTypeProfiles={mealTypeProfiles}
             highlightedProfileId={highlightedProfileId}
             onEdit={setEditMeal}
+            onDuplicateMeal={setDuplicateMeal}
             onOpenSlotManager={openSlotManager}
             onDropPayload={onDropPayload}
             setDate={setDate}
@@ -1585,6 +1661,28 @@ export default function MealPlanPage() {
           onSave={onSaveMeal}
           onSaveAsRecipe={handleSaveAsRecipe}
           onUnlinkRecipe={handleUnlinkRecipe}
+        />
+      ) : null}
+
+      {duplicateMeal ? (
+        <DuplicateMealModal
+          error={duplicateMealError}
+          isDuplicating={isDuplicatingMeal}
+          isOpen
+          meal={duplicateMeal}
+          mealTypeProfiles={mealTypeProfiles}
+          onClose={() => {
+            if (isDuplicatingMeal) {
+              return;
+            }
+
+            setDuplicateMealError(null);
+            setDuplicateMeal(null);
+          }}
+          onDuplicate={(target) => {
+            void handleDuplicateMeal(target);
+          }}
+          referenceDate={date}
         />
       ) : null}
 
