@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router";
 
 import { DayView } from "@/components/meal-plan/DayView";
 import { DuplicateMealModal } from "@/components/meal-plan/DuplicateMealModal";
@@ -160,6 +161,7 @@ async function readChatResponse(message: string) {
 }
 
 export default function MealPlanPage() {
+  const navigate = useNavigate();
   const config = useServerConfig();
   const apiReady = isServerConfigReady(config);
   const [view, setView] = useState<CalView>("week");
@@ -1267,29 +1269,42 @@ export default function MealPlanPage() {
 
   const handleSaveRecipeFromMeal = async (input: CreateRecipeInput) => {
     if (!saveAsRecipeMeal) return;
+    const mealToLink = saveAsRecipeMeal;
     const recipe = await createRecipeMutation.mutateAsync(input);
 
-    if (saveAsRecipeMeal.id) {
-      await fetchJson<{ data: CalendarMeal }>(
-        `/api/meals/${saveAsRecipeMeal.id}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({
-            recipeId: recipe.id,
-            cuisine: recipe.cuisine,
-          }),
-        }
-      );
-      await queryClient.invalidateQueries({
-        queryKey: ["meals"],
-        exact: false,
-      });
+    if (mealToLink.id) {
+      try {
+        await fetchJson<{ data: CalendarMeal }>(
+          `/api/meals/${mealToLink.id}`,
+          {
+            method: "PATCH",
+            body: JSON.stringify({
+              recipeId: recipe.id,
+              cuisine: recipe.cuisine,
+            }),
+          }
+        );
+        await queryClient.invalidateQueries({
+          queryKey: ["meals"],
+          exact: false,
+        });
+      } catch (error) {
+        closeSaveAsRecipeFlow();
+        console.error("[meal-plan] Recipe saved but meal linking failed", error);
+        toast({
+          title: `Saved "${recipe.title}" to Recipe Book`,
+          description:
+            "The recipe was saved, but we could not link this meal right now. Open the meal and use Link Recipe to reconnect.",
+          duration: 6500,
+        });
+        return;
+      }
     }
 
     closeSaveAsRecipeFlow();
     toast({
       title: `Saved "${recipe.title}" to Recipe Book`,
-      description: saveAsRecipeMeal.id
+      description: mealToLink.id
         ? "This meal is now linked to the recipe."
         : undefined,
       duration: 5000,
@@ -1301,25 +1316,34 @@ export default function MealPlanPage() {
       return;
     }
 
-    await fetchJson<{ data: CalendarMeal }>(
-      `/api/meals/${saveAsRecipeMeal.id}`,
-      {
-        method: "PATCH",
-        body: JSON.stringify({
-          recipeId: saveAsRecipeConflict.existing.id,
-          cuisine: saveAsRecipeConflict.existing.cuisine ?? null,
-        }),
-      }
-    );
-    await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+    try {
+      await fetchJson<{ data: CalendarMeal }>(
+        `/api/meals/${saveAsRecipeMeal.id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            recipeId: saveAsRecipeConflict.existing.id,
+            cuisine: saveAsRecipeConflict.existing.cuisine ?? null,
+          }),
+        }
+      );
+      await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
 
-    const existingTitle = saveAsRecipeConflict.existing.title;
-    closeSaveAsRecipeFlow();
-    toast({
-      title: `Linked to "${existingTitle}"`,
-      description: "This meal now points to the existing recipe.",
-      duration: 5000,
-    });
+      const existingTitle = saveAsRecipeConflict.existing.title;
+      closeSaveAsRecipeFlow();
+      toast({
+        title: `Linked to "${existingTitle}"`,
+        description: "This meal now points to the existing recipe.",
+        duration: 5000,
+      });
+    } catch (error) {
+      console.error("[meal-plan] Failed to link existing recipe", error);
+      toast({
+        title: "Could not link the existing recipe.",
+        description: "Please try again in a moment.",
+        variant: "error",
+      });
+    }
   };
 
   const handleUnlinkRecipe = async (meal: EditableMeal) => {
@@ -1342,6 +1366,10 @@ export default function MealPlanPage() {
 
     await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
     setEditMeal(null);
+  };
+  const handleViewLinkedRecipe = (recipeId: string) => {
+    setEditMeal(null);
+    navigate(`/recipes/${recipeId}`);
   };
 
   const handleDuplicateMeal = async ({
@@ -1661,6 +1689,7 @@ export default function MealPlanPage() {
           onSave={onSaveMeal}
           onSaveAsRecipe={handleSaveAsRecipe}
           onUnlinkRecipe={handleUnlinkRecipe}
+                  onViewLinkedRecipe={handleViewLinkedRecipe}
         />
       ) : null}
 

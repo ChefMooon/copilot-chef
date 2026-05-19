@@ -36,6 +36,7 @@ type EditModalProps = {
   onResuggest: (meal: EditableMeal) => Promise<Partial<EditableMeal> | void>;
   onSaveAsRecipe?: (meal: EditableMeal) => void;
   onUnlinkRecipe?: (meal: EditableMeal) => Promise<void>;
+  onViewLinkedRecipe?: (recipeId: string) => void;
 };
 
 export function EditModal({
@@ -48,6 +49,7 @@ export function EditModal({
   onResuggest,
   onSaveAsRecipe,
   onUnlinkRecipe,
+  onViewLinkedRecipe,
 }: EditModalProps) {
   const [form, setForm] = useState<EditableMeal>({ ...meal });
   const [isSaving, setIsSaving] = useState(false);
@@ -418,22 +420,35 @@ export function EditModal({
                         : " · Using recipe servings"}
                     </span>
                   </div>
-                  <button
-                    className={styles.btnUnlink}
-                    disabled={isUnlinking}
-                    onClick={async () => {
-                      if (!onUnlinkRecipe) return;
-                      setIsUnlinking(true);
-                      try {
-                        await onUnlinkRecipe(form);
-                      } finally {
-                        setIsUnlinking(false);
-                      }
-                    }}
-                    type="button"
-                  >
-                    {isUnlinking ? "Unlinking..." : "Unlink"}
-                  </button>
+                  <div className={styles.linkedRecipeActions}>
+                    {linkedRecipe.id ? (
+                      <button
+                        className={styles.btnViewRecipe}
+                        onClick={() => {
+                          onViewLinkedRecipe?.(linkedRecipe.id);
+                        }}
+                        type="button"
+                      >
+                        View Recipe
+                      </button>
+                    ) : null}
+                    <button
+                      className={styles.btnUnlink}
+                      disabled={isUnlinking}
+                      onClick={async () => {
+                        if (!onUnlinkRecipe) return;
+                        setIsUnlinking(true);
+                        try {
+                          await onUnlinkRecipe(form);
+                        } finally {
+                          setIsUnlinking(false);
+                        }
+                      }}
+                      type="button"
+                    >
+                      {isUnlinking ? "Unlinking..." : "Unlink"}
+                    </button>
+                  </div>
                 </div>
               ) : null}
 

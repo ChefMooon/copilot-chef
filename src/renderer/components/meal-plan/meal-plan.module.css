@@ -2956,6 +2956,7 @@
 .linkedRecipeBanner {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.6rem;
   padding: 0.6rem 0.8rem;
   background: var(--green-pale);
@@ -2987,6 +2988,35 @@
   font-size: 0.73rem;
   color: var(--text-muted);
   font-weight: 700;
+}
+
+.linkedRecipeActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.btnViewRecipe {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--green);
+  background: var(--green);
+  color: var(--white);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.btnViewRecipe:hover:not(:disabled) {
+  background: var(--green-light);
+  border-color: var(--green-light);
+}
+
+.btnViewRecipe:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .linkedRecipeStatsRow {
@@ -3044,6 +3074,14 @@
 .btnUnlink:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .linkedRecipeActions {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 
 /* ── Read-only display ──────────────────────────────────────────────────── */
