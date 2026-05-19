@@ -91,19 +91,47 @@ export class MealSubTypeService {
 
   async bootstrapDefaults() {
     const existingCount = await prisma.mealSubTypeDefinition.count();
-    if (existingCount > 0) {
+    if (existingCount === 0) {
+      await prisma.$transaction(
+        DEFAULT_MEAL_SUB_TYPE_TEMPLATES.map((template) =>
+          prisma.mealSubTypeDefinition.create({
+            data: {
+              name: template.name,
+              slug: template.slug,
+              color: template.color,
+              enabled: template.enabled,
+              sortOrder: template.sortOrder,
+            },
+          })
+        )
+      );
+
+      return;
+    }
+
+    const existingDefinitions = await prisma.mealSubTypeDefinition.findMany({
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+      select: { slug: true },
+    });
+
+    const existingSlugs = new Set(existingDefinitions.map((entry) => entry.slug));
+    const missingTemplates = DEFAULT_MEAL_SUB_TYPE_TEMPLATES.filter(
+      (template) => !existingSlugs.has(template.slug)
+    );
+
+    if (missingTemplates.length === 0) {
       return;
     }
 
     await prisma.$transaction(
-      DEFAULT_MEAL_SUB_TYPE_TEMPLATES.map((template) =>
+      missingTemplates.map((template, index) =>
         prisma.mealSubTypeDefinition.create({
           data: {
             name: template.name,
             slug: template.slug,
             color: template.color,
             enabled: template.enabled,
-            sortOrder: template.sortOrder,
+            sortOrder: existingDefinitions.length + index,
           },
         })
       )

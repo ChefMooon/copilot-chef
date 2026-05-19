@@ -74,11 +74,18 @@ export const DEFAULT_MEAL_SUB_TYPE_TEMPLATES = [
     sortOrder: 1,
   },
   {
+    slug: "SIDE",
+    name: "Side",
+    color: "#6E8A5E",
+    enabled: true,
+    sortOrder: 2,
+  },
+  {
     slug: "DESSERT",
     name: "Dessert",
     color: "#A85774",
     enabled: true,
-    sortOrder: 2,
+    sortOrder: 3,
   },
 ] as const;
 
