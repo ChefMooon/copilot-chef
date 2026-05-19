@@ -1041,11 +1041,13 @@
   position: fixed;
   inset: 0;
   z-index: 300;
+  -webkit-app-region: no-drag;
 }
 
 .monthPopover {
   position: fixed;
   z-index: 301;
+  -webkit-app-region: no-drag;
   background: var(--white);
   border-radius: 12px;
   box-shadow: var(--shadow-lg);

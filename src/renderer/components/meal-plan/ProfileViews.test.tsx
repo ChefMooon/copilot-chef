@@ -411,6 +411,61 @@ describe("profile-aware meal plan views", () => {
     expect(screen.getByRole("button", { name: /Open Week/i })).toBeTruthy();
   });
 
+  it("keeps month popover open when editing an existing meal", () => {
+    const onEdit = vi.fn();
+
+    render(
+      <MonthView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={denseMonthMeals}
+        mealTypeProfiles={[filteredProfile]}
+        setDate={vi.fn()}
+        onEdit={onEdit}
+      />
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Wednesday, April 22.*Active profile Filtered.*21 meals planned\./i,
+      })
+    );
+
+    const mealEditButton = screen
+      .getAllByRole("button")
+      .find((button) => button.textContent?.includes("Dense Meal 1"));
+
+    expect(mealEditButton).toBeTruthy();
+    fireEvent.click(mealEditButton as HTMLElement);
+
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("dialog", { name: /Month day meals/i })).toBeTruthy();
+  });
+
+  it("keeps month popover open when adding a meal from a slot", () => {
+    const onEdit = vi.fn();
+
+    render(
+      <MonthView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[filteredProfile]}
+        setDate={vi.fn()}
+        onEdit={onEdit}
+      />
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /Wednesday, April 22.*Active profile Filtered.*No meals planned\./i,
+      })
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /\+ Add Breakfast/i }));
+
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("dialog", { name: /Month day meals/i })).toBeTruthy();
+  });
+
   it("opens day view from month popover with selected date", () => {
     const setDate = vi.fn();
     const onRequestDayView = vi.fn();

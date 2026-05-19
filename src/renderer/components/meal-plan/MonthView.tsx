@@ -385,7 +385,6 @@ export function MonthView({
                               ) ?? null
                             )
                           );
-                          setPopover(null);
                         }}
                         type="button"
                       >
@@ -404,7 +403,6 @@ export function MonthView({
                           }
                           onClick={() => {
                             onEdit(meal);
-                            setPopover(null);
                           }}
                           type="button"
                         >
