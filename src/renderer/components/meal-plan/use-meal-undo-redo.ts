@@ -14,6 +14,7 @@ export type MealSnapshot = {
   name: string;
   date: string;
   mealType: string;
+  mealSubTypeDefinitionId?: string | null;
   sortOrder?: number;
   notes: string | null;
   ingredients: MealIngredient[];
@@ -147,6 +148,7 @@ function createMealApi(snapshot: MealSnapshot) {
       name: snapshot.name,
       date: snapshot.date,
       mealType: snapshot.mealType,
+      mealSubTypeDefinitionId: snapshot.mealSubTypeDefinitionId ?? null,
       sortOrder: snapshot.sortOrder,
       notes: snapshot.notes,
       ingredients: snapshot.ingredients,

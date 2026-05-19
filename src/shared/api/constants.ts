@@ -58,6 +58,30 @@ export const DEFAULT_MEAL_TYPE_TEMPLATES = [
   },
 ] as const;
 
+export const DEFAULT_MEAL_SUB_TYPE_TEMPLATES = [
+  {
+    slug: "APPETIZER",
+    name: "Appetizer",
+    color: "#D99B5E",
+    enabled: true,
+    sortOrder: 0,
+  },
+  {
+    slug: "MAIN",
+    name: "Main",
+    color: "#5A7D63",
+    enabled: true,
+    sortOrder: 1,
+  },
+  {
+    slug: "DESSERT",
+    name: "Dessert",
+    color: "#A85774",
+    enabled: true,
+    sortOrder: 2,
+  },
+] as const;
+
 export const CUISINE_VALUES = [
   "mediterranean",
   "japanese",
@@ -97,6 +121,10 @@ export function getCuisineLabel(value: string | null | undefined) {
 export const MEAL_TYPE_API_PATHS = {
   active: "/api/meal-types/active",
   profiles: "/api/meal-types/profiles",
+} as const;
+
+export const MEAL_SUB_TYPE_API_PATHS = {
+  list: "/api/meal-sub-types",
 } as const;
 
 export const GROCERY_CATEGORIES = [

@@ -15,6 +15,8 @@ model Meal {
   mealType             String
   mealTypeDefinitionId String?
   mealTypeDefinition   MealTypeDefinition? @relation(fields: [mealTypeDefinitionId], references: [id], onDelete: SetNull)
+  mealSubTypeDefinitionId String?
+  mealSubTypeDefinition   MealSubTypeDefinition? @relation(fields: [mealSubTypeDefinitionId], references: [id], onDelete: SetNull)
   notes                String?
   ingredientsJson      String              @default("[]")
   description          String?
@@ -32,8 +34,24 @@ model Meal {
   @@index([date])
   @@index([date, mealType, sortOrder])
   @@index([mealTypeDefinitionId])
+  @@index([mealSubTypeDefinitionId])
   @@index([cuisine])
   @@index([recipeId])
+}
+
+model MealSubTypeDefinition {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  color     String
+  enabled   Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  meals     Meal[]
+
+  @@unique([sortOrder])
+  @@index([sortOrder])
 }
 
 model MealTypeProfile {

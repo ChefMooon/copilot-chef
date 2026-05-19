@@ -11,7 +11,11 @@ import {
 } from "@/lib/calendar";
 import { type RecipePayload } from "@/lib/api";
 import { RECIPE_INGREDIENT_UNITS } from "@/lib/ingredient-units";
-import type { MealIngredient, MealTypeProfilePayload } from "@shared/types";
+import type {
+  MealIngredient,
+  MealSubTypeDefinitionPayload,
+  MealTypeProfilePayload,
+} from "@shared/types";
 import { CUISINE_OPTIONS, getCuisineLabel } from "@shared/api/constants";
 
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
@@ -24,6 +28,7 @@ const FOCUSABLE_SELECTOR =
 
 type EditModalProps = {
   meal: EditableMeal;
+  mealSubTypes: MealSubTypeDefinitionPayload[];
   mealTypeProfiles: MealTypeProfilePayload[];
   onClose: () => void;
   onSave: (meal: EditableMeal) => Promise<void>;
@@ -35,6 +40,7 @@ type EditModalProps = {
 
 export function EditModal({
   meal,
+  mealSubTypes,
   mealTypeProfiles,
   onClose,
   onSave,
@@ -301,6 +307,10 @@ export function EditModal({
   const selectableMealTypes = mealTypes.filter(
     (definition) => definition.enabled || definition.slug === form.type
   );
+  const selectableMealSubTypes = mealSubTypes.filter(
+    (definition) =>
+      definition.enabled || definition.id === form.mealSubTypeDefinitionId
+  );
 
   const handleDeleteConfirm = async () => {
     if (!form.id) {
@@ -361,6 +371,17 @@ export function EditModal({
                 >
                   {typeConfig.label}
                 </span>
+                {form.mealSubTypeDefinition ? (
+                  <span
+                    className={styles.modalTypeBadge}
+                    style={{
+                      background: `${form.mealSubTypeDefinition.color}22`,
+                      color: form.mealSubTypeDefinition.color,
+                    }}
+                  >
+                    {form.mealSubTypeDefinition.name}
+                  </span>
+                ) : null}
                 <span className={styles.modalDateLabel}>
                   {form.date.toLocaleDateString("default", {
                     weekday: "long",
@@ -440,6 +461,35 @@ export function EditModal({
                   >
                     {selectableMealTypes.map((definition) => (
                       <option key={definition.id} value={definition.slug}>
+                        {definition.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel} htmlFor="meal-sub-type-select">
+                    Sub-type
+                  </label>
+                  <select
+                    className={styles.formInput}
+                    id="meal-sub-type-select"
+                    onChange={(event) => {
+                      const nextId = event.target.value;
+                      const definition =
+                        selectableMealSubTypes.find((entry) => entry.id === nextId) ??
+                        null;
+
+                      setForm((current) => ({
+                        ...current,
+                        mealSubTypeDefinitionId: definition?.id ?? null,
+                        mealSubTypeDefinition: definition,
+                      }));
+                    }}
+                    value={form.mealSubTypeDefinitionId ?? ""}
+                  >
+                    <option value="">None</option>
+                    {selectableMealSubTypes.map((definition) => (
+                      <option key={definition.id} value={definition.id}>
                         {definition.name}
                       </option>
                     ))}

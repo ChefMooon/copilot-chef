@@ -10,6 +10,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { MealTypesSection } from "@/components/settings/MealTypesSection";
+import { MealSubTypesSection } from "@/components/settings/MealSubTypesSection";
 
 import { ChipList } from "@/components/settings/ChipList";
 import { CollapsibleSection } from "@/components/settings/CollapsibleSection";
@@ -1218,6 +1219,7 @@ export default function SettingsPage() {
           Manage meal-plan profiles for different routines or seasons.
         </p>
         <MealTypesSection />
+        <MealSubTypesSection />
       </div>
 
       {/* ── Tab 1: Dietary Profile ── */}

@@ -6,6 +6,7 @@ import { getCuisineLabel } from "@shared/api/constants";
 import type {
   MealIngredient,
   MealPayload,
+  MealSubTypeDefinitionPayload,
   MealTypeDefinitionPayload,
 } from "@shared/types";
 
@@ -182,6 +183,32 @@ function serializeMealTypeDefinition(definition: {
   };
 }
 
+function serializeMealSubTypeDefinition(definition: {
+  id: string;
+  name: string;
+  slug: string;
+  color: string;
+  enabled: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+} | null | undefined): MealSubTypeDefinitionPayload | null {
+  if (!definition) {
+    return null;
+  }
+
+  return {
+    id: definition.id,
+    name: definition.name,
+    slug: definition.slug,
+    color: definition.color,
+    enabled: definition.enabled,
+    sortOrder: definition.sortOrder,
+    createdAt: definition.createdAt.toISOString(),
+    updatedAt: definition.updatedAt.toISOString(),
+  };
+}
+
 function countStreak(counts: Map<string, number>, today: Date) {
   let streak = 0;
   let cursor = startOfDay(today);
@@ -210,6 +237,17 @@ function serializeMeal(meal: {
   mealTypeDefinition?: {
     id: string;
     profileId: string;
+    name: string;
+    slug: string;
+    color: string;
+    enabled: boolean;
+    sortOrder: number;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
+  mealSubTypeDefinitionId?: string | null;
+  mealSubTypeDefinition?: {
+    id: string;
     name: string;
     slug: string;
     color: string;
@@ -283,6 +321,8 @@ function serializeMeal(meal: {
     sortOrder: meal.sortOrder ?? 0,
     mealTypeDefinitionId: meal.mealTypeDefinitionId ?? null,
     mealTypeDefinition: serializeMealTypeDefinition(meal.mealTypeDefinition),
+    mealSubTypeDefinitionId: meal.mealSubTypeDefinitionId ?? null,
+    mealSubTypeDefinition: serializeMealSubTypeDefinition(meal.mealSubTypeDefinition),
     notes: meal.notes,
     ingredients: parseMealIngredients(meal.ingredientsJson),
     description: meal.description ?? null,
@@ -327,6 +367,7 @@ function normalizeMealDateInput(input: string | null | undefined) {
 export class MealService {
   private mealInclude = {
     mealTypeDefinition: true,
+    mealSubTypeDefinition: true,
     recipe: {
       include: {
         ingredients: { orderBy: { order: "asc" as const } },
@@ -418,6 +459,30 @@ export class MealService {
     });
 
     return recipe?.cuisine ?? null;
+  }
+
+  private async resolveMealSubTypeInput(input: {
+    mealSubTypeDefinitionId?: string | null;
+  }) {
+    if (input.mealSubTypeDefinitionId === undefined) {
+      return {};
+    }
+
+    if (input.mealSubTypeDefinitionId === null) {
+      return { mealSubTypeDefinitionId: null };
+    }
+
+    const definition = await prisma.mealSubTypeDefinition.findUnique({
+      where: { id: input.mealSubTypeDefinitionId },
+    });
+
+    if (!definition) {
+      throw new Error(
+        `Meal sub-type definition with id "${input.mealSubTypeDefinitionId}" not found.`
+      );
+    }
+
+    return { mealSubTypeDefinitionId: definition.id };
   }
 
   private async getNextSortOrder(
@@ -662,6 +727,7 @@ export class MealService {
     mealType: string;
     sortOrder?: number;
     mealTypeDefinitionId?: string | null;
+    mealSubTypeDefinitionId?: string | null;
     notes?: string | null;
     ingredients?: MealIngredientInput[];
     description?: string | null;
@@ -679,6 +745,9 @@ export class MealService {
     const mealTypeFields = await this.resolveMealTypeInput({
       mealType: input.mealType,
       mealTypeDefinitionId: input.mealTypeDefinitionId,
+    });
+    const mealSubTypeFields = await this.resolveMealSubTypeInput({
+      mealSubTypeDefinitionId: input.mealSubTypeDefinitionId,
     });
     const cuisine = await this.resolveCuisineInput({
       cuisine: input.cuisine,
@@ -698,6 +767,7 @@ export class MealService {
           name: input.name,
           ...(normalizedDate === undefined ? {} : { date: normalizedDate }),
           ...mealTypeFields,
+          ...mealSubTypeFields,
           sortOrder,
           notes: input.notes ?? null,
           ingredientsJson: stringifyMealIngredients(input.ingredients),
@@ -725,6 +795,7 @@ export class MealService {
       mealType?: string;
       sortOrder?: number;
       mealTypeDefinitionId?: string | null;
+      mealSubTypeDefinitionId?: string | null;
       notes?: string | null;
       ingredients?: MealIngredientInput[];
       description?: string | null;
@@ -744,6 +815,9 @@ export class MealService {
       mealType: input.mealType,
       mealTypeDefinitionId: input.mealTypeDefinitionId,
     });
+    const mealSubTypeFields = await this.resolveMealSubTypeInput({
+      mealSubTypeDefinitionId: input.mealSubTypeDefinitionId,
+    });
     const cuisine = await this.resolveCuisineInput({
       cuisine: input.cuisine,
       recipeId: input.recipeId,
@@ -755,6 +829,7 @@ export class MealService {
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(normalizedDate !== undefined ? { date: normalizedDate } : {}),
         ...mealTypeFields,
+        ...mealSubTypeFields,
         ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
         ...(input.notes !== undefined ? { notes: input.notes } : {}),
         ...(input.ingredients !== undefined

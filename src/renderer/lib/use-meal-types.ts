@@ -1,6 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { getActiveMealTypeProfile, listMealTypeProfiles } from "@/lib/api";
+import {
+  getActiveMealTypeProfile,
+  listMealSubTypeDefinitions,
+  listMealTypeProfiles,
+} from "@/lib/api";
 import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
 
@@ -21,5 +25,15 @@ export function useMealTypeProfiles() {
     queryKey: ["meal-types", "profiles"],
     enabled: apiReady,
     queryFn: () => listMealTypeProfiles(),
+  });
+}
+
+export function useMealSubTypeDefinitions() {
+  const config = useServerConfig();
+  const apiReady = isServerConfigReady(config);
+  return useQuery({
+    queryKey: ["meal-sub-types"],
+    enabled: apiReady,
+    queryFn: listMealSubTypeDefinitions,
   });
 }

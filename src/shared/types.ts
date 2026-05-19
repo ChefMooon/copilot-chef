@@ -71,6 +71,17 @@ export type MealTypeDefinitionPayload = {
   updatedAt: string;
 };
 
+export type MealSubTypeDefinitionPayload = {
+  id: string;
+  name: string;
+  slug: string;
+  color: string;
+  enabled: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type MealTypeProfilePayload = {
   id: string;
   name: string;
@@ -104,6 +115,15 @@ export type CreateMealTypeDefinitionInput = {
 
 export type UpdateMealTypeDefinitionInput = Partial<CreateMealTypeDefinitionInput>;
 
+export type CreateMealSubTypeDefinitionInput = {
+  name: string;
+  color: string;
+  enabled?: boolean;
+};
+
+export type UpdateMealSubTypeDefinitionInput =
+  Partial<CreateMealSubTypeDefinitionInput>;
+
 export type MealIngredient = {
   name: string;
   quantity: string | null;
@@ -121,6 +141,8 @@ export type MealPayload = {
   sortOrder: number;
   mealTypeDefinitionId: string | null;
   mealTypeDefinition: MealTypeDefinitionPayload | null;
+  mealSubTypeDefinitionId?: string | null;
+  mealSubTypeDefinition?: MealSubTypeDefinitionPayload | null;
   notes: string | null;
   ingredients: MealIngredient[];
   description: string | null;

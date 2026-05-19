@@ -393,6 +393,14 @@ export function DayView({
                           type="button"
                         >
                           <span className={styles.timelineMealName}>{meal.name}</span>
+                          {meal.mealSubTypeDefinition ? (
+                            <span
+                              className={styles.timelineMealSubType}
+                              style={{ color: meal.mealSubTypeDefinition.color }}
+                            >
+                              {meal.mealSubTypeDefinition.name}
+                            </span>
+                          ) : null}
                           {meal.notes ? (
                             <span className={styles.timelineMealNotes}>
                               {meal.notes}

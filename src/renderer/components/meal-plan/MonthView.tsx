@@ -420,6 +420,14 @@ export function MonthView({
                             >
                               {typeConfig.label}
                             </span>
+                            {meal.mealSubTypeDefinition ? (
+                              <span
+                                className={styles.popoverMealSubType}
+                                style={{ color: meal.mealSubTypeDefinition.color }}
+                              >
+                                {meal.mealSubTypeDefinition.name}
+                              </span>
+                            ) : null}
                           </div>
                           <span className={styles.popoverEditHint}>Edit</span>
                         </button>

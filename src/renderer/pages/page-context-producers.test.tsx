@@ -25,6 +25,7 @@ const chatMocks = vi.hoisted(() => ({
 
 const apiMocks = vi.hoisted(() => ({
   fetchJson: vi.fn(),
+  listMealSubTypeDefinitions: vi.fn(),
   listRecipes: vi.fn(),
   createRecipe: vi.fn(),
   updateRecipe: vi.fn(),
@@ -61,6 +62,7 @@ vi.mock("@/context/chat-context", () => ({
 
 vi.mock("@/lib/api", () => ({
   fetchJson: apiMocks.fetchJson,
+  listMealSubTypeDefinitions: apiMocks.listMealSubTypeDefinitions,
   listRecipes: apiMocks.listRecipes,
   createRecipe: apiMocks.createRecipe,
   updateRecipe: apiMocks.updateRecipe,
@@ -123,6 +125,22 @@ vi.mock("@/lib/use-meal-types", () => ({
             updatedAt: "2026-01-01T00:00:00.000Z",
           },
         ],
+      },
+    ],
+    isLoading: false,
+    isError: false,
+  }),
+  useMealSubTypeDefinitions: () => ({
+    data: [
+      {
+        id: "sub-type-main",
+        name: "Main",
+        slug: "MAIN",
+        color: "#5A7D63",
+        enabled: true,
+        sortOrder: 0,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
       },
     ],
     isLoading: false,

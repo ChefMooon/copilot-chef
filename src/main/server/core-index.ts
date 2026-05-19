@@ -63,6 +63,7 @@ export { ChatHistoryService } from "./services/chat-history-service";
 export { GroceryService } from "./services/grocery-service";
 export { MealService } from "./services/meal-service";
 export { MealTypeService } from "./services/meal-type-service";
+export { MealSubTypeService } from "./services/meal-sub-type-service";
 export { RecipeService, type RecipeFilters } from "./services/recipe-service";
 export {
   PreferenceService,

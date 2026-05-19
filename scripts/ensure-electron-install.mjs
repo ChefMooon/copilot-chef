@@ -11,9 +11,14 @@ const pathMarkerPath = path.join(electronDir, "path.txt");
 const distDirPath = path.join(electronDir, "dist");
 const prismaClientDir = path.join(rootDir, "node_modules", ".prisma", "client");
 const prismaClientIndexPath = path.join(prismaClientDir, "index.js");
+const prismaEnginesDir = path.join(rootDir, "node_modules", "@prisma", "engines");
 
 function npmCommand() {
   return process.platform === "win32" ? "npm.cmd" : "npm";
+}
+
+function npxCommand() {
+  return process.platform === "win32" ? "npx.cmd" : "npx";
 }
 
 function runInstallScript() {
@@ -46,6 +51,26 @@ function hasPrismaEngineBinary() {
   }
 }
 
+function hasSharedPrismaEngineBinary() {
+  if (!existsSync(prismaEnginesDir)) {
+    return false;
+  }
+
+  try {
+    const files = readdirSync(prismaEnginesDir);
+    return files.some(
+      (fileName) =>
+        fileName.includes("query_engine") || fileName.includes("libquery_engine")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function hasAnyPrismaEngineBinary() {
+  return hasPrismaEngineBinary() || hasSharedPrismaEngineBinary();
+}
+
 function prismaNeedsGenerate() {
   if (!existsSync(prismaClientIndexPath)) {
     return true;
@@ -55,17 +80,32 @@ function prismaNeedsGenerate() {
     const indexContents = readFileSync(prismaClientIndexPath, "utf-8");
     const generatedWithoutEngine = indexContents.includes('"copyEngine": false');
     if (generatedWithoutEngine) {
-      return true;
+      return !hasAnyPrismaEngineBinary();
     }
   } catch {
     return true;
   }
 
-  return !hasPrismaEngineBinary();
+  return !hasAnyPrismaEngineBinary();
+}
+
+function runNoEnginePrismaGenerate() {
+  console.log(
+    "[predev] Retrying Prisma client generation without copying engine binaries (Windows-safe fallback)..."
+  );
+
+  const result = spawnSync(npxCommand(), ["prisma", "generate", "--no-engine"], {
+    stdio: "inherit",
+    cwd: rootDir,
+  });
+
+  return result.status ?? 1;
 }
 
 function runPrismaGenerate() {
-  console.log("[predev] Prisma client is missing local engine binaries. Running prisma generate...");
+  console.log(
+    "[predev] Prisma client is missing engine binaries. Running prisma generate..."
+  );
 
   const result = spawnSync(npmCommand(), ["run", "db:generate"], {
     stdio: "inherit",
@@ -73,6 +113,13 @@ function runPrismaGenerate() {
   });
 
   if (result.status !== 0) {
+    if (process.platform === "win32") {
+      const fallbackCode = runNoEnginePrismaGenerate();
+      if (fallbackCode === 0) {
+        return;
+      }
+    }
+
     const code = result.status ?? 1;
     console.error(`[predev] Failed to regenerate Prisma client (exit code ${code}).`);
     process.exit(code);
@@ -101,7 +148,9 @@ if (prismaNeedsGenerate()) {
 }
 
 if (prismaNeedsGenerate()) {
-  console.error("[predev] Prisma client is still missing local engine binaries after regeneration.");
+  console.error(
+    "[predev] Prisma client is still missing required engine binaries after regeneration."
+  );
   process.exit(1);
 }
 

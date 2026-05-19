@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { ensureDatabaseSchema } from "./schema";
 import { seedDatabase } from "./seed";
 import { MealTypeService } from "../services/meal-type-service";
+import { MealSubTypeService } from "../services/meal-sub-type-service";
 
 async function backfillMealSortOrder() {
   const groupedMeals = await prisma.meal.groupBy({
@@ -47,6 +48,7 @@ async function backfillMealSortOrder() {
 
 let bootstrapPromise: Promise<void> | undefined;
 const mealTypeBootstrapService = new MealTypeService();
+const mealSubTypeBootstrapService = new MealSubTypeService();
 
 function parseBooleanEnv(value: string): boolean | undefined {
   const normalized = value.trim().toLowerCase();
@@ -78,6 +80,7 @@ export async function bootstrapDatabase() {
       await prisma.$connect();
       await ensureDatabaseSchema();
       await mealTypeBootstrapService.bootstrapDefaults();
+      await mealSubTypeBootstrapService.bootstrapDefaults();
       if (shouldSeedDatabase()) {
         await seedDatabase();
       }

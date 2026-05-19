@@ -489,6 +489,14 @@ export function WeekView({
                                     type="button"
                                   >
                                     <span className={styles.weekChipName}>{meal.name}</span>
+                                    {meal.mealSubTypeDefinition ? (
+                                      <span
+                                        className={styles.weekMealSubType}
+                                        style={{ color: meal.mealSubTypeDefinition.color }}
+                                      >
+                                        {meal.mealSubTypeDefinition.name}
+                                      </span>
+                                    ) : null}
                                     {meal.notes ? (
                                       <span className={styles.weekMealNotes}>{meal.notes}</span>
                                     ) : null}

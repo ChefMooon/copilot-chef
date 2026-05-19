@@ -92,6 +92,11 @@ mealsRoutes.post("/meals", async (c) => {
         body?.mealTypeDefinitionId === null
           ? body.mealTypeDefinitionId
           : undefined,
+      mealSubTypeDefinitionId:
+        typeof body?.mealSubTypeDefinitionId === "string" ||
+        body?.mealSubTypeDefinitionId === null
+          ? body.mealSubTypeDefinitionId
+          : undefined,
       ingredients: normalizeIngredients(body?.ingredients ?? ingredientsFromJson ?? []),
       cuisine:
         typeof body?.cuisine === "string"
@@ -217,6 +222,11 @@ mealsRoutes.patch("/meals/:id", async (c) => {
         typeof body?.mealTypeDefinitionId === "string" ||
         body?.mealTypeDefinitionId === null
           ? body.mealTypeDefinitionId
+          : undefined,
+      mealSubTypeDefinitionId:
+        typeof body?.mealSubTypeDefinitionId === "string" ||
+        body?.mealSubTypeDefinitionId === null
+          ? body.mealSubTypeDefinitionId
           : undefined,
       ingredients:
         body?.ingredients !== undefined ? normalizeIngredients(body.ingredients) : undefined,

@@ -5,6 +5,7 @@ import {
   type CustomPersonaPayload,
   type IngestResult,
   type MealTypeDefinitionPayload,
+  type MealSubTypeDefinitionPayload,
   type MealTypeProfilePayload,
   type MenuExportFormat,
   type MenuLayout,
@@ -14,9 +15,14 @@ import {
   type PreferenceUpdateInput,
   type PreferencesPayload,
   type UpdateMealTypeDefinitionInput,
+  type UpdateMealSubTypeDefinitionInput,
   type UpdateMealTypeProfileInput,
+  type CreateMealSubTypeDefinitionInput,
 } from "@shared/types";
-import { MEAL_TYPE_API_PATHS } from "@shared/api/constants";
+import {
+  MEAL_SUB_TYPE_API_PATHS,
+  MEAL_TYPE_API_PATHS,
+} from "@shared/api/constants";
 
 import {
   ConfigNotReadyError,
@@ -29,6 +35,7 @@ import { getPlatform, markBrowserConnectionStale } from "./platform";
 export type SettingsPreferences = PreferencesPayload;
 export type { CustomPersonaPayload };
 export type { MealTypeDefinitionPayload, MealTypeProfilePayload };
+export type { MealSubTypeDefinitionPayload };
 
 export type RecipeListFilters = {
   query?: string;
@@ -593,6 +600,61 @@ export async function reorderMealTypeDefinitions(
 ) {
   const response = await fetchJson<{ data: MealTypeDefinitionPayload[] }>(
     `${MEAL_TYPE_API_PATHS.profiles}/${profileId}/definitions/order`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ orderedIds }),
+    }
+  );
+  return response.data;
+}
+
+export async function listMealSubTypeDefinitions() {
+  const response = await fetchJson<{ data: MealSubTypeDefinitionPayload[] }>(
+    MEAL_SUB_TYPE_API_PATHS.list
+  );
+  return response.data;
+}
+
+export async function createMealSubTypeDefinition(
+  input: CreateMealSubTypeDefinitionInput
+) {
+  const response = await fetchJson<{ data: MealSubTypeDefinitionPayload }>(
+    MEAL_SUB_TYPE_API_PATHS.list,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    }
+  );
+  return response.data;
+}
+
+export async function updateMealSubTypeDefinition(
+  id: string,
+  input: UpdateMealSubTypeDefinitionInput
+) {
+  const response = await fetchJson<{ data: MealSubTypeDefinitionPayload }>(
+    `${MEAL_SUB_TYPE_API_PATHS.list}/${id}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }
+  );
+  return response.data;
+}
+
+export async function deleteMealSubTypeDefinition(id: string) {
+  const response = await fetchJson<{ data: { id: string } }>(
+    `${MEAL_SUB_TYPE_API_PATHS.list}/${id}`,
+    {
+      method: "DELETE",
+    }
+  );
+  return response.data;
+}
+
+export async function reorderMealSubTypeDefinitions(orderedIds: string[]) {
+  const response = await fetchJson<{ data: MealSubTypeDefinitionPayload[] }>(
+    `${MEAL_SUB_TYPE_API_PATHS.list}/order`,
     {
       method: "PUT",
       body: JSON.stringify({ orderedIds }),

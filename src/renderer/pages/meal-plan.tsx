@@ -56,6 +56,7 @@ import { useToast } from "@/components/providers/toast-provider";
 import { useMealUndoRedo } from "@/components/meal-plan/use-meal-undo-redo";
 import { mealToRecipePayload } from "@/lib/meal-to-recipe";
 import { useMealTypeProfiles } from "@/lib/use-meal-types";
+import { useMealSubTypeDefinitions } from "@/lib/use-meal-types";
 import type { CreateRecipeInput, RecipeConflict } from "@shared/types";
 
 type CalView = "day" | "week" | "month";
@@ -80,6 +81,7 @@ type DeletedMealSnapshot = Pick<
   | "type"
   | "sortOrder"
   | "mealTypeDefinitionId"
+    | "mealSubTypeDefinitionId"
   | "notes"
   | "ingredients"
   | "description"
@@ -99,6 +101,7 @@ function toDeletedMealSnapshot(meal: EditableMeal): DeletedMealSnapshot {
     type: meal.type,
     sortOrder: meal.sortOrder,
     mealTypeDefinitionId: meal.mealTypeDefinitionId,
+      mealSubTypeDefinitionId: meal.mealSubTypeDefinitionId ?? null,
     notes: meal.notes,
     ingredients: [...meal.ingredients],
     description: meal.description,
@@ -228,6 +231,8 @@ export default function MealPlanPage() {
 
   const meals = mealsQuery.data ?? [];
   const mealTypeProfilesQuery = useMealTypeProfiles();
+    const mealSubTypesQuery = useMealSubTypeDefinitions();
+    const mealSubTypes = mealSubTypesQuery.data ?? [];
   const mealTypeProfiles = mealTypeProfilesQuery.data?.length
     ? mealTypeProfilesQuery.data
     : [getDefaultMealTypeProfile()];
@@ -594,6 +599,7 @@ export default function MealPlanPage() {
       date?: string;
       mealType?: ReturnType<typeof fromCalendarMealType>;
       mealTypeDefinitionId?: string | null;
+      mealSubTypeDefinitionId?: string | null;
     } = {};
 
     if (changes.date) {
@@ -624,6 +630,7 @@ export default function MealPlanPage() {
         updatedMeal.mealTypeDefinitionId ??
         findMealTypeDefinition(updatedMeal.type, normalizedDate)?.id ??
         null,
+        mealSubTypeDefinitionId: updatedMeal.mealSubTypeDefinitionId ?? null,
       notes: updatedMeal.notes,
       ingredients: updatedMeal.ingredients,
       description: updatedMeal.description || null,
@@ -654,6 +661,7 @@ export default function MealPlanPage() {
           date: payload.date,
           mealType: payload.mealType,
           sortOrder: response.data.sortOrder,
+          mealSubTypeDefinitionId: payload.mealSubTypeDefinitionId,
           notes: payload.notes || null,
           ingredients: payload.ingredients ?? [],
           description: payload.description,
@@ -1569,6 +1577,7 @@ export default function MealPlanPage() {
       {editMeal ? (
         <EditModal
           meal={editMeal}
+          mealSubTypes={mealSubTypes}
           mealTypeProfiles={mealTypeProfiles}
           onClose={() => setEditMeal(null)}
           onDelete={onDeleteMeal}

@@ -19,6 +19,11 @@ type RecipeIdentityRow = {
   normalizedSourceUrl: string | null;
 };
 
+type IntegrityCheckRow = {
+  integrity_check?: string;
+  quick_check?: string;
+};
+
 const SCHEMA_STATEMENTS = [
   `
     CREATE TABLE IF NOT EXISTS "Meal" (
@@ -27,6 +32,7 @@ const SCHEMA_STATEMENTS = [
       "date" DATETIME DEFAULT CURRENT_TIMESTAMP,
       "mealType" TEXT NOT NULL,
       "mealTypeDefinitionId" TEXT,
+      "mealSubTypeDefinitionId" TEXT,
       "notes" TEXT,
       "ingredientsJson" TEXT NOT NULL DEFAULT '[]',
       "description" TEXT,
@@ -44,8 +50,24 @@ const SCHEMA_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS "Meal_date_idx" ON "Meal"("date")`,
   `CREATE INDEX IF NOT EXISTS "Meal_date_mealType_sortOrder_idx" ON "Meal"("date", "mealType", "sortOrder")`,
   `CREATE INDEX IF NOT EXISTS "Meal_mealTypeDefinitionId_idx" ON "Meal"("mealTypeDefinitionId")`,
+  `CREATE INDEX IF NOT EXISTS "Meal_mealSubTypeDefinitionId_idx" ON "Meal"("mealSubTypeDefinitionId")`,
   `CREATE INDEX IF NOT EXISTS "Meal_cuisine_idx" ON "Meal"("cuisine")`,
   `CREATE INDEX IF NOT EXISTS "Meal_recipeId_idx" ON "Meal"("recipeId")`,
+  `
+    CREATE TABLE IF NOT EXISTS "MealSubTypeDefinition" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "name" TEXT NOT NULL,
+      "slug" TEXT NOT NULL,
+      "color" TEXT NOT NULL,
+      "enabled" INTEGER NOT NULL DEFAULT 1,
+      "sortOrder" INTEGER NOT NULL DEFAULT 0,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "MealSubTypeDefinition_slug_key" ON "MealSubTypeDefinition"("slug")`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "MealSubTypeDefinition_sortOrder_key" ON "MealSubTypeDefinition"("sortOrder")`,
+  `CREATE INDEX IF NOT EXISTS "MealSubTypeDefinition_sortOrder_idx" ON "MealSubTypeDefinition"("sortOrder")`,
   `
     CREATE TABLE IF NOT EXISTS "MealTypeProfile" (
       "id" TEXT NOT NULL PRIMARY KEY,
@@ -383,6 +405,7 @@ async function rebuildMealTable() {
       "date" DATETIME DEFAULT CURRENT_TIMESTAMP,
       "mealType" TEXT NOT NULL,
       "mealTypeDefinitionId" TEXT,
+      "mealSubTypeDefinitionId" TEXT,
       "notes" TEXT,
       "ingredientsJson" TEXT NOT NULL DEFAULT '[]',
       "description" TEXT,
@@ -398,6 +421,9 @@ async function rebuildMealTable() {
       CONSTRAINT "Meal_mealTypeDefinitionId_fkey"
         FOREIGN KEY ("mealTypeDefinitionId") REFERENCES "MealTypeDefinition" ("id")
         ON DELETE SET NULL ON UPDATE CASCADE,
+      CONSTRAINT "Meal_mealSubTypeDefinitionId_fkey"
+        FOREIGN KEY ("mealSubTypeDefinitionId") REFERENCES "MealSubTypeDefinition" ("id")
+        ON DELETE SET NULL ON UPDATE CASCADE,
       CONSTRAINT "Meal_recipeId_fkey"
         FOREIGN KEY ("recipeId") REFERENCES "Recipe" ("id")
         ON DELETE SET NULL ON UPDATE CASCADE
@@ -410,6 +436,7 @@ async function rebuildMealTable() {
       "date",
       "mealType",
       "mealTypeDefinitionId",
+      "mealSubTypeDefinitionId",
       "notes",
       "ingredientsJson",
       "description",
@@ -429,6 +456,7 @@ async function rebuildMealTable() {
       "date",
       "mealType",
       "mealTypeDefinitionId",
+      "mealSubTypeDefinitionId",
       "notes",
       COALESCE("ingredientsJson", '[]'),
       "description",
@@ -458,6 +486,45 @@ async function repairBrokenMealSortOrderColumn() {
   }
 
   await rebuildMealTable();
+}
+
+async function getIntegrityMessages() {
+  const rows = await prisma.$queryRawUnsafe<IntegrityCheckRow[]>(
+    `PRAGMA integrity_check`
+  );
+
+  return rows
+    .map((row) => row.integrity_check ?? row.quick_check ?? "")
+    .filter((message) => message.length > 0);
+}
+
+async function repairMalformedMealSubTypeIndex() {
+  const integrityMessages = await getIntegrityMessages();
+  const hasMealSubTypeIndexIssue = integrityMessages.some((message) =>
+    message.includes("Meal_mealSubTypeDefinitionId_idx")
+  );
+
+  if (!hasMealSubTypeIndexIssue) {
+    return;
+  }
+
+  await prisma.$executeRawUnsafe(
+    `DROP INDEX IF EXISTS "Meal_mealSubTypeDefinitionId_idx"`
+  );
+  await prisma.$executeRawUnsafe(
+    `CREATE INDEX IF NOT EXISTS "Meal_mealSubTypeDefinitionId_idx" ON "Meal"("mealSubTypeDefinitionId")`
+  );
+
+  const remainingMessages = await getIntegrityMessages();
+  const unresolvedIndexIssue = remainingMessages.find((message) =>
+    message.includes("Meal_mealSubTypeDefinitionId_idx")
+  );
+
+  if (unresolvedIndexIssue) {
+    throw new Error(
+      `Schema reconciliation could not repair malformed Meal sub-type index: ${unresolvedIndexIssue}`
+    );
+  }
 }
 
 async function reconcileRecipeIdentityColumns() {
@@ -536,6 +603,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
 
   const safeMealAlterStatements = {
     mealTypeDefinitionId: `ALTER TABLE "Meal" ADD COLUMN "mealTypeDefinitionId" TEXT`,
+    mealSubTypeDefinitionId: `ALTER TABLE "Meal" ADD COLUMN "mealSubTypeDefinitionId" TEXT`,
     description: `ALTER TABLE "Meal" ADD COLUMN "description" TEXT`,
     instructionsJson: `ALTER TABLE "Meal" ADD COLUMN "instructionsJson" TEXT NOT NULL DEFAULT '[]'`,
     sortOrder: `ALTER TABLE "Meal" ADD COLUMN "sortOrder" INTEGER NOT NULL DEFAULT 0`,
@@ -562,6 +630,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
   await ensureMissingColumns("MealTypeProfile", safeMealTypeProfileAlterStatements);
   await ensureMissingColumns("Recipe", safeRecipeAlterStatements);
   await repairBrokenMealSortOrderColumn();
+  await repairMalformedMealSubTypeIndex();
   await normalizeMealSortOrderValues();
   await reconcileRecipeIdentityColumns();
   await ensureRecipeIdentityIndexes();

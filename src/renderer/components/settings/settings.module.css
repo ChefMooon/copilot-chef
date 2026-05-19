@@ -177,6 +177,83 @@
   font-weight: 700;
 }
 
+.subTypeFieldsRow {
+  display: grid;
+  gap: 1rem;
+  align-items: start;
+}
+
+.subTypeNameColumn {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.subTypeActionsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.subTypeColorPicker {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.subTypeColorInputs {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.colorInput {
+  width: 100%;
+  height: 2.9rem;
+  cursor: pointer;
+  border: 1px solid var(--cream-dark);
+  border-radius: 12px;
+  background: var(--cream);
+  padding: 0.32rem;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.colorInput:focus {
+  border-color: var(--green-light);
+  box-shadow: 0 0 0 3px rgba(59, 94, 69, 0.12);
+}
+
+.subTypeSwatchRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.subTypeSwatch {
+  width: 1.65rem;
+  height: 1.65rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: 0 0 0 1px rgba(90, 70, 44, 0.08);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.subTypeSwatch:hover {
+  transform: translateY(-1px);
+}
+
+.subTypeSwatchActive {
+  border-width: 3px;
+  border-color: #1f1d19;
+  box-shadow: 0 0 0 1px rgba(31, 29, 25, 0.12);
+}
+
 .fieldHint {
   margin: -0.1rem 0 0;
   color: var(--text-muted);
@@ -673,6 +750,12 @@
 
   .pageHeader {
     flex-direction: column;
+  }
+}
+
+@media (min-width: 768px) {
+  .subTypeFieldsRow {
+    grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr) 120px;
   }
 }
 

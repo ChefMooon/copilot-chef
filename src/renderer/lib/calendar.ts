@@ -2,6 +2,7 @@ import { DEFAULT_MEAL_TYPE_TEMPLATES } from "@shared/api/constants";
 import type {
   MealIngredient,
   MealPayload,
+  MealSubTypeDefinitionPayload,
   MealTypeDefinitionPayload,
   MealTypeProfilePayload,
 } from "@shared/types";
@@ -31,6 +32,8 @@ export type EditableMeal = {
   sortOrder: number;
   mealTypeDefinitionId: string | null;
   mealTypeDefinition: MealTypeDefinitionPayload | null;
+  mealSubTypeDefinitionId?: string | null;
+  mealSubTypeDefinition?: MealSubTypeDefinitionPayload | null;
   notes: string;
   ingredients: MealIngredient[];
   description: string;
@@ -559,6 +562,8 @@ export function toEditableMeal(meal: CalendarMeal): EditableMeal {
     sortOrder: meal.sortOrder,
     mealTypeDefinitionId: meal.mealTypeDefinitionId,
     mealTypeDefinition: meal.mealTypeDefinition,
+    mealSubTypeDefinitionId: meal.mealSubTypeDefinitionId ?? null,
+    mealSubTypeDefinition: meal.mealSubTypeDefinition ?? null,
     notes: meal.notes ?? "",
     ingredients: meal.ingredients ?? [],
     description: meal.description ?? "",
@@ -700,6 +705,8 @@ export function createEmptyMeal(
     sortOrder: 0,
     mealTypeDefinitionId: mealTypeDefinition?.id ?? null,
     mealTypeDefinition: mealTypeDefinition ?? null,
+    mealSubTypeDefinitionId: null,
+    mealSubTypeDefinition: null,
     notes: "",
     ingredients: [],
     description: "",
