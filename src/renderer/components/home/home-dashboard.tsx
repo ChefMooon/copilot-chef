@@ -36,6 +36,12 @@ type UpcomingMealPayload = {
   name: string;
   date: string | null;
   mealType: string;
+  mealSubTypeDefinition: {
+    id: string;
+    name: string;
+    slug: string;
+    color: string;
+  } | null;
   cuisine: string | null;
   linkedRecipe: { title: string } | null;
 };
@@ -47,12 +53,10 @@ type UpcomingMealsPayload = {
   meals: UpcomingMealPayload[];
 };
 
-type HomeUpcomingLayout = "list" | "grouped";
 type HomeUpcomingDetail = "standard" | "detailed";
 
 type HomeDashboardSettings = {
   upcomingDays: number;
-  upcomingLayout: HomeUpcomingLayout;
   upcomingDetail: HomeUpcomingDetail;
   upcomingCompact: boolean;
   showUpcomingMeals: boolean;
@@ -63,7 +67,6 @@ type HomeDashboardSettings = {
 
 const HOME_SETTINGS_DEFAULTS: HomeDashboardSettings = {
   upcomingDays: 7,
-  upcomingLayout: "list",
   upcomingDetail: "standard",
   upcomingCompact: false,
   showUpcomingMeals: true,
@@ -80,10 +83,6 @@ function clampUpcomingDays(input: unknown) {
   }
 
   return Math.min(30, Math.max(1, Math.floor(input)));
-}
-
-function normalizeLayout(input: unknown): HomeUpcomingLayout {
-  return input === "grouped" ? "grouped" : "list";
 }
 
 function normalizeDetail(input: unknown): HomeUpcomingDetail {
@@ -156,7 +155,6 @@ export function HomeDashboard() {
       try {
         const [
           upcomingDays,
-          upcomingLayout,
           upcomingDetail,
           upcomingCompact,
           showUpcomingMeals,
@@ -165,7 +163,6 @@ export function HomeDashboard() {
           showGreetingSubtitle,
         ] = await Promise.all([
           platform.getSetting("home_upcoming_days"),
-          platform.getSetting("home_upcoming_layout"),
           platform.getSetting("home_upcoming_detail"),
           platform.getSetting("home_upcoming_compact"),
           platform.getSetting("home_show_upcoming_meals"),
@@ -180,7 +177,6 @@ export function HomeDashboard() {
 
         setSettings({
           upcomingDays: clampUpcomingDays(upcomingDays),
-          upcomingLayout: normalizeLayout(upcomingLayout),
           upcomingDetail: normalizeDetail(upcomingDetail),
           upcomingCompact: normalizeBoolean(
             upcomingCompact,
@@ -354,7 +350,7 @@ export function HomeDashboard() {
                   <p className={styles.upcomingEmptyMessage}>
                     No upcoming meals are planned.
                   </p>
-                ) : settings.upcomingLayout === "grouped" ? (
+                ) : (
                   <div className={styles.upcomingGroupedList}>
                     {upcomingGroupKeys.map((dateKey) => {
                       const label =
@@ -371,65 +367,42 @@ export function HomeDashboard() {
                           <div className={styles.upcomingGroupTitle}>
                             {label}
                           </div>
-                          {groupedUpcomingMeals[dateKey].map((meal) => (
-                            <div
-                              className={styles.upcomingMealRow}
-                              key={meal.id}
-                            >
-                              <div>
-                                <div className={styles.upcomingMealName}>
-                                  {meal.name}
-                                </div>
-                                <div className={styles.upcomingMeta}>
-                                  {formatMealType(meal.mealType)}
-                                  {settings.upcomingDetail === "detailed" &&
-                                  meal.cuisine
-                                    ? ` · ${meal.cuisine}`
-                                    : ""}
-                                  {settings.upcomingDetail === "detailed" &&
-                                  meal.linkedRecipe?.title
-                                    ? ` · ${meal.linkedRecipe.title}`
-                                    : ""}
+                          <div className={styles.upcomingGroupMeals}>
+                            {groupedUpcomingMeals[dateKey].map((meal) => (
+                              <div
+                                className={styles.upcomingMealRow}
+                                key={meal.id}
+                              >
+                                <div>
+                                  <div className={styles.upcomingMealName}>
+                                    {meal.name}
+                                  </div>
+                                  <div className={styles.upcomingMeta}>
+                                    {formatMealType(meal.mealType)}
+                                    {meal.mealSubTypeDefinition ? (
+                                      <span
+                                        className={styles.upcomingMealSubType}
+                                        style={{ color: meal.mealSubTypeDefinition.color }}
+                                      >
+                                        {meal.mealSubTypeDefinition.name}
+                                      </span>
+                                    ) : null}
+                                    {settings.upcomingDetail === "detailed" &&
+                                    meal.cuisine
+                                      ? ` · ${meal.cuisine}`
+                                      : ""}
+                                    {settings.upcomingDetail === "detailed" &&
+                                    meal.linkedRecipe?.title
+                                      ? ` · ${meal.linkedRecipe.title}`
+                                      : ""}
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
                       );
                     })}
-                  </div>
-                ) : (
-                  <div className={styles.upcomingList}>
-                    {upcomingMeals.map((meal) => (
-                      <div className={styles.upcomingMealRow} key={meal.id}>
-                        <div>
-                          <div className={styles.upcomingMealName}>
-                            {meal.name}
-                          </div>
-                          <div className={styles.upcomingMeta}>
-                            {meal.date
-                              ? new Date(meal.date).toLocaleDateString(
-                                  "en-US",
-                                  {
-                                    weekday: "short",
-                                    month: "short",
-                                    day: "numeric",
-                                  }
-                                )
-                              : "Unscheduled"}
-                            {` · ${formatMealType(meal.mealType)}`}
-                            {settings.upcomingDetail === "detailed" &&
-                            meal.cuisine
-                              ? ` · ${meal.cuisine}`
-                              : ""}
-                            {settings.upcomingDetail === "detailed" &&
-                            meal.linkedRecipe?.title
-                              ? ` · ${meal.linkedRecipe.title}`
-                              : ""}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                 )}
               </div>

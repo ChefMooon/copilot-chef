@@ -208,11 +208,6 @@ const recipeUnitOptions = [
   { label: "Grams", value: "grams" },
 ];
 
-const homeUpcomingLayoutOptions = [
-  { label: "List", value: "list" },
-  { label: "Grouped by day", value: "grouped" },
-];
-
 const homeUpcomingDetailOptions = [
   { label: "Standard", value: "standard" },
   { label: "Detailed", value: "detailed" },
@@ -232,12 +227,10 @@ const LanQrCodeModal = lazy(async () => {
 
 type TabId = "dietary-profile" | "meal-plans" | "your-chef" | "app-settings";
 
-type HomeUpcomingLayout = "list" | "grouped";
 type HomeUpcomingDetail = "standard" | "detailed";
 
 type HomeDashboardSettings = {
   upcomingDays: number;
-  upcomingLayout: HomeUpcomingLayout;
   upcomingDetail: HomeUpcomingDetail;
   upcomingCompact: boolean;
   showUpcomingMeals: boolean;
@@ -248,7 +241,6 @@ type HomeDashboardSettings = {
 
 const HOME_DASHBOARD_DEFAULTS: HomeDashboardSettings = {
   upcomingDays: 7,
-  upcomingLayout: "list",
   upcomingDetail: "standard",
   upcomingCompact: false,
   showUpcomingMeals: true,
@@ -263,10 +255,6 @@ function clampHomeUpcomingDays(input: unknown) {
   }
 
   return Math.min(30, Math.max(1, Math.floor(input)));
-}
-
-function normalizeHomeLayout(input: unknown): HomeUpcomingLayout {
-  return input === "grouped" ? "grouped" : "list";
 }
 
 function normalizeHomeDetail(input: unknown): HomeUpcomingDetail {
@@ -540,7 +528,6 @@ export default function SettingsPage() {
   useEffect(() => {
     Promise.all([
       platform.getSetting("home_upcoming_days"),
-      platform.getSetting("home_upcoming_layout"),
       platform.getSetting("home_upcoming_detail"),
       platform.getSetting("home_upcoming_compact"),
       platform.getSetting("home_show_upcoming_meals"),
@@ -551,7 +538,6 @@ export default function SettingsPage() {
       .then(
         ([
           upcomingDays,
-          upcomingLayout,
           upcomingDetail,
           upcomingCompact,
           showUpcomingMeals,
@@ -561,7 +547,6 @@ export default function SettingsPage() {
         ]) => {
           setHomeDashboard({
             upcomingDays: clampHomeUpcomingDays(upcomingDays),
-            upcomingLayout: normalizeHomeLayout(upcomingLayout),
             upcomingDetail: normalizeHomeDetail(upcomingDetail),
             upcomingCompact: normalizeHomeBool(
               upcomingCompact,
@@ -1080,14 +1065,6 @@ export default function SettingsPage() {
       value,
       "home_upcoming_days",
       (input) => clampHomeUpcomingDays(input)
-    );
-  };
-
-  const handleHomeLayout = async (value: string) => {
-    await saveHomeSetting(
-      "upcomingLayout",
-      normalizeHomeLayout(value),
-      "home_upcoming_layout"
     );
   };
 
@@ -1799,7 +1776,7 @@ export default function SettingsPage() {
               <h2 className={styles.cardTitle}>Home overview controls</h2>
               <p className={styles.cardDescription}>
                 Choose what appears on the home screen and how upcoming meals
-                are displayed.
+                are detailed.
               </p>
             </div>
 
@@ -1825,24 +1802,7 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className={styles.twoColumn} style={{ marginTop: "1rem" }}>
-              <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>Upcoming layout</label>
-                <select
-                  className={styles.select}
-                  onChange={(event) =>
-                    void handleHomeLayout(event.target.value)
-                  }
-                  value={homeDashboard.upcomingLayout}
-                >
-                  {homeUpcomingLayoutOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
+            <div style={{ marginTop: "1rem" }}>
               <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel}>
                   Upcoming detail level

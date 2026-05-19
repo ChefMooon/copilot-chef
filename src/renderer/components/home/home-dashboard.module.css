@@ -289,57 +289,100 @@
   margin-bottom: 0.55rem;
 }
 
-.upcomingList,
 .upcomingGroupedList {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
 }
 
 .upcomingGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.42rem;
+  min-width: 0;
+  padding: 0.52rem;
+  border: 1px solid var(--cream-dark);
+  border-radius: 12px;
+  background: rgba(244, 238, 226, 0.5);
 }
 
 .upcomingGroupTitle {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.upcomingGroupMeals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.36rem;
 }
 
 .upcomingMealRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.48rem 0.62rem;
+  min-width: 0;
+  padding: 0.38rem 0.5rem;
   border: 1px solid var(--cream-dark);
-  border-radius: 10px;
-  background: var(--cream);
+  border-radius: 9px;
+  background: var(--white);
 }
 
 .upcomingCardCompact .upcomingMealRow {
-  padding: 0.34rem 0.5rem;
+  padding: 0.3rem 0.42rem;
 }
 
 .upcomingMealName {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 700;
-  line-height: 1.3;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.upcomingMealSubType {
+  display: inline-flex;
+  margin-left: 0.34rem;
+  vertical-align: middle;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  padding: 0.02rem 0.34rem;
+  font-size: 0.54rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .upcomingMeta {
-  margin-top: 0.1rem;
+  margin-top: 0.08rem;
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 600;
 }
 
 .upcomingCardCompact .upcomingMeta {
   margin-top: 0.05rem;
-  font-size: 0.68rem;
+  font-size: 0.64rem;
+}
+
+.upcomingCardCompact .upcomingMealSubType {
+  margin-left: 0.3rem;
+  padding: 0.02rem 0.34rem;
+  font-size: 0.5rem;
+}
+
+@media (min-width: 760px) {
+  .upcomingGroupedList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1120px) {
+  .upcomingGroupedList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .upcomingEmptyMessage {
