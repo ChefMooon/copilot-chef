@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 
+import { Button } from "@/components/ui/button";
 import { useChatPageContext } from "@/context/chat-context";
 import { fetchJson } from "@/lib/api";
 import { isServerConfigReady } from "@/lib/config";
@@ -337,9 +338,14 @@ export function HomeDashboard() {
               >
                 <div className={styles.cardHeader}>
                   <div className={styles.cardTitle}>⏭️ Upcoming Meals</div>
-                  <Link className={styles.cardAction} to="/meal-plan">
-                    Open Planner →
-                  </Link>
+                  <Button
+                    asChild
+                    className={styles.cardActionButton}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Link to="/meal-plan">Open Planner →</Link>
+                  </Button>
                 </div>
 
                 {upcomingMealsQuery.isLoading ? (
@@ -419,9 +425,14 @@ export function HomeDashboard() {
                   <div className={styles.card}>
                     <div className={styles.cardHeader}>
                       <div className={styles.cardTitle}>🔥 Meal Activity</div>
-                      <Link className={styles.cardAction} to="/stats">
-                        View Stats →
-                      </Link>
+                      <Button
+                        asChild
+                        className={styles.cardActionButton}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Link to="/stats">View Stats →</Link>
+                      </Button>
                     </div>
 
                     <div className={styles.heatmapWrap}>
@@ -506,9 +517,14 @@ export function HomeDashboard() {
                   <div className={styles.card}>
                     <div className={styles.cardHeader}>
                       <div className={styles.cardTitle}>🛒 Grocery List</div>
-                      <Link className={styles.cardAction} to="/grocery-list">
-                        Full List →
-                      </Link>
+                      <Button
+                        asChild
+                        className={styles.cardActionButton}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Link to="/grocery-list">Full List →</Link>
+                      </Button>
                     </div>
 
                     <div className={styles.grocerySummary}>

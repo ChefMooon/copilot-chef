@@ -403,6 +403,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.7rem;
   margin-bottom: 0.75rem;
 }
 
@@ -415,16 +416,26 @@
   font-weight: 700;
 }
 
-.cardAction {
+.cardActionButton {
+  min-height: 1.9rem;
+  padding-inline: 0.7rem;
+  border-color: rgba(59, 94, 69, 0.24);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
   color: var(--green);
-  font-size: 0.78rem;
-  font-weight: 700;
-  opacity: 0.8;
 }
 
-.cardAction:hover {
-  opacity: 1;
-  text-decoration: underline;
+.cardActionButton:hover {
+  border-color: var(--green-light);
+  background: var(--green-pale);
+  color: var(--green);
+}
+
+.cardActionButton:focus-visible {
+  border-color: var(--green);
 }
 
 .heatmapWrap {
@@ -652,6 +663,11 @@
 
   .greetingTitle {
     font-size: 1.55rem;
+  }
+
+  .cardHeader {
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
 }
 
