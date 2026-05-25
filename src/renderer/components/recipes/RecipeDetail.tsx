@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { convertIngredient, type UnitMode } from "@/lib/recipe-units";
 import { formatFraction } from "@/lib/fractions";
@@ -8,10 +8,13 @@ import { recipeKeys } from "@/lib/query-keys";
 import { getCuisineLabel } from "@shared/api/constants";
 
 import {
+  createRecipe,
+  type RecipeIterationPayload,
   updateRecipe,
   type RecipePayload,
 } from "@/lib/api";
 import { AddRecipeModal } from "@/components/recipes/AddRecipeModal";
+import { DerivedRecipesModal } from "@/components/recipes/DerivedRecipesModal";
 import { Button } from "@/components/ui/button";
 
 import { CookingMode } from "./CookingMode";
@@ -21,6 +24,9 @@ import { SourceBadge } from "./SourceBadge";
 
 type RecipeDetailProps = {
   recipe: RecipePayload;
+  iterations?: RecipeIterationPayload[];
+  isIterationsLoading?: boolean;
+  initiallyEditing?: boolean;
   defaultView: "basic" | "detailed" | "cooking";
   defaultUnitMode: UnitMode;
   isDeleting?: boolean;
@@ -32,6 +38,20 @@ type RecipeDetailProps = {
   onDeleteRequest?: () => void;
 };
 
+function buildDuplicateDraft(source: RecipePayload): RecipePayload {
+  const baseTitle = source.title.trim();
+  return {
+    ...source,
+    id: `${source.id}-duplicate-draft`,
+    title: `${baseTitle} (Copy)`,
+    sourceRecipeId: source.id,
+    sourceRecipe: {
+      id: source.id,
+      title: source.title,
+    },
+  };
+}
+
 const VIEW_LABELS = {
   basic: "Basic",
   detailed: "Annotated",
@@ -40,12 +60,16 @@ const VIEW_LABELS = {
 
 export function RecipeDetail({
   recipe,
+  iterations = [],
+  isIterationsLoading = false,
+  initiallyEditing = false,
   defaultView,
   defaultUnitMode,
   isDeleting = false,
   onContextStateChange,
   onDeleteRequest,
 }: RecipeDetailProps) {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [view, setView] = useState<"basic" | "detailed" | "cooking">(defaultView);
   const [servings, setServings] = useState(recipe.servings);
@@ -54,12 +78,30 @@ export function RecipeDetail({
     defaultView === "cooking" ? 1 : null
   );
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [showDerivedRecipesModal, setShowDerivedRecipesModal] = useState(false);
+  const [duplicateDraft, setDuplicateDraft] = useState<RecipePayload | null>(null);
+  const [hasConsumedInitialEdit, setHasConsumedInitialEdit] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [isCreatingDuplicate, setIsCreatingDuplicate] = useState(false);
   const cuisineLabel = getCuisineLabel(recipe.cuisine);
 
   useEffect(() => {
     setServings(recipe.servings);
   }, [recipe]);
+
+  useEffect(() => {
+    setHasConsumedInitialEdit(false);
+  }, [recipe.id]);
+
+  useEffect(() => {
+    if (!initiallyEditing || hasConsumedInitialEdit) {
+      return;
+    }
+
+    setShowEditModal(true);
+    setHasConsumedInitialEdit(true);
+  }, [hasConsumedInitialEdit, initiallyEditing]);
 
   useEffect(() => {
     if (!onContextStateChange) {
@@ -72,6 +114,12 @@ export function RecipeDetail({
       cookingStepNumber,
     });
   }, [cookingStepNumber, onContextStateChange, unitMode, view]);
+
+  useEffect(() => {
+    if (iterations.length <= 1) {
+      setShowDerivedRecipesModal(false);
+    }
+  }, [iterations.length]);
 
   const scale = servings / Math.max(1, recipe.servings);
   const recipeQueryKey = recipeKeys.detail(recipe.id);
@@ -122,6 +170,9 @@ export function RecipeDetail({
       ),
     [ingredientDisplays, recipe.instructions]
   );
+  const sourceRecipe = recipe.sourceRecipe;
+  const derivedCount = iterations.length;
+  const singleDerivedRecipe = derivedCount === 1 ? iterations[0] : null;
 
   async function handleSaveEdit(
     input: Parameters<typeof updateRecipe>[1]
@@ -175,6 +226,42 @@ export function RecipeDetail({
           entry.id === previousRecipe.id ? previousRecipe : entry
         )
       );
+    }
+  }
+
+  async function handleDuplicate(): Promise<void> {
+    setDuplicateDraft(buildDuplicateDraft(recipe));
+    setShowDuplicateModal(true);
+  }
+
+  async function handleSaveDuplicate(
+    input: Parameters<typeof createRecipe>[0]
+  ): Promise<void> {
+    setIsCreatingDuplicate(true);
+    try {
+      const created = await createRecipe(input);
+      queryClient.setQueryData(recipeKeys.detail(created.id), created);
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: recipeKeys.all,
+          refetchType: "active",
+        }),
+        queryClient.invalidateQueries({
+          queryKey: recipeKeys.detail(recipe.id),
+          refetchType: "active",
+        }),
+        queryClient.invalidateQueries({
+          queryKey: recipeKeys.iterations(recipe.id),
+          refetchType: "active",
+        }),
+      ]);
+
+      setShowDuplicateModal(false);
+      setDuplicateDraft(null);
+      navigate(`/recipes/${created.id}`);
+    } finally {
+      setIsCreatingDuplicate(false);
     }
   }
 
@@ -236,6 +323,15 @@ export function RecipeDetail({
               Edit
             </Button>
             <Button
+              disabled={isCreatingDuplicate}
+              onClick={() => void handleDuplicate()}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {isCreatingDuplicate ? "Saving..." : "Duplicate"}
+            </Button>
+            <Button
               disabled={isDeleting}
               onClick={onDeleteRequest}
               size="sm"
@@ -271,6 +367,36 @@ export function RecipeDetail({
           <span>
             Last made: {recipe.lastMadeAt ? new Date(recipe.lastMadeAt).toLocaleDateString() : "Never"}
           </span>
+          {sourceRecipe ? (
+            <Link
+              className="rounded-chip border border-green/20 bg-green-pale px-2 py-0.5 text-[0.72rem] font-bold uppercase tracking-[0.06em] text-green transition-colors hover:border-green/35"
+              title={sourceRecipe.title}
+              to={`/recipes/${sourceRecipe.id}`}
+            >
+              Source
+            </Link>
+          ) : null}
+          {isIterationsLoading ? (
+            <span className="rounded-chip border border-cream-dark bg-cream px-2 py-0.5 text-[0.72rem] font-bold uppercase tracking-[0.06em] text-text-muted">
+              Derived ...
+            </span>
+          ) : singleDerivedRecipe ? (
+            <Link
+              className="rounded-chip border border-green/20 bg-green-pale px-2 py-0.5 text-[0.72rem] font-bold uppercase tracking-[0.06em] text-green transition-colors hover:border-green/35"
+              title={singleDerivedRecipe.title}
+              to={`/recipes/${singleDerivedRecipe.id}`}
+            >
+              Derived 1
+            </Link>
+          ) : derivedCount > 1 ? (
+            <button
+              className="rounded-chip border border-green/20 bg-green-pale px-2 py-0.5 text-[0.72rem] font-bold uppercase tracking-[0.06em] text-green transition-colors hover:border-green/35"
+              onClick={() => setShowDerivedRecipesModal(true)}
+              type="button"
+            >
+              Derived {derivedCount}
+            </button>
+          ) : null}
         </div>
         <div className="print-only recipe-print-settings mt-3 text-[0.8rem] font-semibold text-text-muted">
           Yield: {servings} serving{servings === 1 ? "" : "s"} | Units: {unitMode === "grams" ? "Grams" : "Cups"}
@@ -414,6 +540,25 @@ export function RecipeDetail({
         }}
         onSave={handleSaveEdit}
         open={showEditModal}
+      />
+
+      <AddRecipeModal
+        initialRecipe={duplicateDraft}
+        isSaving={isCreatingDuplicate}
+        onClose={() => {
+          if (!isCreatingDuplicate) {
+            setShowDuplicateModal(false);
+            setDuplicateDraft(null);
+          }
+        }}
+        onSave={handleSaveDuplicate}
+        open={showDuplicateModal}
+      />
+
+      <DerivedRecipesModal
+        iterations={iterations}
+        onClose={() => setShowDerivedRecipesModal(false)}
+        open={showDerivedRecipesModal}
       />
     </div>
   );

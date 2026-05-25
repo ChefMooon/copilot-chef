@@ -186,14 +186,19 @@ const SCHEMA_STATEMENTS = [
       "rating" INTEGER,
       "cookNotes" TEXT,
       "lastMadeAt" DATETIME,
+      "sourceRecipeId" TEXT,
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT "Recipe_sourceRecipeId_fkey"
+        FOREIGN KEY ("sourceRecipeId") REFERENCES "Recipe" ("id")
+        ON DELETE SET NULL ON UPDATE CASCADE
     )
   `,
   `CREATE INDEX IF NOT EXISTS "Recipe_title_idx" ON "Recipe"("title")`,
   `CREATE INDEX IF NOT EXISTS "Recipe_origin_idx" ON "Recipe"("origin")`,
   `CREATE INDEX IF NOT EXISTS "Recipe_cuisine_idx" ON "Recipe"("cuisine")`,
   `CREATE INDEX IF NOT EXISTS "Recipe_sourceUrl_idx" ON "Recipe"("sourceUrl")`,
+  `CREATE INDEX IF NOT EXISTS "Recipe_sourceRecipeId_idx" ON "Recipe"("sourceRecipeId")`,
   `
     CREATE TABLE IF NOT EXISTS "RecipeIngredient" (
       "id" TEXT NOT NULL PRIMARY KEY,
@@ -630,6 +635,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
     normalizedSourceUrl: `ALTER TABLE "Recipe" ADD COLUMN "normalizedSourceUrl" TEXT`,
     favourite: `ALTER TABLE "Recipe" ADD COLUMN "favourite" INTEGER NOT NULL DEFAULT 0`,
     cuisine: `ALTER TABLE "Recipe" ADD COLUMN "cuisine" TEXT`,
+    sourceRecipeId: `ALTER TABLE "Recipe" ADD COLUMN "sourceRecipeId" TEXT REFERENCES "Recipe"("id") ON DELETE SET NULL ON UPDATE CASCADE`,
   } as const;
 
   const safeRecipeIngredientAlterStatements = {

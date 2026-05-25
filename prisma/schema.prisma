@@ -169,9 +169,12 @@ model Recipe {
   rating       Int?
   cookNotes    String?
   lastMadeAt   DateTime?
+  sourceRecipeId String?
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
+  sourceRecipe Recipe?            @relation("RecipeIteration", fields: [sourceRecipeId], references: [id], onDelete: SetNull)
+  derivedRecipes Recipe[]         @relation("RecipeIteration")
   ingredients  RecipeIngredient[]
   tags         RecipeTag[]
   linkedFrom   RecipeLink[]       @relation("ParentRecipe")
@@ -182,6 +185,7 @@ model Recipe {
   @@index([origin])
   @@index([cuisine])
   @@index([sourceUrl])
+  @@index([sourceRecipeId])
 }
 
 model RecipeIngredient {

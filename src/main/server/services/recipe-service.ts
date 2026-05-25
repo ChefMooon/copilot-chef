@@ -84,9 +84,18 @@ type SerializedRecipe = {
   lastMadeAt: string | null;
   createdAt: string;
   updatedAt: string;
+  sourceRecipeId: string | null;
+  sourceRecipe: { id: string; title: string } | null;
   ingredients: SerializedRecipeIngredient[];
   tags: string[];
   linkedSubRecipes: Array<{ id: string; title: string }>;
+};
+
+type SerializedRecipeIteration = {
+  id: string;
+  title: string;
+  parentId: string;
+  depth: number;
 };
 
 export interface RecipeFilters {
@@ -228,6 +237,8 @@ function serializeRecipe(recipe: {
   lastMadeAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  sourceRecipeId?: string | null;
+  sourceRecipe?: { id: string; title: string } | null;
   ingredients?: Array<{
     id: string;
     name: string;
@@ -263,6 +274,13 @@ function serializeRecipe(recipe: {
     lastMadeAt: recipe.lastMadeAt?.toISOString() ?? null,
     createdAt: recipe.createdAt.toISOString(),
     updatedAt: recipe.updatedAt.toISOString(),
+    sourceRecipeId: recipe.sourceRecipeId ?? null,
+    sourceRecipe: recipe.sourceRecipe
+      ? {
+          id: recipe.sourceRecipe.id,
+          title: recipe.sourceRecipe.title,
+        }
+      : null,
     ingredients: (recipe.ingredients ?? [])
       .slice()
       .sort((a, b) => a.order - b.order)
@@ -304,6 +322,12 @@ function includeRecipeRelations() {
   return {
     ingredients: true,
     tags: true,
+    sourceRecipe: {
+      select: {
+        id: true,
+        title: true,
+      },
+    },
     linkedFrom: { include: { subRecipe: true } },
   } as const;
 }
@@ -1003,6 +1027,17 @@ export class RecipeService {
     const ingredients = normalizedRowsFromInput(input);
     const tags = uniqueCaseInsensitive(input.tags ?? []);
 
+    if (input.sourceRecipeId) {
+      const sourceExists = await prisma.recipe.findUnique({
+        where: { id: input.sourceRecipeId },
+        select: { id: true },
+      });
+
+      if (!sourceExists) {
+        throw new Error("Source recipe not found");
+      }
+    }
+
     try {
       const recipe = await prisma.$transaction(async (tx) => {
         const created = await tx.recipe.create({
@@ -1023,6 +1058,7 @@ export class RecipeService {
             favourite: input.favourite ?? false,
             rating: input.rating ?? null,
             cookNotes: compactString(input.cookNotes),
+            sourceRecipeId: input.sourceRecipeId ?? null,
             ingredients: {
               create: ingredients.map((ingredient) => ({
                 name: ingredient.name,
@@ -1138,6 +1174,20 @@ export class RecipeService {
     if (input.rating !== undefined) updateData.rating = input.rating;
     if (input.cookNotes !== undefined) {
       updateData.cookNotes = compactString(input.cookNotes);
+    }
+    if (input.sourceRecipeId !== undefined) {
+      updateData.sourceRecipeId = input.sourceRecipeId;
+    }
+
+    if (input.sourceRecipeId) {
+      const sourceExists = await prisma.recipe.findUnique({
+        where: { id: input.sourceRecipeId },
+        select: { id: true },
+      });
+
+      if (!sourceExists) {
+        throw new Error("Source recipe not found");
+      }
     }
 
     try {
@@ -1481,7 +1531,64 @@ export class RecipeService {
         subRecipeId: entry.id,
       })),
       ...overrides,
+      sourceRecipeId: id,
     });
+  }
+
+  async getRecipeIterations(id: string): Promise<SerializedRecipeIteration[]> {
+    await bootstrapDatabase();
+
+    const root = await prisma.recipe.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!root) {
+      throw new Error("Recipe not found");
+    }
+
+    const iterations: SerializedRecipeIteration[] = [];
+    const visited = new Set<string>([id]);
+    let frontier = [id];
+    let depth = 1;
+
+    while (frontier.length > 0) {
+      const children = await prisma.recipe.findMany({
+        where: {
+          sourceRecipeId: {
+            in: frontier,
+          },
+        },
+        select: {
+          id: true,
+          title: true,
+          sourceRecipeId: true,
+        },
+        orderBy: [{ updatedAt: "desc" }, { title: "asc" }],
+      });
+
+      const nextFrontier: string[] = [];
+
+      for (const child of children) {
+        if (!child.sourceRecipeId || visited.has(child.id)) {
+          continue;
+        }
+
+        visited.add(child.id);
+        iterations.push({
+          id: child.id,
+          title: child.title,
+          parentId: child.sourceRecipeId,
+          depth,
+        });
+        nextFrontier.push(child.id);
+      }
+
+      frontier = nextFrontier;
+      depth += 1;
+    }
+
+    return iterations;
   }
 
   async getRolledUpIngredients(

@@ -315,3 +315,18 @@ recipesRoutes.post("/recipes/:id/duplicate", async (c) => {
     );
   }
 });
+
+recipesRoutes.get("/recipes/:id/iterations", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const data = await recipeService.getRecipeIterations(id);
+    return c.json({ data });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to fetch recipe iterations";
+    const isNotFound = message.toLowerCase().includes("not found");
+    return c.json(
+      { error: message, code: isNotFound ? "RECIPE_NOT_FOUND" : "RECIPE_ITERATIONS_FAILED" },
+      isNotFound ? 404 : 400
+    );
+  }
+});

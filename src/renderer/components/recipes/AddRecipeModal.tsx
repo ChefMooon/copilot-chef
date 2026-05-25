@@ -387,6 +387,7 @@ export function AddRecipeModal({
       cuisine: form.cuisine.trim() || null,
       rating: form.rating.trim() ? Number.parseInt(form.rating.trim(), 10) : null,
       cookNotes: form.cookNotes.trim() || null,
+      sourceRecipeId: initialRecipe?.sourceRecipeId ?? undefined,
     };
 
     try {

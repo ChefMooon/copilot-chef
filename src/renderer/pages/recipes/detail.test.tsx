@@ -109,6 +109,12 @@ describe("RecipeDetailPage", () => {
         };
       }
 
+      if (url === "/api/recipes/recipe-1/iterations") {
+        return {
+          data: [],
+        };
+      }
+
       throw new Error(`Unhandled URL: ${url}`);
     });
     deleteRecipeMock.mockResolvedValue(undefined);

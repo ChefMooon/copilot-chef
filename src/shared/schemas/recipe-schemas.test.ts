@@ -213,4 +213,13 @@ describe("recipe schemas", () => {
 
     expect(parsed.sourceUrl).toBeNull();
   });
+
+  it("accepts sourceRecipeId for iteration lineage", () => {
+    const parsed = CreateRecipeInputSchema.parse({
+      ...baseRecipe,
+      sourceRecipeId: "recipe-123",
+    });
+
+    expect(parsed.sourceRecipeId).toBe("recipe-123");
+  });
 });

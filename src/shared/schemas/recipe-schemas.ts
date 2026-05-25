@@ -211,6 +211,7 @@ export const CreateRecipeInputSchema = z.object({
   ingredientLines: z.array(requiredTrimmedStringSchema).optional(),
   tags: z.array(recipeTagInputSchema).default([]),
   linkedSubRecipes: z.array(recipeLinkInputSchema).default([]),
+  sourceRecipeId: requiredTrimmedStringSchema.optional(),
 });
 
 export const UpdateRecipeInputSchema = CreateRecipeInputSchema.partial();

@@ -13,6 +13,7 @@ import {
   type MenuLayout,
   type RecipeConflict,
   type RecipeExportJson,
+  type RecipeIterationPayload,
   type CreatePersonaInput,
   type PreferenceUpdateInput,
   type PreferencesPayload,
@@ -470,6 +471,13 @@ export async function duplicateRecipe(id: string) {
   const response = await fetchJson<{ data: RecipePayload }>(
     `/api/recipes/${id}/duplicate`,
     { method: "POST", body: JSON.stringify({}) }
+  );
+  return response.data;
+}
+
+export async function getRecipeIterations(id: string) {
+  const response = await fetchJson<{ data: RecipeIterationPayload[] }>(
+    `/api/recipes/${id}/iterations`
   );
   return response.data;
 }

@@ -182,6 +182,18 @@ export type RecipeIngredientPayload = {
   order: number;
 };
 
+export type RecipeLinkSummary = {
+  id: string;
+  title: string;
+};
+
+export type RecipeIterationPayload = {
+  id: string;
+  title: string;
+  parentId: string;
+  depth: number;
+};
+
 export type RecipePayload = {
   id: string;
   title: string;
@@ -199,9 +211,11 @@ export type RecipePayload = {
   rating: number | null;
   cookNotes: string | null;
   lastMadeAt: string | null;
+  sourceRecipeId?: string | null;
+  sourceRecipe?: RecipeLinkSummary | null;
   ingredients: RecipeIngredientPayload[];
   tags: string[];
-  linkedSubRecipes: Array<{ id: string; title: string }>;
+  linkedSubRecipes: RecipeLinkSummary[];
 };
 
 export type {

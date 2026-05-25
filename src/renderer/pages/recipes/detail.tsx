@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 
-import { deleteRecipe, fetchJson } from "@/lib/api";
+import { deleteRecipe, fetchJson, getRecipeIterations } from "@/lib/api";
 import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
 import { RecipeDetail } from "@/components/recipes/RecipeDetail";
 import { RecipeDeleteDialog } from "@/components/recipes/RecipeDeleteDialog";
-import { type RecipePayload } from "@/lib/api";
+import { type RecipeIterationPayload, type RecipePayload } from "@/lib/api";
 import { recipeKeys } from "@/lib/query-keys";
 import { useChatPageContext } from "@/context/chat-context";
 
@@ -24,12 +24,18 @@ type PreferencesResponse = {
 
 function RecipeDetailContent({
   recipe,
+  iterations,
+  isIterationsLoading,
+  initiallyEditing,
   defaultUnitMode,
   defaultView,
   isDeleting,
   onDeleteRequest,
 }: {
   recipe: RecipePayload;
+  iterations: RecipeIterationPayload[];
+  isIterationsLoading: boolean;
+  initiallyEditing: boolean;
   defaultUnitMode: "cup" | "grams";
   defaultView: "basic" | "detailed" | "cooking";
   isDeleting: boolean;
@@ -73,7 +79,10 @@ function RecipeDetailContent({
     <RecipeDetail
       defaultUnitMode={defaultUnitMode}
       defaultView={defaultView}
+      initiallyEditing={initiallyEditing}
+      isIterationsLoading={isIterationsLoading}
       isDeleting={isDeleting}
+      iterations={iterations}
       onContextStateChange={setLiveState}
       onDeleteRequest={onDeleteRequest}
       recipe={recipe}
@@ -84,9 +93,11 @@ function RecipeDetailContent({
 export default function RecipeDetailPage() {
   const config = useServerConfig();
   const apiReady = isServerConfigReady(config);
+  const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { recipeId } = useParams<{ recipeId: string }>();
+  const initiallyEditing = new URLSearchParams(location.search).get("edit") === "1";
   const [recipePendingDelete, setRecipePendingDelete] =
     useState<RecipePayload | null>(null);
 
@@ -106,6 +117,12 @@ export default function RecipeDetailPage() {
       fetchJson<PreferencesResponse>("/api/preferences").then(
         (response) => response.data
       ),
+  });
+
+  const iterationsQuery = useQuery({
+    queryKey: recipeId ? recipeKeys.iterations(recipeId) : recipeKeys.iterations(""),
+    queryFn: () => getRecipeIterations(recipeId ?? ""),
+    enabled: apiReady && Boolean(recipeId),
   });
 
   const deleteMutation = useMutation({
@@ -162,8 +179,11 @@ export default function RecipeDetailPage() {
       <RecipeDetailContent
         defaultUnitMode={defaultUnitMode}
         defaultView={defaultView}
+        initiallyEditing={initiallyEditing}
+        isIterationsLoading={iterationsQuery.isLoading}
         isDeleting={deleteMutation.isPending}
         onDeleteRequest={() => setRecipePendingDelete(recipeQuery.data)}
+        iterations={iterationsQuery.data ?? []}
         recipe={recipeQuery.data}
       />
       <RecipeDeleteDialog
