@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -23,6 +23,8 @@ function GroceryShopContent({
   done,
   pct,
   navigate,
+  isMarkingAllComplete,
+  markAllComplete,
   toggleItem,
 }: {
   groups: ReturnType<typeof groupByCategory>;
@@ -30,6 +32,8 @@ function GroceryShopContent({
   done: number;
   pct: number;
   navigate: ReturnType<typeof useNavigate>;
+  isMarkingAllComplete: boolean;
+  markAllComplete: () => Promise<void>;
   toggleItem: (item: GroceryItem) => Promise<void>;
 }) {
   useChatPageContext({
@@ -73,6 +77,23 @@ function GroceryShopContent({
         <div className={styles.progressBarFill} style={{ width: `${pct}%` }} />
       </div>
       <div className={styles.body}>
+        <div className={styles.backRow}>
+          <button
+            className={styles.backBtn}
+            onClick={() => navigate("/grocery-list")}
+            type="button"
+          >
+            Back to Grocery List
+          </button>
+          <button
+            className={styles.completeBtn}
+            disabled={isMarkingAllComplete}
+            onClick={() => void markAllComplete()}
+            type="button"
+          >
+            {isMarkingAllComplete ? "Completing..." : "Mark All Complete"}
+          </button>
+        </div>
         {groups.map(([category, items]) => (
           <div className={styles.category} key={category}>
             <div className={styles.categoryHeader}>{category}</div>
@@ -132,6 +153,7 @@ export default function GroceryShopPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [isMarkingAllComplete, setIsMarkingAllComplete] = useState(false);
 
   const listQuery = useQuery({
     queryKey: ["grocery-list", id],
@@ -207,6 +229,82 @@ export default function GroceryShopPage() {
     }
   };
 
+  const markAllComplete = async () => {
+    if (!list || !id || isMarkingAllComplete) {
+      return;
+    }
+
+    const previousList = queryClient.getQueryData<GroceryList>([
+      "grocery-list",
+      id,
+    ]);
+    const previousLists = queryClient.getQueryData<GroceryList[]>([
+      "grocery-lists",
+    ]);
+    const applyCompleteAll = (current: GroceryList) => ({
+      ...current,
+      items: current.items.map((entry) => ({
+        ...entry,
+        checked: true,
+      })),
+    });
+    const uncheckedItems = list.items.filter((item) => !item.checked);
+
+    queryClient.setQueryData<GroceryList | undefined>(
+      ["grocery-list", id],
+      (current) =>
+        current ? deriveGroceryList(applyCompleteAll(current)) : current
+    );
+    queryClient.setQueryData<GroceryList[] | undefined>(
+      ["grocery-lists"],
+      (current) =>
+        current
+          ? updateGroceryListInCollection(current, list.id, applyCompleteAll)
+          : current
+    );
+
+    if (uncheckedItems.length === 0) {
+      navigate("/grocery-list");
+      return;
+    }
+
+    setIsMarkingAllComplete(true);
+
+    try {
+      await Promise.all(
+        uncheckedItems.map((item) =>
+          fetchJson<{ data: GroceryList }>(
+            `/api/grocery-lists/${list.id}/items/${item.id}`,
+            {
+              method: "PATCH",
+              body: JSON.stringify({ checked: true }),
+            }
+          )
+        )
+      );
+
+      queryClient.setQueryData<GroceryList | undefined>(
+        ["grocery-list", id],
+        (current) =>
+          current ? deriveGroceryList(applyCompleteAll(current)) : current
+      );
+      queryClient.setQueryData<GroceryList[] | undefined>(
+        ["grocery-lists"],
+        (current) =>
+          current
+            ? updateGroceryListInCollection(current, list.id, applyCompleteAll)
+            : current
+      );
+      navigate("/grocery-list");
+    } catch (error) {
+      queryClient.setQueryData(["grocery-list", id], previousList);
+      queryClient.setQueryData(["grocery-lists"], previousLists);
+      throw error;
+    } finally {
+      setIsMarkingAllComplete(false);
+    }
+  };
+
   if (!list) {
     return <div>Loading shopping view...</div>;
   }
@@ -215,8 +313,10 @@ export default function GroceryShopPage() {
     <GroceryShopContent
       done={done}
       groups={groups}
+      isMarkingAllComplete={isMarkingAllComplete}
       list={list}
       navigate={navigate}
+      markAllComplete={markAllComplete}
       pct={pct}
       toggleItem={toggleItem}
     />

@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 
 import { useEffect } from "react";
-import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -620,6 +626,195 @@ describe("page context producers", () => {
           itemCount: 1,
         })
       );
+    });
+  });
+
+  it("navigates back to the grocery list page from the shop view", async () => {
+    apiMocks.fetchJson.mockImplementation(async (url: string) => {
+      if (url === "/api/grocery-lists/list-1") {
+        return {
+          data: {
+            id: "list-1",
+            name: "Weekly Groceries",
+            date: "2026-04-28T00:00:00.000Z",
+            createdAt: "2026-04-20T00:00:00.000Z",
+            updatedAt: "2026-04-28T00:00:00.000Z",
+            favourite: false,
+            itemCount: 2,
+            totalItems: 2,
+            checkedCount: 1,
+            completionPercentage: 50,
+            items: [
+              {
+                id: "item-1",
+                name: "Avocado",
+                qty: "2",
+                unit: "piece",
+                category: "Produce",
+                checked: false,
+                notes: null,
+                meal: null,
+                order: 0,
+              },
+            ],
+          },
+        };
+      }
+
+      if (url === "/api/grocery-lists") {
+        return {
+          data: [
+            {
+              id: "list-1",
+              name: "Weekly Groceries",
+              date: "2026-04-28T00:00:00.000Z",
+              createdAt: "2026-04-20T00:00:00.000Z",
+              updatedAt: "2026-04-28T00:00:00.000Z",
+              favourite: false,
+              itemCount: 2,
+              totalItems: 2,
+              checkedCount: 1,
+              completionPercentage: 50,
+              items: [],
+            },
+          ],
+        };
+      }
+
+      throw new Error(`Unhandled URL: ${url}`);
+    });
+
+    renderWithProviders(
+      <Routes>
+        <Route element={<GroceryListPage />} path="/grocery-list" />
+        <Route element={<GroceryShopPage />} path="/grocery-list/shop/:id" />
+      </Routes>,
+      "/grocery-list/shop/list-1"
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Back to Grocery List" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Your Lists")).toBeTruthy();
+    });
+  });
+
+  it("marks all shopping items complete and returns to the grocery list page", async () => {
+    apiMocks.fetchJson.mockImplementation(async (url: string) => {
+      if (url === "/api/grocery-lists/list-1") {
+        return {
+          data: {
+            id: "list-1",
+            name: "Weekly Groceries",
+            date: "2026-04-28T00:00:00.000Z",
+            createdAt: "2026-04-20T00:00:00.000Z",
+            updatedAt: "2026-04-28T00:00:00.000Z",
+            favourite: false,
+            itemCount: 2,
+            totalItems: 2,
+            checkedCount: 0,
+            completionPercentage: 0,
+            items: [
+              {
+                id: "item-1",
+                name: "Avocado",
+                qty: "2",
+                unit: "piece",
+                category: "Produce",
+                checked: false,
+                notes: null,
+                meal: null,
+                order: 0,
+              },
+              {
+                id: "item-2",
+                name: "Lime",
+                qty: "4",
+                unit: "piece",
+                category: "Produce",
+                checked: false,
+                notes: null,
+                meal: null,
+                order: 1,
+              },
+            ],
+          },
+        };
+      }
+
+      if (url === "/api/grocery-lists") {
+        return {
+          data: [
+            {
+              id: "list-1",
+              name: "Weekly Groceries",
+              date: "2026-04-28T00:00:00.000Z",
+              createdAt: "2026-04-20T00:00:00.000Z",
+              updatedAt: "2026-04-28T00:00:00.000Z",
+              favourite: false,
+              itemCount: 2,
+              totalItems: 2,
+              checkedCount: 2,
+              completionPercentage: 100,
+              items: [],
+            },
+          ],
+        };
+      }
+
+      if (url === "/api/grocery-lists/list-1/items/item-1") {
+        return {
+          data: {
+            id: "list-1",
+            name: "Weekly Groceries",
+            date: "2026-04-28T00:00:00.000Z",
+            createdAt: "2026-04-20T00:00:00.000Z",
+            updatedAt: "2026-04-28T00:00:00.000Z",
+            favourite: false,
+            itemCount: 2,
+            totalItems: 2,
+            checkedCount: 2,
+            completionPercentage: 100,
+            items: [],
+          },
+        };
+      }
+
+      if (url === "/api/grocery-lists/list-1/items/item-2") {
+        return {
+          data: {
+            id: "list-1",
+            name: "Weekly Groceries",
+            date: "2026-04-28T00:00:00.000Z",
+            createdAt: "2026-04-20T00:00:00.000Z",
+            updatedAt: "2026-04-28T00:00:00.000Z",
+            favourite: false,
+            itemCount: 2,
+            totalItems: 2,
+            checkedCount: 2,
+            completionPercentage: 100,
+            items: [],
+          },
+        };
+      }
+
+      throw new Error(`Unhandled URL: ${url}`);
+    });
+
+    renderWithProviders(
+      <Routes>
+        <Route element={<GroceryListPage />} path="/grocery-list" />
+        <Route element={<GroceryShopPage />} path="/grocery-list/shop/:id" />
+      </Routes>,
+      "/grocery-list/shop/list-1"
+    );
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Mark All Complete" })
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Your Lists")).toBeTruthy();
     });
   });
 
