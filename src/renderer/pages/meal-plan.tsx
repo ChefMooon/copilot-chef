@@ -207,6 +207,9 @@ export default function MealPlanPage() {
   const [isMenuExportOpen, setIsMenuExportOpen] = useState(false);
   const [saveAsRecipeConflict, setSaveAsRecipeConflict] =
     useState<RecipeConflict | null>(null);
+  const [isLinkingExistingRecipe, setIsLinkingExistingRecipe] = useState(false);
+  const [recipeTitleFocusRequestKey, setRecipeTitleFocusRequestKey] =
+    useState(0);
 
   const createRecipeMutation = useMutation({
     mutationFn: createRecipe,
@@ -1235,9 +1238,18 @@ export default function MealPlanPage() {
 
   const handleSaveRecipeConflict = (conflict: RecipeConflict) => {
     setSaveAsRecipeConflict(conflict);
+    toast({
+      title: "Recipe name already exists",
+      description:
+        conflict.code === "RECIPE_DUPLICATE_SOURCE_URL"
+          ? "This source URL is already in your Recipe Book. Link the existing recipe or rename the draft."
+          : `\"${conflict.existing.title}\" already exists. Rename the draft or link the existing recipe.`,
+      duration: 6000,
+    });
   };
 
   const closeSaveAsRecipeFlow = () => {
+    setIsLinkingExistingRecipe(false);
     setSaveAsRecipeConflict(null);
     setSaveAsRecipeMeal(null);
   };
@@ -1312,9 +1324,11 @@ export default function MealPlanPage() {
   };
 
   const handleLinkExistingRecipe = async () => {
-    if (!saveAsRecipeMeal?.id || !saveAsRecipeConflict) {
+    if (!saveAsRecipeMeal?.id || !saveAsRecipeConflict || isLinkingExistingRecipe) {
       return;
     }
+
+    setIsLinkingExistingRecipe(true);
 
     try {
       await fetchJson<{ data: CalendarMeal }>(
@@ -1343,29 +1357,47 @@ export default function MealPlanPage() {
         description: "Please try again in a moment.",
         variant: "error",
       });
+    } finally {
+      setIsLinkingExistingRecipe(false);
     }
   };
 
   const handleUnlinkRecipe = async (meal: EditableMeal) => {
     if (!meal.id || !meal.linkedRecipe) return;
 
-    await fetchJson<{ data: CalendarMeal }>(`/api/meals/${meal.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({
-        recipeId: null,
-        description: meal.linkedRecipe.description || null,
-        cuisine: meal.linkedRecipe.cuisine,
-        instructions: meal.linkedRecipe.instructions,
-        ingredients: meal.linkedRecipe.ingredients,
-        servings: meal.servingsOverride ?? meal.linkedRecipe.servings,
-        prepTime: meal.linkedRecipe.prepTime,
-        cookTime: meal.linkedRecipe.cookTime,
-        servingsOverride: null,
-      }),
-    });
+    try {
+      await fetchJson<{ data: CalendarMeal }>(`/api/meals/${meal.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          recipeId: null,
+          description: meal.linkedRecipe.description || null,
+          cuisine: meal.linkedRecipe.cuisine,
+          instructions: meal.linkedRecipe.instructions,
+          ingredients: meal.linkedRecipe.ingredients,
+          servings: meal.servingsOverride ?? meal.linkedRecipe.servings,
+          prepTime: meal.linkedRecipe.prepTime,
+          cookTime: meal.linkedRecipe.cookTime,
+          servingsOverride: null,
+        }),
+      });
 
-    await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
-    setEditMeal(null);
+      await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+      setEditMeal(null);
+      toast({
+        title: "Recipe unlinked",
+        description: "This meal is now standalone and can be linked again at any time.",
+        duration: 5000,
+      });
+    } catch (error) {
+      toast({
+        title: "Could not unlink recipe",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please try again in a moment.",
+        variant: "error",
+      });
+    }
   };
   const handleViewLinkedRecipe = (recipeId: string) => {
     setEditMeal(null);
@@ -1752,6 +1784,7 @@ export default function MealPlanPage() {
       {saveAsRecipeMeal ? (
         <AddRecipeModal
           open
+          focusTitleRequestKey={recipeTitleFocusRequestKey}
           initialRecipe={mealToRecipePayload(saveAsRecipeMeal)}
           isSaving={createRecipeMutation.isPending}
           onClose={closeSaveAsRecipeFlow}
@@ -1763,6 +1796,10 @@ export default function MealPlanPage() {
       <AlertDialog
         open={Boolean(saveAsRecipeConflict)}
         onOpenChange={(open) => {
+          if (isLinkingExistingRecipe) {
+            return;
+          }
+
           if (!open) {
             setSaveAsRecipeConflict(null);
           }
@@ -1774,14 +1811,15 @@ export default function MealPlanPage() {
             <AlertDialogDescription>
               {saveAsRecipeConflict?.code === "RECIPE_DUPLICATE_SOURCE_URL"
                 ? `The source URL for "${saveAsRecipeConflict?.existing.title ?? "this recipe"}" is already in your Recipe Book.`
-                : `"${saveAsRecipeConflict?.existing.title ?? "This recipe"}" is already in your Recipe Book.`}{" "}
-              You can link this meal to the existing recipe, or keep editing and
-              rename the draft before saving.
+                : `A recipe named "${saveAsRecipeConflict?.existing.title ?? "this recipe"}" already exists in your Recipe Book.`}{" "}
+              Duplicate recipe names are not allowed. Link this meal to the
+              existing recipe, or rename the draft and try again.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <button
               className={styles.btnGhost}
+              disabled={isLinkingExistingRecipe}
               onClick={() => setSaveAsRecipeConflict(null)}
               type="button"
             >
@@ -1789,20 +1827,24 @@ export default function MealPlanPage() {
             </button>
             <button
               className={styles.btnLinkRecipe}
-              onClick={() => setSaveAsRecipeConflict(null)}
+              disabled={isLinkingExistingRecipe}
+              onClick={() => {
+                setSaveAsRecipeConflict(null);
+                setRecipeTitleFocusRequestKey((current) => current + 1);
+              }}
               type="button"
             >
-              Rename Draft
+              Continue Editing
             </button>
             <button
               className={styles.btnSave}
-              disabled={!saveAsRecipeMeal?.id}
+              disabled={!saveAsRecipeMeal?.id || isLinkingExistingRecipe}
               onClick={() => {
                 void handleLinkExistingRecipe();
               }}
               type="button"
             >
-              Link Existing
+              {isLinkingExistingRecipe ? "Linking..." : "Link Existing"}
             </button>
           </AlertDialogFooter>
         </AlertDialogContent>

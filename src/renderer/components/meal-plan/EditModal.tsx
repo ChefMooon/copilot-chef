@@ -57,6 +57,7 @@ export function EditModal({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUnlinking, setIsUnlinking] = useState(false);
   const [deleteError, setDeleteError] = useState<string | undefined>();
+  const [recipeLinkError, setRecipeLinkError] = useState<string | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showRecipeSearchModal, setShowRecipeSearchModal] = useState(false);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
@@ -935,7 +936,10 @@ export function EditModal({
                     <button
                       className={`${styles.btnLinkRecipe} ${styles.footerActionButton}`}
                       disabled={isSaving || isDeleting || isSuggesting}
-                      onClick={() => setShowRecipeSearchModal(true)}
+                      onClick={() => {
+                        setRecipeLinkError(null);
+                        setShowRecipeSearchModal(true);
+                      }}
                       type="button"
                     >
                       Link Recipe
@@ -965,6 +969,11 @@ export function EditModal({
                   </button>
                 </div>
                 <div className={styles.modalFooterPrimary}>
+                  {recipeLinkError ? (
+                    <span className={styles.confirmationError} role="alert">
+                      {recipeLinkError}
+                    </span>
+                  ) : null}
                   <button
                     className={`${styles.btnGhost} ${styles.footerActionButton}`}
                     onClick={onClose}
@@ -1007,7 +1016,11 @@ export function EditModal({
 
       <RecipeSearchModal
         currentMealName={form.name}
-        onClose={() => setShowRecipeSearchModal(false)}
+        errorMessage={recipeLinkError}
+        onClose={() => {
+          setShowRecipeSearchModal(false);
+          setRecipeLinkError(null);
+        }}
         onSelectRecipe={async (recipe, servings, personalNote) => {
           const linkedMeal = buildLinkedMeal(form, recipe, {
             servings,
@@ -1015,14 +1028,21 @@ export function EditModal({
           });
 
           setForm(linkedMeal);
+          setRecipeLinkError(null);
           setIsSaving(true);
           try {
             await onSave(linkedMeal);
+            setShowRecipeSearchModal(false);
+            onClose();
+          } catch (error) {
+            setRecipeLinkError(
+              error instanceof Error
+                ? error.message
+                : "Unable to link recipe right now. Please try again."
+            );
           } finally {
             setIsSaving(false);
           }
-          setShowRecipeSearchModal(false);
-          onClose();
         }}
         open={showRecipeSearchModal}
       />

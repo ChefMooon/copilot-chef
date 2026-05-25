@@ -12,6 +12,7 @@ const FOCUSABLE_SELECTOR =
 type RecipeSearchModalProps = {
   open: boolean;
   currentMealName: string;
+  errorMessage?: string | null;
   onClose: () => void;
   onSelectRecipe: (
     recipe: RecipePayload,
@@ -23,6 +24,7 @@ type RecipeSearchModalProps = {
 export function RecipeSearchModal({
   open,
   currentMealName,
+  errorMessage,
   onClose,
   onSelectRecipe,
 }: RecipeSearchModalProps) {
@@ -373,6 +375,10 @@ export function RecipeSearchModal({
                 <p className={styles.confirmationError}>{loadError}</p>
               ) : null}
 
+              {errorMessage ? (
+                <p className={styles.confirmationError}>{errorMessage}</p>
+              ) : null}
+
               <div className={styles.recipeSearchResultsArea}>
                 <ul className={styles.recipeSearchList}>
                   {filteredResults.map((recipe) => {
@@ -383,26 +389,23 @@ export function RecipeSearchModal({
                     return (
                       <li className={styles.recipeSearchListItem} key={recipe.id}>
                         <button
-                          className={`${styles.recipeSearchListBtn} ${
-                            duplicateName ? styles.recipeSearchListBtnDisabled : ""
-                          }`}
-                          disabled={duplicateName}
+                          className={styles.recipeSearchListBtn}
                           onClick={() => {
                             setSelectedRecipe(recipe);
                             setPreviewServings(Math.max(1, recipe.servings || 1));
                             setPreviewNote("");
                           }}
-                          title={
-                            duplicateName
-                              ? "Recipe name matches current meal name"
-                              : undefined
-                          }
                           type="button"
                         >
                           <span className={styles.recipeSearchTitle}>{recipe.title}</span>
                           <span className={styles.recipeSearchListMeta}>
                             {recipe.favourite ? "★ " : ""}
-                            {[getCuisineLabel(recipe.cuisine), recipe.origin, `${recipe.ingredients.length} ingredients`]
+                            {[
+                              getCuisineLabel(recipe.cuisine),
+                              recipe.origin,
+                              `${recipe.ingredients.length} ingredients`,
+                              duplicateName ? "same as meal name" : null,
+                            ]
                               .filter(Boolean)
                               .join(" · ")}
                           </span>

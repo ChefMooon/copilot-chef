@@ -59,6 +59,7 @@ type FormState = {
 type AddRecipeModalProps = {
   open: boolean;
   initialRecipe?: RecipePayload | null;
+  focusTitleRequestKey?: number;
   isSaving?: boolean;
   onClose: () => void;
   onSave: (input: CreateRecipeInput) => Promise<void>;
@@ -156,6 +157,7 @@ function flattenIngredientGroups(groups: IngredientGroupDraft[]) {
 export function AddRecipeModal({
   open,
   initialRecipe,
+  focusTitleRequestKey,
   isSaving,
   onClose,
   onSave,
@@ -164,6 +166,8 @@ export function AddRecipeModal({
 }: AddRecipeModalProps) {
   const { toast } = useToast();
   const overlayRef = useRef<HTMLDivElement>(null);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const lastFocusRequestKeyRef = useRef<number | undefined>(focusTitleRequestKey);
   const previousOpenRef = useRef(false);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -219,6 +223,27 @@ export function AddRecipeModal({
 
     previousOpenRef.current = open;
   }, [open, initialRecipe]);
+
+  useEffect(() => {
+    if (!open || focusTitleRequestKey === undefined) {
+      return;
+    }
+
+    if (lastFocusRequestKeyRef.current === focusTitleRequestKey) {
+      return;
+    }
+
+    lastFocusRequestKeyRef.current = focusTitleRequestKey;
+
+    const frame = window.requestAnimationFrame(() => {
+      titleInputRef.current?.focus();
+      titleInputRef.current?.select();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+    };
+  }, [focusTitleRequestKey, open]);
 
   useEffect(() => {
     if (!open) {
@@ -430,6 +455,7 @@ export function AddRecipeModal({
                 Recipe Name
               </label>
               <Input
+                ref={titleInputRef}
                 onChange={(event) => setField("title", event.target.value)}
                 placeholder="Weeknight Lemon Pasta"
                 value={form.title}
