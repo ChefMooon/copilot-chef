@@ -103,9 +103,6 @@ export function WeekView({
       year: "numeric",
     }) ?? "";
   const today = new Date();
-  const weekMeals = slotsByDay.flatMap(({ slots }) =>
-    slots.flatMap((slot) => slot.meals)
-  );
   const mergedMealTypes = useMemo(
     () => mergeMealTypeDefinitions(slotsByDay.map(({ mealTypes }) => mealTypes)),
     [slotsByDay]
@@ -141,6 +138,25 @@ export function WeekView({
         clearDragState();
       });
     });
+  };
+
+  const canHandleDragOver = (
+    event: DragEvent<HTMLElement>,
+    activePayload: MealPlanDragPayload | null
+  ) => {
+    if (isApplyingDrop) {
+      return false;
+    }
+
+    if (activePayload) {
+      return true;
+    }
+
+    const dragTypes = Array.from(event.dataTransfer.types ?? []);
+    return (
+      dragTypes.includes("application/x-copilot-chef-meal-plan-drag") ||
+      dragTypes.includes("text/plain")
+    );
   };
 
   const onDragStartMeal = (
@@ -346,13 +362,19 @@ export function WeekView({
                                   )
                                 }
                                 onDragOver={(event) => {
-                                  if (!draggedPayload || isApplyingDrop) {
+                                  const activePayload =
+                                    draggedPayload ?? getMealPlanDragPayload(event.dataTransfer);
+
+                                  if (!canHandleDragOver(event, activePayload)) {
                                     return;
                                   }
 
                                   event.preventDefault();
                                   event.dataTransfer.dropEffect = "move";
                                   setDropTargetKey(emptyTargetKey);
+                                  if (activePayload) {
+                                    setDraggedPayload(activePayload);
+                                  }
                                 }}
                                 onDrop={async (event) => {
                                   event.preventDefault();
@@ -376,7 +398,7 @@ export function WeekView({
                               </div>
                             ) : (
                               <button
-                                className={`${styles.weekSlotEmpty} ${styles.emptySlotButton}`}
+                                className={`${styles.weekSlotEmpty} ${styles.emptySlotButton} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
                                 onClick={() =>
                                   onEdit(
                                     createEmptyMeal(
@@ -387,6 +409,37 @@ export function WeekView({
                                     )
                                   )
                                 }
+                                onDragOver={(event) => {
+                                  const activePayload = getMealPlanDragPayload(event.dataTransfer);
+                                  if (!canHandleDragOver(event, activePayload)) {
+                                    return;
+                                  }
+
+                                  event.preventDefault();
+                                  event.dataTransfer.dropEffect = "move";
+                                  setDropTargetKey(emptyTargetKey);
+                                  if (activePayload) {
+                                    setDraggedPayload(activePayload);
+                                  }
+                                }}
+                                onDrop={async (event) => {
+                                  const payload = getMealPlanDragPayload(event.dataTransfer);
+                                  if (!payload) {
+                                    scheduleClearDragState();
+                                    return;
+                                  }
+
+                                  event.preventDefault();
+                                  await applyDropTarget(
+                                    payload,
+                                    {
+                                      kind: "slot",
+                                      slotDate: day.toISOString(),
+                                      slotType: type,
+                                    },
+                                    { x: event.clientX, y: event.clientY }
+                                  );
+                                }}
                                 type="button"
                               >
                                 <span className={styles.btnAddSlot}>+ Add</span>
@@ -401,13 +454,19 @@ export function WeekView({
                                 )
                               }
                               onDragOver={(event) => {
-                                if (!draggedPayload || isApplyingDrop) {
+                                const activePayload =
+                                  draggedPayload ?? getMealPlanDragPayload(event.dataTransfer);
+
+                                if (!canHandleDragOver(event, activePayload)) {
                                   return;
                                 }
 
                                 event.preventDefault();
                                 event.dataTransfer.dropEffect = "move";
                                 setDropTargetKey(emptyTargetKey);
+                                if (activePayload) {
+                                  setDraggedPayload(activePayload);
+                                }
                               }}
                               onDrop={async (event) => {
                                 event.preventDefault();
@@ -443,6 +502,7 @@ export function WeekView({
                                   >
                                     <button
                                       className={`${styles.weekSlotMealCard} ${hasSubType ? styles.weekSlotMealCardHasSubType : ""} ${hasNotes ? styles.weekSlotMealCardHasNotes : ""} ${isTitleOnly ? styles.weekSlotMealCardTitleOnly : ""} ${draggedMealId === meal.id ? styles.mealCardDragging : ""} ${draggedSlotMealIds?.has(meal.id ?? "") ? styles.slotMealInDraggedGroup : ""} ${dropTargetKey === mealTargetKey ? styles.slotDropTarget : ""}`}
+                                      data-meal-plan-drag-source="calendar-meal"
                                       draggable={!isApplyingDrop && !dragDisabled}
                                       onClick={() => onEdit(meal)}
                                       onDragEnd={scheduleClearDragState}
@@ -452,13 +512,16 @@ export function WeekView({
                                         )
                                       }
                                       onDragOver={(event) => {
-                                        if (!draggedPayload || isApplyingDrop) {
+                                        const activePayload =
+                                          draggedPayload ?? getMealPlanDragPayload(event.dataTransfer);
+
+                                        if (!canHandleDragOver(event, activePayload)) {
                                           return;
                                         }
 
                                         if (
-                                          draggedPayload.kind === "meal" &&
-                                          draggedPayload.mealId === meal.id
+                                          activePayload.kind === "meal" &&
+                                          activePayload.mealId === meal.id
                                         ) {
                                           return;
                                         }
@@ -467,6 +530,9 @@ export function WeekView({
                                         event.stopPropagation();
                                         event.dataTransfer.dropEffect = "move";
                                         setDropTargetKey(mealTargetKey);
+                                        if (activePayload) {
+                                          setDraggedPayload(activePayload);
+                                        }
                                       }}
                                       onDragStart={(event) => onDragStartMeal(event, meal)}
                                       onDrop={async (event) => {
@@ -477,6 +543,7 @@ export function WeekView({
                                           event.clientY > rect.top + rect.height / 2;
                                         const payload = getMealPlanDragPayload(event.dataTransfer);
                                         if (!payload) {
+                                          scheduleClearDragState();
                                           return;
                                         }
 

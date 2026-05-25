@@ -8,7 +8,12 @@ import { DeleteConfirmationModal } from "@/components/meal-plan/DeleteConfirmati
 import { DropIntentPopover } from "@/components/meal-plan/DropIntentPopover";
 import { EditModal } from "@/components/meal-plan/EditModal";
 import { MenuPrintExportModal } from "@/components/meal-plan/MenuPrintExportModal";
+import {
+  MealBankSidecar,
+  type MealBankPlacement,
+} from "@/components/meal-plan/MealBankSidecar";
 import { MonthView } from "@/components/meal-plan/MonthView";
+import { RecipeSearchModal } from "@/components/meal-plan/RecipeSearchModal";
 import { SlotManagerModal } from "@/components/meal-plan/SlotManagerModal";
 import { TrashDropZone } from "@/components/meal-plan/TrashDropZone";
 import { WeekView } from "@/components/meal-plan/WeekView";
@@ -33,6 +38,7 @@ import {
   getMealTypeProfileContexts,
   getMealTypeDefinitionsForDate,
   getTypeConfig,
+  toBankMeal,
   type MealPlanDropAnchor,
   type MealPlanDropTarget,
   type MealPlanDragPayload,
@@ -42,6 +48,7 @@ import {
   toRangeByView,
   type CalendarMealType,
   type CalendarMeal,
+  type BankMeal,
   type EditableMeal,
 } from "@/lib/calendar";
 
@@ -50,6 +57,8 @@ import {
   createRecipe,
   createMeal,
   fetchJson,
+  listUnscheduledMeals,
+  reorderUnscheduledMeals,
   reorderSlotMeals as reorderSlotMealsApi,
 } from "@/lib/api";
 import { getCachedConfig, isServerConfigReady } from "@/lib/config";
@@ -60,7 +69,8 @@ import { useMealUndoRedo } from "@/components/meal-plan/use-meal-undo-redo";
 import { mealToRecipePayload } from "@/lib/meal-to-recipe";
 import { useMealTypeProfiles } from "@/lib/use-meal-types";
 import { useMealSubTypeDefinitions } from "@/lib/use-meal-types";
-import type { CreateRecipeInput, RecipeConflict } from "@shared/types";
+import { getPlatform } from "@/lib/platform";
+import type { CreateRecipeInput, RecipeConflict, RecipePayload } from "@shared/types";
 
 type CalView = "day" | "week" | "month";
 
@@ -76,6 +86,10 @@ type PendingDropIntent = {
   target: MealPlanDropTarget;
   anchor: MealPlanDropAnchor;
 };
+
+const MEAL_BANK_TYPE = "bank";
+const MEAL_BANK_PLACEMENT_KEY = "meal_bank_sidecar_placement";
+const MEAL_BANK_COLLAPSED_KEY = "meal_bank_collapsed";
 
 type DeletedMealSnapshot = Pick<
   EditableMeal,
@@ -162,6 +176,7 @@ async function readChatResponse(message: string) {
 
 export default function MealPlanPage() {
   const navigate = useNavigate();
+  const platform = useMemo(() => getPlatform(), []);
   const config = useServerConfig();
   const apiReady = isServerConfigReady(config);
   const [view, setView] = useState<CalView>("week");
@@ -210,6 +225,17 @@ export default function MealPlanPage() {
   const [isLinkingExistingRecipe, setIsLinkingExistingRecipe] = useState(false);
   const [recipeTitleFocusRequestKey, setRecipeTitleFocusRequestKey] =
     useState(0);
+  const [bankEditMeal, setBankEditMeal] = useState<BankMeal | null>(null);
+  const [isBankRecipeSearchOpen, setIsBankRecipeSearchOpen] = useState(false);
+  const [bankRecipeSearchError, setBankRecipeSearchError] = useState<string | null>(null);
+  const [mealBankPlacement, setMealBankPlacement] =
+    useState<MealBankPlacement>("right");
+  const [isMealBankCollapsed, setIsMealBankCollapsed] = useState(false);
+  const viewRef = useRef(view);
+
+  useEffect(() => {
+    viewRef.current = view;
+  }, [view]);
 
   const createRecipeMutation = useMutation({
     mutationFn: createRecipe,
@@ -241,7 +267,15 @@ export default function MealPlanPage() {
       ).then((response) => response.data.map(toEditableMeal)),
   });
 
+  const unscheduledMealsQuery = useQuery({
+    queryKey: ["meals", "unscheduled"] as const,
+    enabled: apiReady,
+    queryFn: () =>
+      listUnscheduledMeals().then((response) => response.map(toBankMeal)),
+  });
+
   const meals = mealsQuery.data ?? [];
+  const bankMeals = unscheduledMealsQuery.data ?? [];
   const mealTypeProfilesQuery = useMealTypeProfiles();
     const mealSubTypesQuery = useMealSubTypeDefinitions();
     const mealSubTypes = mealSubTypesQuery.data ?? [];
@@ -252,6 +286,31 @@ export default function MealPlanPage() {
     date,
     mealTypeProfiles
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void Promise.all([
+      platform.getSetting(MEAL_BANK_PLACEMENT_KEY),
+      platform.getSetting(MEAL_BANK_COLLAPSED_KEY),
+    ]).then(([placement, collapsed]) => {
+      if (cancelled) {
+        return;
+      }
+
+      if (placement === "left" || placement === "right" || placement === "bottom") {
+        setMealBankPlacement(placement);
+      }
+
+      if (typeof collapsed === "boolean") {
+        setIsMealBankCollapsed(collapsed);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [platform]);
   const currentProfileContext = useMemo(
     () => getMealTypeProfileContext(date, mealTypeProfiles),
     [date, mealTypeProfiles]
@@ -351,29 +410,55 @@ export default function MealPlanPage() {
       (definition) => definition.slug === mealType
     ) ?? null;
 
+  const toEditableBankMeal = (meal: BankMeal): EditableMeal => {
+    const fallbackDefinition =
+      mealTypeDefinitions.find((definition) => definition.enabled) ??
+      mealTypeDefinitions[0] ??
+      null;
+
+    return {
+      ...meal,
+      date: normalizeMealDate(date),
+      type: fallbackDefinition?.slug ?? meal.type,
+      mealTypeDefinitionId: fallbackDefinition?.id ?? null,
+      mealTypeDefinition: fallbackDefinition,
+    };
+  };
+
+  const setMealBankCollapsedPreference = (collapsed: boolean) => {
+    setIsMealBankCollapsed(collapsed);
+    void platform.setSetting(MEAL_BANK_COLLAPSED_KEY, collapsed);
+  };
+
   useEffect(() => {
-    if (view === "month") {
-      setIsDraggingMeal(false);
+    if (view !== "month") {
+      return;
     }
 
-    const handleDragStart = (event: DragEvent) => {
-      if (view === "month") {
-        return;
-      }
+    setIsDraggingMeal(false);
+    setDragging(false);
+  }, [view, setDragging]);
 
-      const target = event.target;
+  useEffect(() => {
+    const isCalendarMealDragSource = (target: EventTarget | null) => {
       if (!(target instanceof HTMLElement)) {
+        return false;
+      }
+
+      return target.closest('[data-meal-plan-drag-source="calendar-meal"]') !== null;
+    };
+
+    const handleDragStart = (event: DragEvent) => {
+      if (viewRef.current === "month") {
         return;
       }
 
-      const isMealCard =
-        target.closest(`.${styles.timelineMealCard}`) ||
-        target.closest(`.${styles.weekSlotMealCard}`);
-
-      if (isMealCard) {
-        setIsDraggingMeal(true);
-        setDragging(true);
+      if (!isCalendarMealDragSource(event.target)) {
+        return;
       }
+
+      setIsDraggingMeal(true);
+      setDragging(true);
     };
 
     const handleDragFinish = () => {
@@ -390,7 +475,7 @@ export default function MealPlanPage() {
       window.removeEventListener("dragend", handleDragFinish);
       window.removeEventListener("drop", handleDragFinish);
     };
-  }, [view, setDragging]);
+  }, [setDragging]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -629,6 +714,329 @@ export default function MealPlanPage() {
     await fetchJson<{ data: CalendarMeal }>(`/api/meals/${mealId}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
+    });
+  };
+
+  const moveMealToBank = async (mealId: string) => {
+    const meal = meals.find((entry) => entry.id === mealId);
+    if (!meal) {
+      return;
+    }
+
+    await fetchJson<{ data: CalendarMeal }>(`/api/meals/${mealId}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        date: null,
+        mealType: MEAL_BANK_TYPE,
+        mealTypeDefinitionId: null,
+        mealSubTypeDefinitionId: null,
+        sortOrder: (bankMeals.length + 1) * 10,
+      }),
+    });
+
+    await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+    recordAction({
+      type: "bank-transfer",
+      mealId,
+      from: {
+        date: normalizeMealDate(meal.date).toISOString(),
+        mealType: fromCalendarMealType(meal.type),
+        mealTypeDefinitionId: meal.mealTypeDefinitionId,
+        mealSubTypeDefinitionId: meal.mealSubTypeDefinitionId ?? null,
+      },
+      to: {
+        date: null,
+        mealType: MEAL_BANK_TYPE,
+        mealTypeDefinitionId: null,
+        mealSubTypeDefinitionId: null,
+      },
+      summary: `Moved ${meal.name} to Meal Bank`,
+    });
+    toast({
+      title: `Moved ${meal.name} to Meal Bank`,
+      duration: 4000,
+    });
+  };
+
+  const handleDropMealToBank = async (mealId: string) => {
+    try {
+      await moveMealToBank(mealId);
+    } finally {
+      setIsDraggingMeal(false);
+      setDragging(false);
+    }
+  };
+
+  const scheduleBankMeal = async (
+    meal: BankMeal,
+    targetDate: Date,
+    targetType: CalendarMealType
+  ) => {
+    const normalizedTargetDate = normalizeMealDate(targetDate);
+    const targetDefinition = findMealTypeDefinition(targetType, normalizedTargetDate);
+
+    await fetchJson<{ data: CalendarMeal }>(`/api/meals/${meal.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        date: normalizedTargetDate.toISOString(),
+        mealType: fromCalendarMealType(targetType),
+        mealTypeDefinitionId: targetDefinition?.id ?? null,
+        mealSubTypeDefinitionId: null,
+      }),
+    });
+
+    await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+    recordAction({
+      type: "bank-transfer",
+      mealId: meal.id,
+      from: {
+        date: null,
+        mealType: MEAL_BANK_TYPE,
+        mealTypeDefinitionId: null,
+        mealSubTypeDefinitionId: meal.mealSubTypeDefinitionId ?? null,
+      },
+      to: {
+        date: normalizedTargetDate.toISOString(),
+        mealType: fromCalendarMealType(targetType),
+        mealTypeDefinitionId: targetDefinition?.id ?? null,
+        mealSubTypeDefinitionId: null,
+      },
+      summary: `Scheduled ${meal.name}`,
+    });
+    toast({
+      title: `Scheduled ${meal.name}`,
+      description: `Added to ${targetDate.toLocaleDateString()}.`,
+      duration: 4000,
+    });
+  };
+
+  const saveBankMeal = async (updatedMeal: EditableMeal) => {
+    if (!bankEditMeal) {
+      return;
+    }
+
+    if (!bankEditMeal.id) {
+      const created = await createMeal({
+        name: updatedMeal.name,
+        date: null,
+        mealType: MEAL_BANK_TYPE,
+        sortOrder: (bankMeals.length + 1) * 10,
+        mealTypeDefinitionId: null,
+        mealSubTypeDefinitionId: updatedMeal.mealSubTypeDefinitionId ?? null,
+        notes: updatedMeal.notes || null,
+        ingredients: updatedMeal.ingredients,
+        description: updatedMeal.description || null,
+        cuisine: updatedMeal.cuisine,
+        instructions: updatedMeal.instructions,
+        servings: updatedMeal.servings,
+        prepTime: updatedMeal.prepTime,
+        cookTime: updatedMeal.cookTime,
+        servingsOverride: updatedMeal.servingsOverride,
+        recipeId: updatedMeal.recipeId,
+      });
+
+      recordAction({
+        type: "add",
+        mealId: created.id,
+        snapshot: {
+          name: updatedMeal.name,
+          date: null,
+          mealType: MEAL_BANK_TYPE,
+          mealTypeDefinitionId: null,
+          mealSubTypeDefinitionId: updatedMeal.mealSubTypeDefinitionId ?? null,
+          sortOrder: (bankMeals.length + 1) * 10,
+          notes: updatedMeal.notes || null,
+          ingredients: updatedMeal.ingredients,
+          description: updatedMeal.description || null,
+          cuisine: updatedMeal.cuisine,
+          instructions: updatedMeal.instructions,
+          servings: updatedMeal.servings,
+          prepTime: updatedMeal.prepTime,
+          cookTime: updatedMeal.cookTime,
+          servingsOverride: updatedMeal.servingsOverride,
+          recipeId: updatedMeal.recipeId,
+        },
+        summary: `Added ${updatedMeal.name} to Meal Bank`,
+      });
+
+      setBankEditMeal(null);
+      await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+      return;
+    }
+
+    await fetchJson<{ data: CalendarMeal }>(`/api/meals/${bankEditMeal.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({
+        name: updatedMeal.name,
+        date: null,
+        mealType: MEAL_BANK_TYPE,
+        mealTypeDefinitionId: null,
+        mealSubTypeDefinitionId: updatedMeal.mealSubTypeDefinitionId ?? null,
+        notes: updatedMeal.notes,
+        ingredients: updatedMeal.ingredients,
+        description: updatedMeal.description || null,
+        cuisine: updatedMeal.cuisine,
+        instructions: updatedMeal.instructions,
+        servings: updatedMeal.servings,
+        prepTime: updatedMeal.prepTime,
+        cookTime: updatedMeal.cookTime,
+        servingsOverride: updatedMeal.servingsOverride,
+        recipeId: updatedMeal.recipeId,
+      }),
+    });
+
+    setBankEditMeal(null);
+    await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+  };
+
+  const buildBankMealDraftFromRecipe = (
+    recipe: RecipePayload,
+    servings: number,
+    personalNote: string
+  ) => {
+    const metadataLines = personalNote.trim() ? [personalNote.trim()] : [];
+
+    return {
+      name: recipe.title,
+      date: null,
+      mealType: MEAL_BANK_TYPE,
+      sortOrder: (bankMeals.length + 1) * 10,
+      mealTypeDefinitionId: null,
+      mealSubTypeDefinitionId: null,
+      notes: metadataLines.length > 0 ? metadataLines.join("\n") : null,
+      ingredients: recipe.ingredients.map((ingredient, index) => ({
+        name: ingredient.name,
+        quantity:
+          ingredient.quantity === null || ingredient.quantity === undefined
+            ? null
+            : `${ingredient.quantity}`,
+        unit: ingredient.unit,
+        group: ingredient.group ?? null,
+        notes: ingredient.notes,
+        order: ingredient.order ?? index,
+      })),
+      description: recipe.description,
+      cuisine: recipe.cuisine,
+      instructions: recipe.instructions,
+      servings: recipe.servings,
+      prepTime: recipe.prepTime,
+      cookTime: recipe.cookTime,
+      servingsOverride: servings !== recipe.servings ? servings : null,
+      recipeId: recipe.id,
+    };
+  };
+
+  const addBankMealFromRecipe = async (
+    recipe: RecipePayload,
+    servings: number,
+    personalNote: string
+  ) => {
+    const payload = buildBankMealDraftFromRecipe(recipe, servings, personalNote);
+    const created = await createMeal(payload);
+
+    recordAction({
+      type: "add",
+      mealId: created.id,
+      snapshot: {
+        name: payload.name,
+        date: null,
+        mealType: MEAL_BANK_TYPE,
+        mealTypeDefinitionId: null,
+        mealSubTypeDefinitionId: null,
+        sortOrder: payload.sortOrder,
+        notes: payload.notes,
+        ingredients: payload.ingredients,
+        description: payload.description,
+        cuisine: payload.cuisine,
+        instructions: payload.instructions,
+        servings: payload.servings,
+        prepTime: payload.prepTime,
+        cookTime: payload.cookTime,
+        servingsOverride: payload.servingsOverride,
+        recipeId: payload.recipeId,
+      },
+      summary: `Added ${payload.name} to Meal Bank`,
+    });
+
+    await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+  };
+
+  const duplicateBankMeal = async (meal: BankMeal) => {
+    const created = await createMeal({
+      name: meal.name,
+      date: null,
+      mealType: MEAL_BANK_TYPE,
+      sortOrder: (bankMeals.length + 1) * 10,
+      mealTypeDefinitionId: null,
+      mealSubTypeDefinitionId: meal.mealSubTypeDefinitionId ?? null,
+      notes: meal.notes || null,
+      ingredients: meal.ingredients,
+      description: meal.description || null,
+      cuisine: meal.cuisine,
+      instructions: meal.instructions,
+      servings: meal.servings,
+      prepTime: meal.prepTime,
+      cookTime: meal.cookTime,
+      servingsOverride: meal.servingsOverride,
+      recipeId: meal.recipeId,
+    });
+
+    recordAction({
+      type: "add",
+      mealId: created.id,
+      snapshot: {
+        name: meal.name,
+        date: null,
+        mealType: MEAL_BANK_TYPE,
+        mealTypeDefinitionId: null,
+        mealSubTypeDefinitionId: meal.mealSubTypeDefinitionId ?? null,
+        sortOrder: (bankMeals.length + 1) * 10,
+        notes: meal.notes || null,
+        ingredients: meal.ingredients,
+        description: meal.description || null,
+        cuisine: meal.cuisine,
+        instructions: meal.instructions,
+        servings: meal.servings,
+        prepTime: meal.prepTime,
+        cookTime: meal.cookTime,
+        servingsOverride: meal.servingsOverride,
+        recipeId: meal.recipeId,
+      },
+      summary: `Duplicated ${meal.name} in Meal Bank`,
+    });
+
+    await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+  };
+
+  const deleteBankMeal = async (meal: BankMeal) => {
+    await deleteMealById(meal.id);
+    recordAction({
+      type: "delete",
+      mealId: meal.id,
+      snapshot: {
+        name: meal.name,
+        date: null,
+        mealType: MEAL_BANK_TYPE,
+        mealTypeDefinitionId: null,
+        mealSubTypeDefinitionId: meal.mealSubTypeDefinitionId ?? null,
+        sortOrder: meal.sortOrder,
+        notes: meal.notes || null,
+        ingredients: [...meal.ingredients],
+        description: meal.description || null,
+        cuisine: meal.cuisine,
+        instructions: [...meal.instructions],
+        servings: meal.servings,
+        prepTime: meal.prepTime,
+        cookTime: meal.cookTime,
+        servingsOverride: meal.servingsOverride,
+        recipeId: meal.recipeId,
+      },
+      summary: `Deleted ${meal.name} from Meal Bank`,
+    });
+    toast({
+      title: `Deleted ${meal.name} from Meal Bank`,
+      description: "Use undo to restore it.",
+      duration: 5000,
     });
   };
 
@@ -945,6 +1353,21 @@ export default function MealPlanPage() {
     target: MealPlanDropTarget,
     action: DropIntentAction
   ) => {
+    if (payload.kind === "bank-meal") {
+      const draggedMeal = bankMeals.find((meal) => meal.id === payload.mealId);
+      if (!draggedMeal) {
+        return;
+      }
+
+      const targetSlot = resolveDropTargetSlot(target, meals);
+      if (!targetSlot) {
+        return;
+      }
+
+      await scheduleBankMeal(draggedMeal, targetSlot.date, targetSlot.type);
+      return;
+    }
+
     if (payload.kind === "meal") {
       const draggedMeal = meals.find((meal) => meal.id === payload.mealId);
       if (!draggedMeal) {
@@ -989,6 +1412,21 @@ export default function MealPlanPage() {
     target: MealPlanDropTarget,
     anchor: MealPlanDropAnchor
   ) => {
+    if (payload.kind === "bank-meal") {
+      const draggedMeal = bankMeals.find((meal) => meal.id === payload.mealId);
+      if (!draggedMeal) {
+        return;
+      }
+
+      const targetSlot = resolveDropTargetSlot(target, meals);
+      if (!targetSlot) {
+        return;
+      }
+
+      await scheduleBankMeal(draggedMeal, targetSlot.date, targetSlot.type);
+      return;
+    }
+
     if (payload.kind === "meal") {
       const draggedMeal = meals.find((meal) => meal.id === payload.mealId);
       if (!draggedMeal) {
@@ -1243,7 +1681,7 @@ export default function MealPlanPage() {
       description:
         conflict.code === "RECIPE_DUPLICATE_SOURCE_URL"
           ? "This source URL is already in your Recipe Book. Link the existing recipe or rename the draft."
-          : `\"${conflict.existing.title}\" already exists. Rename the draft or link the existing recipe.`,
+          : `"${conflict.existing.title}" already exists. Rename the draft or link the existing recipe.`,
       duration: 6000,
     });
   };
@@ -1489,6 +1927,8 @@ export default function MealPlanPage() {
     };
   };
 
+  const bankEditProxy = bankEditMeal ? toEditableBankMeal(bankEditMeal) : null;
+
   const pageTitle =
     view === "day"
       ? "Daily Meal Plan"
@@ -1588,44 +2028,164 @@ export default function MealPlanPage() {
         </div>
       ) : null}
 
-      <div className={styles.calCard}>
-        {view === "day" ? (
-          <DayView
-            date={date}
-            dragDisabled={false}
-            meals={meals}
-            mealTypeProfiles={mealTypeProfiles}
-            highlightedProfileId={highlightedProfileId}
-            onEdit={setEditMeal}
-            onOpenSlotManager={openSlotManager}
-            onDropPayload={onDropPayload}
-            setDate={setDate}
+      <div
+        className={`${styles.mealPlanWorkspace} ${
+          mealBankPlacement === "left"
+            ? styles.mealPlanWorkspaceLeft
+            : mealBankPlacement === "bottom"
+              ? styles.mealPlanWorkspaceBottom
+              : styles.mealPlanWorkspaceRight
+        }`}
+      >
+        {mealBankPlacement === "left" ? (
+          <MealBankSidecar
+            activeDate={date}
+            collapsed={isMealBankCollapsed}
+            error={unscheduledMealsQuery.error}
+            isCalendarMealDragging={isDraggingMeal}
+            isLoading={unscheduledMealsQuery.isLoading}
+            mealTypes={mealTypeDefinitions}
+            meals={bankMeals}
+            placement={mealBankPlacement}
+            onAddCustomMeal={() => {
+              setBankRecipeSearchError(null);
+              setBankEditMeal({
+                id: "",
+                name: "",
+                date: null,
+                type: MEAL_BANK_TYPE,
+                sortOrder: (bankMeals.length + 1) * 10,
+                mealTypeDefinitionId: null,
+                mealTypeDefinition: null,
+                mealSubTypeDefinitionId: null,
+                mealSubTypeDefinition: null,
+                notes: "",
+                ingredients: [],
+                description: "",
+                cuisine: null,
+                instructions: [],
+                servings: 2,
+                prepTime: null,
+                cookTime: null,
+                servingsOverride: null,
+                recipeId: null,
+                linkedRecipe: null,
+              });
+            }}
+            onAddFromRecipe={() => {
+              setBankRecipeSearchError(null);
+              setIsBankRecipeSearchOpen(true);
+            }}
+            onDelete={(meal) => {
+              void deleteBankMeal(meal);
+            }}
+            onDuplicate={(meal) => {
+              void duplicateBankMeal(meal);
+            }}
+            onDropMealToBank={handleDropMealToBank}
+            onEdit={setBankEditMeal}
+            onReorder={async (orderedIds) => {
+              await reorderUnscheduledMeals(orderedIds);
+              await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+            }}
+            onSchedule={(meal, mealType) => scheduleBankMeal(meal, date, mealType)}
+            onToggleCollapsed={setMealBankCollapsedPreference}
           />
         ) : null}
-        {view === "week" ? (
-          <WeekView
-            date={date}
-            dragDisabled={false}
-            meals={meals}
-            mealTypeProfiles={mealTypeProfiles}
-            highlightedProfileId={highlightedProfileId}
-            onEdit={setEditMeal}
-            onDuplicateMeal={setDuplicateMeal}
-            onOpenSlotManager={openSlotManager}
-            onDropPayload={onDropPayload}
-            setDate={setDate}
-          />
-        ) : null}
-        {view === "month" ? (
-          <MonthView
-            date={date}
-            meals={meals}
-            mealTypeProfiles={mealTypeProfiles}
-            highlightedProfileId={highlightedProfileId}
-            onEdit={setEditMeal}
-            onRequestDayView={() => switchView("day")}
-            onRequestWeekView={() => switchView("week")}
-            setDate={setDate}
+        <div className={styles.calCard}>
+          {view === "day" ? (
+            <DayView
+              date={date}
+              dragDisabled={false}
+              meals={meals}
+              mealTypeProfiles={mealTypeProfiles}
+              highlightedProfileId={highlightedProfileId}
+              onEdit={setEditMeal}
+              onOpenSlotManager={openSlotManager}
+              onDropPayload={onDropPayload}
+              setDate={setDate}
+            />
+          ) : null}
+          {view === "week" ? (
+            <WeekView
+              date={date}
+              dragDisabled={false}
+              meals={meals}
+              mealTypeProfiles={mealTypeProfiles}
+              highlightedProfileId={highlightedProfileId}
+              onEdit={setEditMeal}
+              onDuplicateMeal={setDuplicateMeal}
+              onOpenSlotManager={openSlotManager}
+              onDropPayload={onDropPayload}
+              setDate={setDate}
+            />
+          ) : null}
+          {view === "month" ? (
+            <MonthView
+              date={date}
+              meals={meals}
+              mealTypeProfiles={mealTypeProfiles}
+              highlightedProfileId={highlightedProfileId}
+              onEdit={setEditMeal}
+              onRequestDayView={() => switchView("day")}
+              onRequestWeekView={() => switchView("week")}
+              setDate={setDate}
+            />
+          ) : null}
+        </div>
+        {mealBankPlacement !== "left" ? (
+          <MealBankSidecar
+            activeDate={date}
+            collapsed={isMealBankCollapsed}
+            error={unscheduledMealsQuery.error}
+            isCalendarMealDragging={isDraggingMeal}
+            isLoading={unscheduledMealsQuery.isLoading}
+            mealTypes={mealTypeDefinitions}
+            meals={bankMeals}
+            placement={mealBankPlacement}
+            onAddCustomMeal={() => {
+              setBankRecipeSearchError(null);
+              setBankEditMeal({
+                id: "",
+                name: "",
+                date: null,
+                type: MEAL_BANK_TYPE,
+                sortOrder: (bankMeals.length + 1) * 10,
+                mealTypeDefinitionId: null,
+                mealTypeDefinition: null,
+                mealSubTypeDefinitionId: null,
+                mealSubTypeDefinition: null,
+                notes: "",
+                ingredients: [],
+                description: "",
+                cuisine: null,
+                instructions: [],
+                servings: 2,
+                prepTime: null,
+                cookTime: null,
+                servingsOverride: null,
+                recipeId: null,
+                linkedRecipe: null,
+              });
+            }}
+            onAddFromRecipe={() => {
+              setBankRecipeSearchError(null);
+              setIsBankRecipeSearchOpen(true);
+            }}
+            onDelete={(meal) => {
+              void deleteBankMeal(meal);
+            }}
+            onDuplicate={(meal) => {
+              void duplicateBankMeal(meal);
+            }}
+            onDropMealToBank={handleDropMealToBank}
+            onEdit={setBankEditMeal}
+            onReorder={async (orderedIds) => {
+              await reorderUnscheduledMeals(orderedIds);
+              await queryClient.invalidateQueries({ queryKey: ["meals"], exact: false });
+            }}
+            onSchedule={(meal, mealType) => scheduleBankMeal(meal, date, mealType)}
+            onToggleCollapsed={setMealBankCollapsedPreference}
           />
         ) : null}
       </div>
@@ -1725,6 +2285,24 @@ export default function MealPlanPage() {
         />
       ) : null}
 
+      {bankEditProxy ? (
+        <EditModal
+          meal={bankEditProxy}
+          mealSubTypes={mealSubTypes}
+          mealTypeProfiles={mealTypeProfiles}
+          onClose={() => setBankEditMeal(null)}
+          onDelete={async (mealId) => {
+            await deleteMealById(mealId);
+            setBankEditMeal(null);
+          }}
+          onResuggest={onResuggest}
+          onSave={saveBankMeal}
+          onSaveAsRecipe={handleSaveAsRecipe}
+          onUnlinkRecipe={handleUnlinkRecipe}
+          onViewLinkedRecipe={handleViewLinkedRecipe}
+        />
+      ) : null}
+
       {duplicateMeal ? (
         <DuplicateMealModal
           error={duplicateMealError}
@@ -1792,6 +2370,29 @@ export default function MealPlanPage() {
           onSave={handleSaveRecipeFromMeal}
         />
       ) : null}
+
+      <RecipeSearchModal
+        currentMealName=""
+        errorMessage={bankRecipeSearchError}
+        onClose={() => {
+          setIsBankRecipeSearchOpen(false);
+          setBankRecipeSearchError(null);
+        }}
+        onSelectRecipe={async (recipe, servings, personalNote) => {
+          setBankRecipeSearchError(null);
+          try {
+            await addBankMealFromRecipe(recipe, servings, personalNote);
+            setIsBankRecipeSearchOpen(false);
+          } catch (error) {
+            setBankRecipeSearchError(
+              error instanceof Error
+                ? error.message
+                : "Unable to add this recipe to the Meal Bank right now."
+            );
+          }
+        }}
+        open={isBankRecipeSearchOpen}
+      />
 
       <AlertDialog
         open={Boolean(saveAsRecipeConflict)}

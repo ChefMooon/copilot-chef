@@ -49,7 +49,6 @@ export function DayView({
   const profileContext = getMealTypeProfileContext(date, mealTypeProfiles);
   const mealTypes = getMealTypeDefinitionsForDate(date, mealTypeProfiles);
   const daySlots = createMealSlots(meals, date, mealTypes);
-  const dayMeals = daySlots.flatMap((slot) => slot.meals);
   const [draggedPayload, setDraggedPayload] = useState<MealPlanDragPayload | null>(
     null
   );
@@ -70,7 +69,6 @@ export function DayView({
 
   const today = new Date();
   const draggedMealId = draggedPayload?.kind === "meal" ? draggedPayload.mealId : null;
-  const draggedMeal = dayMeals.find((meal) => meal.id === draggedMealId) ?? null;
   const draggedSlotMealIds =
     draggedPayload?.kind === "slot" ? new Set(draggedPayload.mealIds) : null;
   const isMuted =
@@ -89,6 +87,25 @@ export function DayView({
         clearDragState();
       });
     });
+  };
+
+  const canHandleDragOver = (
+    event: DragEvent<HTMLElement>,
+    activePayload: MealPlanDragPayload | null
+  ) => {
+    if (isApplyingDrop) {
+      return false;
+    }
+
+    if (activePayload) {
+      return true;
+    }
+
+    const dragTypes = Array.from(event.dataTransfer.types ?? []);
+    return (
+      dragTypes.includes("application/x-copilot-chef-meal-plan-drag") ||
+      dragTypes.includes("text/plain")
+    );
   };
 
   const onDragStartMeal = (
@@ -253,13 +270,19 @@ export function DayView({
                         )
                       }
                       onDragOver={(event) => {
-                        if (!draggedPayload || isApplyingDrop) {
+                        const activePayload =
+                          draggedPayload ?? getMealPlanDragPayload(event.dataTransfer);
+
+                        if (!canHandleDragOver(event, activePayload)) {
                           return;
                         }
 
                         event.preventDefault();
                         event.dataTransfer.dropEffect = "move";
                         setDropTargetKey(emptyTargetKey);
+                        if (activePayload) {
+                          setDraggedPayload(activePayload);
+                        }
                       }}
                       onDrop={async (event) => {
                         event.preventDefault();
@@ -283,7 +306,7 @@ export function DayView({
                     </div>
                   ) : (
                     <button
-                      className={`${styles.timelineEmptySlot} ${styles.emptySlotButton}`}
+                      className={`${styles.timelineEmptySlot} ${styles.emptySlotButton} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
                       onClick={() =>
                         onEdit(
                           createEmptyMeal(
@@ -293,6 +316,37 @@ export function DayView({
                           )
                         )
                       }
+                      onDragOver={(event) => {
+                        const activePayload = getMealPlanDragPayload(event.dataTransfer);
+                        if (!canHandleDragOver(event, activePayload)) {
+                          return;
+                        }
+
+                        event.preventDefault();
+                        event.dataTransfer.dropEffect = "move";
+                        setDropTargetKey(emptyTargetKey);
+                        if (activePayload) {
+                          setDraggedPayload(activePayload);
+                        }
+                      }}
+                      onDrop={async (event) => {
+                        const payload = getMealPlanDragPayload(event.dataTransfer);
+                        if (!payload) {
+                          scheduleClearDragState();
+                          return;
+                        }
+
+                        event.preventDefault();
+                        await applyDropTarget(
+                          payload,
+                          {
+                            kind: "slot",
+                            slotDate: date.toISOString(),
+                            slotType: type,
+                          },
+                          { x: event.clientX, y: event.clientY }
+                        );
+                      }}
                       type="button"
                     >
                       <span className={styles.btnAddSlot}>+ Add</span>
@@ -307,13 +361,19 @@ export function DayView({
                       )
                     }
                     onDragOver={(event) => {
-                      if (!draggedPayload || isApplyingDrop) {
+                      const activePayload =
+                        draggedPayload ?? getMealPlanDragPayload(event.dataTransfer);
+
+                      if (!canHandleDragOver(event, activePayload)) {
                         return;
                       }
 
                       event.preventDefault();
                       event.dataTransfer.dropEffect = "move";
                       setDropTargetKey(emptyTargetKey);
+                      if (activePayload) {
+                        setDraggedPayload(activePayload);
+                      }
                     }}
                     onDrop={async (event) => {
                       event.preventDefault();
@@ -339,6 +399,7 @@ export function DayView({
                       return (
                         <button
                           className={`${styles.timelineMealCard} ${draggedMealId === meal.id ? styles.mealCardDragging : ""} ${draggedSlotMealIds?.has(meal.id ?? "") ? styles.slotMealInDraggedGroup : ""} ${dropTargetKey === mealTargetKey ? styles.slotDropTarget : ""}`}
+                          data-meal-plan-drag-source="calendar-meal"
                           draggable={!isApplyingDrop && !dragDisabled}
                           key={
                             meal.id ||
@@ -352,13 +413,16 @@ export function DayView({
                             )
                           }
                           onDragOver={(event) => {
-                            if (!draggedPayload || isApplyingDrop) {
+                            const activePayload =
+                              draggedPayload ?? getMealPlanDragPayload(event.dataTransfer);
+
+                            if (!canHandleDragOver(event, activePayload)) {
                               return;
                             }
 
                             if (
-                              draggedPayload.kind === "meal" &&
-                              draggedPayload.mealId === meal.id
+                              activePayload?.kind === "meal" &&
+                              activePayload.mealId === meal.id
                             ) {
                               return;
                             }
@@ -367,6 +431,9 @@ export function DayView({
                             event.stopPropagation();
                             event.dataTransfer.dropEffect = "move";
                             setDropTargetKey(mealTargetKey);
+                            if (activePayload) {
+                              setDraggedPayload(activePayload);
+                            }
                           }}
                           onDragStart={(event) => onDragStartMeal(event, meal)}
                           onDrop={async (event) => {
@@ -376,6 +443,7 @@ export function DayView({
                             const insertAfter = event.clientY > rect.top + rect.height / 2;
                             const payload = getMealPlanDragPayload(event.dataTransfer);
                             if (!payload) {
+                              scheduleClearDragState();
                               return;
                             }
 

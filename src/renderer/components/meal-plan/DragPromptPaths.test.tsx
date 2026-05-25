@@ -6,7 +6,9 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { DayView } from "./DayView";
 import { WeekView } from "./WeekView";
 import type { EditableMeal } from "@/lib/calendar";
+import { setMealPlanDragPayload } from "@/lib/calendar";
 import type { MealTypeProfilePayload } from "@shared/types";
+import styles from "./meal-plan.module.css";
 
 const profile: MealTypeProfilePayload = {
   id: "default-profile",
@@ -119,6 +121,9 @@ function createDataTransfer() {
       values.set(type, value);
     },
     getData: (type: string) => (restricted ? "" : values.get(type) ?? ""),
+    get types() {
+      return Array.from(values.keys());
+    },
     setDragRestriction: (value: boolean) => {
       restricted = value;
     },
@@ -250,7 +255,8 @@ describe("meal plan drag prompt paths", () => {
     fireEvent.dragStart(sourceMeal, { dataTransfer });
 
     const dropTargets = screen.getAllByText(/Drop here/i);
-    const emptyDinnerSlot = dropTargets[0]?.closest("div") as HTMLElement;
+    const emptyDinnerSlot = dropTargets[0]?.closest("div");
+    expect(emptyDinnerSlot).not.toBeNull();
     const dragOverEvent = new Event("dragover", {
       bubbles: true,
       cancelable: true,
@@ -258,9 +264,83 @@ describe("meal plan drag prompt paths", () => {
 
     dataTransfer.setDragRestriction(true);
     dragOverEvent.dataTransfer = dataTransfer;
-    emptyDinnerSlot.dispatchEvent(dragOverEvent);
+    emptyDinnerSlot?.dispatchEvent(dragOverEvent);
 
     expect(dragOverEvent.defaultPrevented).toBe(true);
+  });
+
+  it("DayView accepts bank meal drops into an empty slot", async () => {
+    const onDropPayload = vi.fn().mockResolvedValue(undefined);
+    const dataTransfer = createDataTransfer();
+
+    setMealPlanDragPayload(dataTransfer, { kind: "bank-meal", mealId: "bank-1" });
+
+    render(
+      <DayView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={breakfastOnlyMeals}
+        mealTypeProfiles={[profile]}
+        onDropPayload={onDropPayload}
+        onEdit={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        setDate={vi.fn()}
+      />
+    );
+
+    const emptyDinnerSlot = screen
+      .getAllByRole("button", { name: /\+ Add/i })
+      .find((element) => element.className.includes("timelineEmptySlot"));
+    expect(emptyDinnerSlot).toBeDefined();
+    const dragOverEvent = new Event("dragover", {
+      bubbles: true,
+      cancelable: true,
+    }) as Event & { dataTransfer?: DataTransfer };
+
+    dataTransfer.setDragRestriction(true);
+    dragOverEvent.dataTransfer = dataTransfer;
+    emptyDinnerSlot?.dispatchEvent(dragOverEvent);
+    expect(dragOverEvent.defaultPrevented).toBe(true);
+
+    dataTransfer.setDragRestriction(false);
+    fireEvent.drop(emptyDinnerSlot as HTMLElement, { dataTransfer });
+
+    expect(onDropPayload).toHaveBeenCalledWith(
+      {
+        kind: "bank-meal",
+        mealId: "bank-1",
+      },
+      {
+        kind: "slot",
+        slotDate: new Date("2026-04-22T12:00:00").toISOString(),
+        slotType: "dinner",
+      },
+      {
+        x: undefined,
+        y: undefined,
+      }
+    );
+  });
+
+  it("DayView highlights occupied targets while dragging a bank meal", async () => {
+    const dataTransfer = createDataTransfer();
+    setMealPlanDragPayload(dataTransfer, { kind: "bank-meal", mealId: "bank-3" });
+
+    render(
+      <DayView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={breakfastOnlyMeals}
+        mealTypeProfiles={[profile]}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+        onEdit={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        setDate={vi.fn()}
+      />
+    );
+
+    const occupiedTarget = screen.getByRole("button", { name: /^Morning Toast$/i });
+    fireEvent.dragOver(occupiedTarget, { dataTransfer });
+    expect(occupiedTarget).toHaveClass(styles.slotDropTarget);
+
   });
 
   it("WeekView forwards slot-drag drops via onDropPayload", async () => {
@@ -352,6 +432,74 @@ describe("meal plan drag prompt paths", () => {
     targetMeal.dispatchEvent(dragOverEvent);
 
     expect(dragOverEvent.defaultPrevented).toBe(true);
+  });
+
+  it("WeekView accepts bank meal drops into an empty slot", async () => {
+    const onDropPayload = vi.fn().mockResolvedValue(undefined);
+    const dataTransfer = createDataTransfer();
+
+    setMealPlanDragPayload(dataTransfer, { kind: "bank-meal", mealId: "bank-2" });
+
+    render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={breakfastOnlyMeals}
+        mealTypeProfiles={[profile]}
+        onDropPayload={onDropPayload}
+        onEdit={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        setDate={vi.fn()}
+      />
+    );
+
+    const emptySlot = screen
+      .getAllByRole("button", { name: /\+ Add/i })
+      .find((element) => element.className.includes("weekSlotEmpty"));
+    expect(emptySlot).toBeDefined();
+    const dragOverEvent = new Event("dragover", {
+      bubbles: true,
+      cancelable: true,
+    }) as Event & { dataTransfer?: DataTransfer };
+
+    dataTransfer.setDragRestriction(true);
+    dragOverEvent.dataTransfer = dataTransfer;
+    emptySlot?.dispatchEvent(dragOverEvent);
+    expect(dragOverEvent.defaultPrevented).toBe(true);
+
+    dataTransfer.setDragRestriction(false);
+    fireEvent.drop(emptySlot as HTMLElement, { dataTransfer });
+
+    const [payloadArg, targetArg] = onDropPayload.mock.calls[0] ?? [];
+    expect(payloadArg).toEqual({
+      kind: "bank-meal",
+      mealId: "bank-2",
+    });
+    expect(targetArg).toMatchObject({
+      kind: "slot",
+    });
+    expect(typeof targetArg?.slotType).toBe("string");
+  });
+
+  it("WeekView highlights occupied targets while dragging a bank meal", async () => {
+    const dataTransfer = createDataTransfer();
+    setMealPlanDragPayload(dataTransfer, { kind: "bank-meal", mealId: "bank-4" });
+
+    render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={dayMeals}
+        mealTypeProfiles={[profile]}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+        onEdit={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        setDate={vi.fn()}
+      />
+    );
+
+    const occupiedTarget = screen.getByRole("button", { name: /^Evening Soup$/i });
+    fireEvent.dragOver(occupiedTarget, { dataTransfer });
+
+    expect(occupiedTarget).toHaveClass(styles.slotDropTarget);
   });
 
   it("keeps slot action controls mounted while slot drag is active", async () => {
