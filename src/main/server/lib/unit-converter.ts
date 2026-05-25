@@ -25,7 +25,7 @@ export const TO_G: Record<string, number> = {
   lb: 453.592,
 };
 
-const COUNT_UNITS = new Set(["clove", "slice", "piece", "pinch", "dash"]);
+const COUNT_UNITS = new Set(["clove", "slice", "piece", "pinch", "dash", "count"]);
 
 export const DENSITY_G_PER_CUP: Record<string, number> = {
   "all-purpose flour": 125,
@@ -53,6 +53,10 @@ export const DENSITY_G_PER_CUP: Record<string, number> = {
   "corn starch": 128,
   "baking soda": 230,
   "baking powder": 192,
+  "crushed tomatoes": 245,
+  "tomato sauce": 245,
+  "tomato paste": 262,
+  tomato: 245,
 };
 
 function roundTo(value: number, decimals = 2) {
@@ -70,8 +74,16 @@ function densityFor(ingredientName: string) {
     return null;
   }
 
-  for (const [key, density] of Object.entries(DENSITY_G_PER_CUP)) {
-    if (normalized.includes(key) || key.includes(normalized)) {
+  const entries = Object.entries(DENSITY_G_PER_CUP).sort(
+    ([left], [right]) => right.length - left.length
+  );
+  const exact = entries.find(([key]) => key === normalized);
+  if (exact) {
+    return exact[1];
+  }
+
+  for (const [key, density] of entries) {
+    if (normalized.includes(key)) {
       return density;
     }
   }

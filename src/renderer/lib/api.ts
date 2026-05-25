@@ -15,6 +15,7 @@ import {
   type CreatePersonaInput,
   type PreferenceUpdateInput,
   type PreferencesPayload,
+  type RecipePayload,
   type UpdateMealTypeDefinitionInput,
   type UpdateMealSubTypeDefinitionInput,
   type UpdateMealTypeProfileInput,
@@ -43,36 +44,6 @@ export type RecipeListFilters = {
   origin?: string;
   cuisine?: string;
   favourite?: boolean;
-};
-
-export type RecipePayload = {
-  id: string;
-  title: string;
-  description: string | null;
-  servings: number;
-  prepTime: number | null;
-  cookTime: number | null;
-  difficulty: string | null;
-  cuisine: string | null;
-  instructions: string[];
-  sourceUrl: string | null;
-  sourceLabel: string | null;
-  origin: string;
-  favourite: boolean;
-  rating: number | null;
-  cookNotes: string | null;
-  lastMadeAt: string | null;
-  ingredients: Array<{
-    id: string;
-    name: string;
-    quantity: number | null;
-    unit: string | null;
-    group?: string | null;
-    notes: string | null;
-    order: number;
-  }>;
-  tags: string[];
-  linkedSubRecipes: Array<{ id: string; title: string }>;
 };
 
 export type DetectedRegionPayload = {

@@ -19,6 +19,16 @@ export {
   SENTINEL_PREFIX,
 } from "./api/constants";
 export type { CuisineValue } from "./api/constants";
+export {
+  RECIPE_CANONICAL_UNITS,
+  RECIPE_MANUAL_ENTRY_UNITS,
+  RECIPE_UNIT_ALIASES,
+  normalizeRecipeUnit,
+  isRecipeCanonicalUnit,
+  isRecipeManualEntryUnit,
+  type RecipeCanonicalUnit,
+  type RecipeManualEntryUnit,
+} from "./recipe-units";
 // Schemas — Chat
 export {
   mealItemSchema,

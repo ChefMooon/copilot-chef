@@ -189,14 +189,19 @@ model RecipeIngredient {
   recipeId String
   name     String
   quantity Float?
+  quantityNumerator   Int?
+  quantityDenominator Int?
   unit     String?
   group    String?
   notes    String?
+  parseConfidence String?
+  parseRaw String?
   order    Int     @default(0)
 
   recipe   Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 
   @@index([recipeId, order])
+  @@index([recipeId, unit])
   @@index([name])
 }
 

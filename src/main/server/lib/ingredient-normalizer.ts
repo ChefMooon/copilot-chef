@@ -53,7 +53,22 @@ const UNIT_SYNONYMS: Record<string, string> = {
   pint: "pt",
   pints: "pt",
   pt: "pt",
+  count: "count",
+  counts: "count",
+  item: "count",
+  items: "count",
+  each: "count",
+  ea: "count",
 };
+
+const FALLBACK_COUNT_UNITS = new Set([
+  "clove",
+  "slice",
+  "piece",
+  "pinch",
+  "dash",
+  "count",
+]);
 
 const NAME_NOTE_PATTERNS = [
   /\(optional\)/gi,
@@ -77,6 +92,7 @@ const CANONICAL_UNITS = new Set([
   "piece",
   "pinch",
   "dash",
+  "count",
   "qt",
   "pt",
 ]);
@@ -134,6 +150,37 @@ function parseFirstIngredient(raw: string): ParsedIngredient | null {
   return parsed[0] as ParsedIngredient;
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function promoteLeadingCountUnit(
+  name: string,
+  unit: string | null
+): { name: string; unit: string | null } {
+  if (unit || !name) {
+    return { name, unit };
+  }
+
+  const aliases = Object.entries(UNIT_SYNONYMS)
+    .filter(([, canonical]) => FALLBACK_COUNT_UNITS.has(canonical))
+    .sort(([left], [right]) => right.length - left.length);
+
+  for (const [alias, canonical] of aliases) {
+    const pattern = new RegExp(`^${escapeRegExp(alias)}\\b(?:\\s+of\\b)?\\s*`, "i");
+    if (!pattern.test(name)) {
+      continue;
+    }
+
+    const nextName = name.replace(pattern, "").trim();
+    if (nextName.length > 0) {
+      return { name: nextName, unit: canonical };
+    }
+  }
+
+  return { name, unit };
+}
+
 export function normalizeIngredient(raw: string): NormalizedIngredient {
   const parsed = parseFirstIngredient(raw);
 
@@ -150,20 +197,21 @@ export function normalizeIngredient(raw: string): NormalizedIngredient {
 
   const normalizedUnit = normalizeUnit(parsed.unitOfMeasureID ?? parsed.unitOfMeasure);
   const nameData = collectNotes(parsed.description ?? raw);
+  const promoted = promoteLeadingCountUnit(nameData.name, normalizedUnit);
 
   const hasValidQuantity = typeof parsed.quantity === "number";
   const hasKnownUnit =
-    normalizedUnit === null ||
-    UNIT_SYNONYMS[normalizedUnit] !== undefined ||
-    CANONICAL_UNITS.has(normalizedUnit);
+    promoted.unit === null ||
+    UNIT_SYNONYMS[promoted.unit] !== undefined ||
+    CANONICAL_UNITS.has(promoted.unit);
 
   const confidence: "high" | "low" =
-    !hasValidQuantity || !hasKnownUnit || !nameData.name ? "low" : "high";
+    !hasValidQuantity || !hasKnownUnit || !promoted.name ? "low" : "high";
 
   return {
-    name: nameData.name || raw.trim(),
+    name: promoted.name || raw.trim(),
     quantity: hasValidQuantity ? parsed.quantity : null,
-    unit: normalizedUnit,
+    unit: promoted.unit,
     notes: nameData.notes,
     confidence,
   };

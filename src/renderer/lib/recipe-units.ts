@@ -27,24 +27,36 @@ const TO_G: Record<string, number> = {
 const DENSITY_G_PER_CUP: Record<string, number> = {
   "all-purpose flour": 125,
   "bread flour": 120,
+  "whole wheat flour": 120,
   sugar: 200,
   "brown sugar": 220,
+  "powdered sugar": 120,
+  "icing sugar": 120,
   butter: 227,
   "olive oil": 216,
   "vegetable oil": 218,
+  "coconut oil": 218,
   milk: 244,
   water: 237,
   "rolled oats": 90,
+  oat: 90,
   "cocoa powder": 85,
+  "cacao powder": 85,
   salt: 273,
   honey: 340,
+  "maple syrup": 322,
   rice: 185,
   cornstarch: 128,
+  "corn starch": 128,
   "baking soda": 230,
   "baking powder": 192,
+  "crushed tomatoes": 245,
+  "tomato sauce": 245,
+  "tomato paste": 262,
+  tomato: 245,
 };
 
-const COUNT_UNITS = new Set(["clove", "slice", "piece", "pinch", "dash"]);
+const COUNT_UNITS = new Set(["clove", "slice", "piece", "pinch", "dash", "count"]);
 
 function roundTo(value: number, decimals = 2) {
   const scale = 10 ** decimals;
@@ -72,8 +84,16 @@ function fromGrams(grams: number) {
 
 function densityFor(name: string) {
   const normalized = name.trim().toLowerCase();
-  for (const [key, density] of Object.entries(DENSITY_G_PER_CUP)) {
-    if (normalized.includes(key) || key.includes(normalized)) {
+  const entries = Object.entries(DENSITY_G_PER_CUP).sort(
+    ([left], [right]) => right.length - left.length
+  );
+  const exact = entries.find(([key]) => key === normalized);
+  if (exact) {
+    return exact[1];
+  }
+
+  for (const [key, density] of entries) {
+    if (normalized.includes(key)) {
       return density;
     }
   }

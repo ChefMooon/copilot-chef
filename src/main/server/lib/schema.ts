@@ -200,8 +200,13 @@ const SCHEMA_STATEMENTS = [
       "recipeId" TEXT NOT NULL,
       "name" TEXT NOT NULL,
       "quantity" REAL,
+      "quantityNumerator" INTEGER,
+      "quantityDenominator" INTEGER,
       "unit" TEXT,
+      "group" TEXT,
       "notes" TEXT,
+      "parseConfidence" TEXT,
+      "parseRaw" TEXT,
       "order" INTEGER NOT NULL DEFAULT 0,
       CONSTRAINT "RecipeIngredient_recipeId_fkey"
         FOREIGN KEY ("recipeId") REFERENCES "Recipe" ("id")
@@ -209,6 +214,7 @@ const SCHEMA_STATEMENTS = [
     )
   `,
   `CREATE INDEX IF NOT EXISTS "RecipeIngredient_recipeId_order_idx" ON "RecipeIngredient"("recipeId", "order")`,
+  `CREATE INDEX IF NOT EXISTS "RecipeIngredient_recipeId_unit_idx" ON "RecipeIngredient"("recipeId", "unit")`,
   `CREATE INDEX IF NOT EXISTS "RecipeIngredient_name_idx" ON "RecipeIngredient"("name")`,
   `
     CREATE TABLE IF NOT EXISTS "RecipeTag" (
@@ -626,9 +632,18 @@ export async function ensureDatabaseSchema(): Promise<void> {
     cuisine: `ALTER TABLE "Recipe" ADD COLUMN "cuisine" TEXT`,
   } as const;
 
+  const safeRecipeIngredientAlterStatements = {
+    group: `ALTER TABLE "RecipeIngredient" ADD COLUMN "group" TEXT`,
+    quantityNumerator: `ALTER TABLE "RecipeIngredient" ADD COLUMN "quantityNumerator" INTEGER`,
+    quantityDenominator: `ALTER TABLE "RecipeIngredient" ADD COLUMN "quantityDenominator" INTEGER`,
+    parseConfidence: `ALTER TABLE "RecipeIngredient" ADD COLUMN "parseConfidence" TEXT`,
+    parseRaw: `ALTER TABLE "RecipeIngredient" ADD COLUMN "parseRaw" TEXT`,
+  } as const;
+
   await ensureMissingColumns("Meal", safeMealAlterStatements);
   await ensureMissingColumns("MealTypeProfile", safeMealTypeProfileAlterStatements);
   await ensureMissingColumns("Recipe", safeRecipeAlterStatements);
+  await ensureMissingColumns("RecipeIngredient", safeRecipeIngredientAlterStatements);
   await repairBrokenMealSortOrderColumn();
   await repairMalformedMealSubTypeIndex();
   await normalizeMealSortOrderValues();

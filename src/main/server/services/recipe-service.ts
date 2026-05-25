@@ -55,9 +55,13 @@ type SerializedRecipeIngredient = {
   id: string;
   name: string;
   quantity: number | null;
+  quantityNumerator?: number | null;
+  quantityDenominator?: number | null;
   unit: string | null;
   group: string | null;
   notes: string | null;
+  parseConfidence?: "high" | "low" | null;
+  parseRaw?: string | null;
   order: number;
 };
 
@@ -228,9 +232,13 @@ function serializeRecipe(recipe: {
     id: string;
     name: string;
     quantity: number | null;
+    quantityNumerator?: number | null;
+    quantityDenominator?: number | null;
     unit: string | null;
     group: string | null;
     notes: string | null;
+    parseConfidence?: string | null;
+    parseRaw?: string | null;
     order: number;
   }>;
   tags?: Array<{ tag: string }>;
@@ -258,15 +266,32 @@ function serializeRecipe(recipe: {
     ingredients: (recipe.ingredients ?? [])
       .slice()
       .sort((a, b) => a.order - b.order)
-      .map((ingredient) => ({
-        id: ingredient.id,
-        name: ingredient.name,
-        quantity: ingredient.quantity,
-        unit: ingredient.unit,
-        group: ingredient.group,
-        notes: ingredient.notes,
-        order: ingredient.order,
-      })),
+      .map((ingredient) => {
+        const derivedQuantity =
+          ingredient.quantity != null
+            ? ingredient.quantity
+            : fractionToDecimal(
+                ingredient.quantityNumerator ?? null,
+                ingredient.quantityDenominator ?? null
+              );
+
+        return {
+          id: ingredient.id,
+          name: ingredient.name,
+          quantity: derivedQuantity,
+          quantityNumerator: ingredient.quantityNumerator ?? null,
+          quantityDenominator: ingredient.quantityDenominator ?? null,
+          unit: ingredient.unit,
+          group: ingredient.group,
+          notes: ingredient.notes,
+          parseConfidence:
+            ingredient.parseConfidence === "high" || ingredient.parseConfidence === "low"
+              ? ingredient.parseConfidence
+              : null,
+          parseRaw: ingredient.parseRaw ?? null,
+          order: ingredient.order,
+        };
+      }),
     tags: (recipe.tags ?? []).map((entry) => entry.tag),
     linkedSubRecipes: (recipe.linkedFrom ?? []).map((entry) => ({
       id: entry.subRecipe.id,
@@ -285,14 +310,26 @@ function includeRecipeRelations() {
 
 function normalizedRowsFromInput(input: CreateRecipeInput | UpdateRecipeInput) {
   if (input.ingredientLines && input.ingredientLines.length > 0) {
-    return normalizeIngredients(input.ingredientLines).map((ingredient, index) => ({
-      name: ingredient.name,
-      quantity: ingredient.quantity,
-      unit: ingredient.unit,
-      group: null,
-      notes: ingredient.notes,
-      order: index,
-    }));
+    return normalizeIngredients(input.ingredientLines).map((ingredient, index) => {
+      const quantityInfo = normalizeQuantityFields(
+        ingredient.quantity,
+        null,
+        null
+      );
+
+      return {
+        name: ingredient.name,
+        quantity: quantityInfo.quantity,
+        quantityNumerator: quantityInfo.quantityNumerator,
+        quantityDenominator: quantityInfo.quantityDenominator,
+        unit: ingredient.unit,
+        group: null,
+        notes: ingredient.notes,
+        parseConfidence: ingredient.confidence,
+        parseRaw: input.ingredientLines?.[index] ?? null,
+        order: index,
+      };
+    });
   }
 
   return (input.ingredients ?? []).map((ingredient, index) => {
@@ -307,15 +344,93 @@ function normalizedRowsFromInput(input: CreateRecipeInput | UpdateRecipeInput) {
         .trim()
     );
 
+    const quantityInfo = normalizeQuantityFields(
+      ingredient.quantity ?? normalized.quantity,
+      ingredient.quantityNumerator ?? null,
+      ingredient.quantityDenominator ?? null
+    );
+
     return {
       name: normalized.name,
-      quantity: ingredient.quantity ?? normalized.quantity,
+      quantity: quantityInfo.quantity,
+      quantityNumerator: quantityInfo.quantityNumerator,
+      quantityDenominator: quantityInfo.quantityDenominator,
       unit: ingredient.unit ?? normalized.unit,
       group: compactString(ingredient.group),
       notes: ingredient.notes ?? normalized.notes,
+      parseConfidence: ingredient.parseConfidence ?? normalized.confidence,
+      parseRaw: ingredient.parseRaw ?? null,
       order: ingredient.order ?? index,
     };
   });
+}
+
+function fractionToDecimal(
+  numerator: number | null,
+  denominator: number | null
+): number | null {
+  if (numerator == null || denominator == null || denominator === 0) {
+    return null;
+  }
+
+  return numerator / denominator;
+}
+
+function decimalToFraction(value: number): { numerator: number; denominator: number } {
+  const rounded = Math.round(value * 1000) / 1000;
+  const sign = rounded < 0 ? -1 : 1;
+  const absValue = Math.abs(rounded);
+  const denominator = 1000;
+  const numerator = Math.round(absValue * denominator);
+  const divisor = greatestCommonDivisor(numerator, denominator);
+
+  return {
+    numerator: sign * (numerator / divisor),
+    denominator: denominator / divisor,
+  };
+}
+
+function greatestCommonDivisor(left: number, right: number): number {
+  let a = Math.abs(left);
+  let b = Math.abs(right);
+
+  while (b !== 0) {
+    const temp = b;
+    b = a % b;
+    a = temp;
+  }
+
+  return a || 1;
+}
+
+function normalizeQuantityFields(
+  quantity: number | null | undefined,
+  quantityNumerator: number | null,
+  quantityDenominator: number | null
+) {
+  const hasFraction = quantityNumerator != null && quantityDenominator != null;
+  if (hasFraction) {
+    return {
+      quantity: fractionToDecimal(quantityNumerator, quantityDenominator),
+      quantityNumerator,
+      quantityDenominator,
+    };
+  }
+
+  if (typeof quantity === "number" && Number.isFinite(quantity)) {
+    const fraction = decimalToFraction(quantity);
+    return {
+      quantity,
+      quantityNumerator: fraction.numerator,
+      quantityDenominator: fraction.denominator,
+    };
+  }
+
+  return {
+    quantity: null,
+    quantityNumerator: null,
+    quantityDenominator: null,
+  };
 }
 
 function sectionLines(markdown: string, sectionNames: string[]) {
@@ -912,9 +1027,13 @@ export class RecipeService {
               create: ingredients.map((ingredient) => ({
                 name: ingredient.name,
                 quantity: ingredient.quantity,
+                quantityNumerator: ingredient.quantityNumerator,
+                quantityDenominator: ingredient.quantityDenominator,
                 unit: ingredient.unit,
                 group: ingredient.group,
                 notes: ingredient.notes,
+                parseConfidence: ingredient.parseConfidence,
+                parseRaw: ingredient.parseRaw,
                 order: ingredient.order,
               })),
             },
@@ -1034,9 +1153,13 @@ export class RecipeService {
                 recipeId: id,
                 name: ingredient.name,
                 quantity: ingredient.quantity,
+                quantityNumerator: ingredient.quantityNumerator,
+                quantityDenominator: ingredient.quantityDenominator,
                 unit: ingredient.unit,
                 group: ingredient.group,
                 notes: ingredient.notes,
+                parseConfidence: ingredient.parseConfidence,
+                parseRaw: ingredient.parseRaw,
                 order: ingredient.order,
               })),
             });
@@ -1653,7 +1776,7 @@ export class RecipeService {
     });
 
     return {
-      version: "1",
+      version: "2",
       exportedAt: new Date().toISOString(),
       recipes: recipes.map((recipe) => {
         const serialized = serializeRecipe(recipe);

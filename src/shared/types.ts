@@ -168,6 +168,42 @@ export type MealPayload = {
 };
 
 // ── Recipes ──────────────────────────────────────────────────
+export type RecipeIngredientPayload = {
+  id: string;
+  name: string;
+  quantity: number | null;
+  quantityNumerator: number | null;
+  quantityDenominator: number | null;
+  unit: string | null;
+  group: string | null;
+  notes: string | null;
+  parseConfidence: string | null;
+  parseRaw: string | null;
+  order: number;
+};
+
+export type RecipePayload = {
+  id: string;
+  title: string;
+  description: string | null;
+  servings: number;
+  prepTime: number | null;
+  cookTime: number | null;
+  difficulty: string | null;
+  cuisine: string | null;
+  instructions: string[];
+  sourceUrl: string | null;
+  sourceLabel: string | null;
+  origin: string;
+  favourite: boolean;
+  rating: number | null;
+  cookNotes: string | null;
+  lastMadeAt: string | null;
+  ingredients: RecipeIngredientPayload[];
+  tags: string[];
+  linkedSubRecipes: Array<{ id: string; title: string }>;
+};
+
 export type {
   CreateRecipeInput,
   IngestResult,
