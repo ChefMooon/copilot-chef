@@ -158,6 +158,8 @@ app.whenReady().then(async () => {
   ensureSetting("home_show_meal_activity", true);
   ensureSetting("home_show_grocery_list", true);
   ensureSetting("home_show_greeting_subtitle", true);
+  ensureSetting("meal_bank_sidecar_placement", "right");
+  ensureSetting("meal_bank_collapsed", false);
   ensureSetting("lan_enabled", false);
   ensureSetting("lan_api_host", "127.0.0.1");
   ensureSetting("lan_api_port", getSetting("server_port") ?? 3001);

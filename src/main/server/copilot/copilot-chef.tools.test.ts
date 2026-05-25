@@ -54,6 +54,7 @@ function createServices() {
   const mealService = {
     createMeal: vi.fn(),
     listMealsInRange: vi.fn().mockResolvedValue([]),
+    listUnscheduledMeals: vi.fn().mockResolvedValue([]),
     getMeal: vi.fn(),
     updateMeal: vi.fn(),
     deleteMeal: vi.fn().mockResolvedValue({ id: "deleted" }),

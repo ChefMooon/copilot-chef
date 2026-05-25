@@ -12,8 +12,9 @@ import type { MealIngredient } from "@shared/types";
 
 export type MealSnapshot = {
   name: string;
-  date: string;
+  date: string | null;
   mealType: string;
+  mealTypeDefinitionId?: string | null;
   mealSubTypeDefinitionId?: string | null;
   sortOrder?: number;
   notes: string | null;
@@ -72,12 +73,28 @@ type ReorderAction = {
   summary: string;
 };
 
+type BankTransferEndpoint = {
+  date: string | null;
+  mealType: string;
+  mealTypeDefinitionId?: string | null;
+  mealSubTypeDefinitionId?: string | null;
+};
+
+type BankTransferAction = {
+  type: "bank-transfer";
+  mealId: string;
+  from: BankTransferEndpoint;
+  to: BankTransferEndpoint;
+  summary: string;
+};
+
 export type MealUndoAction =
   | AddAction
   | DeleteAction
   | MoveAction
   | SwapAction
-  | ReorderAction;
+  | ReorderAction
+  | BankTransferAction;
 
 // ---------------------------------------------------------------------------
 // Pure helpers (exported for testing)
@@ -101,6 +118,7 @@ export function rebindMealId(
         if (action.mealId === oldId) action.mealId = newId;
         break;
       case "move":
+      case "bank-transfer":
         if (action.mealId === oldId) action.mealId = newId;
         break;
       case "swap":
@@ -148,6 +166,7 @@ function createMealApi(snapshot: MealSnapshot) {
       name: snapshot.name,
       date: snapshot.date,
       mealType: snapshot.mealType,
+      mealTypeDefinitionId: snapshot.mealTypeDefinitionId ?? null,
       mealSubTypeDefinitionId: snapshot.mealSubTypeDefinitionId ?? null,
       sortOrder: snapshot.sortOrder,
       notes: snapshot.notes,
@@ -170,7 +189,13 @@ function deleteMealApi(mealId: string) {
 
 function patchMealApi(
   mealId: string,
-  body: { date?: string; mealType?: string; sortOrder?: number },
+  body: {
+    date?: string | null;
+    mealType?: string;
+    mealTypeDefinitionId?: string | null;
+    mealSubTypeDefinitionId?: string | null;
+    sortOrder?: number;
+  },
 ) {
   return fetchJson(`/api/meals/${mealId}`, {
     method: "PATCH",
@@ -298,6 +323,16 @@ export function useMealUndoRedo() {
           redoStackRef.current.push(action);
           break;
         }
+        case "bank-transfer": {
+          await patchMealApi(action.mealId, {
+            date: action.from.date,
+            mealType: action.from.mealType,
+            mealTypeDefinitionId: action.from.mealTypeDefinitionId ?? null,
+            mealSubTypeDefinitionId: action.from.mealSubTypeDefinitionId ?? null,
+          });
+          redoStackRef.current.push(action);
+          break;
+        }
       }
 
       await invalidateMeals();
@@ -373,6 +408,16 @@ export function useMealUndoRedo() {
             action.slotMealType,
             action.nextOrderedIds,
           );
+          undoStackRef.current.push(action);
+          break;
+        }
+        case "bank-transfer": {
+          await patchMealApi(action.mealId, {
+            date: action.to.date,
+            mealType: action.to.mealType,
+            mealTypeDefinitionId: action.to.mealTypeDefinitionId ?? null,
+            mealSubTypeDefinitionId: action.to.mealSubTypeDefinitionId ?? null,
+          });
           undoStackRef.current.push(action);
           break;
         }

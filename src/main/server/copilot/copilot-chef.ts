@@ -61,7 +61,7 @@ const mealIngredientSchema = z.object({
 const createMealArgsSchema = z.object({
   name: z.string().min(1),
   mealType: mealTypeSchema,
-  date: z.string(),
+  date: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   ingredients: z.array(mealIngredientSchema).optional(),
   description: z.string().nullable().optional(),
@@ -602,8 +602,9 @@ export class CopilotChef {
   private async buildContext(): Promise<SystemPromptContext> {
     const { from, to } = getCurrentWeekRange();
     const today = new Date();
-    const [meals, groceryList, preferences, recipes, mealTypeSummary] = await Promise.all([
+    const [meals, mealBank, groceryList, preferences, recipes, mealTypeSummary] = await Promise.all([
       this.mealService.listMealsInRange(from, to),
+      this.mealService.listUnscheduledMeals(),
       this.groceryService.getCurrentGroceryList(),
       this.preferenceService.getPreferences(),
       this.recipeService.listRecipes(),
@@ -624,6 +625,7 @@ export class CopilotChef {
 
     return {
       meals,
+      mealBank,
       groceryList,
       preferences,
       customPersonaPrompt,

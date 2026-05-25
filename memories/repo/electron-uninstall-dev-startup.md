@@ -2,3 +2,4 @@
 - Cause: `node_modules/electron` exists but binary payload is missing (`dist/` and `path.txt` absent), so `getElectronPath()` fails.
 - Fast repair (Windows): `node node_modules/electron/install.js`.
 - Verify: `Get-ChildItem node_modules/electron` shows `dist` and `path.txt`; `Get-Content node_modules/electron/path.txt` returns `electron.exe`.
+- Prisma startup lesson: allowing a Prisma client generated with `--no-engine` to pass predev checks can crash runtime with `P6001` (expects `prisma://` / `prisma+postgres://`); dev startup checks must require an engine-capable generated client.

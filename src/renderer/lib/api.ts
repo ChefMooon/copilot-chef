@@ -5,6 +5,7 @@ import {
   type CustomPersonaPayload,
   type IngestResult,
   type MealIngredient,
+  type MealPayload,
   type MealTypeDefinitionPayload,
   type MealSubTypeDefinitionPayload,
   type MealTypeProfilePayload,
@@ -182,6 +183,25 @@ export async function createMeal(input: CreateMealInput) {
       body: JSON.stringify(input),
     }
   );
+
+  return response.data;
+}
+
+export async function listUnscheduledMeals() {
+  const response = await fetchJson<{ data: MealPayload[] }>(
+    "/api/meals/unscheduled"
+  );
+
+  return response.data;
+}
+
+export async function reorderUnscheduledMeals(orderedIds: string[]) {
+  const response = await fetchJson<{
+    data: { updated: number; meals: MealPayload[] };
+  }>("/api/meals/unscheduled/reorder", {
+    method: "PATCH",
+    body: JSON.stringify({ orderedIds }),
+  });
 
   return response.data;
 }

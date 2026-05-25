@@ -99,6 +99,404 @@
   box-shadow: var(--shadow);
   border: 1px solid rgba(59, 94, 69, 0.08);
   overflow: hidden;
+  min-width: 0;
+}
+
+.mealPlanWorkspace {
+  position: relative;
+  display: block;
+  overflow: visible;
+}
+
+.mealPlanWorkspaceRight {
+  min-width: 0;
+}
+
+.mealPlanWorkspaceLeft {
+  min-width: 0;
+}
+
+.mealPlanWorkspaceBottom {
+  min-width: 0;
+}
+
+.mealBank {
+  --meal-bank-top: calc(var(--app-titlebar-height, 64px) + 0.8rem);
+  --meal-bank-side-top: calc(var(--meal-bank-top) + 2.7rem);
+  --meal-bank-chat-clearance: 6rem;
+  --meal-bank-side-offset: -0.42rem;
+  --meal-bank-collapsed-peek: 42px;
+  position: fixed;
+  z-index: 420;
+  width: min(276px, calc(100vw - 1rem));
+  max-height: min(74vh, calc(100vh - var(--meal-bank-top) - var(--meal-bank-chat-clearance)));
+  border: 1px solid rgba(59, 94, 69, 0.12);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 253, 248, 1) 0%, rgba(246, 240, 226, 0.92) 100%);
+  box-shadow: 0 12px 26px rgba(48, 36, 23, 0.14);
+  min-width: 0;
+  overflow: hidden;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.18s ease,
+    outline-color 0.18s ease;
+}
+
+.mealBankOpen {
+  transform: translate3d(0, 0, 0);
+}
+
+.mealBankLeft {
+  top: var(--meal-bank-side-top);
+  left: var(--meal-bank-side-offset);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+  max-height: min(74vh, calc(100vh - var(--meal-bank-side-top) - var(--meal-bank-chat-clearance)));
+}
+
+.mealBankRight {
+  top: var(--meal-bank-side-top);
+  right: var(--meal-bank-side-offset);
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+  max-height: min(74vh, calc(100vh - var(--meal-bank-side-top) - var(--meal-bank-chat-clearance)));
+}
+
+.mealBankBottom {
+  left: 0;
+  right: 0;
+  margin-inline: auto;
+  bottom: 0;
+  width: min(34vw, calc(100vw - 2.5rem));
+  max-height: min(52vh, 420px);
+  border-radius: 12px 12px 10px 10px;
+}
+
+.mealBankCollapsed.mealBankLeft {
+  transform: translate3d(calc(-100% + var(--meal-bank-collapsed-peek)), 0, 0);
+}
+
+.mealBankCollapsed.mealBankRight {
+  transform: translate3d(calc(100% - var(--meal-bank-collapsed-peek)), 0, 0);
+}
+
+.mealBankCollapsed.mealBankLeft,
+.mealBankCollapsed.mealBankRight {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.mealBankCollapsed.mealBankLeft {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mealBankCollapsed.mealBankRight {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.mealBankCollapsed.mealBankBottom {
+  transform: translate3d(0, calc(100% - 52px), 0);
+}
+
+.mealBankDropActive {
+  outline: 3px solid rgba(59, 94, 69, 0.22);
+  outline-offset: 2px;
+  box-shadow: 0 18px 42px rgba(59, 94, 69, 0.2);
+}
+
+.mealBankHoverOpening {
+  outline-color: rgba(232, 136, 90, 0.48);
+}
+
+.mealBankTab {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: none;
+  background: rgba(59, 94, 69, 0.08);
+  color: var(--green);
+  padding: 0.75rem 0.9rem;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  min-height: 52px;
+  touch-action: manipulation;
+}
+
+.mealBankTabLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mealBankTabCount {
+  min-width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 999px;
+  box-sizing: border-box;
+  padding-left: 0.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--green);
+  color: #fffdf8;
+}
+
+.mealBankTabVertical {
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.3rem;
+  min-height: 108px;
+  width: 36px;
+  border-radius: 14px;
+  border: 1px solid rgba(59, 94, 69, 0.26);
+  background: linear-gradient(180deg, rgba(248, 246, 239, 0.98) 0%, rgba(241, 236, 224, 0.98) 100%);
+  box-shadow: 0 7px 14px rgba(48, 36, 23, 0.16);
+  padding: 0.28rem 0.16rem 0.22rem;
+}
+
+.mealBankTabVertical .mealBankTabLabel {
+  writing-mode: vertical-rl;
+  --meal-bank-label-offset-x: 0rem;
+  --meal-bank-label-offset-y: 0rem;
+  transform: rotate(180deg) translate(var(--meal-bank-label-offset-x), var(--meal-bank-label-offset-y));
+  letter-spacing: 0.04em;
+  line-height: 1;
+  font-size: 0.74rem;
+  font-weight: 900;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.mealBankCollapsed.mealBankLeft .mealBankTabVertical {
+  align-items: flex-end;
+  padding-right: 0.1rem;
+}
+
+.mealBankCollapsed.mealBankRight .mealBankTabVertical {
+  align-items: flex-start;
+  padding-left: 0.3rem;
+}
+
+.mealBankCollapsed.mealBankLeft .mealBankTabLabel {
+  --meal-bank-label-offset-x: 0.55rem;
+  --meal-bank-label-offset-y: -1rem;
+  margin-right: 0rem;
+}
+
+.mealBankCollapsed.mealBankRight .mealBankTabLabel {
+  --meal-bank-label-offset-x: -0.4rem;
+  --meal-bank-label-offset-y: -1rem;
+  margin-left: 0;
+}
+
+.mealBankCollapsed.mealBankLeft .mealBankTabCount,
+.mealBankCollapsed.mealBankRight .mealBankTabCount {
+  min-width: 1.45rem;
+  height: 1.45rem;
+  box-shadow: inset 0 0 0 1px rgba(255, 253, 248, 0.28);
+}
+
+.mealBankCollapsed.mealBankLeft .mealBankTabCount {
+  margin-right: 0.25rem;
+}
+
+.mealBankPanel {
+  padding: 0.9rem;
+  max-height: calc(min(74vh, calc(100vh - var(--meal-bank-top) - var(--meal-bank-chat-clearance))) - 52px);
+  overflow-y: auto;
+}
+
+.mealBankLeft .mealBankPanel,
+.mealBankRight .mealBankPanel {
+  max-height: calc(min(74vh, calc(100vh - var(--meal-bank-side-top) - var(--meal-bank-chat-clearance))) - 52px);
+}
+
+.mealBankBottom .mealBankPanel {
+  max-height: calc(min(52vh, 420px) - 52px);
+}
+
+.mealBankHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.mealBankHeaderActions {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.mealBankAddButton {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(59, 94, 69, 0.32);
+  background: var(--white);
+  color: var(--green);
+  cursor: pointer;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 18px rgba(48, 36, 23, 0.09);
+}
+
+.mealBankAddGlyph {
+  display: inline-block;
+  transform: translate(0.05rem, -0.1rem);
+}
+
+.mealBankAddButton:hover {
+  background: rgba(212, 228, 216, 0.26);
+}
+
+.mealBankAddButton:focus-visible {
+  outline: 2px solid rgba(59, 94, 69, 0.5);
+  outline-offset: 2px;
+}
+
+.mealBankAddMenu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  min-width: 9rem;
+  padding: 0.3rem;
+  border-radius: 12px;
+  border: 1px solid rgba(59, 94, 69, 0.18);
+  background: var(--white);
+  box-shadow: 0 12px 28px rgba(48, 36, 23, 0.18);
+  z-index: 3;
+}
+
+.mealBankAddMenuItem {
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  display: block;
+  font-size: 0.77rem;
+  font-weight: 700;
+  padding: 0.42rem 0.55rem;
+  text-align: left;
+}
+
+.mealBankAddMenuItem:hover {
+  background: rgba(212, 228, 216, 0.34);
+}
+
+.mealBankAddMenuItem:focus-visible {
+  outline: 2px solid rgba(59, 94, 69, 0.45);
+  outline-offset: -1px;
+}
+
+.mealBankTitle {
+  font-family: var(--font-lora), Georgia, serif;
+  font-size: 1.15rem;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.mealBankDescription {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.mealBankEmpty {
+  border: 1px dashed rgba(59, 94, 69, 0.24);
+  border-radius: 14px;
+  padding: 1rem;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  background: rgba(255, 253, 248, 0.72);
+}
+
+.mealBankList {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.mealBankCard {
+  border: 1px solid rgba(59, 94, 69, 0.11);
+  border-radius: 14px;
+  padding: 0.7rem;
+  background: var(--white);
+  box-shadow: 0 8px 22px rgba(48, 36, 23, 0.06);
+}
+
+.mealBankCardMain {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  text-align: left;
+  cursor: grab;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.mealBankMealName {
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.mealBankMealMeta,
+.mealBankMealNotes {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.mealBankActions,
+.mealBankScheduleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.65rem;
+}
+
+.mealBankIconButton,
+.mealBankScheduleButton {
+  border-radius: 999px;
+  border: 1px solid var(--cream-dark);
+  background: rgba(255, 253, 248, 0.88);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.28rem 0.55rem;
+}
+
+.mealBankIconButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.mealBankScheduleButton {
+  background: var(--white);
 }
 
 .cardFocusBar {
@@ -972,6 +1370,26 @@
 }
 
 @media (max-width: 900px) {
+  .mealPlanWorkspace,
+  .mealPlanWorkspaceRight,
+  .mealPlanWorkspaceLeft {
+    min-width: 0;
+  }
+
+  .mealBankLeft,
+  .mealBankRight {
+    width: min(240px, calc(100vw - 1rem));
+    top: calc(var(--app-titlebar-height, 64px) + 0.55rem);
+  }
+
+  .mealBankBottom {
+    width: min(34vw, calc(100vw - 2.5rem));
+    left: 0;
+    right: 0;
+    margin-inline: auto;
+    bottom: 0;
+  }
+
   .pageHeaderRight {
     width: 100%;
     flex-wrap: wrap;

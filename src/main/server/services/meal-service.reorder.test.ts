@@ -55,6 +55,18 @@ function createMealRow(id: string, sortOrder: number) {
   };
 }
 
+function createBankMealRow(id: string, sortOrder: number) {
+  return {
+    ...createMealRow(id, sortOrder),
+    date: null,
+    mealType: "bank",
+    mealTypeDefinitionId: null,
+    mealTypeDefinition: null,
+    mealSubTypeDefinitionId: null,
+    mealSubTypeDefinition: null,
+  };
+}
+
 function createSlotMealRow(
   id: string,
   sortOrder: number,
@@ -129,6 +141,87 @@ describe("MealService.reorderSlotMeals", () => {
       service.reorderSlotMeals("2026-04-03T00:00:00.000Z", "DINNER", ["meal-1", "meal-1"])
     ).rejects.toThrow("Reorder payload contains duplicate meal ids.");
     expect(tx.meal.update).not.toHaveBeenCalled();
+  });
+});
+
+describe("MealService meal bank operations", () => {
+  beforeEach(() => {
+    bootstrapDatabaseMock.mockClear();
+    prismaMock.meal.findMany.mockReset();
+    prismaMock.$transaction.mockReset();
+  });
+
+  it("lists unscheduled meals ordered by sortOrder", async () => {
+    const service = new MealService();
+    prismaMock.meal.findMany.mockResolvedValue([
+      createBankMealRow("meal-2", 10),
+      createBankMealRow("meal-1", 20),
+    ]);
+
+    const result = await service.listUnscheduledMeals();
+
+    expect(prismaMock.meal.findMany).toHaveBeenCalledWith({
+      where: { date: null },
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+      include: expect.any(Object),
+    });
+    expect(result.map((meal) => [meal.id, meal.date, meal.mealType])).toEqual([
+      ["meal-2", null, "bank"],
+      ["meal-1", null, "bank"],
+    ]);
+  });
+
+  it("reorders meal bank entries and rejects meals outside the bank", async () => {
+    const service = new MealService();
+    const tx = {
+      meal: {
+        findMany: vi.fn().mockResolvedValue([createBankMealRow("meal-1", 10)]),
+        update: vi.fn(),
+      },
+    };
+
+    prismaMock.$transaction.mockImplementation(async (callback: (txArg: typeof tx) => unknown) =>
+      callback(tx)
+    );
+
+    await expect(
+      service.reorderUnscheduledMeals(["meal-1", "scheduled-meal"])
+    ).rejects.toThrow("Reorder payload must include every meal in the meal bank exactly once.");
+    expect(tx.meal.update).not.toHaveBeenCalled();
+  });
+
+  it("reorders all unscheduled meals in manual order", async () => {
+    const service = new MealService();
+    const initialMeals = [createBankMealRow("meal-1", 10), createBankMealRow("meal-2", 20)];
+    const updatedMeals = [createBankMealRow("meal-2", 10), createBankMealRow("meal-1", 20)];
+    const tx = {
+      meal: {
+        findMany: vi
+          .fn()
+          .mockResolvedValueOnce(initialMeals)
+          .mockResolvedValueOnce(updatedMeals),
+        update: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+
+    prismaMock.$transaction.mockImplementation(async (callback: (txArg: typeof tx) => unknown) =>
+      callback(tx)
+    );
+
+    const result = await service.reorderUnscheduledMeals(["meal-2", "meal-1"]);
+
+    expect(tx.meal.update).toHaveBeenNthCalledWith(1, {
+      where: { id: "meal-2" },
+      data: { sortOrder: 10 },
+    });
+    expect(tx.meal.update).toHaveBeenNthCalledWith(2, {
+      where: { id: "meal-1" },
+      data: { sortOrder: 20 },
+    });
+    expect(result.map((meal) => [meal.id, meal.sortOrder])).toEqual([
+      ["meal-2", 10],
+      ["meal-1", 20],
+    ]);
   });
 });
 

@@ -83,6 +83,7 @@ function createMinimalServices() {
   return {
     mealService: {
       listMealsInRange: vi.fn().mockResolvedValue([]),
+      listUnscheduledMeals: vi.fn().mockResolvedValue([]),
       createMeal: vi.fn(),
       getMeal: vi.fn(),
       updateMeal: vi.fn(),

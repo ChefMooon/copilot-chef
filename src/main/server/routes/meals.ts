@@ -66,6 +66,11 @@ mealsRoutes.get("/meals/upcoming", async (c) => {
   });
 });
 
+mealsRoutes.get("/meals/unscheduled", async (c) => {
+  const data = await mealService.listUnscheduledMeals();
+  return c.json({ data });
+});
+
 mealsRoutes.post("/meals", async (c) => {
   try {
     const body = await c.req.json();
@@ -115,6 +120,25 @@ mealsRoutes.post("/meals", async (c) => {
   } catch (error) {
     return c.json(
       { error: error instanceof Error ? error.message : "Unable to create meal" },
+      400
+    );
+  }
+});
+
+mealsRoutes.patch("/meals/unscheduled/reorder", async (c) => {
+  try {
+    const body = await c.req.json();
+
+    if (!Array.isArray(body?.orderedIds)) {
+      return c.json({ error: "orderedIds are required" }, 400);
+    }
+
+    const data = await mealService.reorderUnscheduledMeals(body.orderedIds);
+
+    return c.json({ data: { updated: data.length, meals: data } });
+  } catch (error) {
+    return c.json(
+      { error: error instanceof Error ? error.message : "Unable to reorder meal bank" },
       400
     );
   }

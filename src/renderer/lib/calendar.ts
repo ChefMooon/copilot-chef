@@ -47,9 +47,17 @@ export type EditableMeal = {
   linkedRecipe: LinkedRecipeSummary | null;
 };
 
+export type BankMeal = Omit<EditableMeal, "date"> & {
+  date: null;
+};
+
 export type MealPlanDragPayload =
   | {
       kind: "meal";
+      mealId: string;
+    }
+  | {
+      kind: "bank-meal";
       mealId: string;
     }
   | {
@@ -84,7 +92,7 @@ export function setMealPlanDragPayload(
 ) {
   dataTransfer.setData(MEAL_PLAN_DRAG_MIME_TYPE, JSON.stringify(payload));
 
-  if (payload.kind === "meal") {
+  if (payload.kind === "meal" || payload.kind === "bank-meal") {
     dataTransfer.setData("text/plain", payload.mealId);
   } else {
     dataTransfer.setData("text/plain", "");
@@ -101,6 +109,10 @@ export function getMealPlanDragPayload(
       const parsed = JSON.parse(structuredPayload) as MealPlanDragPayload;
 
       if (parsed.kind === "meal" && typeof parsed.mealId === "string") {
+        return parsed;
+      }
+
+      if (parsed.kind === "bank-meal" && typeof parsed.mealId === "string") {
         return parsed;
       }
 
@@ -558,6 +570,31 @@ export function toEditableMeal(meal: CalendarMeal): EditableMeal {
     id: meal.id,
     name: meal.name,
     date: new Date(meal.date ?? new Date().toISOString()),
+    type: toCalendarMealType(meal.mealTypeDefinition?.slug ?? meal.mealType),
+    sortOrder: meal.sortOrder,
+    mealTypeDefinitionId: meal.mealTypeDefinitionId,
+    mealTypeDefinition: meal.mealTypeDefinition,
+    mealSubTypeDefinitionId: meal.mealSubTypeDefinitionId ?? null,
+    mealSubTypeDefinition: meal.mealSubTypeDefinition ?? null,
+    notes: meal.notes ?? "",
+    ingredients: meal.ingredients ?? [],
+    description: meal.description ?? "",
+    cuisine: meal.cuisine ?? null,
+    instructions: meal.instructions ?? [],
+    servings: meal.servings ?? 2,
+    prepTime: meal.prepTime ?? null,
+    cookTime: meal.cookTime ?? null,
+    servingsOverride: meal.servingsOverride ?? null,
+    recipeId: meal.recipeId ?? null,
+    linkedRecipe: meal.linkedRecipe ?? null,
+  };
+}
+
+export function toBankMeal(meal: CalendarMeal): BankMeal {
+  return {
+    id: meal.id,
+    name: meal.name,
+    date: null,
     type: toCalendarMealType(meal.mealTypeDefinition?.slug ?? meal.mealType),
     sortOrder: meal.sortOrder,
     mealTypeDefinitionId: meal.mealTypeDefinitionId,

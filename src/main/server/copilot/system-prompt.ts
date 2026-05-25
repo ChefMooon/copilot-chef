@@ -1,5 +1,6 @@
 export type SystemPromptContext = {
   meals?: Array<{ name: string; mealType: string; date: string | null }> | null;
+  mealBank?: Array<{ name: string; mealType: string; date: string | null }> | null;
   groceryList?: {
     name: string;
     totalItems: number;
@@ -155,6 +156,7 @@ function formatList(values: string[]) {
 export function buildSystemPrompt(context: SystemPromptContext = {}): string {
   const {
     meals,
+    mealBank,
     groceryList,
     preferences,
     recipeSummary,
@@ -190,6 +192,16 @@ export function buildSystemPrompt(context: SystemPromptContext = {}): string {
 
     sections.push(
       `## Current Meals\n${meals.length} meals scheduled this week:\n${mealLines || "  - No dated meals in this window."}`
+    );
+  }
+
+  if (mealBank && mealBank.length > 0) {
+    const bankLines = mealBank
+      .map((meal) => `  - ${meal.name}`)
+      .join("\n");
+
+    sections.push(
+      `## Meal Bank\n${mealBank.length} unscheduled meals available to schedule later:\n${bankLines}`
     );
   }
 
@@ -275,7 +287,7 @@ export function buildSystemPrompt(context: SystemPromptContext = {}): string {
     `- Answer questions about cooking techniques, substitutions, and timing`,
     ``,
     `## Available Tools`,
-    `- Meal tools: create, list, get, update, move, replace, remove, and delete meal entries, plus suggest and apply pending meals.`,
+    `- Meal tools: create, list, get, update, move, replace, remove, and delete meal entries, plus suggest and apply pending meals. Use date=null and mealType="bank" for unscheduled Meal Bank entries.`,
     `- Grocery tools: list, get, create, update, and delete grocery lists; add, update, delete, and reorder grocery items.`,
     `- History tools: undo and redo prior meal or grocery actions when chat-session history is available.`,
     `- Preference tools: read and update household preferences, including reasoning effort.`,

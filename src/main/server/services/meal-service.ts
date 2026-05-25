@@ -566,6 +566,66 @@ export class MealService {
     });
   }
 
+  async listUnscheduledMeals() {
+    await bootstrapDatabase();
+
+    const meals = await prisma.meal.findMany({
+      where: { date: null },
+      orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+      include: this.mealInclude,
+    });
+
+    return meals.map(serializeMeal);
+  }
+
+  async reorderUnscheduledMeals(orderedIds: string[]) {
+    await bootstrapDatabase();
+
+    if (orderedIds.length === 0) {
+      throw new Error("At least one meal is required to reorder the meal bank.");
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const bankMeals = await tx.meal.findMany({
+        where: { date: null },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        include: this.mealInclude,
+      });
+
+      if (bankMeals.length !== orderedIds.length) {
+        throw new Error("Reorder payload must include every meal in the meal bank exactly once.");
+      }
+
+      const bankIds = new Set(bankMeals.map((meal) => meal.id));
+      const orderedIdSet = new Set(orderedIds);
+
+      if (orderedIdSet.size !== orderedIds.length) {
+        throw new Error("Reorder payload contains duplicate meal ids.");
+      }
+
+      for (const id of orderedIds) {
+        if (!bankIds.has(id)) {
+          throw new Error("Reorder payload contains a meal outside the meal bank.");
+        }
+      }
+
+      for (let index = 0; index < orderedIds.length; index += 1) {
+        await tx.meal.update({
+          where: { id: orderedIds[index] },
+          data: { sortOrder: (index + 1) * 10 },
+        });
+      }
+
+      const updatedMeals = await tx.meal.findMany({
+        where: { date: null },
+        orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+        include: this.mealInclude,
+      });
+
+      return updatedMeals.map(serializeMeal);
+    });
+  }
+
   async applySlotBatchAction(input: {
     action: "move" | "swap";
     sourceDate: string;

@@ -150,4 +150,14 @@ describe("browser platform connection storage", () => {
       mode: "local",
     });
   });
+
+  it("persists per-device Meal Bank settings in browser localStorage", async () => {
+    const platform = createBrowserPlatform();
+
+    await platform.setSetting("meal_bank_sidecar_placement", "bottom");
+    await platform.setSetting("meal_bank_collapsed", true);
+
+    expect(await platform.getSetting("meal_bank_sidecar_placement")).toBe("bottom");
+    expect(await platform.getSetting("meal_bank_collapsed")).toBe(true);
+  });
 });

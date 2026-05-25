@@ -228,6 +228,7 @@ const LanQrCodeModal = lazy(async () => {
 type TabId = "dietary-profile" | "meal-plans" | "your-chef" | "app-settings";
 
 type HomeUpcomingDetail = "standard" | "detailed";
+type MealBankPlacement = "left" | "right" | "bottom";
 
 type HomeDashboardSettings = {
   upcomingDays: number;
@@ -248,6 +249,16 @@ const HOME_DASHBOARD_DEFAULTS: HomeDashboardSettings = {
   showGroceryList: true,
   showGreetingSubtitle: true,
 };
+
+const mealBankPlacementOptions = [
+  { label: "Left", value: "left" },
+  { label: "Right", value: "right" },
+  { label: "Bottom", value: "bottom" },
+];
+
+function normalizeMealBankPlacement(input: unknown): MealBankPlacement {
+  return input === "left" || input === "bottom" ? input : "right";
+}
 
 function clampHomeUpcomingDays(input: unknown) {
   if (typeof input !== "number" || !Number.isFinite(input)) {
@@ -400,6 +411,8 @@ export default function SettingsPage() {
   const [lanAdvertisedHostDraft, setLanAdvertisedHostDraft] = useState("");
   const [lanSaving, setLanSaving] = useState(false);
   const [lanQrModalOpen, setLanQrModalOpen] = useState(false);
+  const [mealBankPlacement, setMealBankPlacement] =
+    useState<MealBankPlacement>("right");
   const [homeDashboard, setHomeDashboard] = useState<HomeDashboardSettings>(
     HOME_DASHBOARD_DEFAULTS
   );
@@ -527,6 +540,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     Promise.all([
+      platform.getSetting("meal_bank_sidecar_placement"),
       platform.getSetting("home_upcoming_days"),
       platform.getSetting("home_upcoming_detail"),
       platform.getSetting("home_upcoming_compact"),
@@ -537,6 +551,7 @@ export default function SettingsPage() {
     ])
       .then(
         ([
+          mealBankPlacementSetting,
           upcomingDays,
           upcomingDetail,
           upcomingCompact,
@@ -545,6 +560,9 @@ export default function SettingsPage() {
           showGroceryList,
           showGreetingSubtitle,
         ]) => {
+          setMealBankPlacement(
+            normalizeMealBankPlacement(mealBankPlacementSetting)
+          );
           setHomeDashboard({
             upcomingDays: clampHomeUpcomingDays(upcomingDays),
             upcomingDetail: normalizeHomeDetail(upcomingDetail),
@@ -970,6 +988,18 @@ export default function SettingsPage() {
       toast({ title: "Could not save LAN settings.", variant: "error" });
     } finally {
       setLanSaving(false);
+    }
+  };
+
+  const handleMealBankPlacementChange = async (value: string) => {
+    const nextPlacement = normalizeMealBankPlacement(value);
+    setMealBankPlacement(nextPlacement);
+
+    try {
+      await platform.setSetting("meal_bank_sidecar_placement", nextPlacement);
+      toast({ title: "Meal Bank placement saved." });
+    } catch {
+      toast({ title: "Could not save Meal Bank placement.", variant: "error" });
     }
   };
 
@@ -1481,6 +1511,30 @@ export default function SettingsPage() {
           Configure connection details, automation access, app behavior,
           planning defaults, and privacy controls.
         </p>
+        <CollapsibleSection id="meal-bank" label="Meal Bank">
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Meal Bank sidecar</h2>
+              <p className={styles.cardDescription}>
+                Choose where unscheduled meals appear on the Meal Plan page.
+                This preference is saved per device, including browser and iPad sessions.
+              </p>
+            </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Sidecar placement</label>
+              <SegmentedControl
+                onChange={(value) => {
+                  void handleMealBankPlacementChange(value);
+                }}
+                options={mealBankPlacementOptions}
+                value={mealBankPlacement}
+              />
+              <p className={styles.fieldHint}>
+                Bottom placement is usually best on tablets and narrow screens.
+              </p>
+            </div>
+          </div>
+        </CollapsibleSection>
         <CollapsibleSection id="connection" label="Connection">
           <div className={styles.card}>
             <div className={styles.cardHeader}>
