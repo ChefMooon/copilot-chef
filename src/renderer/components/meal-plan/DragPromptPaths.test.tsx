@@ -149,7 +149,7 @@ describe("meal plan drag prompt paths", () => {
     );
 
     const sourceMeal = screen.getByRole("button", { name: /Morning Toast/i });
-    const targetMeal = screen.getByRole("button", { name: /Evening Soup/i });
+    const targetMeal = screen.getByRole("button", { name: /^Evening Soup$/i });
 
     vi.spyOn(targetMeal, "getBoundingClientRect").mockReturnValue({
       x: 0,
@@ -282,7 +282,7 @@ describe("meal plan drag prompt paths", () => {
     const slotDragHandle = screen.getByRole("button", {
       name: /Drag breakfast slot/i,
     });
-    const targetMeal = screen.getByRole("button", { name: /Evening Soup/i });
+    const targetMeal = screen.getByRole("button", { name: /^Evening Soup$/i });
 
     vi.spyOn(targetMeal, "getBoundingClientRect").mockReturnValue({
       x: 0,
@@ -341,7 +341,7 @@ describe("meal plan drag prompt paths", () => {
 
     fireEvent.dragStart(slotDragHandle, { dataTransfer });
 
-    const targetMeal = screen.getByRole("button", { name: /Evening Soup/i });
+    const targetMeal = screen.getByRole("button", { name: /^Evening Soup$/i });
     const dragOverEvent = new Event("dragover", {
       bubbles: true,
       cancelable: true,
