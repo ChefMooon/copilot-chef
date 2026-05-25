@@ -17,10 +17,6 @@ function npmCommand() {
   return process.platform === "win32" ? "npm.cmd" : "npm";
 }
 
-function npxCommand() {
-  return process.platform === "win32" ? "npx.cmd" : "npx";
-}
-
 function runInstallScript() {
   console.log("[predev] Electron binary not found. Running electron install script...");
 
@@ -80,7 +76,7 @@ function prismaNeedsGenerate() {
     const indexContents = readFileSync(prismaClientIndexPath, "utf-8");
     const generatedWithoutEngine = indexContents.includes('"copyEngine": false');
     if (generatedWithoutEngine) {
-      return !hasAnyPrismaEngineBinary();
+      return true;
     }
   } catch {
     return true;
@@ -89,22 +85,9 @@ function prismaNeedsGenerate() {
   return !hasAnyPrismaEngineBinary();
 }
 
-function runNoEnginePrismaGenerate() {
-  console.log(
-    "[predev] Retrying Prisma client generation without copying engine binaries (Windows-safe fallback)..."
-  );
-
-  const result = spawnSync(npxCommand(), ["prisma", "generate", "--no-engine"], {
-    stdio: "inherit",
-    cwd: rootDir,
-  });
-
-  return result.status ?? 1;
-}
-
 function runPrismaGenerate() {
   console.log(
-    "[predev] Prisma client is missing engine binaries. Running prisma generate..."
+    "[predev] Prisma client is missing required engine binaries or was generated with --no-engine. Running prisma generate..."
   );
 
   const result = spawnSync(npmCommand(), ["run", "db:generate"], {
@@ -113,15 +96,13 @@ function runPrismaGenerate() {
   });
 
   if (result.status !== 0) {
-    if (process.platform === "win32") {
-      const fallbackCode = runNoEnginePrismaGenerate();
-      if (fallbackCode === 0) {
-        return;
-      }
-    }
-
     const code = result.status ?? 1;
     console.error(`[predev] Failed to regenerate Prisma client (exit code ${code}).`);
+    if (process.platform === "win32") {
+      console.error(
+        "[predev] Windows note: if EPERM occurs, close running Electron/Node processes holding Prisma engine files, then rerun npm run db:generate."
+      );
+    }
     process.exit(code);
   }
 }
@@ -149,7 +130,7 @@ if (prismaNeedsGenerate()) {
 
 if (prismaNeedsGenerate()) {
   console.error(
-    "[predev] Prisma client is still missing required engine binaries after regeneration."
+    "[predev] Prisma client is still not usable after regeneration (missing engine binaries or still generated with --no-engine)."
   );
   process.exit(1);
 }
