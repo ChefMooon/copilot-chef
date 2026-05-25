@@ -4,7 +4,7 @@ import { bootstrapDatabase } from "../lib/bootstrap";
 function serializeGroceryList(groceryList: {
   id: string;
   name: string;
-  date: Date;
+  date: Date | null;
   favourite: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -25,7 +25,7 @@ function serializeGroceryList(groceryList: {
   return {
     id: groceryList.id,
     name: groceryList.name,
-    date: groceryList.date.toISOString(),
+    date: groceryList.date ? groceryList.date.toISOString() : null,
     favourite: groceryList.favourite,
     createdAt: groceryList.createdAt.toISOString(),
     updatedAt: groceryList.updatedAt.toISOString(),
@@ -54,7 +54,7 @@ function serializeGroceryList(groceryList: {
 
 type CreateListInput = {
   name: string;
-  date?: string | Date;
+  date?: string | Date | null;
   favourite?: boolean;
   items?: Array<{
     name: string;
@@ -69,7 +69,7 @@ type CreateListInput = {
 
 type UpdateListInput = {
   name?: string;
-  date?: string | Date;
+  date?: string | Date | null;
   favourite?: boolean;
 };
 
@@ -96,7 +96,7 @@ type UpdateItemInput = {
 type GroceryListSnapshot = {
   id: string;
   name: string;
-  date: string;
+  date: string | null;
   favourite: boolean;
   items: Array<{
     id: string;
@@ -111,9 +111,9 @@ type GroceryListSnapshot = {
   }>;
 };
 
-function toDate(value: string | Date | undefined) {
-  if (!value) {
-    return new Date();
+function toDate(value: string | Date | null) {
+  if (value === null) {
+    return null;
   }
 
   if (value instanceof Date) {
@@ -126,6 +126,39 @@ function toDate(value: string | Date | undefined) {
   }
 
   return parsed;
+}
+
+function compareGroceryLists(
+  left: { date: Date | null; createdAt: Date },
+  right: { date: Date | null; createdAt: Date }
+) {
+  const leftOngoing = left.date === null;
+  const rightOngoing = right.date === null;
+
+  if (leftOngoing && rightOngoing) {
+    return right.createdAt.getTime() - left.createdAt.getTime();
+  }
+
+  if (leftOngoing) {
+    return -1;
+  }
+
+  if (rightOngoing) {
+    return 1;
+  }
+
+  const dateDiff = left.date!.getTime() - right.date!.getTime();
+  if (dateDiff !== 0) {
+    return dateDiff;
+  }
+
+  return right.createdAt.getTime() - left.createdAt.getTime();
+}
+
+function sortGroceryLists<T extends { date: Date | null; createdAt: Date }>(
+  lists: T[]
+) {
+  return [...lists].sort(compareGroceryLists);
 }
 
 async function getListOrThrow(id: string) {
@@ -151,10 +184,10 @@ export class GroceryService {
       include: {
         items: true,
       },
-      orderBy: [{ date: "asc" }, { updatedAt: "desc" }],
+      orderBy: [{ createdAt: "desc" }],
     });
 
-    return groceryLists.map(serializeGroceryList);
+    return sortGroceryLists(groceryLists).map(serializeGroceryList);
   }
 
   async getGroceryList(id: string) {
@@ -173,12 +206,14 @@ export class GroceryService {
   async getCurrentGroceryList() {
     await bootstrapDatabase();
 
-    const groceryList = await prisma.groceryList.findFirst({
+    const groceryLists = await prisma.groceryList.findMany({
       include: {
         items: true,
       },
-      orderBy: [{ date: "asc" }, { updatedAt: "desc" }],
+      orderBy: [{ createdAt: "desc" }],
     });
+
+    const groceryList = sortGroceryLists(groceryLists)[0] ?? null;
 
     return groceryList ? serializeGroceryList(groceryList) : null;
   }
@@ -186,10 +221,13 @@ export class GroceryService {
   async createGroceryList(input: CreateListInput) {
     await bootstrapDatabase();
 
+    const parsedDate =
+      input.date === undefined ? undefined : toDate(input.date);
+
     const groceryList = await prisma.groceryList.create({
       data: {
         name: input.name,
-        date: toDate(input.date),
+        date: parsedDate,
         favourite: input.favourite ?? false,
         items: {
           create: (input.items ?? []).map((item, index) => ({
@@ -217,7 +255,7 @@ export class GroceryService {
 
     const data: {
       name?: string;
-      date?: Date;
+      date?: Date | null;
       favourite?: boolean;
     } = {};
 
@@ -377,7 +415,7 @@ export class GroceryService {
         },
         data: {
           name: snapshot.name,
-          date: new Date(snapshot.date),
+          date: snapshot.date ? new Date(snapshot.date) : null,
           favourite: snapshot.favourite,
         },
       });

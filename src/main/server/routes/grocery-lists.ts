@@ -1,7 +1,27 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { groceryService } from "../services.js";
 
 export const groceryListsRoutes = new Hono();
+
+const createGroceryListSchema = z.object({
+  name: z.string().trim().min(1, "List name is required"),
+  date: z.string().datetime().nullable().optional(),
+  favourite: z.boolean().optional(),
+  items: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1, "Item name is required"),
+        qty: z.string().optional(),
+        unit: z.string().optional(),
+        category: z.string().optional(),
+        notes: z.string().optional(),
+        meal: z.string().optional(),
+        checked: z.boolean().optional(),
+      })
+    )
+    .optional(),
+});
 
 groceryListsRoutes.get("/grocery-lists", async (c) => {
   const currentOnly = c.req.query("current") === "1";
@@ -14,9 +34,21 @@ groceryListsRoutes.get("/grocery-lists", async (c) => {
 groceryListsRoutes.post("/grocery-lists", async (c) => {
   try {
     const body = await c.req.json();
-    const data = await groceryService.createGroceryList(body);
+    const data = await groceryService.createGroceryList(
+      createGroceryListSchema.parse(body)
+    );
     return c.json({ data }, 201);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json(
+        {
+          error: "Invalid grocery list payload",
+          issues: error.flatten(),
+        },
+        400
+      );
+    }
+
     return c.json(
       {
         error:
@@ -41,7 +73,7 @@ groceryListsRoutes.patch("/grocery-lists/:id", async (c) => {
     const id = c.req.param("id");
     const body = (await c.req.json()) as {
       name?: string;
-      date?: string;
+      date?: string | null;
       favourite?: boolean;
     };
     const data = await groceryService.updateGroceryList(id, body);

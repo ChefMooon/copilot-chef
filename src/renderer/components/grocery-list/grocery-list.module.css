@@ -89,7 +89,7 @@
   gap: 0.3rem;
 }
 
-.filterTab:hover {
+.filterTab:not(.filterTabActive):hover {
   border-color: var(--green-light);
   color: var(--green);
 }
@@ -803,6 +803,22 @@
   gap: 0.35rem;
 }
 
+.formCheckboxRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.formCheckbox {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--green);
+  cursor: pointer;
+}
+
 .formLabel {
   font-size: 0.68rem;
   font-weight: 800;
@@ -848,6 +864,11 @@
   border-radius: 8px;
   padding: 0.45rem 1.1rem;
   cursor: pointer;
+}
+
+.btnCreate:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 @media (max-width: 900px) {

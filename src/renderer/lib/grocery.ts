@@ -30,6 +30,7 @@ export const UNITS = [
 export const QUICK_FILTERS = [
   { id: "today", label: "Today", icon: "📅" },
   { id: "upcoming", label: "Next 7 Days", icon: "🗓️" },
+  { id: "ongoing", label: "Ongoing", icon: "🧾" },
   { id: "fav", label: "Favourites", icon: "⭐" },
   { id: "recent", label: "Recent", icon: "🕐" },
 ] as const;
@@ -51,7 +52,7 @@ export type GroceryItem = {
 export type GroceryList = {
   id: string;
   name: string;
-  date: string;
+  date: string | null;
   favourite: boolean;
   createdAt: string;
   updatedAt: string;
@@ -61,16 +62,58 @@ export type GroceryList = {
   items: GroceryItem[];
 };
 
-export const formatListDate = (value: string | Date) =>
-  new Date(value).toLocaleDateString("default", {
+export const ONGOING_LABEL = "Ongoing";
+
+export const formatListDate = (value: string | Date | null) => {
+  if (!value) {
+    return ONGOING_LABEL;
+  }
+
+  return new Date(value).toLocaleDateString("default", {
     month: "short",
     day: "numeric",
   });
+};
 
-export const isToday = (dt: string | Date) =>
-  new Date(dt).toDateString() === new Date().toDateString();
+export const compareGroceryLists = (left: GroceryList, right: GroceryList) => {
+  const leftOngoing = left.date === null;
+  const rightOngoing = right.date === null;
 
-export const isUpcoming = (dt: string | Date, days = 7) => {
+  if (leftOngoing && rightOngoing) {
+    return (
+      new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+    );
+  }
+
+  if (leftOngoing) {
+    return -1;
+  }
+
+  if (rightOngoing) {
+    return 1;
+  }
+
+  const dateDiff =
+    new Date(left.date as string).getTime() -
+    new Date(right.date as string).getTime();
+  if (dateDiff !== 0) {
+    return dateDiff;
+  }
+
+  return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+};
+
+export const sortGroceryLists = (lists: GroceryList[]) =>
+  [...lists].sort(compareGroceryLists);
+
+export const isToday = (dt: string | Date | null) =>
+  !!dt && new Date(dt).toDateString() === new Date().toDateString();
+
+export const isUpcoming = (dt: string | Date | null, days = 7) => {
+  if (!dt) {
+    return false;
+  }
+
   const diff = (new Date(dt).getTime() - Date.now()) / (1000 * 60 * 60 * 24);
   return diff >= 0 && diff <= days;
 };
@@ -125,13 +168,18 @@ export const upsertGroceryList = (
   const index = lists.findIndex((list) => list.id === nextList.id);
 
   if (index === -1) {
-    return [...lists, deriveGroceryList(nextList, nextList.updatedAt)];
+    return sortGroceryLists([
+      ...lists,
+      deriveGroceryList(nextList, nextList.updatedAt),
+    ]);
   }
 
-  return lists.map((list) =>
-    list.id === nextList.id
-      ? deriveGroceryList(nextList, nextList.updatedAt)
-      : list
+  return sortGroceryLists(
+    lists.map((list) =>
+      list.id === nextList.id
+        ? deriveGroceryList(nextList, nextList.updatedAt)
+        : list
+    )
   );
 };
 
@@ -140,8 +188,10 @@ export const updateGroceryListInCollection = (
   listId: string,
   updater: (list: GroceryList) => GroceryList
 ) =>
-  lists.map((list) =>
-    list.id === listId ? deriveGroceryList(updater(list)) : list
+  sortGroceryLists(
+    lists.map((list) =>
+      list.id === listId ? deriveGroceryList(updater(list)) : list
+    )
   );
 
 export const removeGroceryListFromCollection = (

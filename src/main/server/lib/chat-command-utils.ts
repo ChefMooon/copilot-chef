@@ -61,7 +61,7 @@ export type GrocerySnapshotItem = {
 export type GroceryListSnapshot = {
   id: string;
   name: string;
-  date: string;
+  date: string | null;
   favourite: boolean;
   items: GrocerySnapshotItem[];
 };
@@ -202,7 +202,7 @@ export function nextNights(count: number) {
 export function snapshotFromList(list: {
   id: string;
   name: string;
-  date: string;
+  date: string | null;
   favourite: boolean;
   items: GrocerySnapshotItem[];
 }): GroceryListSnapshot {

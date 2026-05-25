@@ -35,10 +35,14 @@ export function ListEditor({
   onReorder,
   onShop,
 }: Props) {
+  const defaultDate = new Date().toISOString().slice(0, 10);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(list.name);
   const [editingDate, setEditingDate] = useState(false);
-  const [dateValue, setDateValue] = useState(list.date.slice(0, 10));
+  const [dateValue, setDateValue] = useState(
+    list.date ? list.date.slice(0, 10) : defaultDate
+  );
+  const [isOngoing, setIsOngoing] = useState(list.date === null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
@@ -53,8 +57,9 @@ export function ListEditor({
   }, [list.id, list.name]);
 
   useEffect(() => {
-    setDateValue(list.date.slice(0, 10));
-  }, [list.id, list.date]);
+    setDateValue(list.date ? list.date.slice(0, 10) : defaultDate);
+    setIsOngoing(list.date === null);
+  }, [defaultDate, list.id, list.date]);
 
   useEffect(() => {
     if (editingName) {
@@ -274,7 +279,8 @@ export function ListEditor({
           onClick={(event) => {
             if (event.target === event.currentTarget) {
               setEditingDate(false);
-              setDateValue(list.date.slice(0, 10));
+              setDateValue(list.date ? list.date.slice(0, 10) : defaultDate);
+              setIsOngoing(list.date === null);
             }
           }}
           role="presentation"
@@ -286,7 +292,8 @@ export function ListEditor({
                 className={styles.modalCloseBtn}
                 onClick={() => {
                   setEditingDate(false);
-                  setDateValue(list.date.slice(0, 10));
+                  setDateValue(list.date ? list.date.slice(0, 10) : defaultDate);
+                  setIsOngoing(list.date === null);
                 }}
                 type="button"
               >
@@ -296,9 +303,25 @@ export function ListEditor({
             <div className={styles.newListBody}>
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Date</label>
+                <label className={styles.formCheckboxRow}>
+                  <input
+                    checked={isOngoing}
+                    className={styles.formCheckbox}
+                    onChange={(event) => {
+                      const checked = event.target.checked;
+                      setIsOngoing(checked);
+                      if (!checked && !dateValue) {
+                        setDateValue(defaultDate);
+                      }
+                    }}
+                    type="checkbox"
+                  />
+                  Ongoing list (no date)
+                </label>
                 <input
                   autoFocus
                   className={styles.formInput}
+                  disabled={isOngoing}
                   onChange={(event) => setDateValue(event.target.value)}
                   type="date"
                   value={dateValue}
@@ -310,7 +333,8 @@ export function ListEditor({
                 className={styles.btnGhost}
                 onClick={() => {
                   setEditingDate(false);
-                  setDateValue(list.date.slice(0, 10));
+                  setDateValue(list.date ? list.date.slice(0, 10) : defaultDate);
+                  setIsOngoing(list.date === null);
                 }}
                 type="button"
               >
@@ -319,7 +343,9 @@ export function ListEditor({
               <button
                 className={styles.btnCreate}
                 onClick={() => {
-                  if (dateValue) {
+                  if (isOngoing) {
+                    void onUpdateList(list.id, { date: null });
+                  } else if (dateValue) {
                     void onUpdateList(list.id, {
                       date: new Date(`${dateValue}T12:00:00`).toISOString(),
                     });

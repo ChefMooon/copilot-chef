@@ -92,7 +92,7 @@ model MealTypeDefinition {
 model GroceryList {
   id         String        @id @default(cuid())
   name       String
-  date       DateTime      @default(now())
+  date       DateTime?     @default(now())
   favourite  Boolean       @default(false)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt

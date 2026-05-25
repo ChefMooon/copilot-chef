@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { fetchJson } from "@/lib/api";
+import { fetchJson, isApiError } from "@/lib/api";
+import { useToast } from "@/components/providers/toast-provider";
 import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
 import { useChatPageContext } from "@/context/chat-context";
@@ -11,6 +12,7 @@ import {
   isToday,
   isUpcoming,
   removeGroceryListFromCollection,
+  sortGroceryLists,
   upsertGroceryList,
   updateGroceryListInCollection,
   type GroceryItem,
@@ -34,6 +36,7 @@ export default function GroceryListPage() {
   const [activeFilter, setActiveFilter] = useState<QuickFilter>("today");
   const [upcomingDays, setUpcomingDays] = useState(7);
   const [showNewModal, setShowNewModal] = useState(false);
+  const { toast } = useToast();
 
   const listsQuery = useQuery({
     queryKey: ["grocery-lists"],
@@ -44,7 +47,10 @@ export default function GroceryListPage() {
       ),
   });
 
-  const lists = listsQuery.data ?? [];
+  const lists = useMemo(
+    () => sortGroceryLists(listsQuery.data ?? []),
+    [listsQuery.data]
+  );
   const isInitialListLoad = !listsQuery.data && listsQuery.isLoading;
 
   const selectedList = useMemo(() => {
@@ -60,31 +66,30 @@ export default function GroceryListPage() {
 
   const filteredQuick = useMemo(() => {
     if (activeFilter === "today") {
-      return lists.filter((list) => isToday(list.date));
+      return sortGroceryLists(lists.filter((list) => isToday(list.date)));
     }
     if (activeFilter === "upcoming") {
-      return lists.filter((list) => isUpcoming(list.date, upcomingDays));
+      return sortGroceryLists(
+        lists.filter((list) => isUpcoming(list.date, upcomingDays))
+      );
+    }
+    if (activeFilter === "ongoing") {
+      return sortGroceryLists(lists.filter((list) => list.date === null));
     }
     if (activeFilter === "fav") {
-      return lists.filter((list) => list.favourite);
+      return sortGroceryLists(lists.filter((list) => list.favourite));
     }
     if (activeFilter === "recent") {
-      return [...lists]
-        .sort(
-          (left, right) =>
-            new Date(right.updatedAt).getTime() -
-            new Date(left.updatedAt).getTime()
-        )
-        .slice(0, 5);
+      return sortGroceryLists(lists).slice(0, 5);
     }
-    return lists;
+    return sortGroceryLists(lists);
   }, [activeFilter, lists, upcomingDays]);
 
   const setListsCache = (
     updater: (current: GroceryList[]) => GroceryList[]
   ) => {
     queryClient.setQueryData<GroceryList[]>(listsQueryKey, (current) =>
-      updater(current ?? [])
+      sortGroceryLists(updater(current ?? []))
     );
   };
 
@@ -471,7 +476,9 @@ export default function GroceryListPage() {
             const optimisticList = deriveGroceryList({
               id: tempId,
               name,
-              date: new Date(`${date}T12:00:00`).toISOString(),
+              date: date
+                ? new Date(`${date}T12:00:00`).toISOString()
+                : null,
               favourite: false,
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString(),
@@ -493,7 +500,9 @@ export default function GroceryListPage() {
                   method: "POST",
                   body: JSON.stringify({
                     name,
-                    date: new Date(`${date}T12:00:00`).toISOString(),
+                    date: date
+                      ? new Date(`${date}T12:00:00`).toISOString()
+                      : null,
                   }),
                 }
               );
@@ -506,7 +515,16 @@ export default function GroceryListPage() {
                 exact: true,
               });
               setSelectedId(previousLists?.[0]?.id ?? null);
-              throw error;
+
+              const description = isApiError<{ error?: string }>(error)
+                ? (error.data?.error ?? error.message)
+                : "Please try again.";
+
+              toast({
+                title: "Could not create grocery list.",
+                description,
+                variant: "error",
+              });
             }
           }}
         />

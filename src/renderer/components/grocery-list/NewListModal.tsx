@@ -8,7 +8,7 @@ const FOCUSABLE_SELECTOR =
 
 type Props = {
   onClose: () => void;
-  onCreate: (payload: { name: string; date: string }) => Promise<void>;
+  onCreate: (payload: { name: string; date: string | null }) => Promise<void>;
 };
 
 export function NewListModal({ onClose, onCreate }: Props) {
@@ -21,9 +21,11 @@ export function NewListModal({ onClose, onCreate }: Props) {
   }, []);
   const [name, setName] = useState("");
   const [date, setDate] = useState(defaultDate);
+  const [isOngoing, setIsOngoing] = useState(false);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const canCreate = name.trim().length > 0;
 
   useEffect(() => {
     setPortalRoot(document.body);
@@ -163,8 +165,18 @@ export function NewListModal({ onClose, onCreate }: Props) {
           </div>
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>Date</label>
+            <label className={styles.formCheckboxRow}>
+              <input
+                checked={isOngoing}
+                className={styles.formCheckbox}
+                onChange={(event) => setIsOngoing(event.target.checked)}
+                type="checkbox"
+              />
+              Ongoing list (no date)
+            </label>
             <input
               className={styles.formInput}
+              disabled={isOngoing}
               onChange={(event) => setDate(event.target.value)}
               type="date"
               value={date}
@@ -177,11 +189,12 @@ export function NewListModal({ onClose, onCreate }: Props) {
           </button>
           <button
             className={styles.btnCreate}
+            disabled={!canCreate}
             onClick={() => {
-              if (!name.trim()) {
+              if (!canCreate) {
                 return;
               }
-              void onCreate({ name: name.trim(), date });
+              void onCreate({ name: name.trim(), date: isOngoing ? null : date });
             }}
             type="button"
           >
