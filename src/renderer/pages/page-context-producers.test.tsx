@@ -859,6 +859,9 @@ describe("page context producers", () => {
       expect(contextForPage("recipes")).toEqual(
         expect.objectContaining({
           page: "recipes",
+            sortBy: "updated",
+            sortOrder: "desc",
+            searchSortMode: "relevance",
           totalRecipes: 1,
           visibleRecipes: expect.arrayContaining([
             expect.objectContaining({ id: "recipe-1" }),

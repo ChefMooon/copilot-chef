@@ -26,6 +26,9 @@ import {
 import {
   MEAL_SUB_TYPE_API_PATHS,
   MEAL_TYPE_API_PATHS,
+  type RecipeSearchSortModeValue,
+  type RecipeSortByValue,
+  type RecipeSortOrderValue,
 } from "@shared/api/constants";
 
 import {
@@ -46,6 +49,9 @@ export type RecipeListFilters = {
   origin?: string;
   cuisine?: string;
   favourite?: boolean;
+  sortBy?: RecipeSortByValue;
+  sortOrder?: RecipeSortOrderValue;
+  searchSortMode?: RecipeSearchSortModeValue;
 };
 
 export type DetectedRegionPayload = {
@@ -423,6 +429,15 @@ export async function listRecipes(filters?: string | RecipeListFilters) {
     }
     if (filters.favourite !== undefined) {
       params.set("favourite", String(filters.favourite));
+    }
+    if (filters.sortBy) {
+      params.set("sortBy", filters.sortBy);
+    }
+    if (filters.sortOrder) {
+      params.set("sortOrder", filters.sortOrder);
+    }
+    if (filters.searchSortMode) {
+      params.set("searchSortMode", filters.searchSortMode);
     }
   }
 

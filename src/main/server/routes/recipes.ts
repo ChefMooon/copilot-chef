@@ -5,6 +5,11 @@ import {
   RecipeExportJsonSchema,
   type RecipeFilters,
 } from "../core-index";
+import {
+  RECIPE_SEARCH_SORT_MODE_VALUES,
+  RECIPE_SORT_BY_VALUES,
+  RECIPE_SORT_ORDER_VALUES,
+} from "@shared/api/constants";
 import { z } from "zod";
 import { recipeService } from "../services.js";
 
@@ -51,6 +56,9 @@ function parseFilters(c: Context): RecipeFilters {
     ?.split(",")
     .map((v) => v.trim())
     .filter(Boolean);
+  const sortBy = c.req.query("sortBy");
+  const sortOrder = c.req.query("sortOrder");
+  const searchSortMode = c.req.query("searchSortMode");
 
   return {
     origin:
@@ -68,6 +76,22 @@ function parseFilters(c: Context): RecipeFilters {
           : undefined,
     rating: rating ? Number.parseInt(rating, 10) : undefined,
     tags: tags && tags.length > 0 ? tags : undefined,
+    sortBy:
+      sortBy && (RECIPE_SORT_BY_VALUES as readonly string[]).includes(sortBy)
+        ? sortBy
+        : undefined,
+    sortOrder:
+      sortOrder &&
+      (RECIPE_SORT_ORDER_VALUES as readonly string[]).includes(sortOrder)
+        ? sortOrder
+        : undefined,
+    searchSortMode:
+      searchSortMode &&
+      (RECIPE_SEARCH_SORT_MODE_VALUES as readonly string[]).includes(
+        searchSortMode
+      )
+        ? searchSortMode
+        : undefined,
   };
 }
 
@@ -108,11 +132,19 @@ recipesRoutes.get("/recipes", async (c) => {
   try {
     const query = c.req.query("query")?.trim();
     const filters = parseFilters(c);
-    const data = query
-      ? (await recipeService.searchRecipes(query)).filter((recipe) =>
-          matchesFilters(recipe, filters)
-        )
-      : await recipeService.listRecipes(filters);
+    const data = await (query
+      ? (() => {
+          const searched = recipeService
+            .searchRecipes(query)
+            .then((recipes) => recipes.filter((recipe) => matchesFilters(recipe, filters)));
+
+          return searched.then((recipes) =>
+            filters.searchSortMode === "selected"
+              ? recipeService.sortRecipes(recipes, filters)
+              : recipes
+          );
+        })()
+      : recipeService.listRecipes(filters));
     return c.json({ data });
   } catch (error) {
     return c.json(

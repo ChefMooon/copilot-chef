@@ -778,12 +778,18 @@ describe("CopilotChef SDK tool handlers", () => {
       tags: ["breakfast"],
       maxCookTime: 20,
       favourite: true,
+      sortBy: "rating",
+      sortOrder: "desc",
+      searchSortMode: "selected",
     });
 
     expect(services.recipeService.listRecipes).toHaveBeenCalledWith({
       tags: ["breakfast"],
       maxCookTime: 20,
       favourite: true,
+      sortBy: "rating",
+      sortOrder: "desc",
+      searchSortMode: "selected",
     });
     expect(result).toMatchObject({ count: 1 });
   });

@@ -6,7 +6,12 @@ import {
   type MCPServerConfig,
 } from "@github/copilot-sdk";
 import { z } from "zod";
-import { CUISINE_VALUES } from "@shared/api/constants";
+import {
+  CUISINE_VALUES,
+  RECIPE_SEARCH_SORT_MODE_VALUES,
+  RECIPE_SORT_BY_VALUES,
+  RECIPE_SORT_ORDER_VALUES,
+} from "@shared/api/constants";
 import type { MealIngredient } from "@shared/types";
 
 import { getClient } from "../lib/copilot-client";
@@ -202,6 +207,9 @@ const listRecipesArgsSchema = z
     maxCookTime: z.number().int().positive().optional(),
     favourite: z.boolean().optional(),
     rating: z.number().int().min(1).max(5).optional(),
+    sortBy: z.enum(RECIPE_SORT_BY_VALUES).optional(),
+    sortOrder: z.enum(RECIPE_SORT_ORDER_VALUES).optional(),
+    searchSortMode: z.enum(RECIPE_SEARCH_SORT_MODE_VALUES).optional(),
   })
   .optional();
 
@@ -1522,6 +1530,12 @@ export class CopilotChef {
             maxCookTime: { type: "number" },
             favourite: { type: "boolean" },
             rating: { type: "number" },
+            sortBy: { type: "string", enum: [...RECIPE_SORT_BY_VALUES] },
+            sortOrder: { type: "string", enum: [...RECIPE_SORT_ORDER_VALUES] },
+            searchSortMode: {
+              type: "string",
+              enum: [...RECIPE_SEARCH_SORT_MODE_VALUES],
+            },
           },
         },
         handler: async (rawArgs) => {

@@ -56,7 +56,10 @@ import {
 } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
 import { getPlatform, type LanStatus } from "@/lib/platform";
-import { CUISINE_OPTIONS } from "@shared/api/constants";
+import {
+  CUISINE_OPTIONS,
+  RECIPE_DEFAULT_SORT_OPTIONS,
+} from "@shared/api/constants";
 
 const preferenceQueryKey = ["preferences"] as const;
 
@@ -229,6 +232,7 @@ type TabId = "dietary-profile" | "meal-plans" | "your-chef" | "app-settings";
 
 type HomeUpcomingDetail = "standard" | "detailed";
 type MealBankPlacement = "left" | "right" | "bottom";
+type RecipeDefaultSortValue = (typeof RECIPE_DEFAULT_SORT_OPTIONS)[number]["value"];
 
 type HomeDashboardSettings = {
   upcomingDays: number;
@@ -256,8 +260,17 @@ const mealBankPlacementOptions = [
   { label: "Bottom", value: "bottom" },
 ];
 
+const DEFAULT_RECIPE_DEFAULT_SORT: RecipeDefaultSortValue = "updated_desc";
+
 function normalizeMealBankPlacement(input: unknown): MealBankPlacement {
   return input === "left" || input === "bottom" ? input : "right";
+}
+
+function normalizeRecipeDefaultSort(input: unknown): RecipeDefaultSortValue {
+  const value = typeof input === "string" ? input : "";
+  return RECIPE_DEFAULT_SORT_OPTIONS.some((option) => option.value === value)
+    ? (value as RecipeDefaultSortValue)
+    : DEFAULT_RECIPE_DEFAULT_SORT;
 }
 
 function clampHomeUpcomingDays(input: unknown) {
@@ -413,6 +426,8 @@ export default function SettingsPage() {
   const [lanQrModalOpen, setLanQrModalOpen] = useState(false);
   const [mealBankPlacement, setMealBankPlacement] =
     useState<MealBankPlacement>("right");
+  const [recipeDefaultSort, setRecipeDefaultSort] =
+    useState<RecipeDefaultSortValue>(DEFAULT_RECIPE_DEFAULT_SORT);
   const [homeDashboard, setHomeDashboard] = useState<HomeDashboardSettings>(
     HOME_DASHBOARD_DEFAULTS
   );
@@ -541,6 +556,7 @@ export default function SettingsPage() {
   useEffect(() => {
     Promise.all([
       platform.getSetting("meal_bank_sidecar_placement"),
+      platform.getSetting("recipe_default_sort"),
       platform.getSetting("home_upcoming_days"),
       platform.getSetting("home_upcoming_detail"),
       platform.getSetting("home_upcoming_compact"),
@@ -552,6 +568,7 @@ export default function SettingsPage() {
       .then(
         ([
           mealBankPlacementSetting,
+          recipeDefaultSortSetting,
           upcomingDays,
           upcomingDetail,
           upcomingCompact,
@@ -562,6 +579,9 @@ export default function SettingsPage() {
         ]) => {
           setMealBankPlacement(
             normalizeMealBankPlacement(mealBankPlacementSetting)
+          );
+          setRecipeDefaultSort(
+            normalizeRecipeDefaultSort(recipeDefaultSortSetting)
           );
           setHomeDashboard({
             upcomingDays: clampHomeUpcomingDays(upcomingDays),
@@ -590,6 +610,7 @@ export default function SettingsPage() {
         }
       )
       .catch(() => {
+        setRecipeDefaultSort(DEFAULT_RECIPE_DEFAULT_SORT);
         setHomeDashboard(HOME_DASHBOARD_DEFAULTS);
       });
   }, []);
@@ -1000,6 +1021,23 @@ export default function SettingsPage() {
       toast({ title: "Meal Bank placement saved." });
     } catch {
       toast({ title: "Could not save Meal Bank placement.", variant: "error" });
+    }
+  };
+
+  const handleRecipeDefaultSortChange = async (value: string) => {
+    const nextValue = normalizeRecipeDefaultSort(value);
+    const previous = recipeDefaultSort;
+    setRecipeDefaultSort(nextValue);
+
+    try {
+      await platform.setSetting("recipe_default_sort", nextValue);
+      toast({ title: "Recipe sort default saved." });
+    } catch {
+      setRecipeDefaultSort(previous);
+      toast({
+        title: "Could not save recipe sort default.",
+        variant: "error",
+      });
     }
   };
 
@@ -1531,6 +1569,27 @@ export default function SettingsPage() {
               />
               <p className={styles.fieldHint}>
                 Bottom placement is usually best on tablets and narrow screens.
+              </p>
+            </div>
+            <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
+              <label className={styles.fieldLabel}>
+                Recipe library default sort
+              </label>
+              <select
+                className={styles.select}
+                onChange={(event) =>
+                  void handleRecipeDefaultSortChange(event.target.value)
+                }
+                value={recipeDefaultSort}
+              >
+                {RECIPE_DEFAULT_SORT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className={styles.fieldHint}>
+                Applied on Recipes when there is no active session sort override.
               </p>
             </div>
           </div>

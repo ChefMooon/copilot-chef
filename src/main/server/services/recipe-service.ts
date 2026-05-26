@@ -3,6 +3,11 @@ import { promisify } from "node:util";
 import { load, type Cheerio } from "cheerio";
 import type { Element } from "domhandler";
 import { Prisma } from "@prisma/client";
+import type {
+  RecipeSearchSortModeValue,
+  RecipeSortByValue,
+  RecipeSortOrderValue,
+} from "@shared/api/constants";
 
 import { prisma } from "../lib/prisma";
 import { bootstrapDatabase } from "../lib/bootstrap";
@@ -106,6 +111,48 @@ export interface RecipeFilters {
   maxCookTime?: number;
   favourite?: boolean;
   rating?: number;
+  sortBy?: RecipeSortByValue;
+  sortOrder?: RecipeSortOrderValue;
+  searchSortMode?: RecipeSearchSortModeValue;
+}
+
+const DEFAULT_RECIPE_SORT_BY: RecipeSortByValue = "updated";
+const DEFAULT_RECIPE_SORT_ORDER: RecipeSortOrderValue = "desc";
+
+function normalizeRecipeSort(filters?: Pick<RecipeFilters, "sortBy" | "sortOrder">) {
+  return {
+    sortBy: filters?.sortBy ?? DEFAULT_RECIPE_SORT_BY,
+    sortOrder: filters?.sortOrder ?? DEFAULT_RECIPE_SORT_ORDER,
+  };
+}
+
+function compareNullableValues(
+  left: string | number | boolean | null,
+  right: string | number | boolean | null,
+  order: RecipeSortOrderValue
+) {
+  if (left == null && right == null) {
+    return 0;
+  }
+
+  if (left == null) {
+    return 1;
+  }
+
+  if (right == null) {
+    return -1;
+  }
+
+  let comparison = 0;
+  if (typeof left === "string" && typeof right === "string") {
+    comparison = left.localeCompare(right);
+  } else if (left > right) {
+    comparison = 1;
+  } else if (left < right) {
+    comparison = -1;
+  }
+
+  return order === "desc" ? comparison * -1 : comparison;
 }
 
 export interface RolledUpIngredient {
@@ -948,6 +995,87 @@ function toIngestExistingRecipe(recipe: SerializedRecipe) {
 }
 
 export class RecipeService {
+  private buildRecipeOrderBy(filters?: Pick<RecipeFilters, "sortBy" | "sortOrder">) {
+    const { sortBy, sortOrder } = normalizeRecipeSort(filters);
+    const primaryOrder: Prisma.RecipeOrderByWithRelationInput =
+      sortBy === "created"
+        ? { createdAt: sortOrder }
+        : sortBy === "title"
+          ? { title: sortOrder }
+          : sortBy === "cookTime"
+            ? { cookTime: sortOrder }
+            : sortBy === "rating"
+              ? { rating: sortOrder }
+              : sortBy === "lastMade"
+                ? { lastMadeAt: sortOrder }
+                : sortBy === "favourite"
+                  ? { favourite: sortOrder }
+                  : { updatedAt: sortOrder };
+
+    const orderBy: Prisma.RecipeOrderByWithRelationInput[] = [primaryOrder];
+    if (sortBy !== "title") {
+      orderBy.push({ title: "asc" });
+    }
+    orderBy.push({ id: "asc" });
+
+    return orderBy;
+  }
+
+  sortRecipes(
+    recipes: SerializedRecipe[],
+    filters?: Pick<RecipeFilters, "sortBy" | "sortOrder">
+  ): SerializedRecipe[] {
+    const { sortBy, sortOrder } = normalizeRecipeSort(filters);
+
+    return [...recipes].sort((left, right) => {
+      const leftValue: string | number | boolean | null =
+        sortBy === "created"
+          ? left.createdAt
+          : sortBy === "title"
+            ? left.title.toLowerCase()
+            : sortBy === "cookTime"
+              ? left.cookTime
+              : sortBy === "rating"
+                ? left.rating
+                : sortBy === "lastMade"
+                  ? left.lastMadeAt
+                  : sortBy === "favourite"
+                    ? left.favourite
+                    : left.updatedAt;
+
+      const rightValue: string | number | boolean | null =
+        sortBy === "created"
+          ? right.createdAt
+          : sortBy === "title"
+            ? right.title.toLowerCase()
+            : sortBy === "cookTime"
+              ? right.cookTime
+              : sortBy === "rating"
+                ? right.rating
+                : sortBy === "lastMade"
+                  ? right.lastMadeAt
+                  : sortBy === "favourite"
+                    ? right.favourite
+                    : right.updatedAt;
+
+      const primaryComparison = compareNullableValues(
+        leftValue,
+        rightValue,
+        sortOrder
+      );
+      if (primaryComparison !== 0) {
+        return primaryComparison;
+      }
+
+      const titleComparison = left.title.localeCompare(right.title);
+      if (titleComparison !== 0) {
+        return titleComparison;
+      }
+
+      return left.id.localeCompare(right.id);
+    });
+  }
+
   private async findRecipeConflict(input: {
     title?: string | null;
     sourceUrl?: string | null;
@@ -1333,7 +1461,7 @@ export class RecipeService {
       include: {
         ...includeRecipeRelations(),
       },
-      orderBy: [{ updatedAt: "desc" }, { title: "asc" }],
+      orderBy: this.buildRecipeOrderBy(filters),
     });
 
     return recipes.map(serializeRecipe);

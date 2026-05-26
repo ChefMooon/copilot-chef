@@ -106,6 +106,55 @@ export const CUISINE_VALUES = [
 
 export type CuisineValue = (typeof CUISINE_VALUES)[number];
 
+export const RECIPE_SORT_BY_VALUES = [
+  "updated",
+  "created",
+  "title",
+  "cookTime",
+  "rating",
+  "lastMade",
+  "favourite",
+] as const;
+
+export type RecipeSortByValue = (typeof RECIPE_SORT_BY_VALUES)[number];
+
+export const RECIPE_SORT_ORDER_VALUES = ["asc", "desc"] as const;
+export type RecipeSortOrderValue = (typeof RECIPE_SORT_ORDER_VALUES)[number];
+
+export const RECIPE_SEARCH_SORT_MODE_VALUES = [
+  "relevance",
+  "selected",
+] as const;
+
+export type RecipeSearchSortModeValue =
+  (typeof RECIPE_SEARCH_SORT_MODE_VALUES)[number];
+
+export const RECIPE_SORT_BY_OPTIONS: Array<{
+  label: string;
+  value: RecipeSortByValue;
+}> = [
+  { label: "Recently updated", value: "updated" },
+  { label: "Recently added", value: "created" },
+  { label: "Title", value: "title" },
+  { label: "Cook time", value: "cookTime" },
+  { label: "Rating", value: "rating" },
+  { label: "Last cooked", value: "lastMade" },
+  { label: "Favorites", value: "favourite" },
+];
+
+export const RECIPE_DEFAULT_SORT_OPTIONS: Array<{
+  label: string;
+  value: string;
+}> = [
+  { label: "Recently updated", value: "updated_desc" },
+  { label: "Recently added", value: "created_desc" },
+  { label: "Title (A-Z)", value: "title_asc" },
+  { label: "Cook time (shortest)", value: "cookTime_asc" },
+  { label: "Rating (highest)", value: "rating_desc" },
+  { label: "Last cooked", value: "lastMade_desc" },
+  { label: "Favorites first", value: "favourite_desc" },
+];
+
 export const CUISINE_OPTIONS: Array<{ label: string; value: CuisineValue }> = [
   { label: "Mediterranean", value: "mediterranean" },
   { label: "Japanese", value: "japanese" },

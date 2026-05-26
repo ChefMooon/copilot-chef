@@ -87,6 +87,11 @@ export function serializePageContext(ctx: PageContext): string {
       const searchText = ctx.search.trim() ? ` Search: "${ctx.search.trim()}".` : "";
       const originText =
         ctx.origin === "all" ? " Origin filter: all." : ` Origin filter: ${ctx.origin}.`;
+      const sortText = ` Sort: ${ctx.sortBy} (${ctx.sortOrder}).`;
+      const searchSortText =
+        ctx.search.trim().length > 0
+          ? ` Search ordering: ${ctx.searchSortMode}.`
+          : "";
       const editorText = ctx.recipeEditor
         ? ctx.recipeEditor.isOpen
           ? `\nRecipe editor is open in ${ctx.recipeEditor.mode} mode.`
@@ -98,7 +103,7 @@ export function serializePageContext(ctx: PageContext): string {
           : "";
 
       return (
-        `The user is on the Recipes page.${searchText}${originText}\n` +
+        `The user is on the Recipes page.${searchText}${originText}${sortText}${searchSortText}\n` +
         `Showing ${ctx.filteredRecipes} of ${ctx.totalRecipes} recipes.\n` +
         `Visible recipes:\n${listLines}${editorText}${draftText}`
       );

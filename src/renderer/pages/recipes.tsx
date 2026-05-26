@@ -1,4 +1,4 @@
-import { Suspense, lazy, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -21,7 +21,16 @@ import { RecipeGrid } from "@/components/recipes/RecipeGrid";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { useChatPageContext } from "@/context/chat-context";
-import { getCuisineLabel } from "@shared/api/constants";
+import { getPlatform } from "@/lib/platform";
+import {
+  RECIPE_SEARCH_SORT_MODE_VALUES,
+  RECIPE_SORT_BY_OPTIONS,
+  RECIPE_SORT_BY_VALUES,
+  RECIPE_SORT_ORDER_VALUES,
+  type RecipeSearchSortModeValue,
+  type RecipeSortByValue,
+  type RecipeSortOrderValue,
+} from "@shared/api/constants";
 
 const recipesKey = recipeKeys.all;
 
@@ -39,6 +48,75 @@ const RecipeExportModal = lazy(async () => {
   const module = await import("@/components/recipes/RecipeExportModal");
   return { default: module.RecipeExportModal };
 });
+
+const RECIPE_SORT_SESSION_KEY = "recipes.sort.v1";
+const RECIPE_DEFAULT_SORT_SETTING_KEY = "recipe_default_sort";
+const FALLBACK_SORT_BY: RecipeSortByValue = "updated";
+const FALLBACK_SORT_ORDER: RecipeSortOrderValue = "desc";
+const FALLBACK_SEARCH_SORT_MODE: RecipeSearchSortModeValue = "relevance";
+
+function getDefaultOrderForSort(sortBy: RecipeSortByValue): RecipeSortOrderValue {
+  return sortBy === "title" || sortBy === "cookTime" ? "asc" : "desc";
+}
+
+function parseSortPreset(value: unknown): {
+  sortBy: RecipeSortByValue;
+  sortOrder: RecipeSortOrderValue;
+} | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const [rawSortBy, rawSortOrder] = value.split("_");
+  if (
+    !rawSortBy ||
+    !rawSortOrder ||
+    !(RECIPE_SORT_BY_VALUES as readonly string[]).includes(rawSortBy) ||
+    !(RECIPE_SORT_ORDER_VALUES as readonly string[]).includes(rawSortOrder)
+  ) {
+    return null;
+  }
+
+  return {
+    sortBy: rawSortBy as RecipeSortByValue,
+    sortOrder: rawSortOrder as RecipeSortOrderValue,
+  };
+}
+
+function parseSortSessionState(value: unknown): {
+  sortBy: RecipeSortByValue;
+  sortOrder: RecipeSortOrderValue;
+  searchSortMode: RecipeSearchSortModeValue;
+} | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const candidate = value as {
+    sortBy?: string;
+    sortOrder?: string;
+    searchSortMode?: string;
+  };
+
+  if (
+    !candidate.sortBy ||
+    !candidate.sortOrder ||
+    !candidate.searchSortMode ||
+    !(RECIPE_SORT_BY_VALUES as readonly string[]).includes(candidate.sortBy) ||
+    !(RECIPE_SORT_ORDER_VALUES as readonly string[]).includes(candidate.sortOrder) ||
+    !(RECIPE_SEARCH_SORT_MODE_VALUES as readonly string[]).includes(
+      candidate.searchSortMode
+    )
+  ) {
+    return null;
+  }
+
+  return {
+    sortBy: candidate.sortBy as RecipeSortByValue,
+    sortOrder: candidate.sortOrder as RecipeSortOrderValue,
+    searchSortMode: candidate.searchSortMode as RecipeSearchSortModeValue,
+  };
+}
 
 function downloadJson(data: unknown, fileName: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -63,6 +141,12 @@ export default function RecipesPage() {
   const [origin, setOrigin] = useState("");
   const [cuisine, setCuisine] = useState("");
   const [favouritesOnly, setFavouritesOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<RecipeSortByValue>(FALLBACK_SORT_BY);
+  const [sortOrder, setSortOrder] = useState<RecipeSortOrderValue>(
+    FALLBACK_SORT_ORDER
+  );
+  const [searchSortMode, setSearchSortMode] =
+    useState<RecipeSearchSortModeValue>(FALLBACK_SEARCH_SORT_MODE);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isExporting, setIsExporting] = useState(false);
   const [showIngest, setShowIngest] = useState(false);
@@ -84,8 +168,76 @@ export default function RecipesPage() {
     tagsCount: number;
   } | null>(null);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const rawSession = window.sessionStorage.getItem(RECIPE_SORT_SESSION_KEY);
+    if (rawSession) {
+      try {
+        const parsed = parseSortSessionState(JSON.parse(rawSession));
+        if (parsed) {
+          setSortBy(parsed.sortBy);
+          setSortOrder(parsed.sortOrder);
+          setSearchSortMode(parsed.searchSortMode);
+          return () => {
+            cancelled = true;
+          };
+        }
+      } catch {
+        // Ignore invalid session payloads.
+      }
+    }
+
+    void getPlatform()
+      .getSetting(RECIPE_DEFAULT_SORT_SETTING_KEY)
+      .then((value) => {
+        if (cancelled) {
+          return;
+        }
+
+        const parsed = parseSortPreset(value);
+        if (!parsed) {
+          return;
+        }
+
+        setSortBy(parsed.sortBy);
+        setSortOrder(parsed.sortOrder);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    window.sessionStorage.setItem(
+      RECIPE_SORT_SESSION_KEY,
+      JSON.stringify({ sortBy, sortOrder, searchSortMode })
+    );
+  }, [searchSortMode, sortBy, sortOrder]);
+
+  const recipeFilters = useMemo(
+    () => ({
+      query: search.trim() || undefined,
+      origin: origin || undefined,
+      cuisine: cuisine || undefined,
+      favourite: favouritesOnly || undefined,
+      sortBy,
+      sortOrder,
+      searchSortMode: search.trim() ? searchSortMode : undefined,
+    }),
+    [cuisine, favouritesOnly, origin, search, searchSortMode, sortBy, sortOrder]
+  );
+
   const recipesQuery = useQuery({
-    queryKey: recipesKey,
+    queryKey: [...recipesKey, recipeFilters],
+    enabled: apiReady,
+    queryFn: () => listRecipes(recipeFilters),
+  });
+
+  const allRecipesQuery = useQuery({
+    queryKey: [...recipesKey, "all"],
     enabled: apiReady,
     queryFn: () => listRecipes(),
   });
@@ -124,39 +276,11 @@ export default function RecipesPage() {
     },
   });
 
-  const filteredRecipes = useMemo(() => {
-    const recipes = recipesQuery.data ?? [];
-    return recipes.filter((recipe) => {
-      if (origin && recipe.origin !== origin) {
-        return false;
-      }
-      if (cuisine && recipe.cuisine !== cuisine) {
-        return false;
-      }
-      if (favouritesOnly && !recipe.favourite) {
-        return false;
-      }
-      if (!search.trim()) {
-        return true;
-      }
-      const query = search.trim().toLowerCase();
-      const cuisineLabel = getCuisineLabel(recipe.cuisine)?.toLowerCase() ?? "";
-      return (
-        recipe.title.toLowerCase().includes(query) ||
-        (recipe.description ?? "").toLowerCase().includes(query) ||
-        (recipe.cuisine ?? "").toLowerCase().includes(query) ||
-        cuisineLabel.includes(query) ||
-        recipe.tags.some((tag) => tag.toLowerCase().includes(query)) ||
-        recipe.ingredients.some((ingredient) =>
-          ingredient.name.toLowerCase().includes(query)
-        )
-      );
-    });
-  }, [cuisine, favouritesOnly, recipesQuery.data, origin, search]);
-
-  const totalRecipes = recipesQuery.data?.length ?? 0;
+  const visibleRecipes = recipesQuery.data ?? [];
+  const totalRecipes = allRecipesQuery.data?.length ?? visibleRecipes.length;
   const favouriteCount =
-    recipesQuery.data?.filter((recipe) => recipe.favourite).length ?? 0;
+    allRecipesQuery.data?.filter((recipe) => recipe.favourite).length ??
+    visibleRecipes.filter((recipe) => recipe.favourite).length;
   const selectedCount = selectedIds.size;
   const isInitialRecipeLoad = !recipesQuery.data && recipesQuery.isLoading;
 
@@ -165,11 +289,14 @@ export default function RecipesPage() {
     search,
     origin: origin || "all",
     cuisine: cuisine || "all",
-    totalRecipes: recipesQuery.data?.length ?? 0,
+    sortBy,
+    sortOrder,
+    searchSortMode,
+    totalRecipes,
     favouriteCount,
-    filteredRecipes: filteredRecipes.length,
+    filteredRecipes: visibleRecipes.length,
     showingFavouritesOnly: favouritesOnly,
-    visibleRecipes: filteredRecipes.slice(0, 10).map((recipe) => ({
+    visibleRecipes: visibleRecipes.slice(0, 10).map((recipe) => ({
       id: recipe.id,
       title: recipe.title,
       origin: recipe.origin,
@@ -298,6 +425,20 @@ export default function RecipesPage() {
     setFavouritesOnly(false);
   }
 
+  function handleSortByChange(value: string) {
+    if (!(RECIPE_SORT_BY_VALUES as readonly string[]).includes(value)) {
+      return;
+    }
+
+    const nextSortBy = value as RecipeSortByValue;
+    setSortBy(nextSortBy);
+    setSortOrder(getDefaultOrderForSort(nextSortBy));
+  }
+
+  function toggleSortOrder() {
+    setSortOrder((current) => (current === "asc" ? "desc" : "asc"));
+  }
+
   return (
     <div className="space-y-6 p-4 md:p-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
@@ -312,49 +453,101 @@ export default function RecipesPage() {
             Browse, add, and curate recipes for your household plans.
           </p>
         </div>
-        <div className="mt-1 flex flex-wrap gap-2">
-          <Button
-            className="rounded-[10px] border-[1.5px] border-cream-dark bg-white text-[0.82rem] font-bold text-text-muted shadow-sm hover:border-green hover:bg-white hover:text-green"
-            onClick={() => setShowIngest(true)}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            Import from URL
-          </Button>
-          <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-[10px] border-[1.5px] border-cream-dark bg-white px-3 text-[0.82rem] font-bold text-text-muted shadow-sm transition-all hover:border-green hover:bg-white hover:text-green">
-            Import JSON
-            <input
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) {
-                  void handleImportFile(file);
-                }
+        <div className="mt-1 flex w-full flex-col items-start gap-2 sm:w-auto sm:items-end">
+          <div className="flex flex-wrap gap-2 sm:justify-end">
+            <Button
+              className="rounded-[10px] border-[1.5px] border-cream-dark bg-white text-[0.82rem] font-bold text-text-muted shadow-sm hover:border-green hover:bg-white hover:text-green"
+              onClick={() => setShowIngest(true)}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              Import from URL
+            </Button>
+            <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-[10px] border-[1.5px] border-cream-dark bg-white px-3 text-[0.82rem] font-bold text-text-muted shadow-sm transition-all hover:border-green hover:bg-white hover:text-green">
+              Import JSON
+              <input
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    void handleImportFile(file);
+                  }
+                }}
+                type="file"
+              />
+            </label>
+            <Button
+              onClick={() => {
+                setEditingRecipe(null);
+                setShowAddModal(true);
               }}
-              type="file"
-            />
-          </label>
-          <Button
-            onClick={() => {
-              setEditingRecipe(null);
-              setShowAddModal(true);
-            }}
-            size="sm"
-            type="button"
-            variant="default"
-          >
-            Add Recipe
-          </Button>
-          <Button
-            disabled={recipesQuery.isLoading}
-            onClick={() => setShowExportModal(true)}
-            size="sm"
-            type="button"
-            variant="accent"
-          >
-            Export
-          </Button>
+              size="sm"
+              type="button"
+              variant="default"
+            >
+              Add Recipe
+            </Button>
+            <Button
+              disabled={recipesQuery.isLoading}
+              onClick={() => setShowExportModal(true)}
+              size="sm"
+              type="button"
+              variant="accent"
+            >
+              Export
+            </Button>
+          </div>
+
+          <div className="inline-flex flex-wrap items-center gap-1.5 rounded-[10px] border border-cream-dark bg-white px-2 py-1.5">
+            <span className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-text-muted">
+              Sort
+            </span>
+            <select
+              className="h-8 min-w-[150px] rounded-btn border border-cream-dark bg-cream px-2 py-1 font-sans text-xs text-text outline-none transition focus:border-green-light focus:ring-2 focus:ring-green/10"
+              onChange={(event) => handleSortByChange(event.target.value)}
+              value={sortBy}
+            >
+              {RECIPE_SORT_BY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <Button
+              className="h-8 w-[64px] px-0 text-xs"
+              onClick={toggleSortOrder}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {sortOrder === "asc" ? "Asc" : "Desc"}
+            </Button>
+            {search.trim().length > 0 ? (
+              <>
+                <span className="ml-1 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-text-muted">
+                  Search
+                </span>
+                <select
+                  className="h-8 min-w-[128px] rounded-btn border border-cream-dark bg-cream px-2 py-1 font-sans text-xs text-text outline-none transition focus:border-green-light focus:ring-2 focus:ring-green/10"
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (
+                      (RECIPE_SEARCH_SORT_MODE_VALUES as readonly string[]).includes(
+                        value
+                      )
+                    ) {
+                      setSearchSortMode(value as RecipeSearchSortModeValue);
+                    }
+                  }}
+                  value={searchSortMode}
+                >
+                  <option value="relevance">Relevance</option>
+                  <option value="selected">Selected sort</option>
+                </select>
+              </>
+            ) : null}
+          </div>
         </div>
       </header>
 
@@ -388,7 +581,7 @@ export default function RecipesPage() {
               void handleToggleFavourite(recipe, nextValue);
             }}
             onToggleSelect={toggleSelection}
-            recipes={filteredRecipes as RecipePayload[]}
+            recipes={visibleRecipes as RecipePayload[]}
             selectedIds={selectedIds}
           />
         )}

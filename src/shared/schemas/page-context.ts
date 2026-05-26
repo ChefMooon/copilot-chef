@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  RECIPE_SEARCH_SORT_MODE_VALUES,
+  RECIPE_SORT_BY_VALUES,
+  RECIPE_SORT_ORDER_VALUES,
+} from "@shared/api/constants";
 
 export const mealItemSchema = z.object({
   id: z.string(),
@@ -67,6 +72,9 @@ export const recipesPageContextSchema = z.object({
   search: z.string(),
   origin: z.string(),
   cuisine: z.string(),
+  sortBy: z.enum(RECIPE_SORT_BY_VALUES),
+  sortOrder: z.enum(RECIPE_SORT_ORDER_VALUES),
+  searchSortMode: z.enum(RECIPE_SEARCH_SORT_MODE_VALUES),
   totalRecipes: z.number(),
   favouriteCount: z.number(),
   filteredRecipes: z.number(),
