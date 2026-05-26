@@ -181,6 +181,7 @@ export function RecipeDetail({
   const derivedCount = iterations.length;
   const singleDerivedRecipe = derivedCount === 1 ? iterations[0] : null;
   const madeCount = madeHistory?.madeCount ?? 0;
+  const displayedLastMadeAt = madeHistory?.lastMadeAt ?? recipe.lastMadeAt;
 
   async function handleSaveEdit(
     input: Parameters<typeof updateRecipe>[1]
@@ -377,7 +378,7 @@ export function RecipeDetail({
             onClick={() => setShowMadeHistoryModal(true)}
             type="button"
           >
-            Last made: {recipe.lastMadeAt ? new Date(recipe.lastMadeAt).toLocaleDateString() : "Never"}
+            Last made: {displayedLastMadeAt ? new Date(displayedLastMadeAt).toLocaleDateString() : "Never"}
             {madeCount > 1 ? ` · ${madeCount}x` : ""}
           </button>
           {sourceRecipe ? (

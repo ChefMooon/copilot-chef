@@ -221,6 +221,39 @@ describe("RecipeDetail duplicate draft flow", () => {
     expect(openedHistoryDialogs[openedHistoryDialogs.length - 1]).toBeInTheDocument();
   });
 
+  it("prefers made-history last made date when recipe timestamp is missing", () => {
+    renderRecipeDetail({
+      recipe: {
+        ...baseRecipe,
+        lastMadeAt: null,
+      },
+      madeHistory: {
+        recipeId: baseRecipe.id,
+        madeCount: 2,
+        lastMadeAt: "2026-05-20T12:00:00.000Z",
+        entries: [
+          {
+            mealId: "meal-1",
+            mealName: "Roast Chicken",
+            date: "2026-05-20T12:00:00.000Z",
+            mealType: "dinner",
+            notes: null,
+            photoUrl: null,
+            photoDataUrl: null,
+            photoMimeType: null,
+            photoFileName: null,
+          },
+        ],
+      },
+    });
+
+    const lastMadeButtons = screen.getAllByRole("button", { name: /Last made:/i });
+    const lastMadeButton = lastMadeButtons[lastMadeButtons.length - 1];
+
+    expect(lastMadeButton).not.toHaveTextContent("Never");
+    expect(lastMadeButton).toHaveTextContent("2x");
+  });
+
   it("opens full photo viewer and supports close + zoom interactions", async () => {
     renderRecipeDetail({
       recipe: {
@@ -255,7 +288,7 @@ describe("RecipeDetail duplicate draft flow", () => {
     });
     expect(openedHistoryDialogs[openedHistoryDialogs.length - 1]).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "View full photo" }));
+    fireEvent.click(screen.getByRole("button", { name: /(?:View|Open) full photo/i }));
 
     expect(
       await screen.findByRole("dialog", { name: "Cooking history photo viewer" })
@@ -287,7 +320,7 @@ describe("RecipeDetail duplicate draft flow", () => {
     });
     expect(remainingHistoryDialogs[remainingHistoryDialogs.length - 1]).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "View full photo" }));
+    fireEvent.click(screen.getByRole("button", { name: /(?:View|Open) full photo/i }));
     expect(
       await screen.findByRole("dialog", { name: "Cooking history photo viewer" })
     ).toBeInTheDocument();
@@ -299,7 +332,7 @@ describe("RecipeDetail duplicate draft flow", () => {
       ).not.toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "View full photo" }));
+    fireEvent.click(screen.getByRole("button", { name: /(?:View|Open) full photo/i }));
     expect(
       await screen.findByRole("dialog", { name: "Cooking history photo viewer" })
     ).toBeInTheDocument();

@@ -45,6 +45,11 @@ type SlotGroupRow = {
   dishCount: number;
 };
 
+type PrismaClientLike = Omit<
+  typeof prisma,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
+
 function toMealIngredient(
   ingredient: MealIngredientInput,
   order: number
@@ -511,10 +516,7 @@ export class MealService {
   }
 
   private async getNextSortOrder(
-    tx: Omit<
-      typeof prisma,
-      "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
-    >,
+    tx: PrismaClientLike,
     date: Date | null,
     mealType: string
   ) {
@@ -528,6 +530,21 @@ export class MealService {
     });
 
     return (current._max.sortOrder ?? 0) + 10;
+  }
+
+  private async syncRecipeLastMadeAt(tx: PrismaClientLike, recipeId: string) {
+    const latestMeal = await tx.meal.aggregate({
+      where: {
+        recipeId,
+        date: { not: null },
+      },
+      _max: { date: true },
+    });
+
+    await tx.recipe.update({
+      where: { id: recipeId },
+      data: { lastMadeAt: latestMeal._max.date ?? null },
+    });
   }
 
   private async resolvePhotoCreateInput(input: {
@@ -945,7 +962,7 @@ export class MealService {
         input.sortOrder ??
         (await this.getNextSortOrder(tx, normalizedDate === undefined ? null : normalizedDate, mealType));
 
-      return tx.meal.create({
+      const created = await tx.meal.create({
         data: {
           id: mealId,
           name: input.name,
@@ -967,6 +984,12 @@ export class MealService {
         },
         include: this.mealInclude,
       });
+
+      if (created.recipeId) {
+        await this.syncRecipeLastMadeAt(tx, created.recipeId);
+      }
+
+      return created;
     });
 
     return serializeMeal(meal);
@@ -1003,6 +1026,7 @@ export class MealService {
         id: true,
         photoPath: true,
         photoDataUrl: true,
+        recipeId: true,
       },
     });
 
@@ -1056,6 +1080,22 @@ export class MealService {
       },
       include: this.mealInclude,
     });
+
+    const shouldSyncRecipeLastMadeAt =
+      input.recipeId !== undefined || normalizedDate !== undefined;
+    if (shouldSyncRecipeLastMadeAt) {
+      const recipeIdsToSync = new Set<string>();
+      if (currentMeal.recipeId) {
+        recipeIdsToSync.add(currentMeal.recipeId);
+      }
+      if (meal.recipeId) {
+        recipeIdsToSync.add(meal.recipeId);
+      }
+
+      for (const recipeId of recipeIdsToSync) {
+        await this.syncRecipeLastMadeAt(prisma, recipeId);
+      }
+    }
 
     return serializeMeal(meal);
   }
