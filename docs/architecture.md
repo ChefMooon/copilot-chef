@@ -56,6 +56,28 @@ The PA (personal assistant) and any other machine callers reach the same Hono se
 | Renderer | `src/renderer/` | React pages, components, routing, API client, connection handling |
 | Shared | `src/shared/` | Shared types, Zod schemas, API path constants, config helpers |
 
+### Main process layout and startup sequence
+
+```
+index.ts           Electron entry: BrowserWindow, tray, app lifecycle
+ipc/index.ts       ipcMain handlers
+server/            In-process Hono server + domain logic
+  start.ts         startServer() / stopServer() / getServerInfo()
+  static-web.ts    Static web process for browser renderer hosting
+  app.ts           Hono app factory (auth middleware, routes)
+  routes/          Resource routes (meals, grocery, recipes, chat, etc.)
+  services/        Domain services (MealService, GroceryService, etc.)
+  copilot/         Copilot orchestration and system prompt assembly
+  lib/             bootstrap.ts, prisma.ts, lan.ts, machine-token.ts
+settings/store.ts  JSON settings persistence in userData
+updates/service.ts electron-updater wiring
+```
+
+Desktop-local startup flow:
+1. `app.whenReady()` resolves runtime mode from `server_mode`
+2. In `local` mode, `startServer()` builds runtime token/config and starts Hono with port fallback
+3. Renderer requests runtime connection details through `server:getConfig`
+
 The old Tauri and Next.js package layout has been removed.
 
 ---
@@ -100,6 +122,21 @@ Platform capabilities:
 | `getServerConfig` | ✓ | ✓ (from localStorage) |
 | `getSetting` / `setSetting` | ✓ | ✓ (localStorage prefix) |
 
+Renderer runtime layout:
+
+```
+app.tsx          Root layout; loads server config via platform adapter
+router.tsx       Route definitions
+pages/           Page-level route components
+components/      Reusable UI components
+context/         Chat context and page context state
+lib/
+  api.ts         Typed fetch wrappers
+  config.ts      Runtime server config caching
+  connection.ts  Health-check polling + reconnect flow
+  platform/      Electron/browser runtime adapters
+```
+
 ---
 
 ## 5. Data Flow
@@ -124,6 +161,11 @@ A typical read request from user action to database and back:
 ## 6. Chat Streaming
 
 Chat is the most complex data path because it uses a streaming response with embedded sentinel events.
+
+`CopilotChef` in `src/main/server/copilot/copilot-chef.ts` orchestrates chat state:
+- Maintains lazy `Map<sessionId, CopilotSession>` session storage
+- Builds per-request context from meals, grocery, preferences, and recipes
+- Uses `buildSystemPrompt(context)` to inject current kitchen state into each prompt
 
 ```
 User sends message

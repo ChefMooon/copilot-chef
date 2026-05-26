@@ -82,6 +82,13 @@ npm run build
 npm run build:win
 ```
 
+### Lint and format
+
+```bash
+npm run lint
+npm run format
+```
+
 ### Build the browser UI
 
 ```bash
@@ -102,42 +109,12 @@ Starts a Vite dev server for the browser renderer only (no Electron). Useful for
 
 ## 5. Configuration
 
-The desktop app primarily uses Electron settings storage plus environment variables.
+The canonical settings and environment reference is maintained in `docs/copilot-chef-config.md`.
 
-Important runtime settings are stored in the app settings file managed by `src/main/settings/store.ts`.
-
-Key settings:
-
-- `server_mode`: `local` or `remote`
-- `server_port`: local embedded server port
-- `remote_server_url`: remote API URL when using remote mode
-- `remote_api_key`: bearer token for remote mode
-- `app_close_to_tray`: whether closing hides to tray
-- `copilot_model`: Copilot model override
-
-### Environment variable overrides
-
-Useful environment variables:
-
-| Variable | Maps to |
-|---|---|
-| `COPILOT_CHEF_DATABASE_URL` | Prisma datasource override |
-| `COPILOT_MODEL` | Copilot model override |
-| `PA_MACHINE_AUTH_ENABLED` | Enables PA/machine auth middleware |
-| `PA_MACHINE_AUTH_TOKENS` | Machine auth token mappings |
-
-### LAN settings
-
-| Key | Default | Purpose |
-|---|---|---|
-| `lan_enabled` | `false` | Enables LAN binding for the API and starts the static web process |
-| `lan_web_enabled` | mirrors `lan_enabled` | Enables the static web process independently |
-| `lan_web_port` | `4173` | Port for the static browser UI |
-| `lan_api_port` | inherits `server_port` | API port when LAN is active |
-| `lan_advertised_host` | auto-detected | Override the LAN IPv4 address advertised to browser clients |
-| `lan_allowed_origins` | `[]` | Extra CORS origins approved by the user |
-| `machine_api_key` | generated on demand | Bearer token for browser/LAN clients |
-| `machine_api_key_updated_at` | — | ISO timestamp of last token generation/rotation |
+Use this guide for development workflow and command usage, and use the config reference for:
+- App settings keys/defaults and semantics
+- Environment variable overrides
+- LAN and machine-token configuration details
 
 ---
 
@@ -188,6 +165,14 @@ import { myRoutes } from "./routes/my-resource.js";
 app.route("/api", myRoutes);
 ```
 
+### New IPC channel
+
+1. Add `ipcMain.handle(channel, handler)` in `src/main/ipc/index.ts`
+2. Expose/update bridge behavior in `src/preload/index.ts` when needed
+3. Add usage in `src/renderer/lib/platform/electron.ts`
+4. Update `src/renderer/vite-env.d.ts` if the renderer API surface changed
+5. Document channel changes in `docs/ipc-channels.md`
+
 ### New client page
 
 1. Create `src/renderer/pages/my-page.tsx`
@@ -222,6 +207,10 @@ Add to `src/renderer/components/chat/slash-commands.ts`:
 ```
 
 For commands requiring special client-side processing (e.g., navigation), extend the command handler in `ChatPanel.tsx`.
+
+### Frontend implementation note
+
+For any frontend or UI behavior changes, align with `docs/copilot-chef-style-guide.md` before implementation.
 
 ---
 

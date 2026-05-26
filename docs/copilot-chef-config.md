@@ -22,6 +22,27 @@ These behaviors are validated through manual smoke testing. Automated tests live
 | `COPILOT_CHEF_SERVER_PORT`    | Override server port (default: 3001)                |
 | `COPILOT_MODEL`               | AI model identifier used for chat (default: `gpt-4.1`)      |
 
+### App Settings (Electron)
+
+These settings are stored in `{userData}/settings.json` through `src/main/settings/store.ts`.
+
+| Key | Default | Purpose |
+|---|---|---|
+| `server_mode` | `"local"` | Selects embedded local server or remote server mode |
+| `server_port` | `3001` | Local embedded API port |
+| `remote_server_url` | — | Remote API URL used when `server_mode` is `remote` |
+| `remote_api_key` | — | Remote bearer token used when `server_mode` is `remote` |
+| `app_close_to_tray` | `true` | Hides to tray on close instead of quitting |
+| `copilot_model` | `"gpt-4o-mini"` | App-level model override forwarded to runtime env |
+| `lan_enabled` | `false` | Enables LAN API bind (`0.0.0.0`) and LAN behavior |
+| `lan_web_enabled` | mirrors `lan_enabled` | Enables static browser web process independently |
+| `lan_web_port` | `4173` | Port used by static browser UI process |
+| `lan_api_port` | inherits `server_port` | API port used when LAN mode is active |
+| `lan_advertised_host` | auto-detected LAN IP | Optional host override for advertised LAN endpoint |
+| `lan_allowed_origins` | `[]` | Extra user-approved CORS origins |
+| `machine_api_key` | generated on demand | Persistent machine token for browser/LAN clients |
+| `machine_api_key_updated_at` | — | ISO timestamp of last token generation/rotation |
+
 ### User Preferences
 
 | Name                     | Description                                                               |

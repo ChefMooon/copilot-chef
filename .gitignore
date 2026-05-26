@@ -24,7 +24,6 @@ yarn.lock
 
 # Github
 .github/agents/
-.github/copilot-instructions.md
 
 # Build outputs
 dist/
