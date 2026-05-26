@@ -36,10 +36,24 @@
 
 .pageHeaderRight {
   display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0.5rem;
   flex-shrink: 0;
+  margin-left: auto;
   margin-top: 0.25rem;
+}
+
+.pageHeaderRight > .btnAddMeal,
+.pageHeaderRight > .btnToday {
+  margin-top: 0.15rem;
+}
+
+.headerViewControls {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.32rem;
 }
 
 .viewToggle {
@@ -73,6 +87,39 @@
 .viewBtn:hover:not(.viewBtnActive) {
   background: var(--cream-dark);
   color: var(--text);
+}
+
+.undoRedoToggle {
+  display: flex;
+  width: fit-content;
+  background: var(--white);
+  border: 1px solid var(--cream-dark);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+  box-shadow: var(--shadow);
+}
+
+.undoRedoBtn {
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.28rem 0.68rem;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.16s;
+}
+
+.undoRedoBtn:hover:not(:disabled) {
+  background: var(--cream-dark);
+  color: var(--text);
+}
+
+.undoRedoBtn:disabled {
+  color: rgba(44, 36, 22, 0.4);
+  cursor: not-allowed;
 }
 
 .btnToday {
@@ -1393,6 +1440,7 @@
   .pageHeaderRight {
     width: 100%;
     flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
   .cardFocusBar {

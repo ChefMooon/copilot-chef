@@ -210,7 +210,8 @@ export default function MealPlanPage() {
   const deletedMealRef = useRef<DeletedMealSnapshot | null>(null);
   const queryClient = useQueryClient();
   const { toast, dismissAll, setDragging } = useToast();
-  const { recordAction, discardLast, undo, redo } = useMealUndoRedo();
+  const { recordAction, discardLast, undo, redo, canUndo, canRedo } =
+    useMealUndoRedo();
   const [saveAsRecipeMeal, setSaveAsRecipeMeal] = useState<EditableMeal | null>(
     null
   );
@@ -2010,17 +2011,45 @@ export default function MealPlanPage() {
           >
             Today
           </button>
-          <div className={styles.viewToggle}>
-            {(["day", "week", "month"] as const).map((option) => (
+          <div className={styles.headerViewControls}>
+            <div className={styles.viewToggle}>
+              {(["day", "week", "month"] as const).map((option) => (
+                <button
+                  className={`${styles.viewBtn} ${view === option ? styles.viewBtnActive : ""}`}
+                  key={option}
+                  onClick={() => switchView(option)}
+                  type="button"
+                >
+                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div className={styles.undoRedoToggle}>
               <button
-                className={`${styles.viewBtn} ${view === option ? styles.viewBtnActive : ""}`}
-                key={option}
-                onClick={() => switchView(option)}
+                aria-label="Undo last meal plan action"
+                className={styles.undoRedoBtn}
+                disabled={!canUndo}
+                onClick={() => {
+                  void undo();
+                }}
+                title="Undo (Ctrl/Cmd+Z)"
                 type="button"
               >
-                {option.charAt(0).toUpperCase() + option.slice(1)}
+                Undo
               </button>
-            ))}
+              <button
+                aria-label="Redo last meal plan action"
+                className={styles.undoRedoBtn}
+                disabled={!canRedo}
+                onClick={() => {
+                  void redo();
+                }}
+                title="Redo (Ctrl/Cmd+Y or Shift+Ctrl/Cmd+Z)"
+                type="button"
+              >
+                Redo
+              </button>
+            </div>
           </div>
         </div>
       </div>
