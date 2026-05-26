@@ -114,7 +114,9 @@ The canonical settings and environment reference is maintained in `docs/copilot-
 Use this guide for development workflow and command usage, and use the config reference for:
 - App settings keys/defaults and semantics
 - Environment variable overrides
-- LAN and machine-token configuration details
+- LAN and browser access setting details
+
+Use `docs/lan-browser-access.md` for LAN/browser onboarding flow, token lifecycle, and troubleshooting.
 
 ---
 

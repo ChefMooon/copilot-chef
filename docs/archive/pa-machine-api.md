@@ -1,5 +1,7 @@
 # PA Machine API Contract (Slice 2)
 
+> Archive Notice: This document is retained for historical reference and is no longer part of active integration guidance. For current external access behavior, see `docs/lan-browser-access.md`.
+
 This document defines the current machine-facing contract for authenticated PA calls.
 
 ## Auth Model
@@ -91,4 +93,4 @@ Behavior:
   - `npm run db:push`
   - `npm run db:generate`
 - Existing sessions default to `ownerId = web-default` unless explicitly backfilled.
-- Operational smoke checks and rollback steps are documented in [docs/pa-machine-runbook.md](docs/pa-machine-runbook.md).
+- Operational smoke checks and rollback steps are documented in [pa-machine-runbook.md](pa-machine-runbook.md).

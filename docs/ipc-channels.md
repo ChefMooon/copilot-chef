@@ -4,6 +4,8 @@
 
 This file is the canonical reference for Electron IPC channels.
 
+For user-facing LAN/browser runtime behavior and token operations that use these channels, see `docs/lan-browser-access.md`.
+
 Update this file when changing any of these sources:
 - `src/main/ipc/index.ts`
 - `src/main/updates/service.ts`

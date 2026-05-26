@@ -106,6 +106,8 @@ If the UI cannot connect:
 
 Use the desktop app to enable LAN access and pair phones, tablets, or another browser on your local network.
 
+For the complete LAN/browser contract (runtime model, settings, auth flow, and troubleshooting), see `docs/lan-browser-access.md`.
+
 1. Open Settings in the desktop app.
 2. Enable LAN API and the browser UI server.
 3. Generate a browser access token if one is not already configured.
@@ -114,7 +116,7 @@ Use the desktop app to enable LAN access and pair phones, tablets, or another br
 
 The browser stores the API URL and access token locally, so bookmarks and home-screen icons can reopen the app without signing in again. The connection link and QR code contain the access token in the URL fragment; treat them like a password and only save or share them on trusted devices.
 
-To reset connected browser devices, use **Reset browser access** in Settings. This rotates the machine token, invalidates saved browser sessions and old connection links, and requires each trusted device to reconnect with the new QR code or connection link.
+To reset connected browser devices, use **Reset browser access** in Settings. This rotates the browser access token, invalidates saved browser sessions and old connection links, and requires each trusted device to reconnect with the new QR code or connection link.
 
 ## 10. Typical Daily Workflow
 

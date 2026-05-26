@@ -8,10 +8,9 @@
 | Developer workflows and commands | `developer-guide.md` | Setup, run, test, build, and feature implementation workflow |
 | System architecture and runtime model | `architecture.md` | Process boundaries, data flow, auth, streaming, and runtime modes |
 | App configuration and settings | `copilot-chef-config.md` | Environment variables, app settings, and preference contracts |
+| LAN and browser access | `lan-browser-access.md` | Trusted-device LAN/browser access, token lifecycle, and operations |
 | Electron IPC contracts | `ipc-channels.md` | Canonical request-response and push channel reference |
 | Frontend visual and UX standards | `copilot-chef-style-guide.md` | UI style system and frontend implementation expectations |
-| PA machine API | `pa-machine-api.md` | Machine caller API routes, auth, and examples |
-| PA machine operations | `pa-machine-runbook.md` | Operational procedures and troubleshooting for PA integrations |
 | Release process | `release-guide.md` | Packaging and release workflow guidance |
 
 ---

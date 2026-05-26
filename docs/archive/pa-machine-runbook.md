@@ -1,5 +1,7 @@
 # PA Machine API Runbook
 
+> Archive Notice: This runbook is retained for historical reference and is no longer part of active integration guidance. For current external access behavior, see `docs/lan-browser-access.md`.
+
 This runbook covers deployment toggles, smoke checks, and recovery actions for PA machine integrations.
 
 ## Environment Toggles

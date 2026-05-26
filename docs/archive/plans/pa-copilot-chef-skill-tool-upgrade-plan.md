@@ -1,4 +1,4 @@
-> Historical note: This document is retained as planning history. It may reference older PA integration assumptions and should be used for context only.
+> Archive Notice: This document is retained as planning history and is not part of active implementation guidance. It may reference older PA integration assumptions and should be used for context only.
 
 # PA Upgrade Plan: Robust Skill/Tool for Copilot Chef
 

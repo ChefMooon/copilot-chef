@@ -37,13 +37,7 @@ Copilot Chef is a meal-planning Electron desktop application. The architecture s
         │  Browser Client │  (iPad, desktop browser, etc.)
         │  LAN / local    │──→ API on port 3001 (machine token)
         └─────────────────┘
-
-                           ▲
-          PA / external    │  HTTP  (X-Machine-Caller-Id header)
-          callers          │
 ```
-
-The PA (personal assistant) and any other machine callers reach the same Hono server on the same port, using machine-auth headers.
 
 ---
 
@@ -207,7 +201,9 @@ The app uses two configuration paths:
 1. Electron settings stored under the user data directory through `src/main/settings/store.ts`.
 2. Environment variable overrides consumed by the embedded server and shared config loader.
 
-Important environment variables include `COPILOT_CHEF_DATABASE_URL`, `COPILOT_MODEL`, and the `PA_MACHINE_*` auth variables.
+Important environment variables include `COPILOT_CHEF_DATABASE_URL` and `COPILOT_MODEL`.
+
+For LAN and browser access behavior, see `docs/lan-browser-access.md` and `docs/copilot-chef-config.md`.
 
 ---
 
@@ -219,14 +215,6 @@ In local embedded mode, the main process generates a per-session auth token and 
 
 In remote mode, the renderer uses the configured remote URL and API key from settings.
 
-### PA machine auth
-
-Machine callers (the PA agent) also use `Authorization: Bearer <token>` but additionally send:
-- `X-Machine-Caller-Id: <caller-id>` — identifies the calling agent
-- `X-Machine-Source: <source>` — identifies the integration source
-
-Routes that require machine identity use `requireMachineCallerIdentity` middleware, which rejects requests without these headers even when the Bearer token is valid.
-
 ### LAN machine token
 
 Browser and LAN clients authenticate using a persistent machine token stored in `machine_api_key` settings. Unlike the per-session desktop token, the machine token survives restarts and is shown to users for manual entry or QR onboarding.
@@ -235,6 +223,8 @@ Token lifecycle is managed by `src/main/server/lib/machine-token.ts`:
 - `generateMachineToken()` — creates and persists a new token
 - `revealMachineToken()` — returns the stored token for display
 - `clearMachineToken()` — removes the token from settings
+
+Operational details, onboarding flow, and troubleshooting are documented in `docs/lan-browser-access.md`.
 
 ---
 
@@ -307,7 +297,7 @@ When disconnected:
 ```
 Client A ──HTTP──┐
 Client B ──HTTP──┤
-PA Agent ──HTTP──┼──→ Hono Server (single Node.js process)
+Browser Client ──HTTP──┼──→ Hono Server (single Node.js process)
                  │         │
                  │    ┌────┴────┐
                  │    │ Prisma  │  ← single PrismaClient instance

@@ -21,6 +21,7 @@ Before making changes, review the focused documentation file for that domain.
 |---|---|---|
 | Development workflow and commands | `docs/developer-guide.md` | Setup, run, test, build, and feature implementation workflow |
 | System architecture and runtime model | `docs/architecture.md` | Process boundaries, runtime modes, data flow, auth, and streaming model |
+| LAN and browser access | `docs/lan-browser-access.md` | Trusted-device LAN/browser access, token lifecycle, and troubleshooting |
 | Electron IPC contracts | `docs/ipc-channels.md` | Canonical request-response and push channel reference |
 | App settings and environment configuration | `docs/copilot-chef-config.md` | Settings keys/defaults, env vars, and preference contracts |
 | Frontend standards | `docs/copilot-chef-style-guide.md` | Visual/UX implementation standards for frontend work |
@@ -35,6 +36,7 @@ For frontend or UI changes, align with `docs/copilot-chef-style-guide.md` before
 Use focused docs as source of truth and avoid duplicating long-form details in this file:
 - Commands, setup, and feature workflow: `docs/developer-guide.md`
 - Runtime architecture and Copilot orchestration: `docs/architecture.md`
+- LAN/browser access and token operations: `docs/lan-browser-access.md`
 - IPC channel contracts: `docs/ipc-channels.md`
 - Settings and configuration keys: `docs/copilot-chef-config.md`
 

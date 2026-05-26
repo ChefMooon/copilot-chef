@@ -43,6 +43,8 @@ These settings are stored in `{userData}/settings.json` through `src/main/settin
 | `machine_api_key` | generated on demand | Persistent machine token for browser/LAN clients |
 | `machine_api_key_updated_at` | — | ISO timestamp of last token generation/rotation |
 
+For LAN/browser onboarding, token lifecycle operations, and troubleshooting, see `docs/lan-browser-access.md`.
+
 ### User Preferences
 
 | Name                     | Description                                                               |
