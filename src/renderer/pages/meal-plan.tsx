@@ -815,6 +815,14 @@ export default function MealPlanPage() {
       return;
     }
 
+    const photoMutationFields = {
+      photoDataUrl: updatedMeal.photoDataUrl,
+      photoFileName:
+        updatedMeal.photoDataUrl === undefined
+          ? undefined
+          : (updatedMeal.photoFileName ?? null),
+    };
+
     if (!bankEditMeal.id) {
       const created = await createMeal({
         name: updatedMeal.name,
@@ -833,6 +841,7 @@ export default function MealPlanPage() {
         cookTime: updatedMeal.cookTime,
         servingsOverride: updatedMeal.servingsOverride,
         recipeId: updatedMeal.recipeId,
+        ...photoMutationFields,
       });
 
       recordAction({
@@ -882,6 +891,7 @@ export default function MealPlanPage() {
         cookTime: updatedMeal.cookTime,
         servingsOverride: updatedMeal.servingsOverride,
         recipeId: updatedMeal.recipeId,
+        ...photoMutationFields,
       }),
     });
 
@@ -1042,6 +1052,13 @@ export default function MealPlanPage() {
 
   const onSaveMeal = async (updatedMeal: EditableMeal) => {
     const normalizedDate = normalizeMealDate(updatedMeal.date);
+    const photoMutationFields = {
+      photoDataUrl: updatedMeal.photoDataUrl,
+      photoFileName:
+        updatedMeal.photoDataUrl === undefined
+          ? undefined
+          : (updatedMeal.photoFileName ?? null),
+    };
     const payload = {
       name: updatedMeal.name,
       date: normalizedDate.toISOString(),
@@ -1061,6 +1078,7 @@ export default function MealPlanPage() {
       cookTime: updatedMeal.cookTime,
       servingsOverride: updatedMeal.servingsOverride,
       recipeId: updatedMeal.recipeId,
+      ...photoMutationFields,
     };
 
     if (updatedMeal.id) {

@@ -194,4 +194,27 @@ describe("EditModal", () => {
     expect(screen.getByRole("button", { name: "Confirm Link" })).toBeInTheDocument();
     expect(closeModal).not.toHaveBeenCalled();
   });
+
+  it("keeps the meal photo section collapsed by default", () => {
+    render(
+      <EditModal
+        meal={editableMeal}
+        mealSubTypes={[]}
+        mealTypeProfiles={mealTypeProfiles}
+        onClose={vi.fn()}
+        onDelete={vi.fn(async () => undefined)}
+        onResuggest={vi.fn(async () => undefined)}
+        onSave={vi.fn(async () => undefined)}
+      />
+    );
+
+    const toggle = screen.getByRole("button", { name: /meal photo/i });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByLabelText("Meal Photo")).not.toBeInTheDocument();
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByLabelText("Meal Photo")).toBeInTheDocument();
+  });
 });

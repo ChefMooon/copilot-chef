@@ -11,6 +11,7 @@ import {
 } from "@/lib/calendar";
 import { type RecipePayload } from "@/lib/api";
 import { RECIPE_INGREDIENT_UNITS } from "@/lib/ingredient-units";
+import { getPlatform } from "@/lib/platform";
 import type {
   MealIngredient,
   MealSubTypeDefinitionPayload,
@@ -20,6 +21,7 @@ import { CUISINE_OPTIONS, getCuisineLabel } from "@shared/api/constants";
 
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { RecipeSearchModal } from "./RecipeSearchModal";
+import { AuthenticatedImage } from "@/components/ui/AuthenticatedImage";
 
 import styles from "./meal-plan.module.css";
 
@@ -60,9 +62,11 @@ export function EditModal({
   const [recipeLinkError, setRecipeLinkError] = useState<string | null>(null);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showRecipeSearchModal, setShowRecipeSearchModal] = useState(false);
+  const [isPhotoSectionOpen, setIsPhotoSectionOpen] = useState(false);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
 
   const isLinked = form.recipeId !== null && form.linkedRecipe !== null;
   const linkedRecipe = form.linkedRecipe;
@@ -297,6 +301,11 @@ export function EditModal({
 
   const mealTypes = getMealTypeDefinitionsForDate(form.date, mealTypeProfiles);
   const linkedCuisineLabel = getCuisineLabel(linkedRecipe?.cuisine);
+  const isPhotoAttachSupported = getPlatform().runtime === "electron";
+  const activePhotoSrc =
+    form.photoDataUrl === null ? null : (form.photoDataUrl ?? form.photoUrl ?? null);
+  const activePhotoLabel =
+    form.photoFileName ?? (activePhotoSrc ? "Photo attached" : "No photo selected");
   const mealTypeConfig = buildTypeConfig(mealTypes);
   const typeConfig =
     mealTypeConfig[form.type] ?? {
@@ -336,6 +345,31 @@ export function EditModal({
     } finally {
       setIsDeleting(false);
     }
+  };
+
+  const handlePhotoChange = async (file: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      return;
+    }
+
+    const reader = new FileReader();
+    const result = await new Promise<string | null>((resolve) => {
+      reader.onload = () =>
+        resolve(typeof reader.result === "string" ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+
+    if (!result) {
+      return;
+    }
+
+    setField("photoDataUrl", result);
+    setField("photoFileName", file.name);
   };
 
   if (!portalRoot) {
@@ -528,6 +562,83 @@ export function EditModal({
                     value={toDateInputValue(form.date)}
                   />
                 </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <button
+                  aria-controls="meal-photo-section"
+                  aria-expanded={isPhotoSectionOpen}
+                  className={styles.photoSectionToggle}
+                  onClick={() => setIsPhotoSectionOpen((current) => !current)}
+                  type="button"
+                >
+                  <span>Meal Photo</span>
+                  <span className={styles.photoSectionToggleRight}>
+                    {activePhotoSrc ? (
+                      <span className={styles.photoAttachmentStatus}>Photo attached.</span>
+                    ) : null}
+                    <span className={styles.photoSectionToggleHint}>
+                      {isPhotoSectionOpen ? "Hide" : "Show"}
+                    </span>
+                  </span>
+                </button>
+                {isPhotoSectionOpen ? (
+                  <div className={styles.photoSectionContent} id="meal-photo-section">
+                    {activePhotoSrc ? (
+                      <div className="mb-2">
+                        <AuthenticatedImage
+                          alt={form.photoFileName ?? "Meal photo"}
+                          className={styles.photoPreviewImage}
+                          src={activePhotoSrc}
+                        />
+                      </div>
+                    ) : null}
+                    <div className={styles.photoInputRow}>
+                      <input
+                        accept="image/*"
+                        aria-label="Meal Photo"
+                        className={styles.photoFileInputHidden}
+                        disabled={!isPhotoAttachSupported}
+                        id="meal-photo-input"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0] ?? null;
+                          void handlePhotoChange(file);
+                        }}
+                        ref={photoInputRef}
+                        type="file"
+                      />
+                      <button
+                        className={styles.photoFilePickerButton}
+                        disabled={!isPhotoAttachSupported}
+                        onClick={() => photoInputRef.current?.click()}
+                        type="button"
+                      >
+                        Choose File
+                      </button>
+                      <span className={styles.photoFileName} title={activePhotoLabel}>
+                        {activePhotoLabel}
+                      </span>
+                      {activePhotoSrc ? (
+                        <button
+                          className={styles.btnGhost}
+                          onClick={() => {
+                            setField("photoDataUrl", null);
+                            setField("photoUrl", null);
+                            setField("photoFileName", null);
+                          }}
+                          type="button"
+                        >
+                          Remove Photo
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+                {!isPhotoAttachSupported ? (
+                  <span className={styles.formHint}>
+                    Photo attachment is available in the desktop app.
+                  </span>
+                ) : null}
               </div>
 
               {/* ── Mode B: Read-only recipe display ────────────────── */}

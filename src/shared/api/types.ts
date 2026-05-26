@@ -20,6 +20,7 @@ export const ApiPaths = {
   // Recipes
   recipes: "/api/recipes",
   recipe: (id: string) => `/api/recipes/${id}`,
+  recipeMadeHistory: (id: string) => `/api/recipes/${id}/made-history`,
   recipeDuplicate: (id: string) => `/api/recipes/${id}/duplicate`,
   recipeRating: (id: string) => `/api/recipes/${id}/rating`,
   recipeIngest: "/api/recipes/ingest",

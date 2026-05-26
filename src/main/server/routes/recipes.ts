@@ -11,7 +11,7 @@ import {
   RECIPE_SORT_ORDER_VALUES,
 } from "@shared/api/constants";
 import { z } from "zod";
-import { recipeService } from "../services.js";
+import { mealService, recipeService } from "../services.js";
 
 export const recipesRoutes = new Hono();
 
@@ -278,6 +278,27 @@ recipesRoutes.get("/recipes/:id", async (c) => {
   } catch (error) {
     return c.json(
       { error: error instanceof Error ? error.message : "Unable to fetch recipe", code: "RECIPE_GET_FAILED" },
+      400
+    );
+  }
+});
+
+recipesRoutes.get("/recipes/:id/made-history", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const data = await mealService.getRecipeMadeHistory(id);
+
+    if (!data) {
+      return c.json({ error: "Recipe not found", code: "RECIPE_NOT_FOUND" }, 404);
+    }
+
+    return c.json({ data });
+  } catch (error) {
+    return c.json(
+      {
+        error: error instanceof Error ? error.message : "Unable to fetch recipe made history",
+        code: "RECIPE_MADE_HISTORY_FAILED",
+      },
       400
     );
   }

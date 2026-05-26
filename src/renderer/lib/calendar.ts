@@ -44,7 +44,11 @@ export type EditableMeal = {
   cookTime: number | null;
   servingsOverride: number | null;
   recipeId: string | null;
+  photoUrl?: string | null;
   linkedRecipe: LinkedRecipeSummary | null;
+  photoDataUrl?: string | null;
+  photoMimeType?: string | null;
+  photoFileName?: string | null;
 };
 
 export type BankMeal = Omit<EditableMeal, "date"> & {
@@ -586,7 +590,11 @@ export function toEditableMeal(meal: CalendarMeal): EditableMeal {
     cookTime: meal.cookTime ?? null,
     servingsOverride: meal.servingsOverride ?? null,
     recipeId: meal.recipeId ?? null,
+    photoUrl: meal.photoUrl ?? null,
     linkedRecipe: meal.linkedRecipe ?? null,
+    photoDataUrl: undefined,
+    photoMimeType: meal.photoMimeType ?? null,
+    photoFileName: meal.photoFileName ?? null,
   };
 }
 
@@ -611,7 +619,11 @@ export function toBankMeal(meal: CalendarMeal): BankMeal {
     cookTime: meal.cookTime ?? null,
     servingsOverride: meal.servingsOverride ?? null,
     recipeId: meal.recipeId ?? null,
+    photoUrl: meal.photoUrl ?? null,
     linkedRecipe: meal.linkedRecipe ?? null,
+    photoDataUrl: undefined,
+    photoMimeType: meal.photoMimeType ?? null,
+    photoFileName: meal.photoFileName ?? null,
   };
 }
 
@@ -754,6 +766,10 @@ export function createEmptyMeal(
     cookTime: null,
     servingsOverride: null,
     recipeId: null,
+    photoUrl: null,
     linkedRecipe: null,
+    photoDataUrl: undefined,
+    photoMimeType: null,
+    photoFileName: null,
   };
 }

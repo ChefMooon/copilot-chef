@@ -1,11 +1,18 @@
+import { randomUUID } from "node:crypto";
 import { bootstrapDatabase } from "../lib/bootstrap";
 import { classifyCuisine } from "../lib/cuisine-classifier";
 import { addDays, formatDayKey, startOfDay, startOfWeek } from "../lib/date";
+import {
+  deleteMealPhotoFile,
+  readMealPhotoFile,
+  saveMealPhotoDataUrl,
+} from "../lib/meal-photo-storage";
 import { prisma } from "../lib/prisma";
 import { getCuisineLabel } from "@shared/api/constants";
 import type {
   MealIngredient,
   MealPayload,
+  RecipeMadeHistoryPayload,
   MealSubTypeDefinitionPayload,
   MealTypeDefinitionPayload,
 } from "@shared/types";
@@ -227,6 +234,14 @@ function toWeekKey(date: Date) {
   return `${year}-W${String(weekNum).padStart(2, "0")}`;
 }
 
+function buildMealPhotoUrl(mealId: string, photoPath: string | null | undefined) {
+  if (!photoPath) {
+    return null;
+  }
+
+  return `/api/meals/${mealId}/photo`;
+}
+
 function serializeMeal(meal: {
   id: string;
   name: string;
@@ -266,6 +281,10 @@ function serializeMeal(meal: {
   cookTime?: number | null;
   servingsOverride?: number | null;
   recipeId?: string | null;
+  photoDataUrl?: string | null;
+  photoPath?: string | null;
+  photoMimeType?: string | null;
+  photoFileName?: string | null;
   recipe?: LinkedRecipeRow | null;
 }): MealPayload {
   const serializedDate = meal.date
@@ -333,6 +352,12 @@ function serializeMeal(meal: {
     cookTime: meal.cookTime ?? null,
     servingsOverride: meal.servingsOverride ?? null,
     recipeId: meal.recipeId ?? null,
+    photoUrl:
+      buildMealPhotoUrl(meal.id, meal.photoPath) ??
+      (meal.photoDataUrl ?? null),
+    photoDataUrl: null,
+    photoMimeType: meal.photoMimeType ?? null,
+    photoFileName: meal.photoFileName ?? null,
     linkedRecipe,
   };
 }
@@ -503,6 +528,72 @@ export class MealService {
     });
 
     return (current._max.sortOrder ?? 0) + 10;
+  }
+
+  private async resolvePhotoCreateInput(input: {
+    mealId: string;
+    photoDataUrl?: string | null;
+    photoFileName?: string | null;
+  }) {
+    if (typeof input.photoDataUrl !== "string" || !input.photoDataUrl.trim()) {
+      return {
+        photoDataUrl: null as string | null,
+        photoPath: null as string | null,
+        photoMimeType: null as string | null,
+        photoFileName: null as string | null,
+      };
+    }
+
+    const savedPhoto = await saveMealPhotoDataUrl({
+      mealId: input.mealId,
+      photoDataUrl: input.photoDataUrl,
+      photoFileName: input.photoFileName,
+    });
+
+    return {
+      photoDataUrl: null as string | null,
+      photoPath: savedPhoto.photoPath,
+      photoMimeType: savedPhoto.photoMimeType,
+      photoFileName: savedPhoto.photoFileName,
+    };
+  }
+
+  private async resolvePhotoUpdateInput(meal: {
+    id: string;
+    photoPath: string | null;
+    photoDataUrl: string | null;
+  }, input: {
+    photoDataUrl?: string | null;
+    photoFileName?: string | null;
+  }) {
+    if (input.photoDataUrl === undefined) {
+      return {};
+    }
+
+    if (input.photoDataUrl === null) {
+      await deleteMealPhotoFile(meal.photoPath);
+      return {
+        photoDataUrl: null,
+        photoPath: null,
+        photoMimeType: null,
+        photoFileName: null,
+      };
+    }
+
+    const savedPhoto = await saveMealPhotoDataUrl({
+      mealId: meal.id,
+      photoDataUrl: input.photoDataUrl,
+      photoFileName: input.photoFileName,
+    });
+
+    await deleteMealPhotoFile(meal.photoPath);
+
+    return {
+      photoDataUrl: null,
+      photoPath: savedPhoto.photoPath,
+      photoMimeType: savedPhoto.photoMimeType,
+      photoFileName: savedPhoto.photoFileName,
+    };
   }
 
   async reorderSlotMeals(slotDate: string, slotMealType: string, orderedIds: string[]) {
@@ -760,6 +851,30 @@ export class MealService {
     return meal ? serializeMeal(meal) : null;
   }
 
+  async getMealPhoto(id: string) {
+    await bootstrapDatabase();
+
+    const meal = await prisma.meal.findUnique({
+      where: { id },
+      select: {
+        photoPath: true,
+        photoMimeType: true,
+      },
+    });
+
+    if (!meal?.photoPath) {
+      return null;
+    }
+
+    const file = await readMealPhotoFile(meal.photoPath);
+
+    return {
+      data: file.data,
+      contentType: meal.photoMimeType ?? "application/octet-stream",
+      updatedAt: file.updatedAt,
+    };
+  }
+
   async listMealsInRange(from: string, to: string) {
     await bootstrapDatabase();
 
@@ -798,8 +913,17 @@ export class MealService {
     cookTime?: number | null;
     servingsOverride?: number | null;
     recipeId?: string | null;
+    photoDataUrl?: string | null;
+    photoFileName?: string | null;
   }) {
     await bootstrapDatabase();
+
+    const mealId = input.id ?? randomUUID();
+    const photoInput = await this.resolvePhotoCreateInput({
+      mealId,
+      photoDataUrl: input.photoDataUrl,
+      photoFileName: input.photoFileName,
+    });
 
     const normalizedDate = normalizeMealDateInput(input.date);
     const mealTypeFields = await this.resolveMealTypeInput({
@@ -823,7 +947,7 @@ export class MealService {
 
       return tx.meal.create({
         data: {
-          ...(input.id ? { id: input.id } : {}),
+          id: mealId,
           name: input.name,
           ...(normalizedDate === undefined ? {} : { date: normalizedDate }),
           ...mealTypeFields,
@@ -838,6 +962,7 @@ export class MealService {
           prepTime: input.prepTime ?? null,
           cookTime: input.cookTime ?? null,
           servingsOverride: input.servingsOverride ?? null,
+          ...photoInput,
           ...(input.recipeId !== undefined ? { recipeId: input.recipeId } : {}),
         },
         include: this.mealInclude,
@@ -866,9 +991,29 @@ export class MealService {
       cookTime?: number | null;
       servingsOverride?: number | null;
       recipeId?: string | null;
+      photoDataUrl?: string | null;
+      photoFileName?: string | null;
     }
   ) {
     await bootstrapDatabase();
+
+    const currentMeal = await prisma.meal.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        photoPath: true,
+        photoDataUrl: true,
+      },
+    });
+
+    if (!currentMeal) {
+      throw new Error(`Meal with id "${id}" not found.`);
+    }
+
+    const photoUpdate = await this.resolvePhotoUpdateInput(currentMeal, {
+      photoDataUrl: input.photoDataUrl,
+      photoFileName: input.photoFileName,
+    });
 
     const normalizedDate = normalizeMealDateInput(input.date);
     const mealTypeFields = await this.resolveMealTypeInput({
@@ -907,6 +1052,7 @@ export class MealService {
           ? { servingsOverride: input.servingsOverride }
           : {}),
         ...(input.recipeId !== undefined ? { recipeId: input.recipeId } : {}),
+        ...photoUpdate,
       },
       include: this.mealInclude,
     });
@@ -917,7 +1063,15 @@ export class MealService {
   async deleteMeal(id: string) {
     await bootstrapDatabase();
 
+    const meal = await prisma.meal.findUnique({
+      where: { id },
+      select: {
+        photoPath: true,
+      },
+    });
+
     await prisma.meal.delete({ where: { id } });
+    await deleteMealPhotoFile(meal?.photoPath);
     return { id };
   }
 
@@ -1163,5 +1317,58 @@ export class MealService {
         mealName: group.name,
         count: group._count._all,
       }));
+  }
+
+  async getRecipeMadeHistory(recipeId: string): Promise<RecipeMadeHistoryPayload | null> {
+    await bootstrapDatabase();
+
+    const recipe = await prisma.recipe.findUnique({
+      where: { id: recipeId },
+      select: { id: true },
+    });
+
+    if (!recipe) {
+      return null;
+    }
+
+    const meals = await prisma.meal.findMany({
+      where: {
+        recipeId,
+        date: { not: null },
+      },
+      orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+      select: {
+        id: true,
+        name: true,
+        date: true,
+        mealType: true,
+        notes: true,
+        photoPath: true,
+        photoDataUrl: true,
+        photoMimeType: true,
+        photoFileName: true,
+      },
+    });
+
+    const entries = meals
+      .filter((meal): meal is typeof meal & { date: Date } => meal.date !== null)
+      .map((meal) => ({
+        mealId: meal.id,
+        mealName: meal.name,
+        date: meal.date.toISOString(),
+        mealType: meal.mealType,
+        notes: meal.notes,
+        photoUrl: buildMealPhotoUrl(meal.id, meal.photoPath) ?? meal.photoDataUrl,
+        photoDataUrl: null,
+        photoMimeType: meal.photoMimeType,
+        photoFileName: meal.photoFileName,
+      }));
+
+    return {
+      recipeId,
+      madeCount: entries.length,
+      lastMadeAt: entries[0]?.date ?? null,
+      entries,
+    };
   }
 }

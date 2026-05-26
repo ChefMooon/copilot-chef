@@ -71,6 +71,28 @@ mealsRoutes.get("/meals/unscheduled", async (c) => {
   return c.json({ data });
 });
 
+mealsRoutes.get("/meals/:id/photo", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const photo = await mealService.getMealPhoto(id);
+
+    if (!photo) {
+      return c.json({ error: "Meal photo not found" }, 404);
+    }
+
+    c.header("Content-Type", photo.contentType);
+    c.header("Cache-Control", "private, max-age=60");
+    c.header("Last-Modified", photo.updatedAt.toUTCString());
+
+    return c.body(photo.data);
+  } catch (error) {
+    return c.json(
+      { error: error instanceof Error ? error.message : "Unable to fetch meal photo" },
+      400
+    );
+  }
+});
+
 mealsRoutes.post("/meals", async (c) => {
   try {
     const body = await c.req.json();
@@ -113,6 +135,18 @@ mealsRoutes.post("/meals", async (c) => {
         Array.isArray(body?.instructions) || body?.instructions === undefined
           ? body?.instructions
           : [],
+      photoDataUrl:
+        typeof body?.photoDataUrl === "string"
+          ? body.photoDataUrl
+          : body?.photoDataUrl === null
+            ? null
+            : undefined,
+      photoFileName:
+        typeof body?.photoFileName === "string"
+          ? body.photoFileName
+          : body?.photoFileName === null
+            ? null
+            : undefined,
     };
 
     const data = await mealService.createMeal(normalizedBody);
@@ -264,6 +298,18 @@ mealsRoutes.patch("/meals/:id", async (c) => {
         Array.isArray(body?.instructions) || body?.instructions === undefined
           ? body?.instructions
           : undefined,
+      photoDataUrl:
+        typeof body?.photoDataUrl === "string"
+          ? body.photoDataUrl
+          : body?.photoDataUrl === null
+            ? null
+            : undefined,
+      photoFileName:
+        typeof body?.photoFileName === "string"
+          ? body.photoFileName
+          : body?.photoFileName === null
+            ? null
+            : undefined,
     });
     return c.json({ data });
   } catch (error) {

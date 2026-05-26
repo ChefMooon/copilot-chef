@@ -9,12 +9,14 @@ import { getCuisineLabel } from "@shared/api/constants";
 
 import {
   createRecipe,
+  type RecipeMadeHistoryPayload,
   type RecipeIterationPayload,
   updateRecipe,
   type RecipePayload,
 } from "@/lib/api";
 import { AddRecipeModal } from "@/components/recipes/AddRecipeModal";
 import { DerivedRecipesModal } from "@/components/recipes/DerivedRecipesModal";
+import { RecipeMadeHistoryModal } from "@/components/recipes/RecipeMadeHistoryModal";
 import { Button } from "@/components/ui/button";
 
 import { CookingMode } from "./CookingMode";
@@ -24,6 +26,8 @@ import { SourceBadge } from "./SourceBadge";
 
 type RecipeDetailProps = {
   recipe: RecipePayload;
+  madeHistory?: RecipeMadeHistoryPayload | null;
+  isMadeHistoryLoading?: boolean;
   iterations?: RecipeIterationPayload[];
   isIterationsLoading?: boolean;
   initiallyEditing?: boolean;
@@ -60,6 +64,8 @@ const VIEW_LABELS = {
 
 export function RecipeDetail({
   recipe,
+  madeHistory = null,
+  isMadeHistoryLoading = false,
   iterations = [],
   isIterationsLoading = false,
   initiallyEditing = false,
@@ -80,6 +86,7 @@ export function RecipeDetail({
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showDerivedRecipesModal, setShowDerivedRecipesModal] = useState(false);
+  const [showMadeHistoryModal, setShowMadeHistoryModal] = useState(false);
   const [duplicateDraft, setDuplicateDraft] = useState<RecipePayload | null>(null);
   const [hasConsumedInitialEdit, setHasConsumedInitialEdit] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
@@ -173,6 +180,7 @@ export function RecipeDetail({
   const sourceRecipe = recipe.sourceRecipe;
   const derivedCount = iterations.length;
   const singleDerivedRecipe = derivedCount === 1 ? iterations[0] : null;
+  const madeCount = madeHistory?.madeCount ?? 0;
 
   async function handleSaveEdit(
     input: Parameters<typeof updateRecipe>[1]
@@ -364,9 +372,14 @@ export function RecipeDetail({
             <span>Cook {recipe.cookTime}m</span>
           ) : null}
           <span>&#9733; {recipe.rating ?? "-"}</span>
-          <span>
+          <button
+            className="rounded-chip border border-cream-dark bg-cream px-2 py-0.5 text-[0.72rem] font-bold uppercase tracking-[0.06em] text-text transition-colors hover:border-green-light hover:text-green"
+            onClick={() => setShowMadeHistoryModal(true)}
+            type="button"
+          >
             Last made: {recipe.lastMadeAt ? new Date(recipe.lastMadeAt).toLocaleDateString() : "Never"}
-          </span>
+            {madeCount > 1 ? ` · ${madeCount}x` : ""}
+          </button>
           {sourceRecipe ? (
             <Link
               className="rounded-chip border border-green/20 bg-green-pale px-2 py-0.5 text-[0.72rem] font-bold uppercase tracking-[0.06em] text-green transition-colors hover:border-green/35"
@@ -473,6 +486,14 @@ export function RecipeDetail({
           ))}
         </div>
       </section>
+
+      <RecipeMadeHistoryModal
+        history={madeHistory}
+        isLoading={isMadeHistoryLoading}
+        onClose={() => setShowMadeHistoryModal(false)}
+        open={showMadeHistoryModal}
+        recipeTitle={recipe.title}
+      />
 
       <section className="recipe-print-section rounded-[18px] border border-[rgba(59,94,69,0.1)] bg-white p-5 shadow-card md:p-6">
         <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-text-muted">

@@ -115,6 +115,17 @@ describe("RecipeDetailPage", () => {
         };
       }
 
+      if (url === "/api/recipes/recipe-1/made-history") {
+        return {
+          data: {
+            recipeId: "recipe-1",
+            madeCount: 0,
+            lastMadeAt: null,
+            entries: [],
+          },
+        };
+      }
+
       throw new Error(`Unhandled URL: ${url}`);
     });
     deleteRecipeMock.mockResolvedValue(undefined);

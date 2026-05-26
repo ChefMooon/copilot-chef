@@ -2,17 +2,29 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate, useParams } from "react-router";
 
-import { deleteRecipe, fetchJson, getRecipeIterations } from "@/lib/api";
+import {
+  deleteRecipe,
+  fetchJson,
+  getRecipeIterations,
+} from "@/lib/api";
 import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
 import { RecipeDetail } from "@/components/recipes/RecipeDetail";
 import { RecipeDeleteDialog } from "@/components/recipes/RecipeDeleteDialog";
-import { type RecipeIterationPayload, type RecipePayload } from "@/lib/api";
+import {
+  type RecipeIterationPayload,
+  type RecipeMadeHistoryPayload,
+  type RecipePayload,
+} from "@/lib/api";
 import { recipeKeys } from "@/lib/query-keys";
 import { useChatPageContext } from "@/context/chat-context";
 
 type RecipeDetailResponse = {
   data: RecipePayload;
+};
+
+type RecipeMadeHistoryResponse = {
+  data: RecipeMadeHistoryPayload;
 };
 
 type PreferencesResponse = {
@@ -31,6 +43,8 @@ function RecipeDetailContent({
   defaultView,
   isDeleting,
   onDeleteRequest,
+  madeHistory,
+  isMadeHistoryLoading,
 }: {
   recipe: RecipePayload;
   iterations: RecipeIterationPayload[];
@@ -40,6 +54,8 @@ function RecipeDetailContent({
   defaultView: "basic" | "detailed" | "cooking";
   isDeleting: boolean;
   onDeleteRequest: () => void;
+  madeHistory: RecipeMadeHistoryPayload | null;
+  isMadeHistoryLoading: boolean;
 }) {
   const [liveState, setLiveState] = useState<{
     activeView: "basic" | "detailed" | "cooking";
@@ -80,9 +96,11 @@ function RecipeDetailContent({
       defaultUnitMode={defaultUnitMode}
       defaultView={defaultView}
       initiallyEditing={initiallyEditing}
+      isMadeHistoryLoading={isMadeHistoryLoading}
       isIterationsLoading={isIterationsLoading}
       isDeleting={isDeleting}
       iterations={iterations}
+      madeHistory={madeHistory}
       onContextStateChange={setLiveState}
       onDeleteRequest={onDeleteRequest}
       recipe={recipe}
@@ -122,6 +140,15 @@ export default function RecipeDetailPage() {
   const iterationsQuery = useQuery({
     queryKey: recipeId ? recipeKeys.iterations(recipeId) : recipeKeys.iterations(""),
     queryFn: () => getRecipeIterations(recipeId ?? ""),
+    enabled: apiReady && Boolean(recipeId),
+  });
+
+  const madeHistoryQuery = useQuery({
+    queryKey: recipeId ? recipeKeys.madeHistory(recipeId) : recipeKeys.madeHistory(""),
+    queryFn: () =>
+      fetchJson<RecipeMadeHistoryResponse>(`/api/recipes/${recipeId}/made-history`).then(
+        (response) => response.data
+      ),
     enabled: apiReady && Boolean(recipeId),
   });
 
@@ -180,8 +207,10 @@ export default function RecipeDetailPage() {
         defaultUnitMode={defaultUnitMode}
         defaultView={defaultView}
         initiallyEditing={initiallyEditing}
+        isMadeHistoryLoading={madeHistoryQuery.isLoading}
         isIterationsLoading={iterationsQuery.isLoading}
         isDeleting={deleteMutation.isPending}
+        madeHistory={madeHistoryQuery.data ?? null}
         onDeleteRequest={() => setRecipePendingDelete(recipeQuery.data)}
         iterations={iterationsQuery.data ?? []}
         recipe={recipeQuery.data}

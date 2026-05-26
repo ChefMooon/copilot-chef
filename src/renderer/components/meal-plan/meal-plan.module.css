@@ -2070,6 +2070,120 @@
   border-color: var(--green);
 }
 
+.photoSectionToggle {
+  align-items: center;
+  background: var(--cream);
+  border: 1.5px solid var(--cream-dark);
+  border-radius: 9px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.72rem;
+  font-weight: 800;
+  justify-content: space-between;
+  letter-spacing: 0.08em;
+  padding: 0.55rem 0.8rem;
+  text-transform: uppercase;
+  transition: border-color 0.15s;
+}
+
+.photoSectionToggle:hover {
+  border-color: var(--text-muted);
+}
+
+.photoSectionToggleHint {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.photoSectionToggleRight {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.65rem;
+}
+
+.photoAttachmentStatus {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: none;
+}
+
+.photoSectionContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.photoPreviewImage {
+  background: var(--cream);
+  border: 1px solid var(--cream-dark);
+  border-radius: 0.5rem;
+  height: clamp(10rem, 26vw, 14rem);
+  object-fit: contain;
+  object-position: center;
+  padding: 0.25rem;
+  width: 100%;
+}
+
+.photoInputRow {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.photoFileInputHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(100%);
+  white-space: nowrap;
+}
+
+.photoFilePickerButton {
+  background: var(--white);
+  border: 1.5px solid var(--cream-dark);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  transition: all 0.14s;
+}
+
+.photoFilePickerButton:hover {
+  border-color: var(--text-muted);
+}
+
+.photoFilePickerButton:focus-visible {
+  border-color: var(--green);
+  outline: none;
+}
+
+.photoFilePickerButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.photoFileName {
+  color: var(--text);
+  flex: 1;
+  font-size: 0.83rem;
+  font-weight: 600;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .formTextarea {
   resize: vertical;
   min-height: 72px;

@@ -153,6 +153,10 @@ export type MealPayload = {
   cookTime: number | null;
   servingsOverride: number | null;
   recipeId: string | null;
+  photoUrl?: string | null;
+  photoDataUrl?: string | null;
+  photoMimeType?: string | null;
+  photoFileName?: string | null;
   linkedRecipe: {
     id: string;
     title: string;
@@ -165,6 +169,25 @@ export type MealPayload = {
     cookNotes: string | null;
     ingredients: MealIngredient[];
   } | null;
+};
+
+export type RecipeMadeEntryPayload = {
+  mealId: string;
+  mealName: string;
+  date: string;
+  mealType: string;
+  notes: string | null;
+  photoUrl: string | null;
+  photoDataUrl: string | null;
+  photoMimeType: string | null;
+  photoFileName: string | null;
+};
+
+export type RecipeMadeHistoryPayload = {
+  recipeId: string;
+  madeCount: number;
+  lastMadeAt: string | null;
+  entries: RecipeMadeEntryPayload[];
 };
 
 // ── Recipes ──────────────────────────────────────────────────

@@ -44,6 +44,10 @@ const SCHEMA_STATEMENTS = [
       "cuisine" TEXT,
       "servingsOverride" INTEGER,
       "recipeId" TEXT,
+      "photoDataUrl" TEXT,
+      "photoPath" TEXT,
+      "photoMimeType" TEXT,
+      "photoFileName" TEXT,
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `,
@@ -428,6 +432,10 @@ async function rebuildMealTable() {
       "cuisine" TEXT,
       "servingsOverride" INTEGER,
       "recipeId" TEXT,
+      "photoDataUrl" TEXT,
+      "photoPath" TEXT,
+      "photoMimeType" TEXT,
+      "photoFileName" TEXT,
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT "Meal_mealTypeDefinitionId_fkey"
         FOREIGN KEY ("mealTypeDefinitionId") REFERENCES "MealTypeDefinition" ("id")
@@ -459,6 +467,10 @@ async function rebuildMealTable() {
       "cuisine",
       "servingsOverride",
       "recipeId",
+      "photoDataUrl",
+      "photoPath",
+      "photoMimeType",
+      "photoFileName",
       "createdAt"
     )
     SELECT
@@ -484,6 +496,10 @@ async function rebuildMealTable() {
       "cuisine",
       "servingsOverride",
       "recipeId",
+      "photoDataUrl",
+      "photoPath",
+      "photoMimeType",
+      "photoFileName",
       COALESCE("createdAt", CURRENT_TIMESTAMP)
     FROM "Meal__legacy_sort_order_fix"
   `);
@@ -624,6 +640,10 @@ export async function ensureDatabaseSchema(): Promise<void> {
     cuisine: `ALTER TABLE "Meal" ADD COLUMN "cuisine" TEXT`,
     servingsOverride: `ALTER TABLE "Meal" ADD COLUMN "servingsOverride" INTEGER`,
     recipeId: `ALTER TABLE "Meal" ADD COLUMN "recipeId" TEXT`,
+    photoDataUrl: `ALTER TABLE "Meal" ADD COLUMN "photoDataUrl" TEXT`,
+    photoPath: `ALTER TABLE "Meal" ADD COLUMN "photoPath" TEXT`,
+    photoMimeType: `ALTER TABLE "Meal" ADD COLUMN "photoMimeType" TEXT`,
+    photoFileName: `ALTER TABLE "Meal" ADD COLUMN "photoFileName" TEXT`,
   } as const;
 
   const safeMealTypeProfileAlterStatements = {

@@ -6,8 +6,15 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
 import { ToastProvider } from "@/components/providers/toast-provider";
-import { type RecipeIterationPayload, type RecipePayload } from "@/lib/api";
+import {
+  type RecipeIterationPayload,
+  type RecipeMadeHistoryPayload,
+  type RecipePayload,
+} from "@/lib/api";
 import { RecipeDetail } from "./RecipeDetail";
+
+const TEST_IMAGE_DATA_URL =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO6p9xkAAAAASUVORK5CYII=";
 
 const { createRecipeMock, updateRecipeMock } = vi.hoisted(() => ({
   createRecipeMock: vi.fn(),
@@ -63,10 +70,14 @@ const baseRecipe: RecipePayload = {
 
 function renderRecipeDetail({
   recipe,
+  madeHistory,
+  isMadeHistoryLoading,
   iterations,
   isIterationsLoading,
 }: {
   recipe?: RecipePayload;
+  madeHistory?: RecipeMadeHistoryPayload | null;
+  isMadeHistoryLoading?: boolean;
   iterations?: RecipeIterationPayload[];
   isIterationsLoading?: boolean;
 } = {}) {
@@ -84,8 +95,10 @@ function renderRecipeDetail({
           <RecipeDetail
             defaultUnitMode="cup"
             defaultView="basic"
+            isMadeHistoryLoading={isMadeHistoryLoading ?? false}
             isIterationsLoading={isIterationsLoading ?? false}
             iterations={iterations ?? []}
+            madeHistory={madeHistory ?? null}
             recipe={recipe ?? baseRecipe}
           />
         </MemoryRouter>
@@ -187,6 +200,114 @@ describe("RecipeDetail duplicate draft flow", () => {
     await waitFor(() => {
       expect(
         screen.queryByRole("dialog", { name: "Derived recipes" })
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it("shows made count in chip and opens made history modal", async () => {
+    renderRecipeDetail({
+      recipe: {
+        ...baseRecipe,
+        lastMadeAt: "2026-05-20T12:00:00.000Z",
+      },
+    });
+
+    const lastMadeButtons = screen.getAllByRole("button", { name: /Last made:/i });
+    fireEvent.click(lastMadeButtons[lastMadeButtons.length - 1]);
+
+    const openedHistoryDialogs = await screen.findAllByRole("dialog", {
+      name: "Recipe made history",
+    });
+    expect(openedHistoryDialogs[openedHistoryDialogs.length - 1]).toBeInTheDocument();
+  });
+
+  it("opens full photo viewer and supports close + zoom interactions", async () => {
+    renderRecipeDetail({
+      recipe: {
+        ...baseRecipe,
+        lastMadeAt: "2026-05-20T12:00:00.000Z",
+      },
+      madeHistory: {
+        recipeId: baseRecipe.id,
+        madeCount: 1,
+        lastMadeAt: "2026-05-20T12:00:00.000Z",
+        entries: [
+          {
+            mealId: "meal-1",
+            date: "2026-05-20T12:00:00.000Z",
+            mealType: "dinner",
+            mealName: "Roast Chicken",
+            photoUrl: null,
+            photoDataUrl: TEST_IMAGE_DATA_URL,
+            photoFileName: "roast-chicken.png",
+            photoMimeType: "image/png",
+            notes: null,
+          },
+        ],
+      },
+    });
+
+    const lastMadeButtons = screen.getAllByRole("button", { name: /Last made:/i });
+    fireEvent.click(lastMadeButtons[lastMadeButtons.length - 1]);
+
+    const openedHistoryDialogs = await screen.findAllByRole("dialog", {
+      name: "Recipe made history",
+    });
+    expect(openedHistoryDialogs[openedHistoryDialogs.length - 1]).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "View full photo" }));
+
+    expect(
+      await screen.findByRole("dialog", { name: "Cooking history photo viewer" })
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(screen.getByRole("button", { name: "Reset zoom" })).toHaveTextContent("125%");
+
+    fireEvent.keyDown(window, { key: "=" });
+    expect(screen.getByRole("button", { name: "Reset zoom" })).toHaveTextContent("150%");
+
+    fireEvent.wheel(screen.getByLabelText("Cooking history photo canvas"), { deltaY: -100 });
+    expect(screen.getByRole("button", { name: "Reset zoom" })).toHaveTextContent("175%");
+
+    fireEvent.doubleClick(screen.getByLabelText("Cooking history photo canvas"));
+    expect(screen.getByRole("button", { name: "Reset zoom" })).toHaveTextContent("100%");
+
+    fireEvent.keyDown(window, { key: "0" });
+    expect(screen.getByRole("button", { name: "Reset zoom" })).toHaveTextContent("100%");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: "Cooking history photo viewer" })
+      ).not.toBeInTheDocument();
+    });
+    const remainingHistoryDialogs = screen.getAllByRole("dialog", {
+      name: "Recipe made history",
+    });
+    expect(remainingHistoryDialogs[remainingHistoryDialogs.length - 1]).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "View full photo" }));
+    expect(
+      await screen.findByRole("dialog", { name: "Cooking history photo viewer" })
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Close viewer" }));
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: "Cooking history photo viewer" })
+      ).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "View full photo" }));
+    expect(
+      await screen.findByRole("dialog", { name: "Cooking history photo viewer" })
+    ).toBeInTheDocument();
+
+    fireEvent.mouseDown(screen.getByLabelText("Cooking history photo viewer backdrop"));
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: "Cooking history photo viewer" })
       ).not.toBeInTheDocument();
     });
   });

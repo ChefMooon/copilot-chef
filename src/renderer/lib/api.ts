@@ -13,6 +13,7 @@ import {
   type MenuLayout,
   type RecipeConflict,
   type RecipeExportJson,
+  type RecipeMadeHistoryPayload,
   type RecipeIterationPayload,
   type CreatePersonaInput,
   type PreferenceUpdateInput,
@@ -43,6 +44,7 @@ export type SettingsPreferences = PreferencesPayload;
 export type { CustomPersonaPayload };
 export type { MealTypeDefinitionPayload, MealTypeProfilePayload };
 export type { MealSubTypeDefinitionPayload };
+export type { RecipeMadeHistoryPayload };
 
 export type RecipeListFilters = {
   query?: string;
@@ -163,6 +165,41 @@ export async function fetchJson<T>(
   return response.json() as Promise<T>;
 }
 
+export async function fetchBlob(pathOrUrl: string): Promise<Blob> {
+  const url = /^https?:\/\//i.test(pathOrUrl)
+    ? pathOrUrl
+    : `${getApiBase()}${pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`}`;
+
+  const response = await fetch(url, {
+    cache: "no-store",
+    headers: {
+      ...getAuthHeaders(),
+    },
+  });
+
+  if (!response.ok) {
+    let payload: ApiErrorBody | undefined;
+
+    if (response.status === 401) {
+      handleRejectedBrowserToken();
+    }
+
+    try {
+      payload = (await response.json()) as ApiErrorBody;
+    } catch {
+      payload = undefined;
+    }
+
+    throw new ApiError(
+      payload?.error ?? `Request failed with status ${response.status}`,
+      response.status,
+      payload?.code
+    );
+  }
+
+  return response.blob();
+}
+
 export type CreateMealInput = {
   name: string;
   date?: string | null;
@@ -180,6 +217,8 @@ export type CreateMealInput = {
   cookTime?: number | null;
   servingsOverride?: number | null;
   recipeId?: string | null;
+  photoDataUrl?: string | null;
+  photoFileName?: string | null;
 };
 
 export async function createMeal(input: CreateMealInput) {
@@ -450,6 +489,13 @@ export async function listRecipes(filters?: string | RecipeListFilters) {
 export async function getRecipe(id: string) {
   const response = await fetchJson<{ data: RecipePayload }>(
     `/api/recipes/${id}`
+  );
+  return response.data;
+}
+
+export async function getRecipeMadeHistory(id: string) {
+  const response = await fetchJson<{ data: RecipeMadeHistoryPayload }>(
+    `/api/recipes/${id}/made-history`
   );
   return response.data;
 }
