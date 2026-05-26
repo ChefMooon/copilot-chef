@@ -17,6 +17,15 @@ export const ApiPaths = {
   groceryListReorder: (listId: string) =>
     `/api/grocery-lists/${listId}/reorder`,
 
+  // Prep lists
+  prepLists: "/api/prep-lists",
+  prepListGenerate: "/api/prep-lists/generate",
+  prepList: (id: string) => `/api/prep-lists/${id}`,
+  prepListItems: (listId: string) => `/api/prep-lists/${listId}/items`,
+  prepListItem: (listId: string, itemId: string) =>
+    `/api/prep-lists/${listId}/items/${itemId}`,
+  prepListReorder: (listId: string) => `/api/prep-lists/${listId}/reorder`,
+
   // Recipes
   recipes: "/api/recipes",
   recipe: (id: string) => `/api/recipes/${id}`,

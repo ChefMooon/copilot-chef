@@ -121,6 +121,57 @@ model GroceryItem {
   @@index([groceryListId, sortOrder])
 }
 
+model PrepList {
+  id                     String     @id @default(cuid())
+  name                   String
+  notes                  String?
+  date                   DateTime?
+  fromDate               DateTime?
+  toDate                 DateTime?
+  sourceMode             String     @default("manual")
+  sourceLabel            String?
+  sourceMealIdsJson      String     @default("[]")
+  sourceRecipeIdsJson    String     @default("[]")
+  favourite              Boolean    @default(false)
+  sortMode               String     @default("manual")
+  groupBy                String     @default("dish")
+  includeIngredients     Boolean    @default(true)
+  includeTasks           Boolean    @default(true)
+  includeQuantities      Boolean    @default(true)
+  includeIngredientTypes Boolean    @default(true)
+  includeSourceLabels    Boolean    @default(true)
+  excludePantryStaples   Boolean    @default(false)
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+  items                  PrepItem[]
+
+  @@index([date])
+  @@index([fromDate, toDate])
+  @@index([sourceMode])
+}
+
+model PrepItem {
+  id                  String   @id @default(cuid())
+  prepListId          String
+  kind                String   @default("ingredient")
+  name                String
+  qty                 String?
+  unit                String?
+  ingredientType      String?
+  prepGroup           String?
+  dish                String?
+  notes               String?
+  checked             Boolean  @default(false)
+  sortOrder           Int      @default(0)
+  sourceMealIdsJson   String   @default("[]")
+  sourceRecipeIdsJson String   @default("[]")
+  sourceLabelsJson    String   @default("[]")
+  prepList            PrepList @relation(fields: [prepListId], references: [id], onDelete: Cascade)
+
+  @@index([prepListId, sortOrder])
+  @@index([prepListId, kind])
+}
+
 model UserPreference {
   id                     String   @id @default("default")
   createdAt              DateTime @default(now())

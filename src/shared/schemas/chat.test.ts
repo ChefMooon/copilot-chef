@@ -216,6 +216,85 @@ describe("chatRequestSchema", () => {
     });
   });
 
+  it("accepts prep lists page context payloads", () => {
+    const parsed = chatRequestSchema.parse({
+      message: "What should I prep first?",
+      pageContextData: {
+        page: "prep-lists",
+        activeList: {
+          id: "prep-1",
+          name: "Sunday Prep",
+          notes: "Start with proteins",
+          sourceMode: "week",
+          sourceLabel: "2026-05-25 to 2026-05-31",
+          groupBy: "dish",
+          sortMode: "manual",
+          totalItems: 2,
+          checkedCount: 1,
+          completionPercentage: 50,
+          items: [
+            {
+              id: "item-1",
+              kind: "ingredient",
+              name: "onions",
+              qty: "2",
+              unit: "pcs",
+              ingredientType: "Produce",
+              prepGroup: "chopped veg",
+              dish: "Soup",
+              checked: false,
+            },
+          ],
+        },
+        allLists: [
+          {
+            id: "prep-1",
+            name: "Sunday Prep",
+            notes: "Start with proteins",
+            sourceMode: "week",
+            itemCount: 2,
+            checkedCount: 1,
+          },
+        ],
+      },
+    });
+
+    expect(parsed.pageContextData?.page).toBe("prep-lists");
+  });
+
+  it("accepts prep page context payloads", () => {
+    const parsed = chatRequestSchema.parse({
+      message: "Summarize this prep list",
+      pageContextData: {
+        page: "prep",
+        listId: "prep-1",
+        listName: "Sunday Prep",
+        notes: "Start with proteins",
+        sourceMode: "week",
+        groupBy: "dish",
+        sortMode: "manual",
+        itemCount: 1,
+        checkedCount: 0,
+        completionPercentage: 0,
+        items: [
+          {
+            id: "item-1",
+            kind: "task",
+            name: "Chop onions",
+            qty: null,
+            unit: null,
+            ingredientType: null,
+            prepGroup: "Prep task",
+            dish: "Soup",
+            checked: false,
+          },
+        ],
+      },
+    });
+
+    expect(parsed.pageContextData?.page).toBe("prep");
+  });
+
   it("rejects recipe detail payloads missing recipeId", () => {
     const result = chatRequestSchema.safeParse({
       message: "hello",

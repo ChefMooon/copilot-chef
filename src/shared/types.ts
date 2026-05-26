@@ -171,6 +171,91 @@ export type MealPayload = {
   } | null;
 };
 
+export type PrepListSourceMode =
+  | "manual"
+  | "single-meal"
+  | "meal-slot"
+  | "day"
+  | "week"
+  | "month"
+  | "date-range"
+  | "historical";
+
+export type PrepItemKind = "ingredient" | "task";
+export type PrepListSortMode =
+  | "manual"
+  | "name"
+  | "dish"
+  | "type"
+  | "kind"
+  | "checked";
+export type PrepListGroupBy = "dish" | "type" | "prepGroup" | "kind" | "none";
+
+export type PrepItemPayload = {
+  id: string;
+  kind: PrepItemKind;
+  name: string;
+  qty: string | null;
+  unit: string | null;
+  ingredientType: string | null;
+  prepGroup: string | null;
+  dish: string | null;
+  notes: string | null;
+  checked: boolean;
+  sortOrder: number;
+  sourceMealIds: string[];
+  sourceRecipeIds: string[];
+  sourceLabels: string[];
+};
+
+export type PrepListPayload = {
+  id: string;
+  name: string;
+  notes: string | null;
+  date: string | null;
+  fromDate: string | null;
+  toDate: string | null;
+  sourceMode: PrepListSourceMode;
+  sourceLabel: string | null;
+  sourceMealIds: string[];
+  sourceRecipeIds: string[];
+  favourite: boolean;
+  sortMode: PrepListSortMode;
+  groupBy: PrepListGroupBy;
+  includeIngredients: boolean;
+  includeTasks: boolean;
+  includeQuantities: boolean;
+  includeIngredientTypes: boolean;
+  includeSourceLabels: boolean;
+  excludePantryStaples: boolean;
+  createdAt: string;
+  updatedAt: string;
+  checkedCount: number;
+  totalItems: number;
+  completionPercentage: number;
+  items: PrepItemPayload[];
+};
+
+export type PrepListGenerateInput = {
+  name?: string;
+  notes?: string | null;
+  sourceMode: Exclude<PrepListSourceMode, "manual">;
+  mealIds?: string[];
+  mealType?: string;
+  fromDate?: string | null;
+  toDate?: string | null;
+  date?: string | null;
+  favourite?: boolean;
+  sortMode?: PrepListSortMode;
+  groupBy?: PrepListGroupBy;
+  includeIngredients?: boolean;
+  includeTasks?: boolean;
+  includeQuantities?: boolean;
+  includeIngredientTypes?: boolean;
+  includeSourceLabels?: boolean;
+  excludePantryStaples?: boolean;
+};
+
 export type RecipeMadeEntryPayload = {
   mealId: string;
   mealName: string;

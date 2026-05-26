@@ -136,6 +136,61 @@ export const shoppingPageContextSchema = z.object({
   items: z.array(groceryItemContextSchema),
 });
 
+export const prepItemContextSchema = z.object({
+  id: z.string(),
+  kind: z.enum(["ingredient", "task"]),
+  name: z.string(),
+  qty: z.string().nullable(),
+  unit: z.string().nullable(),
+  ingredientType: z.string().nullable(),
+  prepGroup: z.string().nullable(),
+  dish: z.string().nullable(),
+  checked: z.boolean(),
+});
+
+export const prepListSummarySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  notes: z.string().nullable(),
+  sourceMode: z.string(),
+  itemCount: z.number(),
+  checkedCount: z.number(),
+});
+
+export const prepListsPageContextSchema = z.object({
+  page: z.literal("prep-lists"),
+  activeList: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+      notes: z.string().nullable(),
+      sourceMode: z.string(),
+      sourceLabel: z.string().nullable(),
+      groupBy: z.string(),
+      sortMode: z.string(),
+      totalItems: z.number(),
+      checkedCount: z.number(),
+      completionPercentage: z.number(),
+      items: z.array(prepItemContextSchema),
+    })
+    .nullable(),
+  allLists: z.array(prepListSummarySchema),
+});
+
+export const prepPageContextSchema = z.object({
+  page: z.literal("prep"),
+  listId: z.string(),
+  listName: z.string(),
+  notes: z.string().nullable(),
+  sourceMode: z.string(),
+  groupBy: z.string(),
+  sortMode: z.string(),
+  itemCount: z.number(),
+  checkedCount: z.number(),
+  completionPercentage: z.number(),
+  items: z.array(prepItemContextSchema),
+});
+
 export const minimalPageContextSchema = z.object({
   page: z.enum(["stats", "settings"]),
 });
@@ -147,6 +202,8 @@ export const pageContextSchema = z.union([
   recipesPageContextSchema,
   recipeDetailPageContextSchema,
   shoppingPageContextSchema,
+  prepListsPageContextSchema,
+  prepPageContextSchema,
   minimalPageContextSchema,
 ]);
 
@@ -165,5 +222,9 @@ export type RecipeDetailPageContext = z.infer<
   typeof recipeDetailPageContextSchema
 >;
 export type ShoppingPageContext = z.infer<typeof shoppingPageContextSchema>;
+export type PrepItemContext = z.infer<typeof prepItemContextSchema>;
+export type PrepListSummary = z.infer<typeof prepListSummarySchema>;
+export type PrepListsPageContext = z.infer<typeof prepListsPageContextSchema>;
+export type PrepPageContext = z.infer<typeof prepPageContextSchema>;
 export type MinimalPageContext = z.infer<typeof minimalPageContextSchema>;
 export type PageContext = z.infer<typeof pageContextSchema>;

@@ -13,6 +13,7 @@ const navigationItems = [
   { label: "Meal Plan", href: "/meal-plan" },
   { label: "Recipes", href: "/recipes" },
   { label: "Grocery List", href: "/grocery-list" },
+  { label: "Prep Lists", href: "/prep-lists" },
   { label: "Stats", href: "/stats" },
 ];
 

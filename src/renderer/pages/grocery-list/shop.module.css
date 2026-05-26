@@ -73,6 +73,41 @@
   transition: width 0.3s ease;
 }
 
+.prepNotesBar {
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--cream-dark, #e5e0d8);
+  background: rgba(245, 240, 232, 0.6);
+}
+
+.prepNotesToggle {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  border: 1px solid var(--cream-dark, #e5e0d8);
+  color: var(--green, #3b5e45);
+  background: var(--white, #fff);
+  cursor: pointer;
+}
+
+.prepNotesToggle:hover {
+  border-color: var(--green, #3b5e45);
+}
+
+.prepNotesPanel {
+  margin: 0 1rem;
+  padding: 0.75rem 0.85rem;
+  border-bottom: 1px solid var(--cream-dark, #e5e0d8);
+  background: var(--cream, #f5f0eb);
+  border-radius: 0 0 12px 12px;
+  color: var(--text, #1a1a1a);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 .body {
   flex: 1;
   overflow-y: auto;

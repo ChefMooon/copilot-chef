@@ -9,6 +9,8 @@ const HomePage = lazy(() => import("./pages/home"));
 const MealPlanPage = lazy(() => import("./pages/meal-plan"));
 const GroceryListPage = lazy(() => import("./pages/grocery-list"));
 const ShoppingPage = lazy(() => import("./pages/grocery-list/shop"));
+const PrepListsPage = lazy(() => import("./pages/prep-lists"));
+const PrepViewPage = lazy(() => import("./pages/prep-lists/prep"));
 const RecipesPage = lazy(() => import("./pages/recipes"));
 const RecipeDetailPage = lazy(() => import("./pages/recipes/detail"));
 const StatsPage = lazy(() => import("./pages/stats"));
@@ -44,6 +46,14 @@ const routes = [
       {
         path: "grocery-list/shop/:id",
         element: withRouteFallback(<ShoppingPage />),
+      },
+      {
+        path: "prep-lists",
+        element: withRouteFallback(<PrepListsPage />),
+      },
+      {
+        path: "prep-lists/prep/:id",
+        element: withRouteFallback(<PrepViewPage />),
       },
       { path: "recipes", element: withRouteFallback(<RecipesPage />) },
       {

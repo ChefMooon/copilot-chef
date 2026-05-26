@@ -363,17 +363,18 @@
 }
 
 .editorHeader {
-  padding: 1.1rem 1.25rem;
+  padding: 1.1rem 1.25rem 0.8rem;
   border-bottom: 1px solid var(--cream-dark);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .editorTitleRow {
   flex: 1;
+  min-width: 0;
 }
 
 .editorName {
@@ -403,41 +404,33 @@
 .editorHeaderMeta {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.45rem;
   margin-top: 0.35rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  min-width: 0;
 }
 
-.editorDate {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.editorDateBtn {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-underline-offset: 3px;
-}
-
-.editorDateBtn:hover {
-  color: var(--green);
-}
-
-.editorMealPlanTag {
-  font-size: 0.7rem;
+.editorMetaChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.72rem;
   font-weight: 700;
+  color: var(--text-muted);
+  background: var(--cream);
+  border: 1px solid var(--cream-dark);
+  border-radius: 999px;
+  padding: 0.22rem 0.6rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.editorMetaChipLabel {
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--green);
-  background: var(--green-pale);
-  padding: 2px 8px;
-  border-radius: 99px;
 }
 
 .editorHeaderActions {
@@ -519,6 +512,48 @@
   font-weight: 700;
   color: var(--text-muted);
   white-space: nowrap;
+}
+
+.listNotesSection {
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--cream-dark);
+  background: rgba(245, 240, 232, 0.45);
+}
+
+.listNotesHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.listNotesLabel {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.listNotesInput {
+  width: 100%;
+  resize: vertical;
+  min-height: 62px;
+  max-height: 140px;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  padding: 0.5rem 0.7rem;
+  border: 1.5px solid var(--cream-dark);
+  border-radius: 10px;
+  background: var(--white);
+  color: var(--text);
+  outline: none;
+}
+
+.listNotesInput:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-pale);
 }
 
 .editorItems {
@@ -652,7 +687,108 @@
   border-radius: 6px;
   background: var(--cream);
   color: var(--text-muted);
-  max-width: 90px;
+  min-width: 140px;
+  max-width: none;
+}
+
+.sortSelect {
+  min-width: 85px;
+  width: 85px;
+}
+
+.groupSelect {
+  min-width: 128px;
+  width: 128px;
+}
+
+.selectStack {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.compactSelectField {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.compactSelectLabel {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.warningCard {
+  border: 1px solid rgba(197, 98, 42, 0.24);
+  background: rgba(197, 98, 42, 0.08);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 0.8rem 0.9rem;
+}
+
+.warningTitle {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--orange);
+  margin-bottom: 0.25rem;
+}
+
+.warningText {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.pickerGrid {
+  display: grid;
+  gap: 0.65rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.pickerCard {
+  border: 1px solid rgba(59, 94, 69, 0.12);
+  background: var(--white);
+  border-radius: 12px;
+  padding: 0.7rem 0.8rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.pickerCard:hover {
+  border-color: var(--green-light);
+  transform: translateY(-1px);
+}
+
+.pickerCardSelected {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-pale);
+}
+
+.pickerTitle {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pickerMeta {
+  margin-top: 0.2rem;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.inlineActionRow {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .itemRowActions {
@@ -763,6 +899,49 @@
   max-width: 420px;
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+}
+
+.notesModal {
+  background: var(--white);
+  border-radius: 18px;
+  width: 100%;
+  max-width: 680px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  border: 1px solid rgba(59, 94, 69, 0.1);
+}
+
+.notesModalBody {
+  padding: 1.2rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.notesModalMeta {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.notesModalInput {
+  width: 100%;
+  resize: vertical;
+  min-height: 260px;
+  max-height: 58vh;
+  border: 1.5px solid var(--cream-dark);
+  border-radius: 12px;
+  background: var(--cream);
+  padding: 0.75rem 0.85rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--text);
+  outline: none;
+}
+
+.notesModalInput:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-pale);
 }
 
 .newListHeader {

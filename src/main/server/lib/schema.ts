@@ -137,6 +137,58 @@ const SCHEMA_STATEMENTS = [
   `,
   `CREATE INDEX IF NOT EXISTS "GroceryItem_groceryListId_sortOrder_idx" ON "GroceryItem"("groceryListId", "sortOrder")`,
   `
+    CREATE TABLE IF NOT EXISTS "PrepList" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "name" TEXT NOT NULL,
+      "notes" TEXT,
+      "date" DATETIME,
+      "fromDate" DATETIME,
+      "toDate" DATETIME,
+      "sourceMode" TEXT NOT NULL DEFAULT 'manual',
+      "sourceLabel" TEXT,
+      "sourceMealIdsJson" TEXT NOT NULL DEFAULT '[]',
+      "sourceRecipeIdsJson" TEXT NOT NULL DEFAULT '[]',
+      "favourite" INTEGER NOT NULL DEFAULT 0,
+      "sortMode" TEXT NOT NULL DEFAULT 'manual',
+      "groupBy" TEXT NOT NULL DEFAULT 'dish',
+      "includeIngredients" INTEGER NOT NULL DEFAULT 1,
+      "includeTasks" INTEGER NOT NULL DEFAULT 1,
+      "includeQuantities" INTEGER NOT NULL DEFAULT 1,
+      "includeIngredientTypes" INTEGER NOT NULL DEFAULT 1,
+      "includeSourceLabels" INTEGER NOT NULL DEFAULT 1,
+      "excludePantryStaples" INTEGER NOT NULL DEFAULT 0,
+      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `,
+  `CREATE INDEX IF NOT EXISTS "PrepList_date_idx" ON "PrepList"("date")`,
+  `CREATE INDEX IF NOT EXISTS "PrepList_fromDate_toDate_idx" ON "PrepList"("fromDate", "toDate")`,
+  `CREATE INDEX IF NOT EXISTS "PrepList_sourceMode_idx" ON "PrepList"("sourceMode")`,
+  `
+    CREATE TABLE IF NOT EXISTS "PrepItem" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "prepListId" TEXT NOT NULL,
+      "kind" TEXT NOT NULL DEFAULT 'ingredient',
+      "name" TEXT NOT NULL,
+      "qty" TEXT,
+      "unit" TEXT,
+      "ingredientType" TEXT,
+      "prepGroup" TEXT,
+      "dish" TEXT,
+      "notes" TEXT,
+      "checked" INTEGER NOT NULL DEFAULT 0,
+      "sortOrder" INTEGER NOT NULL DEFAULT 0,
+      "sourceMealIdsJson" TEXT NOT NULL DEFAULT '[]',
+      "sourceRecipeIdsJson" TEXT NOT NULL DEFAULT '[]',
+      "sourceLabelsJson" TEXT NOT NULL DEFAULT '[]',
+      CONSTRAINT "PrepItem_prepListId_fkey"
+        FOREIGN KEY ("prepListId") REFERENCES "PrepList" ("id")
+        ON DELETE CASCADE ON UPDATE CASCADE
+    )
+  `,
+  `CREATE INDEX IF NOT EXISTS "PrepItem_prepListId_sortOrder_idx" ON "PrepItem"("prepListId", "sortOrder")`,
+  `CREATE INDEX IF NOT EXISTS "PrepItem_prepListId_kind_idx" ON "PrepItem"("prepListId", "kind")`,
+  `
     CREATE TABLE IF NOT EXISTS "UserPreference" (
       "id" TEXT NOT NULL PRIMARY KEY DEFAULT 'default',
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -666,10 +718,15 @@ export async function ensureDatabaseSchema(): Promise<void> {
     parseRaw: `ALTER TABLE "RecipeIngredient" ADD COLUMN "parseRaw" TEXT`,
   } as const;
 
+  const safePrepListAlterStatements = {
+    notes: `ALTER TABLE "PrepList" ADD COLUMN "notes" TEXT`,
+  } as const;
+
   await ensureMissingColumns("Meal", safeMealAlterStatements);
   await ensureMissingColumns("MealTypeProfile", safeMealTypeProfileAlterStatements);
   await ensureMissingColumns("Recipe", safeRecipeAlterStatements);
   await ensureMissingColumns("RecipeIngredient", safeRecipeIngredientAlterStatements);
+  await ensureMissingColumns("PrepList", safePrepListAlterStatements);
   await repairBrokenMealSortOrderColumn();
   await repairMalformedMealSubTypeIndex();
   await normalizeMealSortOrderValues();

@@ -11,6 +11,7 @@ import { menuExportRoutes } from "./routes/menu-export.js";
 import { mealTypesRoutes } from "./routes/meal-types.js";
 import { mealSubTypesRoutes } from "./routes/meal-sub-types.js";
 import { groceryListsRoutes } from "./routes/grocery-lists.js";
+import { prepListsRoutes } from "./routes/prep-lists.js";
 import { recipesRoutes } from "./routes/recipes.js";
 import { preferencesRoutes } from "./routes/preferences.js";
 import { chatRoutes } from "./routes/chat.js";
@@ -68,6 +69,7 @@ export function createApp(config: ServerConfig) {
   app.route("/api", mealTypesRoutes);
   app.route("/api", mealSubTypesRoutes);
   app.route("/api", groceryListsRoutes);
+  app.route("/api", prepListsRoutes);
   app.route("/api", recipesRoutes);
   app.route("/api", preferencesRoutes);
   app.route("/api", chatRoutes);
