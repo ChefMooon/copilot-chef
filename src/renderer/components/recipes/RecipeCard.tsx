@@ -31,8 +31,10 @@ export function RecipeCard({
   const showMeta = Boolean(cuisineLabel) || hasDifficulty || hasPrepTime || hasCookTime || hasRating;
 
   return (
-    <article className={`rounded-card border border-cream-dark bg-white p-3 shadow-sm transition-all sm:p-4 ${selected ? "ring-2 ring-green ring-offset-2" : ""}`}>
-      <div className="mb-1.5 flex items-center justify-between gap-2">
+    <article
+      className={`rounded-card flex h-[168px] flex-col overflow-hidden border border-cream-dark bg-white px-3 pb-1.5 pt-2.5 shadow-sm transition-all sm:h-[180px] sm:px-4 sm:pb-2 sm:pt-3 ${selected ? "ring-2 ring-green ring-offset-2" : ""}`}
+    >
+      <div className="mb-1 flex items-center justify-between gap-2">
         {onToggleSelect ? (
           <input
             checked={Boolean(selected)}
@@ -103,12 +105,12 @@ export function RecipeCard({
           ) : null}
         </div>
       </div>
-      <SourceBadge origin={recipe.origin} sourceLabel={recipe.sourceLabel} />
-      <p className="mt-2 line-clamp-2 text-[13px] leading-snug text-text-muted sm:mt-3 sm:text-sm">
+      <SourceBadge compact origin={recipe.origin} sourceLabel={recipe.sourceLabel} />
+      <p className="mt-1.5 line-clamp-2 text-[13px] leading-snug text-text-muted sm:mt-2 sm:text-sm">
         {recipe.description || "No description"}
       </p>
       {showMeta ? (
-        <div className="mt-2.5 flex flex-wrap gap-x-2.5 gap-y-1 text-[11px] font-medium sm:text-xs">
+        <div className="mt-auto flex max-h-[3rem] flex-wrap gap-x-2.5 gap-y-0.5 overflow-hidden pt-1.5 text-[11px] font-medium sm:max-h-[3.25rem] sm:text-xs">
           {cuisineLabel ? (
             <span className="rounded-full bg-green-pale px-2 py-1 text-green">
               {cuisineLabel}

@@ -1,6 +1,7 @@
 type SourceBadgeProps = {
   origin: string;
   sourceLabel?: string | null;
+  compact?: boolean;
 };
 
 function labelFromOrigin(origin: string) {
@@ -9,14 +10,19 @@ function labelFromOrigin(origin: string) {
   return "Manual";
 }
 
-export function SourceBadge({ origin, sourceLabel }: SourceBadgeProps) {
+export function SourceBadge({ origin, sourceLabel, compact = false }: SourceBadgeProps) {
+  const containerClasses = compact ? "flex items-center gap-1.5 text-[11px]" : "flex items-center gap-2 text-xs";
+  const badgeClasses = compact
+    ? "rounded-full px-2 py-0.5 font-medium"
+    : "rounded-full px-2 py-1 font-medium";
+
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <span className="rounded-full bg-green-pale px-2 py-1 font-medium text-green">
+    <div className={containerClasses}>
+      <span className={`${badgeClasses} bg-green-pale text-green`}>
         {labelFromOrigin(origin)}
       </span>
       {sourceLabel ? (
-        <span className="rounded-full bg-orange/15 px-2 py-1 font-medium text-orange">
+        <span className={`${badgeClasses} bg-orange/15 text-orange`}>
           {sourceLabel}
         </span>
       ) : null}
