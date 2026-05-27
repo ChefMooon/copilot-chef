@@ -40,15 +40,19 @@
   left: 50%;
   transform: translateX(-50%);
   display: inline-flex;
+  width: max-content;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 0.25rem;
 }
 
 .navLink {
+  flex: 0 0 auto;
   border: none;
   border-radius: 8px;
   background: transparent;
   padding: 0.45rem 1rem;
+  white-space: nowrap;
   color: rgba(255, 253, 248, 0.75);
   font-size: 0.9rem;
   font-weight: 600;
@@ -334,6 +338,39 @@
 
   .page {
     padding: 1.25rem 1rem 3rem;
+  }
+}
+
+@media (max-width: 1024px) {
+  .header {
+    padding: 0 1.5rem;
+  }
+
+  .logo {
+    font-size: 1.35rem;
+  }
+
+  .navDesktop {
+    gap: 0.2rem;
+  }
+
+  .navLink {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 980px) {
+  .navDesktop {
+    display: none;
+  }
+
+  .windowControls {
+    display: none;
+  }
+
+  .hamburger {
+    display: inline-flex;
   }
 }
 
