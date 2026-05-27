@@ -155,7 +155,6 @@ describe("EditModal", () => {
         mealTypeProfiles={mealTypeProfiles}
         onClose={vi.fn()}
         onDelete={vi.fn(async () => undefined)}
-        onResuggest={vi.fn(async () => undefined)}
         onSave={vi.fn(async () => undefined)}
         onUnlinkRecipe={vi.fn(async () => undefined)}
         onViewLinkedRecipe={(recipeId) => {
@@ -180,7 +179,6 @@ describe("EditModal", () => {
         mealTypeProfiles={mealTypeProfiles}
         onClose={closeModal}
         onDelete={vi.fn(async () => undefined)}
-        onResuggest={vi.fn(async () => undefined)}
         onSave={vi.fn(async () => {
           throw new Error("Unable to link recipe");
         })}
@@ -203,7 +201,6 @@ describe("EditModal", () => {
         mealTypeProfiles={mealTypeProfiles}
         onClose={vi.fn()}
         onDelete={vi.fn(async () => undefined)}
-        onResuggest={vi.fn(async () => undefined)}
         onSave={vi.fn(async () => undefined)}
       />
     );

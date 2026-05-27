@@ -30,67 +30,13 @@ export {
   type RecipeManualEntryUnit,
 } from "./recipe-units";
 // Schemas — Chat
-export {
-  mealItemSchema,
-  mealPlanPageContextSchema,
-  groceryItemContextSchema,
-  groceryListSummarySchema,
-  groceryListPageContextSchema,
-  homePageContextSchema,
-  recipeListItemSchema,
-  recipesPageContextSchema,
-  recipeDetailIngredientContextSchema,
-  recipeDetailPageContextSchema,
-  shoppingPageContextSchema,
-  prepItemContextSchema,
-  prepListSummarySchema,
-  prepListsPageContextSchema,
-  prepPageContextSchema,
-  minimalPageContextSchema,
-  pageContextSchema,
-} from "./schemas/page-context";
-export type {
-  MealItem,
-  MealPlanPageContext,
-  GroceryItemContext,
-  GroceryListSummary,
-  GroceryListPageContext,
-  HomePageContext,
-  RecipeListItem,
-  RecipesPageContext,
-  RecipeDetailIngredientContext,
-  RecipeDetailPageContext,
-  ShoppingPageContext,
-  PrepItemContext,
-  PrepListSummary,
-  PrepListsPageContext,
-  PrepPageContext,
-  MinimalPageContext,
-  PageContext,
-} from "./schemas/page-context";
-// Schemas — Chat
-export {
-  quickPromptSchema,
-  chatRequestSchema,
-  chatChoiceSchema,
-  chatActionResultSchema,
-  chatJsonResponseSchema,
-  chatResponseSchema,
-} from "./schemas/chat";
-export type {
-  ChatRequest,
-  ChatResponse,
-  ChatChoice,
-  ChatActionResult,
-  ChatJsonResponse,
-} from "./schemas/chat";
 // Schemas — Recipe
 export {
   CreateRecipeInputSchema,
   UpdateRecipeInputSchema,
   RecipeExportJsonSchema,
   IngestResultSchema,
-  AIRecipeSaveSchema,
+  RecipeSaveSchema,
 } from "./schemas/recipe-schemas";
 export {
   MenuExportFormatSchema,
@@ -102,7 +48,7 @@ export type {
   UpdateRecipeInput,
   RecipeExportJson,
   IngestResult,
-  AIRecipeSave,
+  RecipeSave,
   RecipeConflict,
 } from "./schemas/recipe-schemas";
 export type {
@@ -114,8 +60,6 @@ export type {
   MealIngredient,
   PreferencesPayload,
   PreferenceUpdateInput,
-  CustomPersonaPayload,
-  CreatePersonaInput,
   MealTypeDefinitionPayload,
   MealTypeProfilePayload,
   CreateMealTypeProfileInput,

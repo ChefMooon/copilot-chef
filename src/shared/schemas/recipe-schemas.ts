@@ -6,7 +6,7 @@ import {
   type RecipeCanonicalUnit,
 } from "../recipe-units";
 
-const recipeOriginSchema = z.enum(["manual", "imported", "ai_generated"]);
+const recipeOriginSchema = z.enum(["manual", "imported"]);
 const recipeCuisineSchema = z.enum(CUISINE_VALUES);
 
 function trimToNull(value: string | null | undefined) {
@@ -282,7 +282,7 @@ export const IngestResultSchema = z.union([
   recipeDraftResultSchema,
 ]);
 
-export const AIRecipeSaveSchema = z.object({
+export const RecipeSaveSchema = z.object({
   title: requiredTrimmedStringSchema,
   description: nullableTrimmedStringSchema.optional(),
   servings: z.number().int().positive().optional(),
@@ -302,5 +302,5 @@ export type CreateRecipeInput = z.input<typeof CreateRecipeInputSchema>;
 export type UpdateRecipeInput = z.input<typeof UpdateRecipeInputSchema>;
 export type RecipeExportJson = z.infer<typeof RecipeExportJsonSchema>;
 export type IngestResult = z.infer<typeof IngestResultSchema>;
-export type AIRecipeSave = z.infer<typeof AIRecipeSaveSchema>;
+export type RecipeSave = z.infer<typeof RecipeSaveSchema>;
 export type RecipeConflict = z.infer<typeof RecipeConflictSchema>;

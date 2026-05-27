@@ -17,7 +17,6 @@ import {
   type RecipePayload,
 } from "@/lib/api";
 import { recipeKeys } from "@/lib/query-keys";
-import { useChatPageContext } from "@/context/chat-context";
 
 type RecipeDetailResponse = {
   data: RecipePayload;
@@ -57,7 +56,7 @@ function RecipeDetailContent({
   madeHistory: RecipeMadeHistoryPayload | null;
   isMadeHistoryLoading: boolean;
 }) {
-  const [liveState, setLiveState] = useState<{
+  const [, setLiveState] = useState<{
     activeView: "basic" | "detailed" | "cooking";
     activeUnitMode: "cup" | "grams";
     cookingStepNumber: number | null;
@@ -65,30 +64,6 @@ function RecipeDetailContent({
     activeView: defaultView,
     activeUnitMode: defaultUnitMode,
     cookingStepNumber: defaultView === "cooking" ? 1 : null,
-  });
-
-  useChatPageContext({
-    page: "recipe-detail",
-    recipeId: recipe.id,
-    title: recipe.title,
-    description: recipe.description,
-    difficulty: recipe.difficulty,
-    cuisine: recipe.cuisine,
-    servings: recipe.servings,
-    prepTime: recipe.prepTime,
-    cookTime: recipe.cookTime,
-    rating: recipe.rating,
-    origin: recipe.origin,
-    favourite: recipe.favourite,
-    tags: recipe.tags,
-    ingredients: recipe.ingredients.map((ingredient) => ({
-      name: ingredient.name,
-      quantity: ingredient.quantity,
-      unit: ingredient.unit,
-    })),
-    activeView: liveState.activeView,
-    activeUnitMode: liveState.activeUnitMode,
-    cookingStepNumber: liveState.cookingStepNumber,
   });
 
   return (

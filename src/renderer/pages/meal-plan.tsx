@@ -61,9 +61,8 @@ import {
   reorderUnscheduledMeals,
   reorderSlotMeals as reorderSlotMealsApi,
 } from "@/lib/api";
-import { getCachedConfig, isServerConfigReady } from "@/lib/config";
+import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
-import { useChatPageContext } from "@/context/chat-context";
 import { useToast } from "@/components/providers/toast-provider";
 import { useMealUndoRedo } from "@/components/meal-plan/use-meal-undo-redo";
 import { mealToRecipePayload } from "@/lib/meal-to-recipe";
@@ -134,44 +133,6 @@ function toDeletedMealSnapshot(meal: EditableMeal): DeletedMealSnapshot {
 
 function toIsoString(date: Date) {
   return date.toISOString();
-}
-
-async function readChatResponse(message: string) {
-  const config = getCachedConfig();
-  const serverUrl = config?.url ?? "http://127.0.0.1:3001";
-  const token = config?.token ?? "";
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(`${serverUrl}/api/chat`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ message }),
-  });
-
-  if (!response.ok || !response.body) {
-    throw new Error("Unable to fetch AI suggestion");
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let text = "";
-
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) {
-      break;
-    }
-
-    text += decoder.decode(value, { stream: true });
-  }
-
-  text += decoder.decode();
-  return text.trim();
 }
 
 export default function MealPlanPage() {
@@ -513,20 +474,6 @@ export default function MealPlanPage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [editMeal, slotManagerState, trashPendingMeal, undo, redo]);
-
-  useChatPageContext({
-    page: "meal-plan",
-    view,
-    date: date.toISOString(),
-    dateRangeFrom: dateRange.from.toISOString(),
-    dateRangeTo: dateRange.to.toISOString(),
-    meals: meals.map((m) => ({
-      id: m.id ?? "",
-      name: m.name,
-      mealType: m.type,
-      date: m.date.toISOString(),
-    })),
-  });
 
   const switchView = (nextView: CalView) => {
     setView(nextView);
@@ -1929,23 +1876,6 @@ export default function MealPlanPage() {
     }
   };
 
-  const onResuggest = async (meal: EditableMeal) => {
-    const answer = await readChatResponse(
-      `Re-suggest a ${meal.type} meal for ${meal.date.toDateString()} based on my preferences. Return a short meal name and one sentence.`
-    );
-
-    const nextName =
-      answer
-        .split("\n")
-        .map((line) => line.trim())
-        .find((line) => line.length > 0)
-        ?.replace(/^[-*\d.)\s]+/, "") ?? meal.name;
-
-    return {
-      name: nextName.replace(/^"|"$/g, ""),
-    };
-  };
-
   const bankEditProxy = bankEditMeal ? toEditableBankMeal(bankEditMeal) : null;
 
   const pageTitle =
@@ -2324,7 +2254,6 @@ export default function MealPlanPage() {
           mealTypeProfiles={mealTypeProfiles}
           onClose={() => setEditMeal(null)}
           onDelete={onDeleteMeal}
-          onResuggest={onResuggest}
           onSave={onSaveMeal}
           onSaveAsRecipe={handleSaveAsRecipe}
           onUnlinkRecipe={handleUnlinkRecipe}
@@ -2342,7 +2271,6 @@ export default function MealPlanPage() {
             await deleteMealById(mealId);
             setBankEditMeal(null);
           }}
-          onResuggest={onResuggest}
           onSave={saveBankMeal}
           onSaveAsRecipe={handleSaveAsRecipe}
           onUnlinkRecipe={handleUnlinkRecipe}

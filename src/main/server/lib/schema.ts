@@ -204,21 +204,12 @@ const SCHEMA_STATEMENTS = [
       "nutritionTags" TEXT NOT NULL DEFAULT '',
       "skillLevel" TEXT NOT NULL DEFAULT 'home-cook',
       "budgetRange" TEXT NOT NULL DEFAULT 'moderate',
-      "chefPersona" TEXT NOT NULL DEFAULT 'coach',
-      "replyLength" TEXT NOT NULL DEFAULT 'balanced',
-      "emojiUsage" TEXT NOT NULL DEFAULT 'occasional',
-      "autoImproveChef" INTEGER NOT NULL DEFAULT 1,
-      "contextAwareness" INTEGER NOT NULL DEFAULT 1,
-      "seasonalAwareness" INTEGER NOT NULL DEFAULT 1,
-      "seasonalRegion" TEXT NOT NULL DEFAULT 'eastern-us',
-      "proactiveTips" INTEGER NOT NULL DEFAULT 0,
       "autoGenerateGrocery" INTEGER NOT NULL DEFAULT 1,
       "consolidateIngredients" INTEGER NOT NULL DEFAULT 1,
       "defaultPlanLength" TEXT NOT NULL DEFAULT '7',
       "groceryGrouping" TEXT NOT NULL DEFAULT 'category',
       "defaultRecipeView" TEXT NOT NULL DEFAULT 'basic',
       "defaultUnitMode" TEXT NOT NULL DEFAULT 'cup',
-      "saveChatHistory" INTEGER NOT NULL DEFAULT 1,
       "reasoningEffort" TEXT NOT NULL DEFAULT ''
     )
   `,
@@ -304,85 +295,6 @@ const SCHEMA_STATEMENTS = [
   `,
   `CREATE UNIQUE INDEX IF NOT EXISTS "RecipeLink_parentId_subRecipeId_key" ON "RecipeLink"("parentId", "subRecipeId")`,
   `CREATE INDEX IF NOT EXISTS "RecipeLink_subRecipeId_idx" ON "RecipeLink"("subRecipeId")`,
-  `
-    CREATE TABLE IF NOT EXISTS "ChatSession" (
-      "id" TEXT NOT NULL PRIMARY KEY,
-      "ownerId" TEXT NOT NULL DEFAULT 'web-default',
-      "copilotSessionId" TEXT,
-      "title" TEXT,
-      "state" TEXT NOT NULL DEFAULT 'idle',
-      "pendingInputRequestId" TEXT,
-      "pendingQuestion" TEXT,
-      "pendingChoicesJson" TEXT,
-      "pendingAllowFreeform" INTEGER NOT NULL DEFAULT 1,
-      "pendingRequestedAt" DATETIME,
-      "pendingRetryCount" INTEGER NOT NULL DEFAULT 0,
-      "pendingLastErrorCode" TEXT,
-      "pendingLastRequestId" TEXT,
-      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-  `,
-  `CREATE INDEX IF NOT EXISTS "ChatSession_ownerId_updatedAt_idx" ON "ChatSession"("ownerId", "updatedAt")`,
-  `CREATE INDEX IF NOT EXISTS "ChatSession_ownerId_state_updatedAt_idx" ON "ChatSession"("ownerId", "state", "updatedAt")`,
-  `
-    CREATE TABLE IF NOT EXISTS "ChatMessage" (
-      "id" TEXT NOT NULL PRIMARY KEY,
-      "chatSessionId" TEXT NOT NULL,
-      "role" TEXT NOT NULL,
-      "content" TEXT NOT NULL,
-      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT "ChatMessage_chatSessionId_fkey"
-        FOREIGN KEY ("chatSessionId") REFERENCES "ChatSession" ("id")
-        ON DELETE CASCADE ON UPDATE CASCADE
-    )
-  `,
-  `CREATE INDEX IF NOT EXISTS "ChatMessage_chatSessionId_createdAt_idx" ON "ChatMessage"("chatSessionId", "createdAt")`,
-  `
-    CREATE TABLE IF NOT EXISTS "ChatAction" (
-      "id" TEXT NOT NULL PRIMARY KEY,
-      "chatSessionId" TEXT NOT NULL,
-      "domain" TEXT NOT NULL,
-      "actionType" TEXT NOT NULL,
-      "summary" TEXT NOT NULL,
-      "forwardJson" TEXT NOT NULL,
-      "inverseJson" TEXT NOT NULL,
-      "undoneAt" DATETIME,
-      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT "ChatAction_chatSessionId_fkey"
-        FOREIGN KEY ("chatSessionId") REFERENCES "ChatSession" ("id")
-        ON DELETE CASCADE ON UPDATE CASCADE
-    )
-  `,
-  `CREATE INDEX IF NOT EXISTS "ChatAction_chatSessionId_createdAt_idx" ON "ChatAction"("chatSessionId", "createdAt")`,
-  `CREATE INDEX IF NOT EXISTS "ChatAction_chatSessionId_undoneAt_idx" ON "ChatAction"("chatSessionId", "undoneAt")`,
-  `
-    CREATE TABLE IF NOT EXISTS "ChatPendingSuggestion" (
-      "id" TEXT NOT NULL PRIMARY KEY,
-      "chatSessionId" TEXT NOT NULL,
-      "domain" TEXT NOT NULL,
-      "title" TEXT NOT NULL,
-      "payloadJson" TEXT NOT NULL,
-      "expiresAt" DATETIME NOT NULL,
-      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT "ChatPendingSuggestion_chatSessionId_fkey"
-        FOREIGN KEY ("chatSessionId") REFERENCES "ChatSession" ("id")
-        ON DELETE CASCADE ON UPDATE CASCADE
-    )
-  `,
-  `CREATE INDEX IF NOT EXISTS "ChatPendingSuggestion_chatSessionId_createdAt_idx" ON "ChatPendingSuggestion"("chatSessionId", "createdAt")`,
-  `CREATE INDEX IF NOT EXISTS "ChatPendingSuggestion_chatSessionId_expiresAt_idx" ON "ChatPendingSuggestion"("chatSessionId", "expiresAt")`,
-  `
-    CREATE TABLE IF NOT EXISTS "CustomPersona" (
-      "id" TEXT NOT NULL PRIMARY KEY,
-      "emoji" TEXT NOT NULL,
-      "title" TEXT NOT NULL,
-      "description" TEXT NOT NULL,
-      "prompt" TEXT NOT NULL,
-      "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-      "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-  `,
 ] as const;
 
 async function ensureMissingColumns(

@@ -14,7 +14,6 @@ const SERVER_ENV_MAP: Record<string, string[]> = {
   COPILOT_CHEF_SERVER_LOG_LEVEL: ["server", "logLevel"],
   COPILOT_CHEF_DATABASE_URL: ["database", "url"],
   COPILOT_CHEF_AUTH_TOKENS: ["auth", "tokens"],
-  COPILOT_CHEF_COPILOT_MODEL: ["auth", "copilotModel"],
   COPILOT_CHEF_UPDATES_FEED_URL: ["updates", "feedUrl"],
   COPILOT_CHEF_UPDATES_CHECK_ON_STARTUP: ["updates", "checkOnStartup"],
   COPILOT_CHEF_CORS_ORIGINS: ["cors", "origins"],

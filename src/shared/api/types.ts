@@ -43,24 +43,7 @@ export const ApiPaths = {
   preferencesDetectRegion: "/api/preferences/detect-region",
   preferencesExport: "/api/preferences/export",
 
-  // Chat
-  chat: "/api/chat",
-  chatRespondToInput: "/api/chat/respond-to-input",
-  chatEndSession: "/api/chat/end-session",
-  chatHistory: "/api/chat/history",
-
-  // Chat sessions
-  chatSessions: "/api/chat-sessions",
-  chatSession: (id: string) => `/api/chat-sessions/${id}`,
-
-  // Personas
-  personas: "/api/personas",
-  persona: (id: string) => `/api/personas/${id}`,
-
   // Stats
   stats: "/api/stats",
   statsMealSummary: "/api/stats/meal-summary",
-
-  // Session probe
-  sessionProbe: "/api/session-probe",
 } as const;

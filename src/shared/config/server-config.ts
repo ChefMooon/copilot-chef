@@ -18,7 +18,6 @@ export const ServerConfigSchema = z.object({
   auth: z
     .object({
       tokens: z.array(z.string()).default([]),
-      copilotModel: z.string().default("gpt-4o-mini"),
     })
     .default({}),
   updates: z

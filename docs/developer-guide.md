@@ -1,4 +1,4 @@
-# Copilot Chef — Developer Guide
+# Local Recipe Book — Developer Guide
 
 ## 1. Prerequisites
 
@@ -6,7 +6,6 @@
 |---|---|---|
 | Node.js | >= 20.x | https://nodejs.org |
 | npm | >= 10.x | Ships with Node.js |
-| GitHub Copilot CLI | any | `copilot login` (auth only) |
 
 ---
 
@@ -51,9 +50,6 @@ npm run db:generate
 
 # 4. Seed sample data
 npm run db:seed
-
-# 5. Authenticate with GitHub Copilot (required for chat to work)
-copilot login
 ```
 
 > **Note**: The Electron app creates its SQLite database under the app user data directory at runtime. The Prisma schema still lives in `prisma/schema.prisma`.
@@ -195,21 +191,6 @@ export default function MyPage() {
 }
 ```
 
-### New chat slash command
-
-Add to `src/renderer/components/chat/slash-commands.ts`:
-
-```ts
-{
-  command: "/my-command",
-  label: "My Command",
-  description: "Short description shown in the menu",
-  prompt: "The message sent to Copilot when this command is selected",
-},
-```
-
-For commands requiring special client-side processing (e.g., navigation), extend the command handler in `ChatPanel.tsx`.
-
 ### Frontend implementation note
 
 For any frontend or UI behavior changes, align with `docs/copilot-chef-style-guide.md` before implementation.
@@ -223,7 +204,7 @@ For any frontend or UI behavior changes, align with `docs/copilot-chef-style-gui
 npm run test
 
 # Single test file
-npx vitest run src/main/server/copilot/copilot-chef.tools.test.ts
+npx vitest run src/shared/config/__tests__/loader.test.ts
 ```
 
 Tests use [Vitest](https://vitest.dev). Current test coverage lives primarily under `src/main/server/` and `src/shared/config/__tests__/`.
@@ -263,16 +244,12 @@ The embedded Hono server runs inside the Electron main process. Start with `npm 
 ```
 [copilot-chef] server started on http://localhost:3001
 GET /api/health  200  4ms
-POST /api/chat   200  1234ms
+POST /api/meals  200  24ms
 ```
 
 ### Electron DevTools
 
 Press `F12` in the Electron window during development to open Chromium DevTools. The Network tab shows renderer requests to the embedded server.
-
-### Copilot auth issues
-
-Run `copilot login` and verify with `copilot auth status`. The SDK reads credentials from the same store as the CLI. A missing or expired token produces a vague 401 from the Copilot API.
 
 ### SQLite lock issues
 

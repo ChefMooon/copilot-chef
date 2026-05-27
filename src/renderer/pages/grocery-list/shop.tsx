@@ -5,7 +5,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/api";
 import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
-import { useChatPageContext } from "@/context/chat-context";
 import {
   deriveGroceryList,
   groupByCategory,
@@ -36,23 +35,6 @@ function GroceryShopContent({
   markAllComplete: () => Promise<void>;
   toggleItem: (item: GroceryItem) => Promise<void>;
 }) {
-  useChatPageContext({
-    page: "shopping",
-    listId: list.id,
-    listName: list.name,
-    itemCount: list.items.length,
-    checkedCount: done,
-    completionPercentage: pct,
-    items: list.items.map((item) => ({
-      id: item.id,
-      name: item.name,
-      qty: item.qty,
-      unit: item.unit,
-      category: item.category,
-      checked: item.checked,
-    })),
-  });
-
   return (
     <div className={styles.overlay}>
       <div className={styles.header}>

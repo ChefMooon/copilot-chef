@@ -62,7 +62,7 @@ function parseFilters(c: Context): RecipeFilters {
 
   return {
     origin:
-      origin === "manual" || origin === "imported" || origin === "ai_generated"
+      origin === "manual" || origin === "imported"
         ? origin
         : undefined,
     cuisine: cuisine?.trim() || undefined,

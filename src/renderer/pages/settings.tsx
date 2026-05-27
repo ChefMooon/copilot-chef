@@ -14,7 +14,6 @@ import { MealSubTypesSection } from "@/components/settings/MealSubTypesSection";
 
 import { ChipList } from "@/components/settings/ChipList";
 import { CollapsibleSection } from "@/components/settings/CollapsibleSection";
-import { PersonaGrid } from "@/components/settings/PersonaGrid";
 import { SegmentedControl } from "@/components/settings/SegmentedControl";
 import { TagCloud } from "@/components/settings/TagCloud";
 import styles from "@/components/settings/settings.module.css";
@@ -32,19 +31,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { useChatContext, useChatPageContext } from "@/context/chat-context";
 import {
-  clearChatHistory,
-  createPersona,
-  deletePersona,
-  detectRegion,
   exportUserData,
-  getPersonas,
   getPreferences,
   patchPreferences,
   resetPreferences,
-  updatePersona,
-  type CustomPersonaPayload,
   type SettingsPreferences,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -107,87 +98,6 @@ const budgetOptions = [
   { label: "Premium ok", value: "premium" },
 ];
 
-const personaOptions = [
-  {
-    value: "coach",
-    icon: "🧑‍🍳",
-    name: "The Coach",
-    subtitle: "Encouraging, practical",
-  },
-  {
-    value: "scientist",
-    icon: "👨‍🔬",
-    name: "The Scientist",
-    subtitle: "Precise, data-driven",
-  },
-  {
-    value: "entertainer",
-    icon: "🎭",
-    name: "The Entertainer",
-    subtitle: "Witty, energetic",
-  },
-  {
-    value: "minimalist",
-    icon: "🧘",
-    name: "The Minimalist",
-    subtitle: "Terse, efficient",
-  },
-  {
-    value: "professor",
-    icon: "📚",
-    name: "The Professor",
-    subtitle: "Thoughtful, educational",
-  },
-  {
-    value: "michelin",
-    icon: "⭐",
-    name: "The Michelin",
-    subtitle: "Refined, high standards",
-  },
-];
-
-const replyLengthOptions = [
-  { label: "Concise", value: "concise" },
-  { label: "Balanced", value: "balanced" },
-  { label: "Detailed", value: "detailed" },
-];
-
-const reasoningEffortOptions = [
-  { label: "Default", value: "" },
-  { label: "Low", value: "low" },
-  { label: "Medium", value: "medium" },
-  { label: "High", value: "high" },
-];
-
-const copilotModelOptions = [
-  { label: "GPT-4.1", value: "gpt-4.1" },
-  { label: "GPT-5.4 mini", value: "gpt-5.4-mini" },
-  { label: "GPT-5.2", value: "gpt-5.2" },
-  { label: "Claude Haiku 4.5", value: "claude-haiku-4.5" },
-  { label: "Claude 4.6 Sonnet", value: "claude-4.6-sonnet" },
-  { label: "Gemini 3.0 Flash", value: "gemini-3.0-flash" },
-  { label: "Gemini 2.5 Pro", value: "gemini-2.5-pro" },
-];
-
-const emojiOptions = [
-  { label: "Occasional", value: "occasional" },
-  { label: "Frequent", value: "frequent" },
-  { label: "None", value: "none" },
-];
-
-const regionOptions = [
-  { label: "Northern US / Canada", value: "northern-us-canada" },
-  { label: "Eastern US", value: "eastern-us" },
-  { label: "Southern US", value: "southern-us" },
-  { label: "Western US / Pacific", value: "western-us" },
-  { label: "Western Europe", value: "western-europe" },
-  { label: "Mediterranean", value: "mediterranean" },
-  { label: "East Asia", value: "east-asia" },
-  { label: "South Asia", value: "south-asia" },
-  { label: "Australia / NZ", value: "australia-nz" },
-  { label: "Southern hemisphere", value: "southern-hemisphere" },
-];
-
 const planLengthOptions = [
   { label: "3 days", value: "3" },
   { label: "7 days (week)", value: "7" },
@@ -218,17 +128,12 @@ const homeUpcomingDetailOptions = [
 
 const platform = getPlatform();
 
-const PersonaModal = lazy(async () => {
-  const module = await import("@/components/settings/PersonaModal");
-  return { default: module.PersonaModal };
-});
-
 const LanQrCodeModal = lazy(async () => {
   const module = await import("@/components/settings/LanQrCodeModal");
   return { default: module.LanQrCodeModal };
 });
 
-type TabId = "dietary-profile" | "meal-plans" | "your-chef" | "app-settings";
+type TabId = "dietary-profile" | "meal-plans" | "app-settings";
 
 type HomeUpcomingDetail = "standard" | "detailed";
 type MealBankPlacement = "left" | "right" | "bottom";
@@ -296,7 +201,6 @@ const TABS: Array<{ id: TabId; label: string; panelId: string }> = [
     panelId: "panel-dietary-profile",
   },
   { id: "meal-plans", label: "Meal Plans", panelId: "panel-meal-plans" },
-  { id: "your-chef", label: "Your Chef", panelId: "panel-your-chef" },
   { id: "app-settings", label: "App Settings", panelId: "panel-app-settings" },
 ];
 
@@ -355,10 +259,8 @@ export default function SettingsPage() {
   const apiReady = isServerConfigReady(config);
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { clearSession } = useChatContext();
   const patchMutation = useMutation({ mutationFn: patchPreferences });
   const resetMutation = useMutation({ mutationFn: resetPreferences });
-  const clearHistoryMutation = useMutation({ mutationFn: clearChatHistory });
 
   const preferencesQuery = useQuery({
     queryKey: preferenceQueryKey,
@@ -368,25 +270,8 @@ export default function SettingsPage() {
 
   const preferences = preferencesQuery.data;
 
-  const customPersonasQueryKey = ["personas"] as const;
-  const customPersonasQuery = useQuery({
-    queryKey: customPersonasQueryKey,
-    enabled: apiReady,
-    queryFn: getPersonas,
-  });
-  const customPersonas = customPersonasQuery.data ?? [];
-
-  type PersonaModalState =
-    | { open: false }
-    | { open: true; mode: "create" }
-    | { open: true; mode: "edit"; persona: CustomPersonaPayload };
-  const [personaModalState, setPersonaModalState] = useState<PersonaModalState>(
-    { open: false }
-  );
-
   const householdTimerRef = useRef<number | null>(null);
   const notesTimerRef = useRef<number | null>(null);
-  const detectResetTimerRef = useRef<number | null>(null);
 
   const [householdSizeDraft, setHouseholdSizeDraft] = useState(2);
   const [householdSizeDirty, setHouseholdSizeDirty] = useState(false);
@@ -396,9 +281,6 @@ export default function SettingsPage() {
   const [notesScheduled, setNotesScheduled] = useState(false);
   const [pendingSaves, setPendingSaves] = useState(0);
   const [saveError, setSaveError] = useState(false);
-  const [detectState, setDetectState] = useState<
-    "idle" | "detecting" | "success"
-  >("idle");
 
   // Connection section state
   const [connectionDraft, setConnectionDraft] = useState<{
@@ -411,7 +293,6 @@ export default function SettingsPage() {
     mode: "local",
   });
   const [machineApiKeyDraft, setMachineApiKeyDraft] = useState("");
-  const [copilotModelDraft, setCopilotModelDraft] = useState("gpt-4.1");
   const [connectionSaving, setConnectionSaving] = useState(false);
   const [connectionSaved, setConnectionSaved] = useState(false);
   const [updatesCheckOnStartup, setUpdatesCheckOnStartup] = useState(true);
@@ -554,17 +435,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     platform
-      .getSetting("copilot_model")
-      .then((value) => {
-        if (typeof value === "string" && value) {
-          setCopilotModelDraft(value);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    platform
       .getSetting("updates_check_on_startup")
       .then((value) => {
         if (typeof value === "boolean") {
@@ -686,8 +556,6 @@ export default function SettingsPage() {
     });
   }, [manualUpdateCheckPending, toast]);
 
-  useChatPageContext({ page: "settings" });
-
   useEffect(() => {
     if (!preferences) {
       return;
@@ -706,7 +574,6 @@ export default function SettingsPage() {
     return () => {
       clearBrowserTimer(householdTimerRef);
       clearBrowserTimer(notesTimerRef);
-      clearBrowserTimer(detectResetTimerRef);
     };
   }, []);
 
@@ -875,72 +742,6 @@ export default function SettingsPage() {
     await commitPatch({ [field]: value } as Partial<SettingsPreferences>);
   };
 
-  const allPersonaOptions = useMemo(
-    () => [
-      ...personaOptions,
-      ...customPersonas.map((p) => ({
-        value: p.id,
-        icon: p.emoji,
-        name: p.title,
-        subtitle: p.description,
-        isCustom: true as const,
-      })),
-    ],
-    [customPersonas]
-  );
-
-  const handlePersonaModalSave = async (input: {
-    emoji: string;
-    title: string;
-    description: string;
-    prompt: string;
-  }) => {
-    if (personaModalState.open && personaModalState.mode === "edit") {
-      await updatePersona(personaModalState.persona.id, input);
-      toast({ title: "Persona updated." });
-    } else {
-      const created = await createPersona(input);
-      await commitPatch({ chefPersona: created.id });
-      toast({ title: "Custom persona created." });
-    }
-    await queryClient.invalidateQueries({ queryKey: customPersonasQueryKey });
-    setPersonaModalState({ open: false });
-  };
-
-  const handlePersonaDelete = async (id: string) => {
-    await deletePersona(id);
-    if (preferences?.chefPersona === id) {
-      await commitPatch({ chefPersona: "coach" });
-    }
-    await queryClient.invalidateQueries({ queryKey: customPersonasQueryKey });
-    toast({ title: "Persona deleted." });
-    setPersonaModalState({ open: false });
-  };
-
-  const handleDetectRegion = async () => {
-    setDetectState("detecting");
-    try {
-      const detected = await detectRegion();
-      if (!detected.region) {
-        throw new Error(detected.error ?? "Could not detect region");
-      }
-
-      await commitPatch({ seasonalRegion: detected.region });
-      setDetectState("success");
-      clearBrowserTimer(detectResetTimerRef);
-      detectResetTimerRef.current = window.setTimeout(
-        () => setDetectState("idle"),
-        1400
-      );
-    } catch {
-      setDetectState("idle");
-      toast({
-        title: "Could not detect region automatically.",
-        variant: "error",
-      });
-    }
-  };
-
   const handleExport = async () => {
     try {
       const { blob, fileName } = await exportUserData();
@@ -972,16 +773,6 @@ export default function SettingsPage() {
     }
   };
 
-  const handleClearChatHistory = async () => {
-    try {
-      await clearHistoryMutation.mutateAsync();
-      clearSession();
-      toast({ title: "Chat history cleared." });
-    } catch {
-      toast({ title: "Could not clear chat history.", variant: "error" });
-    }
-  };
-
   const handleSaveConnection = async () => {
     setConnectionSaving(true);
     try {
@@ -989,10 +780,6 @@ export default function SettingsPage() {
       await platform.setSetting("remote_api_key", connectionDraft.token);
       await platform.setSetting("server_mode", connectionDraft.mode);
       await platform.setSetting("machine_api_key", machineApiKeyDraft);
-      await platform.setSetting(
-        "copilot_model",
-        copilotModelDraft.trim() || "gpt-4.1"
-      );
       resetConfigCache();
       await loadServerConfig();
       queryClient.clear();
@@ -1246,8 +1033,8 @@ export default function SettingsPage() {
           <div className={styles.eyebrow}>Settings</div>
           <h1 className={styles.pageTitle}>Household preferences</h1>
           <p className={styles.pageSubtitle}>
-            Tune dietary direction, planning behavior, and the tone Copilot Chef
-            uses when it helps you cook.
+            Tune dietary direction, planning behavior, and the defaults Local
+            Recipe Book uses across your kitchen workflow.
           </p>
         </div>
         <div className={cn(styles.autosavePill, saveState.className)}>
@@ -1309,8 +1096,8 @@ export default function SettingsPage() {
         className={styles.tabPanel}
       >
         <p className={styles.tabDescription}>
-          Tell Copilot Chef your household, dietary needs, cuisines, pantry
-          defaults, and nutrition goals.
+          Set your household, dietary needs, cuisines, pantry defaults, and
+          nutrition goals.
         </p>
         <CollapsibleSection id="dietary-tab" label="Dietary Profile">
           <div className={styles.card}>
@@ -1500,77 +1287,7 @@ export default function SettingsPage() {
         </CollapsibleSection>
       </div>
 
-      {/* ── Tab 3: Your Chef ── */}
-      <div
-        id="panel-your-chef"
-        role="tabpanel"
-        aria-labelledby="your-chef"
-        hidden={activeTab !== "your-chef"}
-        className={styles.tabPanel}
-      >
-        <p className={styles.tabDescription}>
-          Choose the assistant personality and response style that make cooking
-          help feel right for you.
-        </p>
-        <CollapsibleSection id="chef" label="Your Chef">
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h2 className={styles.cardTitle}>Chef personality</h2>
-              <p className={styles.cardDescription}>
-                Choose how your AI chef talks to you.
-              </p>
-            </div>
-            <PersonaGrid
-              onCreateCustom={() =>
-                setPersonaModalState({ open: true, mode: "create" })
-              }
-              onEditCustom={(id) => {
-                const persona = customPersonas.find((p) => p.id === id);
-                if (persona)
-                  setPersonaModalState({ open: true, mode: "edit", persona });
-              }}
-              onSelect={(value) =>
-                void handleImmediateField("chefPersona", value)
-              }
-              options={allPersonaOptions}
-              value={preferences.chefPersona}
-            />
-          </div>
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
-              <h2 className={styles.cardTitle}>Response style</h2>
-            </div>
-            <div className={styles.twoColumn}>
-              <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>
-                  Default reply length
-                </label>
-                <SegmentedControl
-                  onChange={(value) =>
-                    void handleImmediateField("replyLength", value)
-                  }
-                  options={replyLengthOptions}
-                  value={preferences.replyLength}
-                />
-              </div>
-              <div className={styles.fieldGroup}>
-                <label className={styles.fieldLabel}>
-                  Use of emoji in responses
-                </label>
-                <SegmentedControl
-                  onChange={(value) =>
-                    void handleImmediateField("emojiUsage", value)
-                  }
-                  options={emojiOptions}
-                  value={preferences.emojiUsage}
-                />
-              </div>
-            </div>
-          </div>
-        </CollapsibleSection>
-      </div>
-
-      {/* ── Tab 4: App Settings ── */}
+      {/* ── Tab 3: App Settings ── */}
       <div
         id="panel-app-settings"
         role="tabpanel"
@@ -1632,14 +1349,14 @@ export default function SettingsPage() {
             <div className={styles.cardHeader}>
               <h2 className={styles.cardTitle}>Server connection</h2>
               <p className={styles.cardDescription}>
-                Configure the Copilot Chef server URL and authentication.
+                Configure the app server URL and authentication.
               </p>
             </div>
             <div className={styles.toggleList} style={{ marginBottom: "1rem" }}>
               <ToggleRow
                 checked={connectionDraft.mode === "remote"}
                 label="Remote mode"
-                description="Connect to a remote Copilot Chef server instead of the built-in one."
+                description="Connect to a remote app server instead of the built-in one."
                 onChange={(checked) =>
                   setConnectionDraft((prev) => ({
                     ...prev,
@@ -1690,25 +1407,6 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
-            <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
-              <label className={styles.fieldLabel}>
-                AI model{" "}
-                <span style={{ fontWeight: 400, opacity: 0.6 }}>
-                  (requires restart)
-                </span>
-              </label>
-              <select
-                className={styles.select}
-                value={copilotModelDraft}
-                onChange={(event) => setCopilotModelDraft(event.target.value)}
-              >
-                {copilotModelOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
             <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
               <label className={styles.fieldLabel}>Machine API key</label>
               <input
@@ -1818,7 +1516,7 @@ export default function SettingsPage() {
                         wordBreak: "break-all",
                       }}
                     >
-                      {`netsh advfirewall firewall add rule name="Copilot Chef" dir=in action=allow protocol=TCP localport=${lanStatus.api.port}`}
+                      {`netsh advfirewall firewall add rule name="Local Recipe Book" dir=in action=allow protocol=TCP localport=${lanStatus.api.port}`}
                     </code>
                   </div>
                 )}
@@ -2040,95 +1738,6 @@ export default function SettingsPage() {
         <CollapsibleSection id="app" label="App Settings">
           <div className={styles.card}>
             <div className={styles.cardHeader}>
-              <h2 className={styles.cardTitle}>AI behavior</h2>
-            </div>
-            <div className={styles.toggleList}>
-              <ToggleRow
-                checked={preferences.autoImproveChef}
-                description="Chef learns from your feedback and adjusts suggestions over time."
-                label="Auto-improve chef"
-                onChange={(checked) =>
-                  void handleImmediateField("autoImproveChef", checked)
-                }
-              />
-              <ToggleRow
-                checked={preferences.contextAwareness}
-                description="Include current meal plan and pantry when generating ideas."
-                label="Context-aware suggestions"
-                onChange={(checked) =>
-                  void handleImmediateField("contextAwareness", checked)
-                }
-              />
-              <div>
-                <ToggleRow
-                  checked={preferences.seasonalAwareness}
-                  description="Prioritize ingredients that are in season in your region."
-                  label="Seasonal awareness"
-                  onChange={(checked) =>
-                    void handleImmediateField("seasonalAwareness", checked)
-                  }
-                />
-                <div
-                  className={cn(
-                    styles.regionWrap,
-                    !preferences.seasonalAwareness && styles.regionWrapClosed
-                  )}
-                >
-                  <div className={styles.regionRow}>
-                    <select
-                      className={styles.select}
-                      onChange={(event) =>
-                        void handleImmediateField(
-                          "seasonalRegion",
-                          event.target.value
-                        )
-                      }
-                      value={preferences.seasonalRegion}
-                    >
-                      {regionOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                    <Button
-                      disabled={detectState === "detecting"}
-                      onClick={() => void handleDetectRegion()}
-                      type="button"
-                      variant="outline"
-                    >
-                      {detectState === "detecting"
-                        ? "Detecting…"
-                        : detectState === "success"
-                          ? "Detected ✓"
-                          : "Detect"}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-              <ToggleRow
-                checked={preferences.proactiveTips}
-                description="Chef offers unprompted suggestions and cooking tips in chat."
-                label="Proactive tips"
-                onChange={(checked) =>
-                  void handleImmediateField("proactiveTips", checked)
-                }
-              />
-            </div>
-            <div className={styles.fieldGroup} style={{ marginTop: "0.5rem" }}>
-              <label className={styles.fieldLabel}>AI reasoning effort</label>
-              <SegmentedControl
-                onChange={(value) =>
-                  void handleImmediateField("reasoningEffort", value)
-                }
-                options={reasoningEffortOptions}
-                value={preferences.reasoningEffort}
-              />
-            </div>
-          </div>
-
-          <div className={styles.card}>
-            <div className={styles.cardHeader}>
               <h2 className={styles.cardTitle}>Grocery & planning</h2>
             </div>
             <div className={styles.toggleList}>
@@ -2219,54 +1828,12 @@ export default function SettingsPage() {
             <div className={styles.cardHeader}>
               <h2 className={styles.cardTitle}>Data & privacy</h2>
             </div>
-            <ToggleRow
-              checked={preferences.saveChatHistory}
-              description="Persist conversations for context across sessions."
-              label="Save chat history"
-              onChange={(checked) =>
-                void handleImmediateField("saveChatHistory", checked)
-              }
-            />
+            <p className={styles.fieldHint}>
+              Export your data or reset local preferences. Chat and AI history
+              is no longer stored by the app.
+            </p>
 
             <div className={styles.actionsRow}>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    className={styles.dangerButton}
-                    type="button"
-                    variant="outline"
-                  >
-                    Clear chat history
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete all saved conversations. This
-                      cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel asChild>
-                      <Button type="button" variant="outline">
-                        Cancel
-                      </Button>
-                    </AlertDialogCancel>
-                    <AlertDialogAction asChild>
-                      <Button
-                        className={styles.dangerButton}
-                        onClick={() => void handleClearChatHistory()}
-                        type="button"
-                        variant="outline"
-                      >
-                        Clear history
-                      </Button>
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
               <Button
                 onClick={() => void handleExport()}
                 type="button"
@@ -2311,25 +1878,6 @@ export default function SettingsPage() {
           </div>
         </CollapsibleSection>
       </div>
-
-      {personaModalState.open && (
-        <Suspense fallback={null}>
-          <PersonaModal
-            modalMode={
-              personaModalState.mode === "create"
-                ? { mode: "create" }
-                : { mode: "edit", persona: personaModalState.persona }
-            }
-            onClose={() => setPersonaModalState({ open: false })}
-            onDelete={
-              personaModalState.mode === "edit"
-                ? (id) => handlePersonaDelete(id)
-                : undefined
-            }
-            onSave={(input) => handlePersonaModalSave(input)}
-          />
-        </Suspense>
-      )}
     </div>
   );
 }

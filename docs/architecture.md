@@ -1,8 +1,8 @@
-# Copilot Chef — Architecture
+# Local Recipe Book — Architecture
 
 ## 1. System Overview
 
-Copilot Chef is a meal-planning Electron desktop application. The architecture separates the Electron main process, preload bridge, React renderer, and shared contract layer.
+Local Recipe Book is a local-first meal-planning Electron desktop application. The architecture separates the Electron main process, preload bridge, React renderer, and shared contract layer.
 
 ```
 ┌────────────────────────────────────────────────────────────┐
@@ -17,7 +17,7 @@ Copilot Chef is a meal-planning Electron desktop application. The architecture s
 │                                                            │
 │  ┌───────────────┐  ┌──────────────────────────────────┐  │
 │  │ IPC handlers  │  │ Embedded Hono server             │  │
-│  │ settings/app  │  │ routes, auth, chat, meals, etc.  │  │
+│  │ settings/app  │  │ routes, auth, meals, recipes     │  │
 │  └───────────────┘  └──────────────┬───────────────────┘  │
 │                                    │                       │
 │  ┌────────────────────────────┐    │                       │
@@ -59,9 +59,8 @@ server/            In-process Hono server + domain logic
   start.ts         startServer() / stopServer() / getServerInfo()
   static-web.ts    Static web process for browser renderer hosting
   app.ts           Hono app factory (auth middleware, routes)
-  routes/          Resource routes (meals, grocery, recipes, chat, etc.)
+  routes/          Resource routes (meals, grocery, recipes, preferences, etc.)
   services/        Domain services (MealService, GroceryService, etc.)
-  copilot/         Copilot orchestration and system prompt assembly
   lib/             bootstrap.ts, prisma.ts, lan.ts, machine-token.ts
 settings/store.ts  JSON settings persistence in userData
 updates/service.ts electron-updater wiring
@@ -123,7 +122,7 @@ app.tsx          Root layout; loads server config via platform adapter
 router.tsx       Route definitions
 pages/           Page-level route components
 components/      Reusable UI components
-context/         Chat context and page context state
+context/         Renderer state providers
 lib/
   api.ts         Typed fetch wrappers
   config.ts      Runtime server config caching
@@ -152,45 +151,21 @@ A typical read request from user action to database and back:
 
 ---
 
-## 6. Chat Streaming
+## 6. Request Lifecycle
 
-Chat is the most complex data path because it uses a streaming response with embedded sentinel events.
-
-`CopilotChef` in `src/main/server/copilot/copilot-chef.ts` orchestrates chat state:
-- Maintains lazy `Map<sessionId, CopilotSession>` session storage
-- Builds per-request context from meals, grocery, preferences, and recipes
-- Uses `buildSystemPrompt(context)` to inject current kitchen state into each prompt
+Most user actions follow the same path from renderer to SQLite and back:
 
 ```
-User sends message
-  ↓
-Client POST /api/chat { message, sessionId, pageContext }
-  ↓
-Server auth middleware validates token
-  ↓
-chatRoutes handler
-  → CopilotChef.chat(message, sessionId) builds context in parallel:
-      - current week's meals
-      - active grocery list
-      - user preferences
-      - known recipes
-  → buildSystemPrompt(context) injects live kitchen state
-  → GitHub Copilot SDK sends prompt, subscribes to token events
-  → TransformStream pipes deltas as UTF-8 chunks
-  → Sentinel events (\x00COPILOT_CHEF_EVENT\x00{type}\x00{payload}\x00) embedded inline
-  ↓
-new Response(stream, { "Content-Type": "text/plain; charset=utf-8",
-                       "Transfer-Encoding": "chunked" })
-  ↓
-Client reads stream via ReadableStreamDefaultReader
-  → Text chunks appended to streaming message display
-  → Sentinel events parsed → React Query cache invalidations (meals, grocery, etc.)
-  → isTyping state cleared when stream ends
+1. User action  →  React component calls query or mutation helper
+2. api.ts       →  HTTP request to /api/* with Authorization header
+3. Hono server  →  auth middleware validates token
+4. Route        →  service method
+5. Service      →  bootstrapDatabase() + Prisma query
+6. SQLite       →  rows returned
+7. Service      →  serialize domain response
+8. Route        →  c.json(...)
+9. Renderer     →  React Query cache update and UI re-render
 ```
-
-**Sentinel event format**: `\x00COPILOT_CHEF_EVENT\x00{type}\x00{payload}\x00`
-
-The sentinel parser extracts these from the raw text stream without buffering. Non-sentinel text is appended directly to the displayed message.
 
 ---
 
@@ -201,7 +176,7 @@ The app uses two configuration paths:
 1. Electron settings stored under the user data directory through `src/main/settings/store.ts`.
 2. Environment variable overrides consumed by the embedded server and shared config loader.
 
-Important environment variables include `COPILOT_CHEF_DATABASE_URL` and `COPILOT_MODEL`.
+Important environment variables include `COPILOT_CHEF_DATABASE_URL` and `COPILOT_CHEF_SERVER_PORT`.
 
 For LAN and browser access behavior, see `docs/lan-browser-access.md` and `docs/copilot-chef-config.md`.
 
@@ -262,7 +237,7 @@ WAL mode is configured at startup via raw PRAGMAs applied by `prisma.ts` after t
 
 ### Prisma schema overview
 
-Key models: `Meal`, `GroceryList`, `GroceryItem`, `UserPreferences`, `Recipe`, `RecipeTag`, `MealLog`, `Persona`, `ChatSession`.
+Key models: `Meal`, `GroceryList`, `GroceryItem`, `UserPreference`, `Recipe`, `RecipeTag`, `MealLog`, `PrepList`, `PrepItem`.
 
 `ingredientsJson` fields are stored as raw JSON strings (SQLite has no native JSON column). Always `JSON.parse`/`JSON.stringify` explicitly — Prisma does not do this automatically.
 

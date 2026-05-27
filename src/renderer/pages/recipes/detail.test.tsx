@@ -12,10 +12,6 @@ const { deleteRecipeMock, fetchJsonMock } = vi.hoisted(() => ({
   fetchJsonMock: vi.fn(),
 }));
 
-vi.mock("@/context/chat-context", () => ({
-  useChatPageContext: vi.fn(),
-}));
-
 vi.mock("@/lib/api", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api")>("@/lib/api");
   return {

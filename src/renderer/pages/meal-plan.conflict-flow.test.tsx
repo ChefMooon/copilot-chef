@@ -72,12 +72,6 @@ vi.mock("@/lib/config", () => ({
   isServerConfigReady: () => true,
 }));
 
-vi.mock("@/context/chat-context", () => ({
-  useChatPageContext: () => ({
-    setPageContext: vi.fn(),
-  }),
-}));
-
 vi.mock("@/components/providers/toast-provider", () => ({
   useToast: () => ({
     toast: mocks.toast,
@@ -193,7 +187,7 @@ vi.mock("@/components/recipes/AddRecipeModal", () => ({
         instructions: string[];
         sourceUrl: string | null;
         sourceLabel: string | null;
-        origin: "manual" | "imported" | "ai_generated";
+        origin: "manual" | "imported";
         favourite: boolean;
         rating: number | null;
         cookNotes: string | null;

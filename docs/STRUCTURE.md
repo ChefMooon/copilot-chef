@@ -1,4 +1,4 @@
-# Copilot Chef Documentation Structure
+# Local Recipe Book Documentation Structure
 
 ## 1. Core Documentation Map
 

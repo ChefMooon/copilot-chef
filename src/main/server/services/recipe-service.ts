@@ -104,7 +104,7 @@ type SerializedRecipeIteration = {
 };
 
 export interface RecipeFilters {
-  origin?: "manual" | "imported" | "ai_generated";
+  origin?: "manual" | "imported";
   cuisine?: string;
   tags?: string[];
   difficulty?: string;
@@ -966,8 +966,8 @@ function lineToStringQuantity(value: number | null) {
   return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
 }
 
-function toOrigin(value: string): "manual" | "imported" | "ai_generated" {
-  if (value === "imported" || value === "ai_generated") {
+function toOrigin(value: string): "manual" | "imported" {
+  if (value === "imported") {
     return value;
   }
   return "manual";
@@ -2027,7 +2027,7 @@ export class RecipeService {
           instructions: serialized.instructions,
           sourceUrl: serialized.sourceUrl,
           sourceLabel: serialized.sourceLabel,
-          origin: serialized.origin as "manual" | "imported" | "ai_generated",
+          origin: serialized.origin as "manual" | "imported",
           favourite: serialized.favourite,
           rating: serialized.rating,
           cookNotes: serialized.cookNotes,

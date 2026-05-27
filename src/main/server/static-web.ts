@@ -98,7 +98,7 @@ export async function startStaticWebServer(): Promise<StaticWebInfo | null> {
     const filePath = resolveAssetPath(webRoot, requestUrl);
     if (!existsSync(filePath)) {
       response.writeHead(503, { "Content-Type": "text/plain; charset=utf-8" });
-      response.end("Copilot Chef browser assets have not been built.");
+      response.end("Local Recipe Book browser assets have not been built.");
       return;
     }
 

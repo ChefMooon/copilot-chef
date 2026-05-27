@@ -15,7 +15,7 @@ self.addEventListener("fetch", (event) => {
     fetch(event.request).catch(() => {
       if (event.request.mode === "navigate") {
         return new Response(
-          "Copilot Chef is offline. Reconnect to the desktop app and refresh.",
+          "Local Recipe Book is offline. Reconnect to the desktop app and refresh.",
           { headers: { "Content-Type": "text/plain; charset=utf-8" } }
         );
       }

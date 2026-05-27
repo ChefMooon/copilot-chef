@@ -1,4 +1,4 @@
-# Copilot Chef IPC Channels
+# Local Recipe Book IPC Channels
 
 ## 1. Scope
 

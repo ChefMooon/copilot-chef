@@ -4,12 +4,12 @@ export {
   UpdateRecipeInputSchema,
   RecipeExportJsonSchema,
   IngestResultSchema,
-  AIRecipeSaveSchema,
+  RecipeSaveSchema,
   type CreateRecipeInput,
   type UpdateRecipeInput,
   type RecipeExportJson,
   type IngestResult,
-  type AIRecipeSave,
+  type RecipeSave,
 } from "@shared/schemas/recipe-schemas";
 
 

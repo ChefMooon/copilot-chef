@@ -1,5 +1,3 @@
-/* global console, process */
-
 import { createGzip } from "node:zlib";
 import { pipeline } from "node:stream/promises";
 import { createReadStream } from "node:fs";

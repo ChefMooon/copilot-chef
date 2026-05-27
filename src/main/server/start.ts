@@ -140,13 +140,6 @@ export async function startServer(): Promise<ServerInfo> {
   const dbUrl = resolveDbPath();
   process.env["COPILOT_CHEF_DATABASE_URL"] = dbUrl;
 
-  // Set Copilot model — always derive from settings store so a .env value
-  // (which electron-vite may inject) cannot shadow the user's saved preference.
-  delete process.env["COPILOT_MODEL"];
-  const copilotModel =
-    (getSetting("copilot_model") as string) || "gpt-4.1";
-  process.env["COPILOT_MODEL"] = copilotModel;
-
   // Bootstrap database
   await bootstrapDatabase();
 
@@ -164,7 +157,6 @@ export async function startServer(): Promise<ServerInfo> {
     },
     auth: {
       tokens: [serverToken, getSetting("machine_api_key") as string].filter(Boolean),
-      copilotModel,
     },
     updates: {
       feedUrl: "",

@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/providers/toast-provider";
-import { useChatPageContext } from "@/context/chat-context";
 import {
   PREP_GROUP_OPTIONS,
   PREP_QUICK_FILTERS,
@@ -778,43 +777,6 @@ export default function PrepListsPage() {
       }
     };
   }, []);
-
-  useChatPageContext({
-    page: "prep-lists",
-    activeList: selectedList
-      ? {
-          id: selectedList.id,
-          name: selectedList.name,
-          notes: selectedList.notes,
-          sourceMode: selectedList.sourceMode,
-          sourceLabel: selectedList.sourceLabel,
-          groupBy: selectedList.groupBy,
-          sortMode: selectedList.sortMode,
-          totalItems: selectedList.totalItems,
-          checkedCount: selectedList.checkedCount,
-          completionPercentage: selectedList.completionPercentage,
-          items: selectedList.items.map((item) => ({
-            id: item.id,
-            kind: item.kind,
-            name: item.name,
-            qty: item.qty,
-            unit: item.unit,
-            ingredientType: item.ingredientType,
-            prepGroup: item.prepGroup,
-            dish: item.dish,
-            checked: item.checked,
-          })),
-        }
-      : null,
-    allLists: lists.map((list) => ({
-      id: list.id,
-      name: list.name,
-      notes: list.notes,
-      sourceMode: list.sourceMode,
-      itemCount: list.totalItems,
-      checkedCount: list.checkedCount,
-    })),
-  });
 
   return (
     <>

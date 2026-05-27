@@ -14,11 +14,7 @@ import { groceryListsRoutes } from "./routes/grocery-lists.js";
 import { prepListsRoutes } from "./routes/prep-lists.js";
 import { recipesRoutes } from "./routes/recipes.js";
 import { preferencesRoutes } from "./routes/preferences.js";
-import { chatRoutes } from "./routes/chat.js";
-import { chatSessionsRoutes } from "./routes/chat-sessions.js";
-import { personasRoutes } from "./routes/personas.js";
 import { statsRoutes } from "./routes/stats.js";
-import { sessionProbeRoutes } from "./routes/session-probe.js";
 
 export function createApp(config: ServerConfig) {
   const app = new Hono();
@@ -41,8 +37,6 @@ export function createApp(config: ServerConfig) {
         "x-machine-source",
       ],
       exposeHeaders: [
-        "x-session-id",
-        "x-chat-session-id",
         "x-request-id",
       ],
     })
@@ -72,11 +66,7 @@ export function createApp(config: ServerConfig) {
   app.route("/api", prepListsRoutes);
   app.route("/api", recipesRoutes);
   app.route("/api", preferencesRoutes);
-  app.route("/api", chatRoutes);
-  app.route("/api", chatSessionsRoutes);
-  app.route("/api", personasRoutes);
   app.route("/api", statsRoutes);
-  app.route("/api", sessionProbeRoutes);
 
   return app;
 }

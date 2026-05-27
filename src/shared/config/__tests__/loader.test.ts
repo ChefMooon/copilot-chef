@@ -42,7 +42,6 @@ url = "file:./test.db"
 
 [auth]
 tokens = ["secret-1", "secret-2"]
-copilot_model = "gpt-4o"
 
 [updates]
 feed_url = "https://example.com/releases"
@@ -59,7 +58,6 @@ origins = ["http://localhost:3000"]
     expect(config.server.logLevel).toBe("debug");
     expect(config.database.url).toBe("file:./test.db");
     expect(config.auth.tokens).toEqual(["secret-1", "secret-2"]);
-    expect(config.auth.copilotModel).toBe("gpt-4o");
     expect(config.updates.feedUrl).toBe("https://example.com/releases");
     expect(config.updates.checkOnStartup).toBe(false);
     expect(config.cors.origins).toEqual(["http://localhost:3000"]);
@@ -73,7 +71,6 @@ origins = ["http://localhost:3000"]
     expect(config.server.logLevel).toBe("info");
     expect(config.database.url).toBe("file:./data/copilot-chef.db");
     expect(config.auth.tokens).toEqual([]);
-    expect(config.auth.copilotModel).toBe("gpt-4o-mini");
     expect(config.updates.checkOnStartup).toBe(true);
   });
 

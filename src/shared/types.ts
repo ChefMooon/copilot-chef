@@ -19,45 +19,17 @@ export type PreferencesPayload = {
   nutritionTags: string[];
   skillLevel: string;
   budgetRange: string;
-  chefPersona: string;
-  replyLength: string;
-  emojiUsage: string;
-  autoImproveChef: boolean;
-  contextAwareness: boolean;
-  seasonalAwareness: boolean;
-  seasonalRegion: string;
-  proactiveTips: boolean;
   autoGenerateGrocery: boolean;
   consolidateIngredients: boolean;
   defaultPlanLength: string;
   groceryGrouping: string;
   defaultRecipeView: string;
   defaultUnitMode: string;
-  saveChatHistory: boolean;
-  reasoningEffort: string;
 };
 
 export type PreferenceUpdateInput = Partial<
   Omit<PreferencesPayload, "id" | "createdAt" | "updatedAt">
 >;
-
-// ── Personas ─────────────────────────────────────────────────
-export type CustomPersonaPayload = {
-  id: string;
-  emoji: string;
-  title: string;
-  description: string;
-  prompt: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type CreatePersonaInput = {
-  emoji: string;
-  title: string;
-  description: string;
-  prompt: string;
-};
 
 export type MealTypeDefinitionPayload = {
   id: string;

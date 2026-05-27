@@ -6,7 +6,6 @@ type SourceBadgeProps = {
 
 function labelFromOrigin(origin: string) {
   if (origin === "imported") return "Imported";
-  if (origin === "ai_generated") return "AI";
   return "Manual";
 }
 

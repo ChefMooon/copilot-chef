@@ -35,7 +35,6 @@ type EditModalProps = {
   onClose: () => void;
   onSave: (meal: EditableMeal) => Promise<void>;
   onDelete: (mealId: string) => Promise<void>;
-  onResuggest: (meal: EditableMeal) => Promise<Partial<EditableMeal> | void>;
   onSaveAsRecipe?: (meal: EditableMeal) => void;
   onUnlinkRecipe?: (meal: EditableMeal) => Promise<void>;
   onViewLinkedRecipe?: (recipeId: string) => void;
@@ -48,14 +47,12 @@ export function EditModal({
   onClose,
   onSave,
   onDelete,
-  onResuggest,
   onSaveAsRecipe,
   onUnlinkRecipe,
   onViewLinkedRecipe,
 }: EditModalProps) {
   const [form, setForm] = useState<EditableMeal>({ ...meal });
   const [isSaving, setIsSaving] = useState(false);
-  const [isSuggesting, setIsSuggesting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUnlinking, setIsUnlinking] = useState(false);
   const [deleteError, setDeleteError] = useState<string | undefined>();
@@ -435,7 +432,7 @@ export function EditModal({
                 x
               </button>
             </div>
-
+                      disabled={isSaving || isDeleting}
             <div className={styles.modalBody}>
 
               {/* ── Mode B: Recipe-linked header ─────────────────────── */}
@@ -1033,7 +1030,7 @@ export function EditModal({
                   {form.id ? (
                     <button
                       className={`${styles.btnDelete} ${styles.footerActionButton}`}
-                      disabled={isSaving || isDeleting || isSuggesting}
+                      disabled={isSaving || isDeleting}
                       onClick={() => {
                         setDeleteError(undefined);
                         setShowDeleteConfirmation(true);
@@ -1046,7 +1043,7 @@ export function EditModal({
                   {!isLinked ? (
                     <button
                       className={`${styles.btnLinkRecipe} ${styles.footerActionButton}`}
-                      disabled={isSaving || isDeleting || isSuggesting}
+                      disabled={isSaving || isDeleting}
                       onClick={() => {
                         setRecipeLinkError(null);
                         setShowRecipeSearchModal(true);
@@ -1059,26 +1056,7 @@ export function EditModal({
                 </div>
               </div>
               <div className={styles.modalFooterBottom}>
-                <div className={styles.modalFooterAux}>
-                  <button
-                    className={`${styles.btnAiSuggest} ${styles.footerActionButton}`}
-                    disabled={isSuggesting || isLinked}
-                    onClick={async () => {
-                      setIsSuggesting(true);
-                      try {
-                        const nextValues = await onResuggest(form);
-                        if (nextValues) {
-                          setForm((current) => ({ ...current, ...nextValues }));
-                        }
-                      } finally {
-                        setIsSuggesting(false);
-                      }
-                    }}
-                    type="button"
-                  >
-                    {isSuggesting ? "Thinking..." : "AI Re-suggest"}
-                  </button>
-                </div>
+                <div className={styles.modalFooterAux} />
                 <div className={styles.modalFooterPrimary}>
                   {recipeLinkError ? (
                     <span className={styles.confirmationError} role="alert">

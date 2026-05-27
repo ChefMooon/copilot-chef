@@ -2,7 +2,6 @@ import {
   type CreateMealTypeDefinitionInput,
   type CreateMealTypeProfileInput,
   type CreateRecipeInput,
-  type CustomPersonaPayload,
   type IngestResult,
   type MealIngredient,
   type MealPayload,
@@ -15,7 +14,6 @@ import {
   type RecipeExportJson,
   type RecipeMadeHistoryPayload,
   type RecipeIterationPayload,
-  type CreatePersonaInput,
   type PreferenceUpdateInput,
   type PreferencesPayload,
   type RecipePayload,
@@ -41,7 +39,6 @@ import {
 import { getPlatform, markBrowserConnectionStale } from "./platform";
 
 export type SettingsPreferences = PreferencesPayload;
-export type { CustomPersonaPayload };
 export type { MealTypeDefinitionPayload, MealTypeProfilePayload };
 export type { MealSubTypeDefinitionPayload };
 export type { RecipeMadeHistoryPayload };
@@ -315,25 +312,11 @@ export async function patchPreferences(patch: PreferenceUpdateInput) {
   return response.data;
 }
 
-export async function detectRegion() {
-  return fetchJson<DetectedRegionPayload>("/api/preferences/detect-region");
-}
-
 export async function resetPreferences() {
   const response = await fetchJson<{ data: SettingsPreferences }>(
     "/api/preferences/reset",
     {
       method: "POST",
-    }
-  );
-  return response.data;
-}
-
-export async function clearChatHistory() {
-  const response = await fetchJson<{ data: { count: number } }>(
-    "/api/chat/history",
-    {
-      method: "DELETE",
     }
   );
   return response.data;
@@ -406,48 +389,6 @@ export async function exportMenu(options: MenuExportOptions) {
       fileNameMatch?.[1] ??
       `meal-plan-menu.${options.format === "markdown" ? "md" : options.format}`,
   };
-}
-
-export async function getPersonas(): Promise<CustomPersonaPayload[]> {
-  const response = await fetchJson<{ data: CustomPersonaPayload[] }>(
-    "/api/personas"
-  );
-  return response.data;
-}
-
-export async function createPersona(
-  input: CreatePersonaInput
-): Promise<CustomPersonaPayload> {
-  const response = await fetchJson<{ data: CustomPersonaPayload }>(
-    "/api/personas",
-    {
-      method: "POST",
-      body: JSON.stringify(input),
-    }
-  );
-  return response.data;
-}
-
-export async function updatePersona(
-  id: string,
-  input: Partial<CreatePersonaInput>
-): Promise<CustomPersonaPayload> {
-  const response = await fetchJson<{ data: CustomPersonaPayload }>(
-    `/api/personas/${id}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify(input),
-    }
-  );
-  return response.data;
-}
-
-export async function deletePersona(id: string): Promise<{ id: string }> {
-  const response = await fetchJson<{ data: { id: string } }>(
-    `/api/personas/${id}`,
-    { method: "DELETE" }
-  );
-  return response.data;
 }
 
 export async function listRecipes(filters?: string | RecipeListFilters) {

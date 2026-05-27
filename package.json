@@ -5,7 +5,7 @@
   "packageManager": "npm@10.9.3",
   "description": "AI-powered meal-planning desktop app",
   "main": "./out/main/index.js",
-  "productName": "Copilot Chef",
+  "productName": "Local Recipe Book",
   "build": {
     "appId": "com.copilot-chef.app",
     "icon": "resources/icon.png",
@@ -71,7 +71,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Copilot Chef"
+      "shortcutName": "Local Recipe Book"
     },
     "linux": {
       "icon": "resources/icon.png"

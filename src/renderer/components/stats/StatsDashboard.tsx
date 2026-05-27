@@ -1,7 +1,5 @@
 "use client";
 
-import { useChatPageContext } from "@/context/chat-context";
-
 import { ActivityHeatmap } from "./ActivityHeatmap";
 import { CuisineChart } from "./CuisineChart";
 import { DayOfWeekChart } from "./DayOfWeekChart";
@@ -52,8 +50,6 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 export function StatsDashboard({ stats }: Props) {
-  useChatPageContext({ page: "stats" });
-
   const avgMealsPerActiveDay =
     stats.heatmap.activeDays > 0
       ? (stats.heatmap.totalSlots / stats.heatmap.activeDays).toFixed(1)

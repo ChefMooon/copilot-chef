@@ -20,7 +20,6 @@ import { RecipeFilterSidebar } from "@/components/recipes/RecipeFilterSidebar";
 import { RecipeGrid } from "@/components/recipes/RecipeGrid";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
-import { useChatPageContext } from "@/context/chat-context";
 import { getPlatform } from "@/lib/platform";
 import {
   RECIPE_SEARCH_SORT_MODE_VALUES,
@@ -157,7 +156,7 @@ export default function RecipesPage() {
   );
   const [recipePendingDelete, setRecipePendingDelete] =
     useState<RecipePayload | null>(null);
-  const [recipeEditorDraft, setRecipeEditorDraft] = useState<{
+  const [, setRecipeEditorDraft] = useState<{
     title: string;
     description: string | null;
     servings: number | null;
@@ -278,37 +277,8 @@ export default function RecipesPage() {
 
   const visibleRecipes = recipesQuery.data ?? [];
   const totalRecipes = allRecipesQuery.data?.length ?? visibleRecipes.length;
-  const favouriteCount =
-    allRecipesQuery.data?.filter((recipe) => recipe.favourite).length ??
-    visibleRecipes.filter((recipe) => recipe.favourite).length;
   const selectedCount = selectedIds.size;
   const isInitialRecipeLoad = !recipesQuery.data && recipesQuery.isLoading;
-
-  useChatPageContext({
-    page: "recipes",
-    search,
-    origin: origin || "all",
-    cuisine: cuisine || "all",
-    sortBy,
-    sortOrder,
-    searchSortMode,
-    totalRecipes,
-    favouriteCount,
-    filteredRecipes: visibleRecipes.length,
-    showingFavouritesOnly: favouritesOnly,
-    visibleRecipes: visibleRecipes.slice(0, 10).map((recipe) => ({
-      id: recipe.id,
-      title: recipe.title,
-      origin: recipe.origin,
-      cuisine: recipe.cuisine,
-      favourite: recipe.favourite,
-    })),
-    recipeEditor: {
-      isOpen: showAddModal,
-      mode: editingRecipe ? "edit" : "add",
-      draft: recipeEditorDraft,
-    },
-  });
 
   function toggleSelection(id: string) {
     setSelectedIds((current) => {

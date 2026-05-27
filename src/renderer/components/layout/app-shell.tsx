@@ -1,8 +1,6 @@
 import { Link, useLocation } from "react-router";
 import { type PropsWithChildren, useEffect, useState } from "react";
 
-import { ChatProvider } from "@/context/chat-context";
-import { ChatWidget } from "@/components/chat/ChatWidget";
 import { getPlatform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 
@@ -67,11 +65,10 @@ export function AppShell({ children }: PropsWithChildren) {
   };
 
   return (
-    <ChatProvider>
-      <div className={styles.shell}>
+    <div className={styles.shell}>
         <header className={cn(styles.header, isMac && styles.headerMac)}>
           <Link className={cn(styles.logo, styles.noDrag)} to="/">
-            Copilot Chef
+            Local Recipe Book
           </Link>
 
           <nav className={cn(styles.navDesktop, styles.noDrag)}>
@@ -213,7 +210,5 @@ export function AppShell({ children }: PropsWithChildren) {
           <main className={styles.page}>{children}</main>
         </div>
       </div>
-      <ChatWidget />
-    </ChatProvider>
   );
 }

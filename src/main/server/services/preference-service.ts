@@ -17,24 +17,14 @@ const stringFields = [
   "planningNotes",
   "skillLevel",
   "budgetRange",
-  "chefPersona",
-  "replyLength",
-  "emojiUsage",
-  "seasonalRegion",
   "defaultPlanLength",
   "groceryGrouping",
   "defaultRecipeView",
   "defaultUnitMode",
-  "reasoningEffort",
 ] as const;
 const booleanFields = [
-  "autoImproveChef",
-  "contextAwareness",
-  "seasonalAwareness",
-  "proactiveTips",
   "autoGenerateGrocery",
   "consolidateIngredients",
-  "saveChatHistory",
 ] as const;
 
 export type PreferenceListField = (typeof orderedListFields)[number];
@@ -54,22 +44,12 @@ export type PreferencesPayload = {
   nutritionTags: string[];
   skillLevel: string;
   budgetRange: string;
-  chefPersona: string;
-  replyLength: string;
-  emojiUsage: string;
-  autoImproveChef: boolean;
-  contextAwareness: boolean;
-  seasonalAwareness: boolean;
-  seasonalRegion: string;
-  proactiveTips: boolean;
   autoGenerateGrocery: boolean;
   consolidateIngredients: boolean;
   defaultPlanLength: string;
   groceryGrouping: string;
   defaultRecipeView: string;
   defaultUnitMode: string;
-  saveChatHistory: boolean;
-  reasoningEffort: string;
 };
 
 export type PreferenceUpdateInput = Partial<
@@ -88,22 +68,12 @@ const DEFAULT_PREFERENCE_VALUES = {
   nutritionTags: "",
   skillLevel: "home-cook",
   budgetRange: "moderate",
-  chefPersona: "coach",
-  replyLength: "balanced",
-  emojiUsage: "occasional",
-  autoImproveChef: true,
-  contextAwareness: true,
-  seasonalAwareness: true,
-  seasonalRegion: "eastern-us",
-  proactiveTips: false,
   autoGenerateGrocery: true,
   consolidateIngredients: true,
   defaultPlanLength: "7",
   groceryGrouping: "category",
   defaultRecipeView: "basic",
   defaultUnitMode: "cup",
-  saveChatHistory: true,
-  reasoningEffort: "",
 } satisfies Prisma.UserPreferenceCreateInput;
 
 function splitCsv(value: string) {
@@ -174,22 +144,12 @@ function serializePreferences(preferences: UserPreference): PreferencesPayload {
     nutritionTags: splitCsv(preferences.nutritionTags),
     skillLevel: preferences.skillLevel,
     budgetRange: preferences.budgetRange,
-    chefPersona: preferences.chefPersona,
-    replyLength: preferences.replyLength,
-    emojiUsage: preferences.emojiUsage,
-    autoImproveChef: preferences.autoImproveChef,
-    contextAwareness: preferences.contextAwareness,
-    seasonalAwareness: preferences.seasonalAwareness,
-    seasonalRegion: preferences.seasonalRegion,
-    proactiveTips: preferences.proactiveTips,
     autoGenerateGrocery: preferences.autoGenerateGrocery,
     consolidateIngredients: preferences.consolidateIngredients,
     defaultPlanLength: preferences.defaultPlanLength,
     groceryGrouping: preferences.groceryGrouping,
     defaultRecipeView: preferences.defaultRecipeView,
     defaultUnitMode: preferences.defaultUnitMode,
-    saveChatHistory: preferences.saveChatHistory,
-    reasoningEffort: preferences.reasoningEffort,
   };
 }
 

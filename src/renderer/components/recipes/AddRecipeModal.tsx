@@ -378,9 +378,7 @@ export function AddRecipeModal({
         .split(",")
         .map((tag) => tag.trim())
         .filter(Boolean),
-      origin: initialRecipe?.origin === "imported" || initialRecipe?.origin === "ai_generated"
-        ? initialRecipe.origin
-        : "manual",
+      origin: initialRecipe?.origin === "imported" ? initialRecipe.origin : "manual",
       prepTime: form.prepTime.trim() ? Number.parseInt(form.prepTime.trim(), 10) : null,
       cookTime: form.cookTime.trim() ? Number.parseInt(form.cookTime.trim(), 10) : null,
       difficulty: form.difficulty.trim() || null,

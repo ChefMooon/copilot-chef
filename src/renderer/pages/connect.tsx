@@ -100,7 +100,7 @@ export default function ConnectPage() {
       setError(
         connectionError instanceof Error
           ? connectionError.message
-          : "Could not connect to Copilot Chef."
+          : "Could not connect to Local Recipe Book."
       );
     }
   }
@@ -129,7 +129,7 @@ export default function ConnectPage() {
           Browser access
         </p>
         <h1 className="mt-2 text-3xl font-semibold text-text">
-          Connect Copilot Chef
+          Connect Local Recipe Book
         </h1>
         {hasSavedConnection ? (
           <p className="mt-2 text-sm text-text-muted">

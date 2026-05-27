@@ -1,8 +1,8 @@
-# Copilot Chef LAN and Browser Access
+# Local Recipe Book LAN and Browser Access
 
 ## 1. Purpose and Scope
 
-This document is the canonical reference for LAN and browser access in Copilot Chef.
+This document is the canonical reference for LAN and browser access in Local Recipe Book.
 
 It covers:
 - Trusted-device browser access on local networks
@@ -16,7 +16,7 @@ It does not cover legacy machine-integration workflows outside LAN/browser acces
 
 ## 2. Runtime Model
 
-Copilot Chef supports local, remote, and LAN/browser access patterns.
+Local Recipe Book supports local, remote, and LAN/browser access patterns.
 
 - Local mode:
   - The embedded API runs inside the Electron app.

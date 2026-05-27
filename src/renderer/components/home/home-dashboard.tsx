@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 
 import { Button } from "@/components/ui/button";
-import { useChatPageContext } from "@/context/chat-context";
 import { fetchJson } from "@/lib/api";
 import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
@@ -298,13 +297,6 @@ export function HomeDashboard() {
     Number(settings.showMealActivity) + Number(settings.showGroceryList);
   const hasOverviewContent =
     settings.showUpcomingMeals || visibleOverviewCount > 0;
-
-  useChatPageContext({
-    page: "home",
-    totalMeals,
-    groceryListName: groceryList?.name ?? null,
-    groceryCompletion: groceryList?.completionPercentage ?? 0,
-  });
 
   return (
     <>

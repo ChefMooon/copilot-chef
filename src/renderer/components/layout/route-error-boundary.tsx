@@ -48,7 +48,7 @@ export function RouteErrorBoundary() {
             color: "var(--text-muted)",
           }}
         >
-          Copilot Chef
+          Local Recipe Book
         </p>
         <h1
           style={{

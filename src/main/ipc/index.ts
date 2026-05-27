@@ -126,11 +126,6 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle("app:settings:set", async (_event, payload: { key: string; value: unknown }) => {
     setSetting(payload.key, payload.value);
-    // Apply model change immediately so new sessions pick it up without a restart.
-    if (payload.key === "copilot_model") {
-      const model = (payload.value as string)?.trim() || "gpt-4.1";
-      process.env["COPILOT_MODEL"] = model;
-    }
     if (
       payload.key === "machine_api_key" ||
       payload.key.startsWith("lan_") ||

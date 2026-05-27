@@ -42,7 +42,7 @@ function createWindow(): BrowserWindow {
     minWidth: MIN_WINDOW_WIDTH,
     minHeight: MIN_WINDOW_HEIGHT,
     show: false,
-    title: "Copilot Chef",
+    title: "Local Recipe Book",
     icon: windowIconPath,
     frame: isMac,
     titleBarStyle: isMac ? "hiddenInset" : undefined,
@@ -88,7 +88,7 @@ function createTray(): Tray {
   const iconPath = getResourcePath("resources", "icon.png");
   const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
   const newTray = new Tray(icon);
-  newTray.setToolTip("Copilot Chef");
+  newTray.setToolTip("Local Recipe Book");
 
   newTray.on("double-click", () => {
     if (mainWindow) {
@@ -109,7 +109,7 @@ function updateTrayMenu(trayRef?: Tray): void {
   const visible = mainWindow?.isVisible() ?? false;
   const menu = Menu.buildFromTemplate([
     {
-      label: visible ? "Hide Copilot Chef" : "Show Copilot Chef",
+      label: visible ? "Hide Local Recipe Book" : "Show Local Recipe Book",
       click: () => {
         if (mainWindow?.isVisible()) {
           mainWindow.hide();
@@ -149,7 +149,6 @@ app.whenReady().then(async () => {
   ensureSetting("app_close_to_tray", true);
   ensureSetting("app_minimize_to_tray", true);
   ensureSetting("updates_check_on_startup", true);
-  ensureSetting("copilot_model", "gpt-4.1");
   ensureSetting("home_upcoming_days", 7);
   ensureSetting("home_upcoming_layout", "list");
   ensureSetting("home_upcoming_detail", "standard");

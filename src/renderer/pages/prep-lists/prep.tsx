@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchJson } from "@/lib/api";
 import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
-import { useChatPageContext } from "@/context/chat-context";
 import { groupPrepItems, sortPrepItems, type PrepItem, type PrepList } from "@/lib/prep-lists";
 
 import styles from "../grocery-list/shop.module.css";
@@ -32,34 +31,6 @@ export default function PrepViewPage() {
   const groups = useMemo(
     () => (list ? groupPrepItems(items, list.groupBy) : []),
     [items, list]
-  );
-
-  useChatPageContext(
-    list
-      ? {
-          page: "prep",
-          listId: list.id,
-          listName: list.name,
-          notes: list.notes,
-          sourceMode: list.sourceMode,
-          groupBy: list.groupBy,
-          sortMode: list.sortMode,
-          itemCount: list.totalItems,
-          checkedCount: list.checkedCount,
-          completionPercentage: list.completionPercentage,
-          items: list.items.map((item) => ({
-            id: item.id,
-            kind: item.kind,
-            name: item.name,
-            qty: item.qty,
-            unit: item.unit,
-            ingredientType: item.ingredientType,
-            prepGroup: item.prepGroup,
-            dish: item.dish,
-            checked: item.checked,
-          })),
-        }
-      : null
   );
 
   const toggleItem = async (item: PrepItem) => {

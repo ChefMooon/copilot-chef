@@ -63,7 +63,6 @@ export function RecipeFilterSidebar({
           <option value="">All</option>
           <option value="manual">Manual</option>
           <option value="imported">Imported</option>
-          <option value="ai_generated">AI Generated</option>
         </select>
       </div>
       <div>
