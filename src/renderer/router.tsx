@@ -1,7 +1,7 @@
 import { Suspense, lazy } from "react";
 import { createBrowserRouter, createHashRouter } from "react-router";
 
-import { AppLayout } from "./app";
+import { AuthenticatedAppLayout, PublicBrowserLayout } from "./app";
 import { RouteErrorBoundary } from "./components/layout/route-error-boundary";
 import { getPlatform } from "./lib/platform";
 
@@ -31,10 +31,10 @@ function withRouteFallback(element: React.ReactNode) {
   );
 }
 
-const routes = [
+const authenticatedRoutes = [
   {
     path: "/",
-    element: <AppLayout />,
+    element: <AuthenticatedAppLayout />,
     errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: withRouteFallback(<HomePage />) },
@@ -62,12 +62,21 @@ const routes = [
       },
       { path: "stats", element: withRouteFallback(<StatsPage />) },
       { path: "settings", element: withRouteFallback(<SettingsPage />) },
-      { path: "connect", element: withRouteFallback(<ConnectPage />) },
     ],
   },
 ];
 
+const browserRoutes = [
+  {
+    path: "/connect",
+    element: <PublicBrowserLayout />,
+    errorElement: <RouteErrorBoundary />,
+    children: [{ index: true, element: withRouteFallback(<ConnectPage />) }],
+  },
+  ...authenticatedRoutes,
+];
+
 export const router =
   getPlatform().runtime === "electron"
-    ? createHashRouter(routes)
-    : createBrowserRouter(routes);
+    ? createHashRouter(authenticatedRoutes)
+    : createBrowserRouter(browserRoutes);

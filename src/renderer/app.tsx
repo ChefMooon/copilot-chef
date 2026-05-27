@@ -33,7 +33,17 @@ function AppContent({ config }: { config: ServerConfig }) {
   );
 }
 
-export function AppLayout() {
+export function PublicBrowserLayout() {
+  return (
+    <QueryProvider>
+      <ToastProvider>
+        <Outlet />
+      </ToastProvider>
+    </QueryProvider>
+  );
+}
+
+export function AuthenticatedAppLayout() {
   const [config, setConfig] = useState<ServerConfig | null>(null);
   const [configVersion, setConfigVersion] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -57,17 +67,14 @@ export function AppLayout() {
         }
 
         const isBrowser = getPlatform().runtime === "browser";
-        const onConnectRoute = window.location.pathname.startsWith("/connect");
 
-        if (isBrowser && !getBrowserConnection() && !onConnectRoute) {
+        if (isBrowser && !getBrowserConnection()) {
           window.location.replace("/connect");
           return;
         }
 
         const shouldRetry =
-          attempt < 5 &&
-          (!(error instanceof ConfigNotReadyError) ||
-            (isBrowser && onConnectRoute));
+          attempt < 5 && !(error instanceof ConfigNotReadyError);
 
         if (shouldRetry) {
           retryTimer = window.setTimeout(() => {

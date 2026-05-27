@@ -36,20 +36,6 @@ export default defineConfig({
             if (id.includes("node_modules/recharts")) {
               return "charts";
             }
-
-            if (id.includes("node_modules/@tanstack/react-query")) {
-              return "query";
-            }
-
-            if (
-              id.includes("node_modules/react") ||
-              id.includes("node_modules/react-dom") ||
-              id.includes("node_modules/react-router")
-            ) {
-              return "framework";
-            }
-
-            return "vendor";
           },
         },
       },

@@ -82,12 +82,19 @@ function buildOrigin(host: string, port: number): string {
   return `http://${host}:${port}`;
 }
 
+function isLoopbackHost(host: string | undefined): boolean {
+  return host === undefined || host === LOOPBACK_HOST || host === "localhost";
+}
+
 export function resolveLanRuntimeSettings(apiPortFallback: number): LanRuntimeSettings {
   const lanEnabled = getBooleanSetting("lan_enabled", false);
   const candidates = getLanIpv4Candidates();
   const advertisedOverride = getStringSetting("lan_advertised_host");
+  const fallbackAdvertisedHost = candidates[0]?.address ?? LOOPBACK_HOST;
   const advertisedHost = lanEnabled
-    ? advertisedOverride ?? candidates[0]?.address ?? LOOPBACK_HOST
+    ? isLoopbackHost(advertisedOverride)
+      ? fallbackAdvertisedHost
+      : advertisedOverride
     : LOOPBACK_HOST;
   const apiPort = getNumberSetting(
     "lan_api_port",

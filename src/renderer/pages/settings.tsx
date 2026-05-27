@@ -435,6 +435,27 @@ export default function SettingsPage() {
   // Tab navigation
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
+  const normalizeLanAdvertisedHostDraft = (
+    advertisedHost: string,
+    candidates: LanStatus["candidates"]
+  ) => {
+    const trimmed = advertisedHost.trim();
+    const fallback = candidates[0]?.address ?? trimmed;
+
+    if (!trimmed || trimmed === "127.0.0.1" || trimmed === "localhost") {
+      return fallback;
+    }
+
+    if (
+      candidates.length > 0 &&
+      !candidates.some((candidate) => candidate.address === trimmed)
+    ) {
+      return fallback;
+    }
+
+    return trimmed;
+  };
+
   function getInitialTab(): TabId {
     try {
       const stored = window.localStorage.getItem("settings-active-tab");
@@ -519,10 +540,14 @@ export default function SettingsPage() {
       .getLanStatus()
       .then((status) => {
         if (!status) return;
+        const advertisedHost = normalizeLanAdvertisedHostDraft(
+          status.api.advertisedHost,
+          status.candidates
+        );
         setLanStatus(status);
         setLanEnabledDraft(status.lanEnabled);
         setLanWebEnabledDraft(status.web.enabled);
-        setLanAdvertisedHostDraft(status.api.advertisedHost);
+        setLanAdvertisedHostDraft(advertisedHost);
       })
       .catch(() => {});
   }, []);
@@ -985,21 +1010,29 @@ export default function SettingsPage() {
     if (!platform.capabilities.lanManagement) return;
     const status = await platform.getLanStatus();
     if (!status) return;
+    const advertisedHost = normalizeLanAdvertisedHostDraft(
+      status.api.advertisedHost,
+      status.candidates
+    );
     setLanStatus(status);
     setLanEnabledDraft(status.lanEnabled);
     setLanWebEnabledDraft(status.web.enabled);
-    setLanAdvertisedHostDraft(status.api.advertisedHost);
+    setLanAdvertisedHostDraft(advertisedHost);
   };
 
   const handleSaveLanSettings = async () => {
     setLanSaving(true);
     try {
+      const nextAdvertisedHost = normalizeLanAdvertisedHostDraft(
+        lanAdvertisedHostDraft,
+        lanStatus?.candidates ?? []
+      );
       await platform.setSetting("lan_enabled", lanEnabledDraft);
       await platform.setSetting("lan_web_enabled", lanWebEnabledDraft);
-      if (lanAdvertisedHostDraft.trim()) {
+      if (nextAdvertisedHost) {
         await platform.setSetting(
           "lan_advertised_host",
-          lanAdvertisedHostDraft.trim()
+          nextAdvertisedHost
         );
       }
       await platform.restartLanServices();
@@ -1708,7 +1741,10 @@ export default function SettingsPage() {
                     onChange={setLanWebEnabledDraft}
                   />
                 </div>
-                <div className={styles.twoColumn} style={{ marginTop: "1rem" }}>
+                <div
+                  className={`${styles.twoColumn} ${styles.topAlignedTwoColumn}`}
+                  style={{ marginTop: "1rem" }}
+                >
                   <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel}>API URL</label>
                     <input
