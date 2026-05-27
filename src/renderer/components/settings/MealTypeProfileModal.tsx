@@ -251,7 +251,7 @@ export function MealTypeProfileModal({
       <div
         aria-label={dialogLabel}
         aria-modal="true"
-        className={`${styles.personaModalPanel} ${styles.mealTypeProfileModalPanel} flex max-h-[90vh] w-full flex-col overflow-hidden`}
+        className={`${styles.personaModalPanel} ${styles.mealTypeProfileModalPanel} flex max-h-[90vh] min-h-0 w-full flex-col overflow-hidden`}
         ref={panelRef}
         role="dialog"
         tabIndex={-1}
@@ -279,7 +279,7 @@ export function MealTypeProfileModal({
         </div>
 
         <div
-          className={`${styles.personaModalBody} ${styles.mealTypeProfileModalBody} flex-1 overflow-y-auto`}
+          className={`${styles.personaModalBody} ${styles.mealTypeProfileModalBody} flex-1 min-h-0 overflow-y-auto`}
         >
           <p className={styles.cardDescription}>
             {isDefaultProfile

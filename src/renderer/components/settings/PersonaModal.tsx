@@ -187,7 +187,7 @@ export function PersonaModal({
       ref={overlayRef}
     >
       <div
-        className={`${styles.personaModalPanel} flex max-h-[90vh] w-full max-w-[min(520px,94vw)] flex-col overflow-hidden`}
+        className={`${styles.personaModalPanel} flex max-h-[90vh] min-h-0 w-full max-w-[min(520px,94vw)] flex-col overflow-hidden`}
         ref={panelRef}
         role="dialog"
         aria-modal="true"
@@ -210,7 +210,7 @@ export function PersonaModal({
           </button>
         </div>
 
-        <div className={`${styles.personaModalBody} flex-1 overflow-y-auto`}>
+        <div className={`${styles.personaModalBody} flex-1 min-h-0 overflow-y-auto`}>
           <div className={styles.personaFormGroup}>
             <label className={styles.personaFormLabel}>Emoji</label>
             <input

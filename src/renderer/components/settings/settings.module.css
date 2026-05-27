@@ -829,7 +829,9 @@
   background: var(--white);
   border: 1px solid var(--cream-dark);
   box-shadow: 0 24px 64px rgba(44, 36, 22, 0.26);
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .personaModalHeader {
@@ -891,6 +893,8 @@
   background: #fffdf9;
   display: grid;
   gap: 1rem;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .personaModalFooter {

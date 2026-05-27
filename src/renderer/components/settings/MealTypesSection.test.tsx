@@ -172,7 +172,10 @@ describe("MealTypesSection", () => {
       name: "Update default meal type profile",
     });
     const modal = within(dialog);
+    const body = dialog.querySelector(".flex-1.overflow-y-auto");
 
+    expect(dialog).toHaveClass("min-h-0");
+    expect(body).toHaveClass("min-h-0");
     expect(modal.getByDisplayValue("Default")).toBeTruthy();
     expect(modal.getByText("Meal Types")).toBeTruthy();
     expect(modal.getByDisplayValue("Dinner")).toBeTruthy();
