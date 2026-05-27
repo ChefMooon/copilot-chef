@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2026-05-27
+
+### Changed
+
+- Breaking: Copilot Chef has been rebranded as Local Recipe Book and the Copilot chat workflow has been removed in favor of a local-first meal-planning experience.
+- Home and dashboard surfaces were refreshed with clearer upcoming meal summaries, cleaner action layouts, and stronger responsive behavior.
+- The meal-planning workflow now supports faster calendar management with day and week quick actions, month popover improvements, batch slot actions, and drag-and-drop stability fixes.
+- The browser and LAN experience is more reliable, including better host normalization and a dedicated browser connect route.
+- The web and Electron bundles now load more efficiently through chunk splitting and lazy loading for heavier renderer paths.
+
+### Added
+
+- Added meal reordering, meal duplication, linked recipe navigation, meal sub-type management, side default templates, and header-level undo/redo controls to the meal planner.
+- Added meal photos, made-history tracking, and recipe library improvements including duplication, lineage tracking, sortable saved views, and preserved fractional ingredient units.
+- Added ongoing grocery-list support, shop completion controls, and a prep-list planning workflow.
+- Added expanded workspace and IPC documentation to support the current Electron, browser, and LAN architecture.
+
+### Fixed
+
+- Fixed duplicate-recipe conflict handling so recipe-save flows behave more predictably.
+- Fixed recipe last-made synchronization so linked meals and recipes stay aligned.
+- Fixed the meal-plan drawer drag lifecycle and slot-hover behavior to reduce scheduling glitches.
+- Fixed local pre-development startup requirements around Prisma engine binaries.
+
 ## [0.1.1] - 2026-04-30
 
 ### Added
