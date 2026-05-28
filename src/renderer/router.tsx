@@ -17,13 +17,40 @@ const StatsPage = lazy(() => import("./pages/stats"));
 const SettingsPage = lazy(() => import("./pages/settings"));
 const ConnectPage = lazy(() => import("./pages/connect"));
 
-function withRouteFallback(element: React.ReactNode) {
+function MealPlanRouteFallback() {
+  return (
+    <div className="p-4 md:p-6 space-y-4">
+      <div className="space-y-2">
+        <div className="h-8 w-48 rounded bg-muted animate-pulse" />
+        <div className="h-4 w-64 rounded bg-muted animate-pulse" />
+      </div>
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <div className="grid grid-cols-7 gap-2 mb-3">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="h-8 rounded bg-muted animate-pulse" />
+          ))}
+        </div>
+        {Array.from({ length: 3 }).map((_, row) => (
+          <div key={row} className="grid grid-cols-7 gap-2 mb-2">
+            {Array.from({ length: 7 }).map((_, col) => (
+              <div key={col} className="h-16 rounded bg-muted animate-pulse" />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function withRouteFallback(element: React.ReactNode, fallback?: React.ReactNode) {
   return (
     <Suspense
       fallback={
-        <div className="p-4 md:p-6">
-          <p className="text-sm text-text-muted">Loading page...</p>
-        </div>
+        fallback ?? (
+          <div className="p-4 md:p-6">
+            <p className="text-sm text-text-muted">Loading page...</p>
+          </div>
+        )
       }
     >
       {element}
@@ -38,7 +65,10 @@ const authenticatedRoutes = [
     errorElement: <RouteErrorBoundary />,
     children: [
       { index: true, element: withRouteFallback(<HomePage />) },
-      { path: "meal-plan", element: withRouteFallback(<MealPlanPage />) },
+      {
+        path: "meal-plan",
+        element: withRouteFallback(<MealPlanPage />, <MealPlanRouteFallback />),
+      },
       {
         path: "grocery-list",
         element: withRouteFallback(<GroceryListPage />),

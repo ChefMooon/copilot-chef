@@ -39,6 +39,7 @@ export function createApp(config: ServerConfig) {
       exposeHeaders: [
         "x-request-id",
       ],
+      maxAge: 86400,
     })
   );
 

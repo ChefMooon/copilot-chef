@@ -1,5 +1,8 @@
 import { Outlet } from "react-router";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+
+import { listMealSubTypeDefinitions, listMealTypeProfiles } from "@/lib/api";
 
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
@@ -22,6 +25,21 @@ type ServerConfig = {
 
 function AppContent({ config }: { config: ServerConfig }) {
   const { status, retry } = useServerConnection(config.url);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    void queryClient.prefetchQuery({
+      queryKey: ["meal-types", "profiles"],
+      staleTime: 5 * 60 * 1000,
+      queryFn: listMealTypeProfiles,
+    });
+    void queryClient.prefetchQuery({
+      queryKey: ["meal-sub-types"],
+      staleTime: 5 * 60 * 1000,
+      queryFn: listMealSubTypeDefinitions,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <>

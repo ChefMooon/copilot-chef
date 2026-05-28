@@ -24,6 +24,7 @@ export function useMealTypeProfiles() {
   return useQuery({
     queryKey: ["meal-types", "profiles"],
     enabled: apiReady,
+    staleTime: 5 * 60 * 1000,
     queryFn: () => listMealTypeProfiles(),
   });
 }
@@ -34,6 +35,7 @@ export function useMealSubTypeDefinitions() {
   return useQuery({
     queryKey: ["meal-sub-types"],
     enabled: apiReady,
+    staleTime: 5 * 60 * 1000,
     queryFn: listMealSubTypeDefinitions,
   });
 }

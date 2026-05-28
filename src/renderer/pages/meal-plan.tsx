@@ -2070,7 +2070,7 @@ export default function MealPlanPage() {
           />
         ) : null}
         <div className={styles.calCard}>
-          {view === "day" ? (
+          {!mealsQuery.isLoading && view === "day" ? (
             <DayView
               date={date}
               dragDisabled={false}
@@ -2083,7 +2083,7 @@ export default function MealPlanPage() {
               setDate={setDate}
             />
           ) : null}
-          {view === "week" ? (
+          {!mealsQuery.isLoading && view === "week" ? (
             <WeekView
               date={date}
               dragDisabled={false}
@@ -2097,7 +2097,7 @@ export default function MealPlanPage() {
               setDate={setDate}
             />
           ) : null}
-          {view === "month" ? (
+          {!mealsQuery.isLoading && view === "month" ? (
             <MonthView
               date={date}
               meals={meals}
@@ -2444,11 +2444,7 @@ export default function MealPlanPage() {
         />
       ) : null}
 
-      {mealsQuery.isLoading ? (
-        <p className={styles.pageSub} style={{ marginTop: "0.85rem" }}>
-          Loading meals...
-        </p>
-      ) : null}
+
       {mealsQuery.error ? (
         <p
           className={styles.pageSub}
