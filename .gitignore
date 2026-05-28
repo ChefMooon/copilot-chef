@@ -50,4 +50,4 @@ temp/
 # OS
 Thumbs.db
 
-CLAUDE.md
+*.tsbuildinfo
