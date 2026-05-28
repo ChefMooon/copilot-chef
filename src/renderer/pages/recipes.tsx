@@ -6,6 +6,7 @@ import {
   createRecipe,
   deleteRecipe,
   exportRecipes,
+  isRateLimitedApiError,
   importRecipes,
   listRecipes,
   updateRecipe,
@@ -20,6 +21,7 @@ import { RecipeFilterSidebar } from "@/components/recipes/RecipeFilterSidebar";
 import { RecipeGrid } from "@/components/recipes/RecipeGrid";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
+import { RouteErrorState } from "@/components/ui/route-error-state";
 import { getPlatform } from "@/lib/platform";
 import {
   RECIPE_SEARCH_SORT_MODE_VALUES,
@@ -232,12 +234,16 @@ export default function RecipesPage() {
   const recipesQuery = useQuery({
     queryKey: [...recipesKey, recipeFilters],
     enabled: apiReady,
+    retry: (failureCount, error) =>
+      isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
     queryFn: () => listRecipes(recipeFilters),
   });
 
   const allRecipesQuery = useQuery({
     queryKey: [...recipesKey, "all"],
     enabled: apiReady,
+    retry: (failureCount, error) =>
+      isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
     queryFn: () => listRecipes(),
   });
 
@@ -279,6 +285,14 @@ export default function RecipesPage() {
   const totalRecipes = allRecipesQuery.data?.length ?? visibleRecipes.length;
   const selectedCount = selectedIds.size;
   const isInitialRecipeLoad = !recipesQuery.data && recipesQuery.isLoading;
+  const isRateLimitedRecipes =
+    (recipesQuery.isError && isRateLimitedApiError(recipesQuery.error)) ||
+    (allRecipesQuery.isError && isRateLimitedApiError(allRecipesQuery.error));
+  const hasRecipesLoadError = recipesQuery.isError || allRecipesQuery.isError;
+
+  function retryRecipeQueries() {
+    void Promise.all([recipesQuery.refetch(), allRecipesQuery.refetch()]);
+  }
 
   function toggleSelection(id: string) {
     setSelectedIds((current) => {
@@ -536,25 +550,38 @@ export default function RecipesPage() {
           />
         </div>
 
-        {isInitialRecipeLoad ? (
-          <div className="rounded-card border border-cream-dark bg-white p-8 text-center text-sm text-text-muted">
-            Loading recipes...
-          </div>
-        ) : (
-          <RecipeGrid
-            onDelete={(recipe) => setRecipePendingDelete(recipe)}
-            onEdit={(recipe) => {
-              setEditingRecipe(recipe);
-              setShowAddModal(true);
-            }}
-            onToggleFavourite={(recipe, nextValue) => {
-              void handleToggleFavourite(recipe, nextValue);
-            }}
-            onToggleSelect={toggleSelection}
-            recipes={visibleRecipes as RecipePayload[]}
-            selectedIds={selectedIds}
-          />
-        )}
+        <div className="space-y-3">
+          {hasRecipesLoadError ? (
+            <RouteErrorState
+              onRetry={retryRecipeQueries}
+              title={
+                isRateLimitedRecipes
+                  ? "Recipe requests are temporarily rate limited."
+                  : "Some recipe data could not be loaded."
+              }
+            />
+          ) : null}
+
+          {isInitialRecipeLoad ? (
+            <div className="rounded-card border border-cream-dark bg-white p-8 text-center text-sm text-text-muted">
+              Loading recipes...
+            </div>
+          ) : (
+            <RecipeGrid
+              onDelete={(recipe) => setRecipePendingDelete(recipe)}
+              onEdit={(recipe) => {
+                setEditingRecipe(recipe);
+                setShowAddModal(true);
+              }}
+              onToggleFavourite={(recipe, nextValue) => {
+                void handleToggleFavourite(recipe, nextValue);
+              }}
+              onToggleSelect={toggleSelection}
+              recipes={visibleRecipes as RecipePayload[]}
+              selectedIds={selectedIds}
+            />
+          )}
+        </div>
       </div>
 
       {showAddModal ? (

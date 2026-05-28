@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 
+import { AccessibleHeatmapCell } from "@/components/ui/accessible-heatmap-cell";
+
 import styles from "./ActivityHeatmap.module.css";
 
 type HeatmapCell = { date: string; meals: number; isFuture: boolean };
@@ -59,34 +61,24 @@ export function ActivityHeatmap({ weeks, monthStarts }: Props) {
 
           {weeks.map((week, weekIndex) =>
             week.map((cell, dayIndex) => {
-              const dateLabel = new Date(cell.date).toLocaleDateString(
-                "en-US",
-                {
-                  month: "short",
-                  day: "numeric",
-                }
-              );
-
               return (
-                <button
+                <AccessibleHeatmapCell
+                  cell={cell}
                   className={styles.square}
                   key={`${weekIndex}-${dayIndex}`}
-                  onMouseEnter={(event) =>
+                  onMouseEnterTooltip={(event, tooltipText) =>
                     setTooltip({
                       x: event.clientX,
                       y: event.clientY,
-                      text: cell.isFuture
-                        ? "Not yet"
-                        : `${dateLabel} — ${cell.meals} meal${cell.meals !== 1 ? "s" : ""}`,
+                      text: tooltipText,
                     })
                   }
-                  onMouseLeave={() => setTooltip(null)}
+                  onMouseLeaveTooltip={() => setTooltip(null)}
                   style={{
                     gridColumn: weekIndex + 2,
                     gridRow: dayIndex + 1,
                     background: getHeatColor(cell.meals, cell.isFuture),
                   }}
-                  type="button"
                 />
               );
             })

@@ -57,6 +57,7 @@ export function ChipList({
 
       <div className={styles.chipInputRow}>
         <input
+          aria-label={title}
           className={styles.textInput}
           onChange={(event) => setInputValue(event.target.value)}
           onKeyDown={(event) => {

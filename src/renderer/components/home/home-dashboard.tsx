@@ -3,7 +3,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 
 import { Button } from "@/components/ui/button";
-import { fetchJson } from "@/lib/api";
+import { RouteErrorState } from "@/components/ui/route-error-state";
+import { AccessibleHeatmapCell } from "@/components/ui/accessible-heatmap-cell";
+import { fetchJson, isRateLimitedApiError } from "@/lib/api";
 import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
 import { getPlatform } from "@/lib/platform";
@@ -216,6 +218,8 @@ export function HomeDashboard() {
   const mealSummaryQuery = useQuery({
     queryKey: ["stats", "meal-summary"],
     enabled: apiReady,
+    retry: (failureCount, error) =>
+      isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
     queryFn: () =>
       fetchJson<{ data: MealSummaryPayload }>("/api/stats/meal-summary").then(
         (response) => response.data
@@ -225,6 +229,8 @@ export function HomeDashboard() {
   const groceryListQuery = useQuery({
     queryKey: ["grocery-list", "current"],
     enabled: apiReady && settings.showGroceryList,
+    retry: (failureCount, error) =>
+      isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
     queryFn: () =>
       fetchJson<{ data: GroceryListPayload | null }>(
         "/api/grocery-lists?current=1"
@@ -234,6 +240,8 @@ export function HomeDashboard() {
   const heatmapQuery = useQuery({
     queryKey: ["meals", "heatmap", 13],
     enabled: apiReady && settings.showMealActivity,
+    retry: (failureCount, error) =>
+      isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
     queryFn: () =>
       fetchJson<{ data: HeatmapPayload }>("/api/meals/heatmap?weeks=13").then(
         (response) => response.data
@@ -243,6 +251,8 @@ export function HomeDashboard() {
   const upcomingMealsQuery = useQuery({
     queryKey: ["meals", "upcoming", settings.upcomingDays],
     enabled: apiReady && settings.showUpcomingMeals,
+    retry: (failureCount, error) =>
+      isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
     queryFn: () =>
       fetchJson<{ data: UpcomingMealsPayload }>(
         `/api/meals/upcoming?days=${settings.upcomingDays}`
@@ -297,6 +307,25 @@ export function HomeDashboard() {
     Number(settings.showMealActivity) + Number(settings.showGroceryList);
   const hasOverviewContent =
     settings.showUpcomingMeals || visibleOverviewCount > 0;
+  const homeQueries = [
+    mealSummaryQuery,
+    groceryListQuery,
+    heatmapQuery,
+    upcomingMealsQuery,
+  ] as const;
+  const isRateLimited = homeQueries.some(
+    (query) => query.isError && isRateLimitedApiError(query.error)
+  );
+  const hasHomeQueryError = homeQueries.some((query) => query.isError);
+
+  function retryHomeQueries() {
+    void Promise.all([
+      mealSummaryQuery.refetch(),
+      groceryListQuery.refetch(),
+      heatmapQuery.refetch(),
+      upcomingMealsQuery.refetch(),
+    ]);
+  }
 
   return (
     <>
@@ -313,6 +342,17 @@ export function HomeDashboard() {
           </p>
         ) : null}
       </div>
+
+      {hasHomeQueryError ? (
+        <RouteErrorState
+          onRetry={retryHomeQueries}
+          title={
+            isRateLimited
+              ? "Some dashboard data is temporarily rate limited."
+              : "Some dashboard data could not be loaded."
+          }
+        />
+      ) : null}
 
       {hasOverviewContent ? (
         <>
@@ -452,27 +492,19 @@ export function HomeDashboard() {
 
                         {heatmap.map((week, weekIndex) =>
                           week.map((cell, dayIndex) => {
-                            const dateLabel = new Date(
-                              cell.date
-                            ).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            });
-
                             return (
-                              <button
+                              <AccessibleHeatmapCell
+                                cell={cell}
                                 className={styles.heatmapSquare}
                                 key={`${weekIndex}-${dayIndex}`}
-                                onMouseEnter={(event) =>
+                                onMouseEnterTooltip={(event, tooltipText) =>
                                   setTooltip({
                                     x: event.clientX,
                                     y: event.clientY,
-                                    text: cell.isFuture
-                                      ? "Not yet"
-                                      : `${dateLabel} — ${cell.meals} meal${cell.meals !== 1 ? "s" : ""}`,
+                                    text: tooltipText,
                                   })
                                 }
-                                onMouseLeave={() => setTooltip(null)}
+                                onMouseLeaveTooltip={() => setTooltip(null)}
                                 style={{
                                   gridColumn: weekIndex + 2,
                                   gridRow: dayIndex + 1,
@@ -481,7 +513,6 @@ export function HomeDashboard() {
                                     cell.isFuture
                                   ),
                                 }}
-                                type="button"
                               />
                             );
                           })

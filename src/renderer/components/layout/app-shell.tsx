@@ -99,6 +99,7 @@ export function AppShell({ children }: PropsWithChildren) {
             </button>
 
             <Link
+              aria-label="Settings"
               className={cn(
                 styles.settingsButton,
                 pathname === "/settings" && styles.settingsButtonActive

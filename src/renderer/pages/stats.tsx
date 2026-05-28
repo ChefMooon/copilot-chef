@@ -1,7 +1,8 @@
 import { Suspense, lazy } from "react";
 import { useQuery } from "@tanstack/react-query";
 
-import { fetchJson } from "@/lib/api";
+import { RouteErrorState } from "@/components/ui/route-error-state";
+import { fetchJson, isRateLimitedApiError } from "@/lib/api";
 import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
 import { type StatsPayload } from "@/components/stats/StatsDashboard";
@@ -17,6 +18,8 @@ export default function StatsPage() {
   const statsQuery = useQuery({
     queryKey: ["stats"],
     enabled: apiReady,
+    retry: (failureCount, error) =>
+      isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
     queryFn: () =>
       fetchJson<{ data: StatsPayload }>("/api/stats").then(
         (response) => response.data
@@ -32,9 +35,25 @@ export default function StatsPage() {
   }
 
   if (statsQuery.isError || !statsQuery.data) {
+    const isRateLimited = isRateLimitedApiError(statsQuery.error);
     return (
       <div className="p-4 md:p-6">
-        <p className="text-sm text-orange">Unable to load stats right now.</p>
+        <RouteErrorState
+          className="max-w-xl p-4"
+          description={
+            isRateLimited
+              ? "Please try again in a moment."
+              : "Check your connection and retry."
+          }
+          onRetry={() => {
+            void statsQuery.refetch();
+          }}
+          title={
+            isRateLimited
+              ? "Requests are coming in too quickly right now."
+              : "Unable to load stats right now."
+          }
+        />
       </div>
     );
   }

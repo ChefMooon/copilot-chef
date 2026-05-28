@@ -65,12 +65,14 @@ export function ItemRow({
           ⠿
         </span>
         <input
+          aria-label={`Mark ${item.name} as collected`}
           checked={item.checked}
           className={styles.itemCheck}
           onChange={(event) => onUpdate({ checked: event.target.checked })}
           type="checkbox"
         />
         <input
+          aria-label="Item name"
           className={`${styles.itemNameInput} ${item.checked ? styles.itemDone : ""}`}
           onChange={(event) => onUpdate({ name: event.target.value })}
           placeholder="Item name..."
@@ -78,6 +80,7 @@ export function ItemRow({
         />
         <div className={styles.itemQtyRow}>
           <input
+            aria-label={`Quantity for ${item.name}`}
             className={styles.itemQtyInput}
             min="0"
             onChange={(event) => onUpdate({ qty: event.target.value })}
@@ -86,6 +89,7 @@ export function ItemRow({
             value={item.qty ?? ""}
           />
           <select
+            aria-label={`Unit for ${item.name}`}
             className={styles.itemUnitSelect}
             onChange={(event) => onUpdate({ unit: event.target.value })}
             value={item.unit ?? ""}
@@ -98,6 +102,7 @@ export function ItemRow({
           </select>
         </div>
         <select
+          aria-label={`Category for ${item.name}`}
           className={styles.itemCatSelect}
           onChange={(event) => onUpdate({ category: event.target.value })}
           value={item.category}
@@ -150,6 +155,7 @@ export function ItemRow({
           <div className={styles.itemExtraField}>
             <label className={styles.itemExtraLabel}>Notes / Brand</label>
             <input
+              aria-label={`Notes for ${item.name}`}
               className={styles.itemExtraInput}
               onChange={(event) => onUpdate({ notes: event.target.value })}
               placeholder="e.g. Free-range, organic..."
@@ -159,6 +165,7 @@ export function ItemRow({
           <div className={styles.itemExtraField}>
             <label className={styles.itemExtraLabel}>Linked Meal</label>
             <input
+              aria-label={`Linked meal for ${item.name}`}
               className={styles.itemExtraInput}
               onChange={(event) => onUpdate({ meal: event.target.value })}
               placeholder="e.g. Roast Chicken"

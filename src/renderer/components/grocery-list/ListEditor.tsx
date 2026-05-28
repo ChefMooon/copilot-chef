@@ -142,6 +142,7 @@ export function ListEditor({
           <div className={styles.editorTitleRow}>
             {editingName ? (
               <input
+                aria-label="List name"
                 className={styles.editorNameInput}
                 onBlur={() => {
                   void saveName();
@@ -246,6 +247,7 @@ export function ListEditor({
 
         <div className={styles.editorAddRow}>
           <input
+            aria-label="Add grocery item"
             className={styles.editorAddInput}
             onChange={(event) => setNewItemName(event.target.value)}
             onKeyDown={(event) => {
@@ -305,6 +307,7 @@ export function ListEditor({
                 <label className={styles.formLabel}>Date</label>
                 <label className={styles.formCheckboxRow}>
                   <input
+                    aria-label="Ongoing list"
                     checked={isOngoing}
                     className={styles.formCheckbox}
                     onChange={(event) => {
@@ -319,6 +322,7 @@ export function ListEditor({
                   Ongoing list (no date)
                 </label>
                 <input
+                  aria-label="List date"
                   autoFocus
                   className={styles.formInput}
                   disabled={isOngoing}

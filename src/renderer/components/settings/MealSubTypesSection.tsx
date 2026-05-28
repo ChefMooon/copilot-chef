@@ -81,6 +81,7 @@ function ColorSwatches(props: {
           value={colorInputValue}
         />
         <input
+          aria-label="Color hex code"
           className={styles.select}
           onChange={(event) => props.onChange(event.target.value.toUpperCase())}
           placeholder="#E8885A"
@@ -267,6 +268,7 @@ export function MealSubTypesSection() {
                     <div className={styles.fieldGroup}>
                       <label className={styles.fieldLabel}>Name</label>
                       <input
+                        aria-label="Sub-type name"
                         className={styles.select}
                         onChange={(event) =>
                           updateDraft(draft.id, { name: event.target.value })
@@ -311,6 +313,7 @@ export function MealSubTypesSection() {
                   <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel}>Enabled</label>
                     <select
+                      aria-label="Sub-type status"
                       className={styles.select}
                       onChange={(event) =>
                         updateDraft(draft.id, {

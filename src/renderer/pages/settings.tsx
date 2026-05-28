@@ -1109,6 +1109,7 @@ export default function SettingsPage() {
                 <label className={styles.fieldLabel}>Household size</label>
                 <div className={styles.rangeRow}>
                   <input
+                    aria-label="Household size"
                     className={styles.rangeInput}
                     max={8}
                     min={1}
@@ -1127,6 +1128,7 @@ export default function SettingsPage() {
                   Preferred cooking length
                 </label>
                 <select
+                  aria-label="Preferred cooking length"
                   className={styles.select}
                   onChange={(event) =>
                     void handleImmediateField(
@@ -1226,6 +1228,7 @@ export default function SettingsPage() {
               </p>
             </div>
             <textarea
+              aria-label="Planning notes"
               className={styles.textarea}
               onChange={(event) => scheduleNotesSave(event.target.value)}
               value={planningNotesDraft}
@@ -1253,6 +1256,7 @@ export default function SettingsPage() {
               <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel}>Cooking skill level</label>
                 <select
+                  aria-label="Cooking skill level"
                   className={styles.select}
                   onChange={(event) =>
                     void handleImmediateField("skillLevel", event.target.value)
@@ -1269,6 +1273,7 @@ export default function SettingsPage() {
               <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel}>Budget range</label>
                 <select
+                  aria-label="Budget range"
                   className={styles.select}
                   onChange={(event) =>
                     void handleImmediateField("budgetRange", event.target.value)
@@ -1326,6 +1331,7 @@ export default function SettingsPage() {
                 Recipe library default sort
               </label>
               <select
+                aria-label="Recipe library default sort"
                 className={styles.select}
                 onChange={(event) =>
                   void handleRecipeDefaultSortChange(event.target.value)
@@ -1378,6 +1384,7 @@ export default function SettingsPage() {
                 <div className={styles.fieldGroup}>
                   <label className={styles.fieldLabel}>Server URL</label>
                   <input
+                    aria-label="Server URL"
                     className={styles.select}
                     type="text"
                     value={connectionDraft.serverUrl}
@@ -1393,6 +1400,7 @@ export default function SettingsPage() {
                 <div className={styles.fieldGroup}>
                   <label className={styles.fieldLabel}>Auth token</label>
                   <input
+                    aria-label="Auth token"
                     className={styles.select}
                     type="password"
                     value={connectionDraft.token}
@@ -1410,6 +1418,7 @@ export default function SettingsPage() {
             <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
               <label className={styles.fieldLabel}>Machine API key</label>
               <input
+                aria-label="Machine API key"
                 className={styles.select}
                 type="password"
                 value={machineApiKeyDraft}
@@ -1446,6 +1455,7 @@ export default function SettingsPage() {
                   <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel}>API URL</label>
                     <input
+                      aria-label="API URL"
                       className={styles.select}
                       readOnly
                       value={lanStatus?.api.url ?? "Unavailable"}
@@ -1454,6 +1464,7 @@ export default function SettingsPage() {
                   <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel}>Browser URL</label>
                     <input
+                      aria-label="Browser URL"
                       className={styles.select}
                       readOnly
                       value={lanStatus?.web.url ?? "Unavailable"}
@@ -1471,6 +1482,7 @@ export default function SettingsPage() {
                   <label className={styles.fieldLabel}>Advertised host</label>
                   {lanStatus?.candidates && lanStatus.candidates.length > 0 ? (
                     <select
+                      aria-label="Advertised host"
                       className={styles.select}
                       value={lanAdvertisedHostDraft}
                       onChange={(event) =>
@@ -1485,6 +1497,7 @@ export default function SettingsPage() {
                     </select>
                   ) : (
                     <input
+                      aria-label="Advertised host"
                       className={styles.select}
                       type="text"
                       value={lanAdvertisedHostDraft}
@@ -1526,6 +1539,7 @@ export default function SettingsPage() {
                 >
                   <label className={styles.fieldLabel}>Connection URL</label>
                   <input
+                    aria-label="Connection URL"
                     className={styles.select}
                     readOnly
                     type="text"
@@ -1633,6 +1647,7 @@ export default function SettingsPage() {
               </label>
               <div className={styles.rangeRow}>
                 <input
+                  aria-label="Upcoming meal range"
                   className={styles.rangeInput}
                   max={30}
                   min={1}
@@ -1655,6 +1670,7 @@ export default function SettingsPage() {
                   Upcoming detail level
                 </label>
                 <select
+                  aria-label="Upcoming detail level"
                   className={styles.select}
                   onChange={(event) =>
                     void handleHomeDetail(event.target.value)
@@ -1762,6 +1778,7 @@ export default function SettingsPage() {
               <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel}>Default plan length</label>
                 <select
+                  aria-label="Default plan length"
                   className={styles.select}
                   onChange={(event) =>
                     void handleImmediateField(
@@ -1783,6 +1800,7 @@ export default function SettingsPage() {
                   Grocery list grouping
                 </label>
                 <select
+                  aria-label="Grocery list grouping"
                   className={styles.select}
                   onChange={(event) =>
                     void handleImmediateField(

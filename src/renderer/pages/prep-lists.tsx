@@ -814,6 +814,7 @@ export default function PrepListsPage() {
           <label className={styles.upcomingControl}>
             Days:
             <input
+              aria-label="Upcoming filter days"
               className={styles.upcomingInput}
               max={60}
               min={1}
@@ -907,6 +908,7 @@ export default function PrepListsPage() {
             <div className={styles.editorHeader}>
               <div className={styles.editorTitleRow}>
                 <input
+                  aria-label="Prep list name"
                   className={styles.editorNameInput}
                   onBlur={(event) => {
                     if (event.target.value.trim() && event.target.value.trim() !== selectedList.name) {
@@ -1001,6 +1003,7 @@ export default function PrepListsPage() {
                 </button>
               </div>
               <textarea
+                aria-label="List notes"
                 className={styles.listNotesInput}
                 onChange={(event) => {
                   const nextValue = event.target.value;
@@ -1053,12 +1056,14 @@ export default function PrepListsPage() {
                       ⠿
                     </span>
                     <input
+                      aria-label={`Mark ${item.name} complete`}
                       checked={item.checked}
                       className={styles.itemCheck}
                       onChange={(event) => void patchItem(selectedList.id, item.id, { checked: event.target.checked })}
                       type="checkbox"
                     />
                     <input
+                      aria-label="Prep item name"
                       className={`${styles.itemNameInput} ${item.checked ? styles.itemDone : ""}`}
                       defaultValue={item.name}
                       onBlur={(event) => {
@@ -1070,6 +1075,7 @@ export default function PrepListsPage() {
                     />
                     <div className={styles.itemQtyRow}>
                       <input
+                        aria-label={`Quantity for ${item.name}`}
                         className={styles.itemQtyInput}
                         defaultValue={item.qty ?? ""}
                         onBlur={(event) =>
@@ -1078,6 +1084,7 @@ export default function PrepListsPage() {
                         placeholder="qty"
                       />
                       <input
+                        aria-label={`Unit for ${item.name}`}
                         className={styles.itemUnitSelect}
                         defaultValue={item.unit ?? ""}
                         onBlur={(event) =>
@@ -1114,6 +1121,7 @@ export default function PrepListsPage() {
                     <div className={styles.itemExtraField}>
                       <span className={styles.itemExtraLabel}>Type</span>
                       <select
+                        aria-label={`Type for ${item.name}`}
                         className={styles.itemCatSelect}
                         onChange={(event) =>
                           void patchItem(selectedList.id, item.id, { kind: event.target.value as PrepItem["kind"] })
@@ -1127,6 +1135,7 @@ export default function PrepListsPage() {
                     <div className={styles.itemExtraField}>
                       <span className={styles.itemExtraLabel}>Dish</span>
                       <input
+                        aria-label={`Dish for ${item.name}`}
                         className={styles.itemExtraInput}
                         defaultValue={item.dish ?? ""}
                         onBlur={(event) =>
@@ -1138,6 +1147,7 @@ export default function PrepListsPage() {
                     <div className={styles.itemExtraField}>
                       <span className={styles.itemExtraLabel}>Ingredient Type</span>
                       <input
+                        aria-label={`Ingredient type for ${item.name}`}
                         className={styles.itemExtraInput}
                         defaultValue={item.ingredientType ?? item.prepGroup ?? ""}
                         onBlur={(event) =>
@@ -1149,6 +1159,7 @@ export default function PrepListsPage() {
                     <div className={styles.itemExtraField}>
                       <span className={styles.itemExtraLabel}>Notes</span>
                       <input
+                        aria-label={`Notes for ${item.name}`}
                         className={styles.itemExtraInput}
                         defaultValue={item.notes ?? ""}
                         onBlur={(event) =>
@@ -1164,6 +1175,7 @@ export default function PrepListsPage() {
 
             <div className={styles.editorAddRow}>
               <select
+                aria-label="New prep item kind"
                 className={styles.itemCatSelect}
                 onChange={(event) => setNewItemKind(event.target.value as PrepItem["kind"])}
                 value={newItemKind}
@@ -1172,6 +1184,7 @@ export default function PrepListsPage() {
                 <option value="task">Task</option>
               </select>
               <input
+                aria-label="Add prep item"
                 className={styles.editorAddInput}
                 onChange={(event) => setNewItemName(event.target.value)}
                 onKeyDown={(event) => {
@@ -1256,17 +1269,17 @@ export default function PrepListsPage() {
 
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Name</label>
-                <input className={styles.formInput} onChange={(event) => setNewName(event.target.value)} value={newName} />
+                <input aria-label="Prep list name" className={styles.formInput} onChange={(event) => setNewName(event.target.value)} value={newName} />
               </div>
 
               {draftMode === "manual" ? (
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel}>Date</label>
                   <label className={styles.formCheckboxRow}>
-                    <input checked={newOngoing} className={styles.formCheckbox} onChange={(event) => setNewOngoing(event.target.checked)} type="checkbox" />
+                    <input aria-label="Ongoing prep list" checked={newOngoing} className={styles.formCheckbox} onChange={(event) => setNewOngoing(event.target.checked)} type="checkbox" />
                     Ongoing list (no date)
                   </label>
-                  <input className={styles.formInput} disabled={newOngoing} onChange={(event) => setNewDate(event.target.value)} type="date" value={newDate} />
+                  <input aria-label="Prep list date" className={styles.formInput} disabled={newOngoing} onChange={(event) => setNewDate(event.target.value)} type="date" value={newDate} />
                 </div>
               ) : (
                 <>
@@ -1282,7 +1295,7 @@ export default function PrepListsPage() {
 
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel}>Source</label>
-                    <select className={styles.formInput} onChange={(event) => setGeneratedMode(event.target.value as GeneratedMode)} value={generatedMode}>
+                    <select aria-label="Prep source" className={styles.formInput} onChange={(event) => setGeneratedMode(event.target.value as GeneratedMode)} value={generatedMode}>
                       <option value="single-meal">Single meal</option>
                       <option value="meal-slot">Meal slot</option>
                       <option value="day">Entire day</option>
@@ -1296,7 +1309,7 @@ export default function PrepListsPage() {
                   {(generatedMode === "day" || generatedMode === "week" || generatedMode === "month" || generatedMode === "meal-slot") ? (
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>Anchor date</label>
-                      <input className={styles.formInput} onChange={(event) => setRangeAnchor(event.target.value)} type="date" value={rangeAnchor} />
+                      <input aria-label="Anchor date" className={styles.formInput} onChange={(event) => setRangeAnchor(event.target.value)} type="date" value={rangeAnchor} />
                     </div>
                   ) : null}
 
@@ -1304,11 +1317,11 @@ export default function PrepListsPage() {
                     <div className="grid gap-3 md:grid-cols-2">
                       <div className={styles.formGroup}>
                         <label className={styles.formLabel}>From</label>
-                        <input className={styles.formInput} onChange={(event) => setRangeFrom(event.target.value)} type="date" value={rangeFrom} />
+                        <input aria-label="Range start" className={styles.formInput} onChange={(event) => setRangeFrom(event.target.value)} type="date" value={rangeFrom} />
                       </div>
                       <div className={styles.formGroup}>
                         <label className={styles.formLabel}>To</label>
-                        <input className={styles.formInput} onChange={(event) => setRangeTo(event.target.value)} type="date" value={rangeTo} />
+                        <input aria-label="Range end" className={styles.formInput} onChange={(event) => setRangeTo(event.target.value)} type="date" value={rangeTo} />
                       </div>
                     </div>
                   ) : null}
@@ -1317,6 +1330,7 @@ export default function PrepListsPage() {
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>Meal</label>
                       <input
+                        aria-label="Search nearby meals"
                         className={styles.formInput}
                         onChange={(event) => setMealSearch(event.target.value)}
                         placeholder="Search nearby meals"
@@ -1351,7 +1365,7 @@ export default function PrepListsPage() {
                   {generatedMode === "meal-slot" ? (
                     <div className={styles.formGroup}>
                       <label className={styles.formLabel}>Meal slot</label>
-                      <select className={styles.formInput} onChange={(event) => setMealType(event.target.value)} value={mealType}>
+                      <select aria-label="Meal slot" className={styles.formInput} onChange={(event) => setMealType(event.target.value)} value={mealType}>
                         <option value="BREAKFAST">Breakfast</option>
                         <option value="LUNCH">Lunch</option>
                         <option value="DINNER">Dinner</option>
@@ -1421,6 +1435,7 @@ export default function PrepListsPage() {
             <div className={styles.notesModalBody}>
               <div className={styles.notesModalMeta}>{selectedList.name}</div>
               <textarea
+                aria-label="Prep list detailed notes"
                 className={styles.notesModalInput}
                 onChange={(event) => {
                   const nextValue = event.target.value;

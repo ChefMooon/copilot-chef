@@ -214,6 +214,7 @@ export function PersonaModal({
           <div className={styles.personaFormGroup}>
             <label className={styles.personaFormLabel}>Emoji</label>
             <input
+              aria-label="Emoji"
               autoFocus
               className={styles.personaEmojiInput}
               maxLength={2}
@@ -227,6 +228,7 @@ export function PersonaModal({
           <div className={styles.personaFormGroup}>
             <label className={styles.personaFormLabel}>Name</label>
             <input
+              aria-label="Name"
               className={styles.textInput}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. The Grillmaster"
@@ -238,6 +240,7 @@ export function PersonaModal({
           <div className={styles.personaFormGroup}>
             <label className={styles.personaFormLabel}>Tagline</label>
             <input
+              aria-label="Tagline"
               className={styles.textInput}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="e.g. Bold, smoky, and confident"
@@ -251,6 +254,7 @@ export function PersonaModal({
               Personality instructions
             </label>
             <textarea
+              aria-label="Personality instructions"
               className={styles.personaPromptTextarea}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe how this chef should talk, what they emphasize, their tone..."

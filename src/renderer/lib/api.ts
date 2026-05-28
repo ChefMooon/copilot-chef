@@ -84,6 +84,10 @@ export function isApiError<T = unknown>(error: unknown): error is ApiError<T> {
   return error instanceof ApiError;
 }
 
+export function isRateLimitedApiError(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.status === 429;
+}
+
 export function isRecipeConflictError(
   error: unknown
 ): error is ApiError<RecipeConflict> {

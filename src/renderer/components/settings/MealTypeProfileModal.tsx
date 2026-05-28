@@ -59,12 +59,14 @@ function ColorSwatches(props: {
       </div>
       <div className="flex items-center gap-3">
         <input
+          aria-label="Choose custom color"
           className="h-10 w-14 cursor-pointer rounded border border-[var(--cream-dark)] bg-transparent p-1"
           onChange={(event) => props.onChange(event.target.value.toUpperCase())}
           type="color"
           value={props.value}
         />
         <input
+          aria-label="Color hex code"
           className={styles.select}
           onChange={(event) => props.onChange(event.target.value.toUpperCase())}
           placeholder="#E8885A"
@@ -291,6 +293,7 @@ export function MealTypeProfileModal({
             <div className={styles.fieldGroup}>
               <label className={styles.fieldLabel}>Profile name</label>
               <input
+                aria-label="Profile name"
                 autoFocus
                 className={styles.select}
                 onChange={(event) => onUpdateForm({ name: event.target.value })}
@@ -311,6 +314,7 @@ export function MealTypeProfileModal({
                 <div className={styles.fieldGroup}>
                   <label className={styles.fieldLabel}>Start date</label>
                   <input
+                    aria-label="Start date"
                     className={styles.select}
                     onChange={(event) =>
                       onUpdateForm({ startDate: event.target.value })
@@ -322,6 +326,7 @@ export function MealTypeProfileModal({
                 <div className={styles.fieldGroup}>
                   <label className={styles.fieldLabel}>End date</label>
                   <input
+                    aria-label="End date"
                     className={styles.select}
                     onChange={(event) =>
                       onUpdateForm({ endDate: event.target.value })
@@ -337,6 +342,7 @@ export function MealTypeProfileModal({
           <div className={styles.fieldGroup}>
             <label className={styles.fieldLabel}>Priority</label>
             <input
+              aria-label="Priority"
               className={styles.select}
               onChange={(event) =>
                 onUpdateForm({
@@ -351,6 +357,7 @@ export function MealTypeProfileModal({
           <div className={styles.fieldGroup}>
             <label className={styles.fieldLabel}>Description</label>
             <textarea
+              aria-label="Description"
               className={styles.textarea}
               onChange={(event) =>
                 onUpdateForm({ description: event.target.value })
@@ -379,6 +386,7 @@ export function MealTypeProfileModal({
                       style={{ backgroundColor: draft.color }}
                     />
                     <input
+                      aria-label="Meal type name"
                       className={styles.select}
                       onChange={(event) =>
                         onUpdateMealType(draft.id, { name: event.target.value })
