@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { listRecipes, type RecipePayload } from "@/lib/api";
+import { listRecipes } from "@/lib/api";
 import { getCuisineLabel } from "@shared/api/constants";
+import { type RecipePayload } from "@shared/types";
 
 import styles from "./meal-plan.module.css";
 
@@ -262,11 +263,13 @@ export function RecipeSearchModal({
                   <label className={styles.formLabel}>Ingredients</label>
                   <div className={styles.recipePreviewChips}>
                     {selectedRecipe.ingredients.length > 0 ? (
-                      selectedRecipe.ingredients.map((ingredient) => (
+                      selectedRecipe.ingredients.map(
+                        (ingredient: RecipePayload["ingredients"][number]) => (
                         <span className={styles.recipePreviewChip} key={ingredient.id}>
                           {ingredient.name}
                         </span>
-                      ))
+                        )
+                      )
                     ) : (
                       <span className={styles.readOnlyEmpty}>No ingredients listed</span>
                     )}
@@ -277,7 +280,7 @@ export function RecipeSearchModal({
                   <label className={styles.formLabel}>Instructions</label>
                   {selectedRecipe.instructions.length > 0 ? (
                     <ol className={styles.instructionsList}>
-                      {selectedRecipe.instructions.map((step, index) => (
+                      {selectedRecipe.instructions.map((step: string, index: number) => (
                         <li className={styles.instructionReadOnly} key={`preview-step-${index}`}>
                           {step}
                         </li>
@@ -338,7 +341,7 @@ export function RecipeSearchModal({
                   autoComplete="off"
                   className={styles.formInput}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search your recipe book..."
+                  placeholder="Search recipe book..."
                   value={query}
                 />
                 <select
