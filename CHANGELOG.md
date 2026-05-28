@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - TBD
+
+### Fixed
+
+- Fixed the Update Default Meal Plan Profile modal, scrolling now works
+- Fixed the meal add/edit modal rendering so stray `disabled=` text no longer appears above the form fields.
+
 ## [1.0.0] - 2026-05-27
 
 ### Changed

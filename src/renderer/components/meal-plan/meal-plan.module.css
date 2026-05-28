@@ -2075,6 +2075,7 @@
 .modalBody {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 1.25rem 1.4rem;
   display: flex;
   flex-direction: column;
@@ -2086,6 +2087,7 @@
   flex-direction: column;
   gap: 0.35rem;
   flex: 1;
+  min-width: 0;
 }
 
 .formRow {

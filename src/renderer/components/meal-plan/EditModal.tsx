@@ -432,7 +432,6 @@ export function EditModal({
                 x
               </button>
             </div>
-                      disabled={isSaving || isDeleting}
             <div className={styles.modalBody}>
 
               {/* ── Mode B: Recipe-linked header ─────────────────────── */}

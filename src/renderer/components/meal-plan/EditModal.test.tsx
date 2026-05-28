@@ -214,4 +214,24 @@ describe("EditModal", () => {
     expect(toggle).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByLabelText("Meal Photo")).toBeInTheDocument();
   });
+
+  it("does not render stray disabled text in the modal body", () => {
+    const { container } = render(
+      <EditModal
+        meal={editableMeal}
+        mealSubTypes={[]}
+        mealTypeProfiles={mealTypeProfiles}
+        onClose={vi.fn()}
+        onDelete={vi.fn(async () => undefined)}
+        onSave={vi.fn(async () => undefined)}
+      />
+    );
+
+    expect(screen.getByLabelText(/edit meal/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/meal type/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/sub-type/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/day/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /meal photo/i })).toBeInTheDocument();
+    expect(container).not.toHaveTextContent("disabled=");
+  });
 });
