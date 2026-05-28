@@ -18,7 +18,15 @@ const navigationItems = [
 export function AppShell({ children }: PropsWithChildren) {
   const location = useLocation();
   const pathname = location.pathname;
+  const getInitialIsNarrow = () => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return window.innerWidth <= 980;
+  };
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isNarrowLayout, setIsNarrowLayout] = useState(getInitialIsNarrow);
   const [isMaximized, setIsMaximized] = useState(false);
   const platform = getPlatform();
   const isElectron = platform.runtime === "electron";
@@ -29,6 +37,19 @@ export function AppShell({ children }: PropsWithChildren) {
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const syncNarrowLayout = () => {
+      setIsNarrowLayout(window.innerWidth <= 980);
+    };
+
+    syncNarrowLayout();
+    window.addEventListener("resize", syncNarrowLayout);
+
+    return () => {
+      window.removeEventListener("resize", syncNarrowLayout);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isElectron || !platform.isWindowMaximized) {
@@ -98,17 +119,19 @@ export function AppShell({ children }: PropsWithChildren) {
               <span className={styles.hamburgerBar} />
             </button>
 
-            <Link
-              aria-label="Settings"
-              className={cn(
-                styles.settingsButton,
-                pathname === "/settings" && styles.settingsButtonActive
-              )}
-              to="/settings"
-              title="Settings"
-            >
-              ⚙
-            </Link>
+            {!isNarrowLayout ? (
+              <Link
+                aria-label="Settings"
+                className={cn(
+                  styles.settingsButton,
+                  pathname === "/settings" && styles.settingsButtonActive
+                )}
+                to="/settings"
+                title="Settings"
+              >
+                ⚙
+              </Link>
+            ) : null}
 
             {isElectron && !isMac ? (
               <div

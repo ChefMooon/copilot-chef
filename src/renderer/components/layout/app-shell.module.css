@@ -328,10 +328,6 @@
     display: none;
   }
 
-  .windowControls {
-    display: none;
-  }
-
   .hamburger {
     display: inline-flex;
   }
@@ -365,12 +361,12 @@
     display: none;
   }
 
-  .windowControls {
-    display: none;
-  }
-
   .hamburger {
     display: inline-flex;
+  }
+
+  .settingsButton {
+    display: none;
   }
 }
 
