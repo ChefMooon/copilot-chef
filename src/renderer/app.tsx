@@ -63,12 +63,24 @@ export function PublicBrowserLayout() {
 
 export function AuthenticatedAppLayout() {
   const [config, setConfig] = useState<ServerConfig | null>(null);
-  const [configVersion, setConfigVersion] = useState(0);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const shouldRedirectToConnect =
+    getPlatform().runtime === "browser" &&
+    !getBrowserConnection() &&
+    !window.location.pathname.startsWith("/connect");
 
   useEffect(() => {
     let cancelled = false;
     let retryTimer: number | null = null;
+
+    const areConfigsEqual = (a: ServerConfig | null, b: ServerConfig) => {
+      if (!a) {
+        return false;
+      }
+
+      return a.url === b.url && a.token === b.token && a.mode === b.mode;
+    };
 
     const loadConfig = async (attempt = 0) => {
       try {
@@ -77,8 +89,7 @@ export function AuthenticatedAppLayout() {
           return;
         }
         setLoadError(null);
-        setConfig(cfg);
-        setConfigVersion((version) => version + 1);
+        setConfig((previous) => (areConfigsEqual(previous, cfg) ? previous : cfg));
       } catch (error) {
         if (cancelled) {
           return;
@@ -109,11 +120,7 @@ export function AuthenticatedAppLayout() {
       }
     };
 
-    if (
-      getPlatform().runtime === "browser" &&
-      !getBrowserConnection() &&
-      !window.location.pathname.startsWith("/connect")
-    ) {
+    if (shouldRedirectToConnect) {
       window.location.replace("/connect");
       return;
     }
@@ -131,27 +138,37 @@ export function AuthenticatedAppLayout() {
       }
       unsubscribe();
     };
-  }, []);
+  }, [shouldRedirectToConnect]);
+
+  if (shouldRedirectToConnect) {
+    return null;
+  }
 
   if (!isServerConfigReady(config)) {
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100vh",
-          fontFamily: "system-ui, sans-serif",
-          color: "var(--text-muted)",
-        }}
-      >
-        {loadError ?? "Loading..."}
-      </div>
+      <QueryProvider>
+        <ToastProvider>
+          <AppShell>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: "40vh",
+                fontFamily: "system-ui, sans-serif",
+                color: "var(--text-muted)",
+              }}
+            >
+              {loadError ?? "Loading..."}
+            </div>
+          </AppShell>
+        </ToastProvider>
+      </QueryProvider>
     );
   }
 
   return (
-    <QueryProvider key={configVersion}>
+    <QueryProvider>
       <ToastProvider>
         <AppContent config={config} />
       </ToastProvider>

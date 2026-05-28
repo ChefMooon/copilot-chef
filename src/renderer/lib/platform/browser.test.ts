@@ -133,6 +133,37 @@ describe("browser platform connection storage", () => {
     });
   });
 
+  it("keeps the saved LAN apiUrl stable when runtime apiUrl differs", async () => {
+    saveBrowserConnection({
+      apiUrl: "http://192.168.1.25:3001",
+      token: "machine-token",
+    });
+    globalThis.fetch = async () =>
+      new Response(
+        JSON.stringify({
+          apiUrl: "http://10.88.111.3:3001",
+          webUrl: "http://10.88.111.3:4173",
+          version: "0.1.0",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      ) as typeof fetch;
+
+    const config = await createBrowserPlatform().getServerConfig();
+
+    expect(config).toEqual({
+      url: "http://192.168.1.25:3001",
+      token: "machine-token",
+      mode: "local",
+    });
+    expect(getBrowserConnection()).toEqual({
+      apiUrl: "http://192.168.1.25:3001",
+      token: "machine-token",
+    });
+  });
+
   it("falls back to the saved connection when runtime config is unavailable", async () => {
     saveBrowserConnection({
       apiUrl: "http://192.168.1.25:3001",

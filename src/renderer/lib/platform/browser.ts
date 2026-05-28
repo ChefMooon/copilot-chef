@@ -27,6 +27,41 @@ type BrowserRuntimeConfig = {
   version?: string;
 };
 
+function isLocalOnlyApiHost(apiUrl: string): boolean {
+  try {
+    const { hostname } = new URL(apiUrl);
+    const normalized = hostname.toLowerCase();
+    return (
+      normalized === "localhost" ||
+      normalized === "127.0.0.1" ||
+      normalized === "0.0.0.0" ||
+      normalized === "::1" ||
+      normalized === "[::1]"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function shouldAdoptRuntimeApiUrl(
+  savedApiUrl: string,
+  runtimeApiUrl: string
+): boolean {
+  if (!runtimeApiUrl) {
+    return false;
+  }
+
+  if (!savedApiUrl) {
+    return true;
+  }
+
+  if (savedApiUrl === runtimeApiUrl) {
+    return false;
+  }
+
+  return isLocalOnlyApiHost(savedApiUrl) && !isLocalOnlyApiHost(runtimeApiUrl);
+}
+
 function getStorage(): Storage | null {
   try {
     return window.localStorage;
@@ -203,16 +238,19 @@ async function resolveBrowserServerConfig(): Promise<ServerConfig> {
     Promise.resolve(getBrowserConnection()),
   ]);
 
-  const url = runtimeConfig?.apiUrl ?? savedConnection?.apiUrl ?? "";
+  const savedApiUrl = savedConnection?.apiUrl ?? "";
+  const runtimeApiUrl = runtimeConfig?.apiUrl ?? "";
+  const shouldUseRuntimeApiUrl = shouldAdoptRuntimeApiUrl(
+    savedApiUrl,
+    runtimeApiUrl
+  );
+  const resolvedApiUrl = shouldUseRuntimeApiUrl ? runtimeApiUrl : savedApiUrl;
+  const url = resolvedApiUrl || runtimeApiUrl;
   const token = savedConnection?.token ?? "";
 
-  if (
-    runtimeConfig?.apiUrl &&
-    token &&
-    savedConnection?.apiUrl !== runtimeConfig.apiUrl
-  ) {
+  if (runtimeApiUrl && token && shouldUseRuntimeApiUrl) {
     saveBrowserConnection({
-      apiUrl: runtimeConfig.apiUrl,
+      apiUrl: runtimeApiUrl,
       token,
     });
   }
