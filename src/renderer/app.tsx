@@ -38,7 +38,6 @@ function AppContent({ config }: { config: ServerConfig }) {
       staleTime: 5 * 60 * 1000,
       queryFn: listMealSubTypeDefinitions,
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
