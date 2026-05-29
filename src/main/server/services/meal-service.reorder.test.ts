@@ -22,12 +22,28 @@ const { bootstrapDatabaseMock, prismaMock } = vi.hoisted(() => ({
   },
 }));
 
+const {
+  deleteMealPhotoFileMock,
+  readMealPhotoFileMock,
+  saveMealPhotoDataUrlMock,
+} = vi.hoisted(() => ({
+  deleteMealPhotoFileMock: vi.fn().mockResolvedValue(undefined),
+  readMealPhotoFileMock: vi.fn(),
+  saveMealPhotoDataUrlMock: vi.fn(),
+}));
+
 vi.mock("../lib/bootstrap", () => ({
   bootstrapDatabase: bootstrapDatabaseMock,
 }));
 
 vi.mock("../lib/prisma", () => ({
   prisma: prismaMock,
+}));
+
+vi.mock("../lib/meal-photo-storage", () => ({
+  deleteMealPhotoFile: deleteMealPhotoFileMock,
+  readMealPhotoFile: readMealPhotoFileMock,
+  saveMealPhotoDataUrl: saveMealPhotoDataUrlMock,
 }));
 
 import { MealService } from "./meal-service";
