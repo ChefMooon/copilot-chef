@@ -105,4 +105,5 @@ Uses [Vitest](https://vitest.dev).
 - [Architecture](docs/architecture.md) — runtime model, auth, updates, SQLite
 - [Developer Guide](docs/developer-guide.md) — setup, feature workflow, testing, releases
 - [LAN and Browser Access](docs/lan-browser-access.md) — token flow and trusted-device access
+- [Tauri/Rust Rebuild Blueprint](docs/tauri-rebuild-blueprint.md) — feature inventory and migration plan for a Tauri + Rust rewrite
 

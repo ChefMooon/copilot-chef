@@ -14,6 +14,7 @@
 | Browser page QA implementation plan | `browser-page-qa-plan.md` | Sequential browser route QA plan, matrix, severity rubric, and execution workflow |
 | Browser page QA findings log | `browser-page-qa-findings.md` | Issue log and per-route completion matrix for the current QA cycle |
 | Browser page remediation planning | `browser-page-remediation-plan.md` | Template for quick-win and deep-refactor fix planning after QA completion |
+| Tauri/Rust rebuild blueprint | `tauri-rebuild-blueprint.md` | Feature inventory and migration plan for a Tauri + Rust rewrite |
 | Release process | `release-guide.md` | Packaging and release workflow guidance |
 
 ---
