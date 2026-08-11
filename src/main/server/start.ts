@@ -25,6 +25,7 @@ export interface ServerInfo {
   bindHost: string;
   advertisedHost: string;
   lanEnabled: boolean;
+  runtimeSettings?: LanRuntimeSettings;
 }
 
 function readEnvOverrideFromFile(key: string): string | undefined {
@@ -103,6 +104,7 @@ function tryPort(config: ServerConfig, port: number): Promise<ServerInfo> {
             bindHost: config.server.host,
             advertisedHost: runtimeSettings!.apiAdvertisedHost,
             lanEnabled: runtimeSettings!.lanEnabled,
+            runtimeSettings: { ...runtimeSettings! },
           });
         }
       );
@@ -144,8 +146,8 @@ export async function startServer(): Promise<ServerInfo> {
   await bootstrapDatabase();
 
   // Build server config (no TOML file — constructed from settings)
-  const port = (getSetting("server_port") as number) || 3001;
-  runtimeSettings = resolveLanRuntimeSettings(port);
+  const configuredPort = (getSetting("server_port") as number | undefined) ?? 3001;
+  runtimeSettings = resolveLanRuntimeSettings(configuredPort);
   const config: ServerConfig = {
     server: {
       port: runtimeSettings.apiPort,

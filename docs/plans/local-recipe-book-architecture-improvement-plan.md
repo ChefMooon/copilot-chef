@@ -55,6 +55,7 @@ These boundaries exist, but several are currently implicit or split across modul
 | API and static browser servers resolve runtime settings independently | `src/main/server/start.ts`, `src/main/server/static-web.ts` | A fallback API port can be advertised incorrectly to browser/LAN clients |
 | Electron quit cleanup is attached to an asynchronous `before-quit` listener without an explicit quit gate | `src/main/index.ts` | Electron may exit before API and static web resources finish closing |
 | Configuration is resolved through settings, environment variables, and server-local state | `src/main/settings/store.ts`, `src/main/server/lib/lan.ts`, `src/shared/config/` | Different callers can observe different effective settings |
+| Runtime settings, application settings, and user preferences do not have one typed ownership model | `src/main/settings/store.ts`, `src/renderer/pages/settings.tsx`, `src/main/server/services/preference-service.ts` | New theme and interface settings can be persisted inconsistently or become coupled to runtime configuration |
 | Domain services are global singletons | `src/main/server/services.ts` | Tests and future runtime instances cannot choose their database or storage dependencies cleanly |
 | `PrepListService` constructs its own `MealService` | `src/main/server/services/prep-list-service.ts` | Related operations can use different service instances and hide dependency ownership |
 | `MealService` and `RecipeService` each combine persistence, serialization, normalization, coordination, and business rules | `src/main/server/services/meal-service.ts`, `src/main/server/services/recipe-service.ts` | Changes have a wide blast radius and are difficult to test at one boundary |
@@ -142,6 +143,28 @@ Define a channel-to-payload/result map shared by preload and the Electron platfo
 
 Do not add Copilot startup checks, chat routes, streaming assumptions, or required configuration to the current architecture. Historical Copilot material stays under `docs/archive/copilot/`.
 
+### 4.9 Settings and UI preference boundary
+
+Establish a typed settings contract before adding new interface settings. Settings must be classified by ownership:
+
+- **Runtime settings**: server mode, ports, LAN, remote URL, and other values required to construct or restart the runtime.
+- **Application settings**: close-to-tray, update behavior, and desktop application behavior.
+- **UI preferences**: theme, density, landing page, date/week display, layout choices, and other renderer behavior preferences.
+- **Domain preferences**: household, dietary, grocery, recipe, and planning preferences already represented by the preference service or database model.
+
+Runtime settings remain owned by the main-process configuration boundary. UI preferences must be exposed through a typed preference contract and consumed by a renderer-level preference provider or equivalent boundary. Domain preferences remain transport-agnostic and must not be duplicated as arbitrary renderer settings.
+
+The settings boundary must define:
+
+- Typed keys, values, defaults, and validation rules.
+- Persistence ownership for Electron and browser/LAN modes.
+- A version or migration strategy for settings stored by older app releases.
+- Invalid-value fallback and reset-to-default behavior.
+- Whether a preference is device-local, runtime-local, or shared through the API.
+- Safe behavior when the browser client is unauthenticated or has limited platform capabilities.
+
+Theme is an architectural contract, not a visual redesign. Define a constrained value such as `"light" | "dark" | "system"`, document system-theme resolution, and apply the resolved theme at the renderer root before or during initial render to avoid a flash of the wrong theme. The future frontend plan owns token design, component migration, and visual direction.
+
 ## 5. Documentation Disposition
 
 The current documentation set should describe Local Recipe Book and the active Electron runtime. Historical documents remain available for rationale but must not be linked as current implementation guidance.
@@ -165,13 +188,15 @@ Active documentation updates required by this plan:
 - Remove standalone server and active Copilot setup instructions.
 - Keep internal `copilot-chef` filenames and environment variable names documented as compatibility identifiers where needed.
 - Keep `docs/architecture.md`, `docs/developer-guide.md`, `docs/lan-browser-access.md`, `docs/ipc-channels.md`, and `docs/copilot-chef-config.md` as the operational sources of truth for their topics.
+- Document the settings categories, ownership, persistence, and migration rules in `docs/copilot-chef-config.md` when the settings foundation is implemented.
+- Keep visual direction, component standards, theme tokens, and page redesign requirements in the separate frontend plan and `docs/copilot-chef-style-guide.md`.
 - Keep this document as the reviewable architecture improvement proposal until implementation is approved.
 
 ## 6. Implementation Phases
 
 Each phase is designed for a separate agent session. An agent may modify only the phase scope and its directly required tests/docs. Before handing off, the agent must complete the phase report at the end of that phase. The next agent should treat that report, the committed code, and passing checks as the phase contract.
 
-The phase numbers remain stable identifiers for discussion and handoff. The recommended implementation order is **0 -> 1 -> 4 -> 3 -> 2 -> 5 -> 6 -> 7 -> 8**. Database readiness and the injectable service graph are established before the runtime coordinator so the coordinator does not need to be rebuilt around temporary global dependencies. A team may split or overlap phases only when the completion report documents the dependency and validation boundary.
+The phase numbers remain stable identifiers for discussion and handoff. The recommended implementation order is **0 -> 1 -> 4 -> 3 -> 9 -> 2 -> 5 -> 6 -> 7 -> 8**. Database readiness and the injectable service graph are established before the runtime coordinator so the coordinator does not need to be rebuilt around temporary global dependencies. The settings and UI-preference contract is established before the frontend plan begins, while the visual redesign remains a separate workstream. A team may split or overlap phases only when the completion report documents the dependency and validation boundary.
 
 ### Phase 0: Baseline and decision records
 
@@ -517,6 +542,62 @@ The implementing agent must add:
 - Tests, smoke checks, and commands run, including pass/fail results.
 - Remaining risks and explicit follow-up work outside this plan.
 
+### Phase 9: Settings and UI preference foundation
+
+Goal: establish the typed, validated, and platform-aware settings boundary required by future interface settings without implementing the visual redesign.
+
+Scope:
+
+- Inventory current settings and preferences and classify them as runtime, application, UI, or domain-owned.
+- Define typed setting keys, values, defaults, validation, and reset behavior in the appropriate shared/main modules.
+- Keep runtime settings in the effective configuration boundary and prevent renderer-only preferences from controlling server lifecycle.
+- Define persistence behavior for Electron, browser/LAN, and remote modes.
+- Add a versioned migration path for settings stored in `settings.json`, browser storage, or other existing preference representations.
+- Define the initial theme preference contract, including `light`, `dark`, and `system` behavior, without choosing the final visual design or token palette.
+- Add a renderer-level preference context/provider or equivalent access boundary so components do not independently parse settings.
+- Ensure the resolved theme is applied at the renderer root early enough to avoid a visible incorrect-theme flash where practical.
+- Update configuration documentation with settings ownership and migration rules.
+
+This phase must not redesign pages, replace the design system, migrate every component to new tokens, or decide the future frontend visual language. Those belong to the separate frontend plan.
+
+Relevant files and symbols:
+
+- `src/main/settings/store.ts`
+- `src/main/server/services/preference-service.ts`
+- `src/shared/config/`
+- `src/shared/schemas/`
+- `src/renderer/lib/platform/types.ts`
+- `src/renderer/lib/platform/electron.ts`
+- `src/renderer/lib/platform/browser.ts`
+- `src/renderer/pages/settings.tsx`
+- `src/renderer/app.tsx`
+- `src/renderer/globals.css`
+- `docs/copilot-chef-config.md`
+
+Acceptance checks:
+
+- Every existing setting has an explicit owner and category.
+- Typed settings reject invalid keys and values at compile time or validation boundaries.
+- Defaults, malformed stored values, reset-to-default, and migration from existing stored values are tested.
+- Runtime settings cannot be changed through a UI-preference path without going through the runtime coordinator/configuration boundary.
+- Electron and browser modes follow the documented persistence and capability rules.
+- Theme preference resolves consistently for `light`, `dark`, and `system`, including an unavailable or malformed stored value.
+- Renderer components can read the preference contract without directly reading `window.api`, raw browser storage, or settings JSON.
+- `npm run test`, `npm run lint`, and `npm run docs:check:ipc` pass.
+
+#### Phase 9 Completion Report
+
+The implementing agent must add:
+
+- Status: `complete`, `partial`, or `blocked`.
+- Settings categories, ownership rules, and persistence behavior implemented.
+- Typed contract, validation, defaults, migration, and reset behavior implemented.
+- Theme contract and renderer preference boundary implemented without visual redesign.
+- Files changed and any compatibility settings paths retained.
+- Tests and commands run, including pass/fail results.
+- Confirmed inputs and constraints for the separate frontend plan.
+- Risks, open decisions, and recommended next step from the dependency order above.
+
 ## 7. Dependencies and Risks
 
 | Risk | Mitigation |
@@ -527,6 +608,9 @@ The implementing agent must add:
 | Service injection creates large constructor churn | Introduce a factory and adapt one route/service group at a time |
 | Typed IPC exposes undocumented legacy calls | Inventory existing channel registrations and renderer adapter calls before changing the bridge |
 | LAN/browser behavior regresses | Preserve `RendererPlatform`, test token/config onboarding, and run a real browser smoke test after lifecycle changes |
+| New interface settings become coupled to server/runtime settings | Classify settings by ownership; keep UI preferences behind a renderer preference boundary and runtime changes behind the coordinator |
+| Theme work becomes an accidental visual redesign inside the architecture refactor | Limit this phase to the typed preference contract, persistence, migration, and root application; defer tokens, components, and visual direction to the frontend plan |
+| Existing settings storage contains malformed, unknown, or legacy values | Validate at the boundary, apply documented defaults, preserve unknown values only when explicitly supported, and test migration/reset behavior |
 | Prisma engine files are locked on Windows during development | Stop the Electron dev process before normal generation; when only client/types need updating, use `npx prisma generate --no-engine` and use `npm run db:push -- --skip-generate` for schema application |
 | Paused Copilot code is accidentally made required | Keep Copilot out of runtime composition, current docs, and acceptance criteria; retain only archived historical references |
 
@@ -540,6 +624,7 @@ This plan does not include:
 - A public package or internal identifier rename from `copilot-chef`
 - A new database schema design or destructive migration
 - A visual redesign of the renderer
+- Frontend visual redesign, page/component migration, design-token selection, and visual language decisions; these belong to a separate frontend plan after the settings foundation is complete
 - New product features unrelated to architecture reliability
 - A commit, branch, release, or production rollout
 

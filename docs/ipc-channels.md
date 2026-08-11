@@ -6,11 +6,13 @@ This file is the canonical reference for Electron IPC channels.
 
 For user-facing LAN/browser runtime behavior and token operations that use these channels, see `docs/lan-browser-access.md`.
 
-Update this file when changing any of these sources:
+The canonical runtime contract is defined in `src/shared/ipc.ts`. Update this file when changing any of these sources:
+- `src/shared/ipc.ts`
 - `src/main/ipc/index.ts`
 - `src/main/updates/service.ts`
 - `src/preload/index.ts`
 - `src/renderer/lib/platform/electron.ts`
+- `src/renderer/vite-env.d.ts`
 
 ---
 

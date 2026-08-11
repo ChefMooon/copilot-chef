@@ -1,6 +1,7 @@
 import { createConnection } from "node:net";
 import { networkInterfaces } from "node:os";
 
+import { resolveEffectiveRuntimeConfig } from "../../../shared/config/runtime-config";
 import { getSetting } from "../../settings/store";
 
 export const LOOPBACK_HOST = "127.0.0.1";
@@ -87,21 +88,34 @@ function isLoopbackHost(host: string | undefined): boolean {
 }
 
 export function resolveLanRuntimeSettings(apiPortFallback: number): LanRuntimeSettings {
-  const lanEnabled = getBooleanSetting("lan_enabled", false);
-  const candidates = getLanIpv4Candidates();
-  const advertisedOverride = getStringSetting("lan_advertised_host");
-  const fallbackAdvertisedHost = candidates[0]?.address ?? LOOPBACK_HOST;
+  const settings = {
+    lan_enabled: getBooleanSetting("lan_enabled", false),
+    lan_web_enabled: getBooleanSetting("lan_web_enabled", false),
+    lan_advertised_host: getStringSetting("lan_advertised_host"),
+    lan_api_port: getNumberSetting("lan_api_port", getNumberSetting("server_port", apiPortFallback)),
+    lan_web_port: getNumberSetting("lan_web_port", DEFAULT_WEB_PORT),
+    server_port: getNumberSetting("server_port", apiPortFallback),
+    lan_allowed_origins: getStringArraySetting("lan_allowed_origins"),
+  };
+
+  const runtimeConfig = resolveEffectiveRuntimeConfig({
+    settings,
+    fallbackApiPort: apiPortFallback,
+    fallbackWebPort: DEFAULT_WEB_PORT,
+    lanCandidates: getLanIpv4Candidates(),
+  });
+
+  const lanEnabled = runtimeConfig.lan.enabled;
+  const advertisedOverride = settings.lan_advertised_host;
+  const fallbackAdvertisedHost = runtimeConfig.lan.candidates[0]?.address ?? LOOPBACK_HOST;
   const advertisedHost = lanEnabled
     ? isLoopbackHost(advertisedOverride)
       ? fallbackAdvertisedHost
       : advertisedOverride
     : LOOPBACK_HOST;
-  const apiPort = getNumberSetting(
-    "lan_api_port",
-    getNumberSetting("server_port", apiPortFallback)
-  );
-  const webPort = getNumberSetting("lan_web_port", DEFAULT_WEB_PORT);
-  const webEnabled = getBooleanSetting("lan_web_enabled", lanEnabled);
+  const apiPort = runtimeConfig.api.configuredPort;
+  const webPort = runtimeConfig.web.configuredPort;
+  const webEnabled = runtimeConfig.web.enabled;
   const apiBindHost = lanEnabled ? LAN_BIND_HOST : LOOPBACK_HOST;
   const webBindHost = lanEnabled && webEnabled ? LAN_BIND_HOST : LOOPBACK_HOST;
   const webAdvertisedHost = lanEnabled ? advertisedHost : LOOPBACK_HOST;
@@ -128,9 +142,9 @@ export function resolveLanRuntimeSettings(apiPortFallback: number): LanRuntimeSe
         "app://localhost",
         "null",
         ...staticOrigins,
-        ...getStringArraySetting("lan_allowed_origins"),
+        ...settings.lan_allowed_origins,
       ])
     ),
-    candidates,
+    candidates: runtimeConfig.lan.candidates,
   };
 }

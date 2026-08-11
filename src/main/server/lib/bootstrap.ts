@@ -57,7 +57,7 @@ function parseBooleanEnv(value: string): boolean | undefined {
   return undefined;
 }
 
-function shouldSeedDatabase(): boolean {
+export function shouldSeedDatabase(): boolean {
   const seedEnv = process.env["COPILOT_CHEF_SEED_DATABASE"];
   if (seedEnv !== undefined) {
     const parsed = parseBooleanEnv(seedEnv);
@@ -74,19 +74,52 @@ function shouldSeedDatabase(): boolean {
   return process.env.NODE_ENV !== "production";
 }
 
+export interface DatabaseBootstrapOptions {
+  seedEnabled?: boolean;
+}
+
+export async function connectDatabase(): Promise<void> {
+  await prisma.$connect();
+}
+
+export async function ensureDatabaseCompatibility(): Promise<void> {
+  await ensureDatabaseSchema();
+}
+
+export async function applyDatabaseDefaults(): Promise<void> {
+  await mealTypeBootstrapService.bootstrapDefaults();
+  await mealSubTypeBootstrapService.bootstrapDefaults();
+}
+
+export async function applyDatabaseSeedPolicy(
+  options: Pick<DatabaseBootstrapOptions, "seedEnabled"> = {}
+): Promise<void> {
+  const shouldRunSeed = options.seedEnabled ?? shouldSeedDatabase();
+  if (!shouldRunSeed) {
+    return;
+  }
+
+  await seedDatabase();
+}
+
+export async function finalizeDatabaseRuntime(): Promise<void> {
+  await mealTypeBootstrapService.migrateExistingMeals();
+  await backfillMealSortOrder();
+}
+
+export async function initializeDatabaseRuntime(
+  options: DatabaseBootstrapOptions = {}
+): Promise<void> {
+  await connectDatabase();
+  await ensureDatabaseCompatibility();
+  await applyDatabaseDefaults();
+  await applyDatabaseSeedPolicy(options);
+  await finalizeDatabaseRuntime();
+}
+
 export async function bootstrapDatabase() {
   if (!bootstrapPromise) {
-    bootstrapPromise = (async () => {
-      await prisma.$connect();
-      await ensureDatabaseSchema();
-      await mealTypeBootstrapService.bootstrapDefaults();
-      await mealSubTypeBootstrapService.bootstrapDefaults();
-      if (shouldSeedDatabase()) {
-        await seedDatabase();
-      }
-      await mealTypeBootstrapService.migrateExistingMeals();
-      await backfillMealSortOrder();
-    })().catch((error) => {
+    bootstrapPromise = initializeDatabaseRuntime().catch((error) => {
       bootstrapPromise = undefined;
       throw error;
     });

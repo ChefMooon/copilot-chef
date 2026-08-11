@@ -1,13 +1,20 @@
 /// <reference types="vite/client" />
 
+import type { IpcEventChannel, IpcEventMap, IpcInvokeMap } from "../shared/ipc";
+
+type WindowApi = {
+  invoke: <K extends keyof IpcInvokeMap>(
+    channel: K,
+    ...args: Parameters<IpcInvokeMap[K]>
+  ) => Promise<Awaited<ReturnType<IpcInvokeMap[K]>>>;
+  on: <K extends IpcEventChannel>(channel: K, listener: IpcEventMap[K]) => void;
+  off: <K extends IpcEventChannel>(channel: K, listener: IpcEventMap[K]) => void;
+  minimizeWindow: () => Promise<Awaited<ReturnType<IpcInvokeMap["window:minimize"]>>>;
+  toggleMaximizeWindow: () => Promise<Awaited<ReturnType<IpcInvokeMap["window:toggleMaximize"]>>>;
+  isWindowMaximized: () => Promise<Awaited<ReturnType<IpcInvokeMap["window:isMaximized"]>>>;
+  closeWindow: () => Promise<Awaited<ReturnType<IpcInvokeMap["window:close"]>>>;
+};
+
 interface Window {
-  api?: {
-    invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
-    minimizeWindow: () => Promise<unknown>;
-    toggleMaximizeWindow: () => Promise<unknown>;
-    isWindowMaximized: () => Promise<boolean>;
-    closeWindow: () => Promise<unknown>;
-    on: (channel: string, listener: (...args: unknown[]) => void) => void;
-    off: (channel: string, listener: (...args: unknown[]) => void) => void;
-  };
+  api?: WindowApi;
 }

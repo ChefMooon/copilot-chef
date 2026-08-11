@@ -3,8 +3,7 @@ import { join, resolve } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 
 import { registerIpcHandlers } from "./ipc/index";
-import { startServer, stopServer } from "./server/start";
-import { startStaticWebServer, stopStaticWebServer } from "./server/static-web";
+import { LocalRecipeBookRuntime } from "./runtime";
 import { getSetting, ensureSetting } from "./settings/store";
 import { setupAutoUpdater } from "./updates/service";
 
@@ -18,6 +17,7 @@ const MIN_WINDOW_HEIGHT = 600;
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let quitting = false;
+const runtime = new LocalRecipeBookRuntime();
 
 // ── Resource helpers ─────────────────────────────────────────
 function getResourcePath(...segments: string[]): string {
@@ -172,17 +172,14 @@ app.whenReady().then(async () => {
   const serverMode = getSetting("server_mode") ?? "local";
   if (serverMode === "local") {
     try {
-      const serverInfo = await startServer();
+      const result = await runtime.start();
       console.info(
-        `[copilot-chef] server started on ${serverInfo.url} (bind ${serverInfo.bindHost}:${serverInfo.port})`
+        `[copilot-chef] server started on ${result.apiUrl ?? "unknown"}`
       );
-      if (getSetting("lan_web_enabled") === true) {
-        const staticInfo = await startStaticWebServer();
-        if (staticInfo?.running) {
-          console.info(
-            `[copilot-chef] browser UI started on ${staticInfo.url} (bind ${staticInfo.bindHost}:${staticInfo.port})`
-          );
-        }
+      if (result.webUrl) {
+        console.info(
+          `[copilot-chef] browser UI started on ${result.webUrl}`
+        );
       }
     } catch (err) {
       console.error("[copilot-chef] server startup failed:", err);
@@ -205,9 +202,12 @@ app.whenReady().then(async () => {
 });
 
 app.on("before-quit", async () => {
+  if (quitting) {
+    return;
+  }
+
   quitting = true;
-  await stopStaticWebServer();
-  await stopServer();
+  await runtime.requestQuit();
 });
 
 app.on("window-all-closed", () => {

@@ -1,0 +1,82 @@
+export const IPC_CHANNELS = [
+  "server:getConfig",
+  "server:getStatus",
+  "lan:getStatus",
+  "lan:restart",
+  "app:getVersion",
+  "window:minimize",
+  "window:toggleMaximize",
+  "window:isMaximized",
+  "window:close",
+  "app:settings:get",
+  "app:settings:set",
+  "app:settings:getAll",
+  "machine-token:metadata",
+  "machine-token:reveal",
+  "machine-token:generate",
+  "machine-token:rotate",
+  "machine-token:clear",
+  "menu:exportPdf",
+  "updates:check",
+  "updates:install",
+] as const;
+
+export const IPC_EVENT_CHANNELS = [
+  "updates:available",
+  "updates:not-available",
+  "updates:progress",
+  "updates:downloaded",
+  "updates:error",
+] as const;
+
+export type IpcChannel = (typeof IPC_CHANNELS)[number];
+export type IpcEventChannel = (typeof IPC_EVENT_CHANNELS)[number];
+
+export type IpcInvokeMap = {
+  "server:getConfig": () => Promise<{
+    url: string;
+    token: string;
+    mode: "local" | "remote";
+  }>;
+  "server:getStatus": () => Promise<{
+    running: boolean;
+    port: number | null;
+    bindHost: string | null;
+    advertisedHost: string | null;
+    url: string | null;
+    lanEnabled: boolean;
+  }>;
+  "lan:getStatus": () => Promise<unknown>;
+  "lan:restart": () => Promise<{ api: unknown; web: unknown }>;
+  "app:getVersion": () => Promise<string>;
+  "window:minimize": () => Promise<void>;
+  "window:toggleMaximize": () => Promise<void>;
+  "window:isMaximized": () => Promise<boolean>;
+  "window:close": () => Promise<void>;
+  "app:settings:get": (key: string) => Promise<unknown>;
+  "app:settings:set": (payload: { key: string; value: unknown }) => Promise<void>;
+  "app:settings:getAll": () => Promise<Record<string, unknown>>;
+  "machine-token:metadata": () => Promise<unknown>;
+  "machine-token:reveal": () => Promise<string | null>;
+  "machine-token:generate": () => Promise<unknown>;
+  "machine-token:rotate": () => Promise<unknown>;
+  "machine-token:clear": () => Promise<unknown>;
+  "menu:exportPdf": (payload: {
+    htmlContent: string;
+    suggestedFileName: string;
+  }) => Promise<
+    | { status: "saved"; filePath: string }
+    | { status: "canceled" }
+    | { status: "error"; message: string }
+  >;
+  "updates:check": () => Promise<unknown>;
+  "updates:install": () => Promise<unknown>;
+};
+
+export type IpcEventMap = {
+  "updates:available": (...args: unknown[]) => void;
+  "updates:not-available": (...args: unknown[]) => void;
+  "updates:progress": (...args: unknown[]) => void;
+  "updates:downloaded": (...args: unknown[]) => void;
+  "updates:error": (...args: unknown[]) => void;
+};

@@ -1,7 +1,12 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { logger } from "hono/logger";
 import { cors } from "hono/cors";
+import { z } from "zod";
 import type { ServerConfig } from "@shared/config/server-config";
+import {
+  createApiErrorEnvelope,
+  formatZodIssues,
+} from "@shared/api/errors";
 
 import { createAuthMiddleware } from "./middleware/auth.js";
 import { createRateLimitMiddleware } from "./middleware/rate-limit.js";
@@ -15,6 +20,28 @@ import { prepListsRoutes } from "./routes/prep-lists.js";
 import { recipesRoutes } from "./routes/recipes.js";
 import { preferencesRoutes } from "./routes/preferences.js";
 import { statsRoutes } from "./routes/stats.js";
+
+function getRequestId(c: Context): string | undefined {
+  return c.req.header("x-request-id") ?? c.req.header("request-id") ?? undefined;
+}
+
+function sendApiError(
+  c: Context,
+  status: number,
+  code: string,
+  message: string,
+  details?: { path?: string; message: string; code?: string }[]
+) {
+  return c.json(
+    createApiErrorEnvelope({
+      code,
+      message,
+      requestId: getRequestId(c),
+      details,
+    }),
+    status
+  );
+}
 
 export function createApp(config: ServerConfig) {
   const app = new Hono();
@@ -53,9 +80,42 @@ export function createApp(config: ServerConfig) {
 
   // Global error handler
   app.onError((err, c) => {
+    if (err instanceof z.ZodError) {
+      return sendApiError(
+        c,
+        400,
+        "VALIDATION_ERROR",
+        "Request validation failed",
+        formatZodIssues(err)
+      );
+    }
+
+    const status =
+      typeof err === "object" && err !== null && "status" in err && typeof err.status === "number"
+        ? err.status
+        : 500;
+
+    const code =
+      status === 401
+        ? "UNAUTHORIZED"
+        : status === 404
+          ? "NOT_FOUND"
+          : status === 409
+            ? "CONFLICT"
+            : status === 429
+              ? "RATE_LIMITED"
+              : "INTERNAL_ERROR";
+
+    const message =
+      status === 500 || !err || !(err instanceof Error)
+        ? "Internal server error"
+        : err.message;
+
     console.error("[server] unhandled error", err);
-    return c.json({ error: err.message ?? "Internal server error" }, 500);
+    return sendApiError(c, status, code, message);
   });
+
+  app.notFound((c) => sendApiError(c, 404, "NOT_FOUND", "Endpoint not found"));
 
   // Routes
   app.route("/api", healthRoutes);

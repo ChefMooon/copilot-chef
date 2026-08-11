@@ -373,7 +373,11 @@ function buildTaskItems(meal: MealPayload) {
 }
 
 export class PrepListService {
-  private readonly mealService = new MealService();
+  private readonly mealService: MealService;
+
+  constructor(options?: { mealService?: MealService }) {
+    this.mealService = options?.mealService ?? new MealService();
+  }
 
   async listPrepLists() {
     await bootstrapDatabase();

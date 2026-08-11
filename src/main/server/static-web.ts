@@ -4,6 +4,7 @@ import { isAbsolute, join, normalize, relative, resolve } from "node:path";
 
 import { app } from "electron";
 
+import { getSetting } from "../settings/store";
 import { resolveLanRuntimeSettings, type LanRuntimeSettings } from "./lib/lan";
 
 let staticServer: Server | null = null;
@@ -63,8 +64,11 @@ function resolveAssetPath(webRoot: string, urlPath: string): string {
   return join(webRoot, "index.html");
 }
 
-export async function startStaticWebServer(): Promise<StaticWebInfo | null> {
-  const settings = resolveLanRuntimeSettings(3001);
+export async function startStaticWebServer(
+  options?: { runtimeSettings?: LanRuntimeSettings }
+): Promise<StaticWebInfo | null> {
+  const configuredPort = (getSetting("server_port") as number | undefined) ?? 3001;
+  const settings = options?.runtimeSettings ?? resolveLanRuntimeSettings(configuredPort);
   if (!settings.webEnabled) {
     await stopStaticWebServer();
     return null;

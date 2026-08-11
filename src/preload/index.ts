@@ -1,29 +1,38 @@
 import { contextBridge, ipcRenderer } from "electron";
 
-type AllowedChannel =
-  | "window:minimize"
-  | "window:toggleMaximize"
-  | "window:isMaximized"
-  | "window:close";
+import type { IpcEventChannel, IpcEventMap, IpcInvokeMap } from "../shared/ipc";
 
-function invokeWindowChannel(channel: AllowedChannel): Promise<unknown> {
-  return ipcRenderer.invoke(channel);
+function invokeWindowChannel<K extends "window:minimize" | "window:toggleMaximize" | "window:isMaximized" | "window:close">(
+  channel: K
+): Promise<Awaited<ReturnType<IpcInvokeMap[K]>>> {
+  return ipcRenderer.invoke(channel) as Promise<Awaited<ReturnType<IpcInvokeMap[K]>>>;
 }
 
 const api = {
-  invoke: (channel: string, ...args: unknown[]): Promise<unknown> => {
-    return ipcRenderer.invoke(channel, ...args);
+  invoke: <K extends keyof IpcInvokeMap>(
+    channel: K,
+    ...args: Parameters<IpcInvokeMap[K]>
+  ): Promise<Awaited<ReturnType<IpcInvokeMap[K]>>> => {
+    return ipcRenderer.invoke(channel, ...args) as Promise<
+      Awaited<ReturnType<IpcInvokeMap[K]>>
+    >;
   },
-  on: (channel: string, listener: (...args: unknown[]) => void): void => {
+  on: <K extends IpcEventChannel>(
+    channel: K,
+    listener: IpcEventMap[K]
+  ): void => {
     ipcRenderer.on(channel, (_event, ...args) => listener(...args));
   },
   minimizeWindow: () => invokeWindowChannel("window:minimize"),
   toggleMaximizeWindow: () => invokeWindowChannel("window:toggleMaximize"),
   isWindowMaximized: async () => {
-    return (await invokeWindowChannel("window:isMaximized")) as boolean;
+    return invokeWindowChannel("window:isMaximized");
   },
   closeWindow: () => invokeWindowChannel("window:close"),
-  off: (channel: string, listener: (...args: unknown[]) => void): void => {
+  off: <K extends IpcEventChannel>(
+    channel: K,
+    listener: IpcEventMap[K]
+  ): void => {
     ipcRenderer.removeListener(channel, listener);
   },
 };

@@ -4,6 +4,7 @@ import { RouterProvider } from "react-router";
 
 import { router } from "./router";
 import { getPlatform } from "./lib/platform";
+import { PreferenceProvider } from "./lib/preferences";
 
 import "./globals.css";
 
@@ -12,7 +13,9 @@ if (!container) throw new Error("Root element not found");
 
 createRoot(container).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <PreferenceProvider>
+      <RouterProvider router={router} />
+    </PreferenceProvider>
   </StrictMode>
 );
 

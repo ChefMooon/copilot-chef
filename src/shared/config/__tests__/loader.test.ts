@@ -4,6 +4,11 @@ import path from "node:path";
 import os from "node:os";
 
 import { loadServerConfig, loadClientConfig } from "../loader";
+import {
+  APP_SETTING_DEFAULTS,
+  normalizeStoredAppSetting,
+  resolveUiThemePreference,
+} from "../settings";
 
 let tmpDir: string;
 
@@ -166,5 +171,24 @@ theme = "dark"
 
     expect(config.connection.serverUrl).toBe("http://remote:9000");
     expect(config.connection.apiKey).toBe("env-key");
+  });
+});
+
+describe("typed settings contract", () => {
+  it("normalizes legacy or malformed stored values to the documented defaults", () => {
+    expect(APP_SETTING_DEFAULTS.ui_theme).toBe("system");
+    expect(normalizeStoredAppSetting("server_mode", "remote")).toBe("remote");
+    expect(normalizeStoredAppSetting("server_mode", "invalid")).toBe("local");
+    expect(normalizeStoredAppSetting("app_close_to_tray", "yes")).toBe(true);
+    expect(normalizeStoredAppSetting("lan_enabled", undefined)).toBe(false);
+    expect(normalizeStoredAppSetting("ui_theme", "dark")).toBe("dark");
+  });
+
+  it("resolves the effective renderer theme for light, dark, and system values", () => {
+    expect(resolveUiThemePreference("light")).toBe("light");
+    expect(resolveUiThemePreference("dark")).toBe("dark");
+    expect(resolveUiThemePreference("system")).toBe("system");
+    expect(resolveUiThemePreference("banana")).toBe("system");
+    expect(resolveUiThemePreference(null)).toBe("system");
   });
 });

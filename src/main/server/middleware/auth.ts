@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import type { Context, Next } from "hono";
+import { createApiErrorEnvelope } from "@shared/api/errors";
 import type { ServerConfig } from "@shared/config/server-config";
 
 export type CallerIdentity = {
@@ -112,7 +113,8 @@ export function resolveCallerIdentity(
     process.env["PA_MACHINE_AUTH_ENABLED"] === "true";
 
   if (authEnabled) {
-    const hasAnyTokenConfig = parseTokenMappingsFromEnv().length > 0;
+    const hasAnyTokenConfig =
+      (configTokens && configTokens.length > 0) || parseTokenMappingsFromEnv().length > 0;
     if (!hasAnyTokenConfig) {
       throw new MachineAuthError(500, "Auth is enabled but no token is configured");
     }
@@ -127,6 +129,10 @@ export function resolveCallerIdentity(
  * all /api/* requests (except /api/health) require a valid Bearer token.
  * Falls back to env-based machine auth tokens for backward compat.
  */
+function getRequestId(c: Context): string | undefined {
+  return c.req.header("x-request-id") ?? c.req.header("request-id") ?? undefined;
+}
+
 export function createAuthMiddleware(config: ServerConfig) {
   return async (c: Context, next: Next) => {
     const path = c.req.path;
@@ -143,9 +149,23 @@ export function createAuthMiddleware(config: ServerConfig) {
       return next();
     } catch (err) {
       if (err instanceof MachineAuthError) {
-        return c.json({ error: err.message }, err.status as 401 | 500);
+        return c.json(
+          createApiErrorEnvelope({
+            code: err.status === 401 ? "UNAUTHORIZED" : "AUTH_ERROR",
+            message: err.message,
+            requestId: getRequestId(c),
+          }),
+          err.status as 401 | 500
+        );
       }
-      return c.json({ error: "Auth error" }, 500);
+      return c.json(
+        createApiErrorEnvelope({
+          code: "AUTH_ERROR",
+          message: "Auth error",
+          requestId: getRequestId(c),
+        }),
+        500
+      );
     }
   };
 }

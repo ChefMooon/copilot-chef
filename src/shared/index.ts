@@ -3,9 +3,21 @@ export { ServerConfigSchema } from "./config/server-config";
 export type { ServerConfig } from "./config/server-config";
 export { ClientConfigSchema } from "./config/client-config";
 export type { ClientConfig } from "./config/client-config";
+export {
+  APP_SETTING_DEFAULTS,
+  AppSettingKeySchema,
+  AppSettingValueSchema,
+  normalizeStoredAppSetting,
+  resolveUiThemePreference,
+} from "./config/settings";
+export type { AppSettingKey, AppSettingTheme, AppSettingValue } from "./config/settings";
 export { loadServerConfig, loadClientConfig } from "./config/loader";
 // API contract
 export { ApiPaths } from "./api/types";
+export { createApiErrorEnvelope, formatZodIssues } from "./api/errors";
+export type { ApiErrorCode, ApiErrorDetails, ApiErrorEnvelope } from "./api/errors";
+export { IPC_CHANNELS, IPC_EVENT_CHANNELS } from "./ipc";
+export type { IpcChannel, IpcEventChannel, IpcEventMap, IpcInvokeMap } from "./ipc";
 // Constants
 export {
   MEAL_TYPES,
