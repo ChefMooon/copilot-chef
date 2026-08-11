@@ -8,7 +8,7 @@ This guide covers the current GitHub Actions release flow for the Electron app.
 
 | Artifact | Trigger tag | Workflow | Output |
 |---|---|---|---|
-| Copilot Chef desktop app | `v*` | `release-client.yml` | GitHub Release + Windows installer artifacts |
+| Local Recipe Book desktop app | `v*` | `release-client.yml` | GitHub Release + Windows installer artifacts |
 
 Pushing a `v` tag starts the desktop release workflow.
 
@@ -55,6 +55,8 @@ git push origin v1.0.0
 7. Packages and publishes the Windows installer with `electron-builder --win --publish always`.
 
 The workflow uses the repository `GITHUB_TOKEN` to publish the release assets defined by the Electron Builder config in `package.json`.
+
+The package still contains internal `copilot-chef` identifiers for compatibility. Verify the Electron Builder publish target in `package.json` before a public release; changing those identifiers is outside this documentation update.
 
 ---
 

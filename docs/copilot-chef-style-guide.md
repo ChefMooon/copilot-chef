@@ -1,4 +1,4 @@
-# Copilot Chef Design System
+# Local Recipe Book Design System
 
 Last updated: 2026-03-17
 Owner: Product + Frontend Engineering
@@ -10,15 +10,15 @@ This document defines the production visual system currently implemented in the 
 
 Primary source files:
 
-- src/web/src/app/globals.css
-- src/web/src/components/layout/app-shell.module.css
-- src/web/src/components/home/home-dashboard.module.css
-- src/web/src/app/meal-plan/meal-plan.module.css
-- src/web/src/app/grocery-list/grocery-list.module.css
-- src/web/src/components/stats/*.tsx
-- src/web/src/components/settings/settings.module.css
-- src/web/src/components/ui/button.tsx
-- src/web/tailwind.config.ts
+- src/renderer/globals.css
+- src/renderer/components/layout/app-shell.module.css
+- src/renderer/components/home/home-dashboard.module.css
+- src/renderer/components/meal-plan/meal-plan.module.css
+- src/renderer/components/grocery-list/grocery-list.module.css
+- src/renderer/components/stats/ActivityHeatmap.module.css
+- src/renderer/components/settings/settings.module.css
+- src/renderer/components/ui/button.tsx
+- tailwind.config.ts
 
 ## Design principles
 
@@ -31,7 +31,7 @@ Primary source files:
 
 ### Core tokens
 
-Defined in src/web/src/app/globals.css.
+Defined in src/renderer/globals.css.
 
 | Token | Hex | Role |
 | --- | --- | --- |
@@ -48,7 +48,7 @@ Defined in src/web/src/app/globals.css.
 
 ### Semantic aliases
 
-Also defined in src/web/src/app/globals.css for utility frameworks and shared UI primitives.
+Also defined in `src/renderer/globals.css` for utility frameworks and shared UI primitives.
 
 - --background: #F5F0E8
 - --foreground: #2C2416
@@ -77,24 +77,21 @@ Use --shadow for standard cards and --shadow-lg for emphasized panels, popovers,
 
 ### Font families
 
-- Display serif: Lora
-- UI sans: Nunito
+- Display serif: Georgia
+- UI sans: system-ui
 
-Both are loaded in src/web/src/app/layout.tsx and exposed as CSS vars:
-
-- --font-lora
-- --font-nunito
+These are configured in `tailwind.config.ts` as `font-serif` and `font-sans`. CSS modules use Georgia/system fallbacks where needed.
 
 ### Type scale and usage
 
 | Usage | Font | Size | Weight | Notes |
 | --- | --- | --- | --- | --- |
-| Page title | Lora | 2rem (or clamp on Settings) | 700 | Used in all audited pages |
-| Section/card title | Lora | 1rem to 1.35rem | 700 | Card and module headings |
-| KPI number | Lora | 2rem to 3rem+ | 700 | Stats and progress emphasis |
-| Eyebrow label | Nunito | 0.72rem to 0.78rem | 700-800 | Uppercase + tracked |
-| Body text | Nunito | 0.88rem to 0.98rem | 500-600 | Descriptions and helper copy |
-| Metadata | Nunito | 0.65rem to 0.78rem | 600-700 | Dates, badges, legends |
+| Page title | Georgia | 2rem (or clamp on Settings) | 700 | Used in all audited pages |
+| Section/card title | Georgia | 1rem to 1.35rem | 700 | Card and module headings |
+| KPI number | Georgia | 2rem to 3rem+ | 700 | Stats and progress emphasis |
+| Eyebrow label | system-ui | 0.72rem to 0.78rem | 700-800 | Uppercase + tracked |
+| Body text | system-ui | 0.88rem to 0.98rem | 500-600 | Descriptions and helper copy |
+| Metadata | system-ui | 0.65rem to 0.78rem | 600-700 | Dates, badges, legends |
 
 ### Text styling conventions
 
@@ -104,20 +101,18 @@ Both are loaded in src/web/src/app/layout.tsx and exposed as CSS vars:
 
 ## Logo usage
 
-Current implementation lives in src/web/src/components/layout/app-shell.tsx.
+Current implementation lives in `src/renderer/components/layout/app-shell.tsx`.
 
 ### Approved marks
 
-- Full header lockup: chef hat icon + Copilot Chef wordmark (default)
-- Icon-only mark: chef hat icon for constrained contexts
-- Monochrome mark: white mark on green surfaces only
+- Full header lockup: Local Recipe Book wordmark (default)
+- Text-only wordmark: use the current header treatment in constrained contexts
 
 ### Sizing and spacing
 
 - Header height: 64px
-- Logo icon size: 22x22px
-- Icon-to-wordmark gap: 0.5rem
-- Maintain at least 0.5rem clear space around the full mark
+- The current header uses a text-only Local Recipe Book wordmark.
+- Maintain at least 0.5rem clear space around the wordmark.
 
 ### Incorrect usage
 
@@ -183,7 +178,7 @@ Base card pattern used across Home, Grocery, Stats, and Settings:
 
 ### Buttons
 
-Primary variants from src/web/src/components/ui/button.tsx:
+Primary variants from `src/renderer/components/ui/button.tsx`:
 
 - default: green background, white text
 - accent: orange background, white text
@@ -205,7 +200,7 @@ Page-specific use:
 
 ### Status and metadata elements
 
-- Eyebrows and section labels rely on uppercase tracked Nunito.
+- Eyebrows and section labels rely on uppercase tracked system-ui.
 - Progress indicators use rounded tracks and green gradients.
 - Pill badges and tiny labels stay within 0.65rem to 0.75rem range.
 
@@ -262,11 +257,11 @@ Copy rules:
 
 ### CSS tokens
 
-Use src/web/src/app/globals.css as the source of truth for CSS variables.
+Use `src/renderer/globals.css` as the source of truth for CSS variables.
 
 ### Tailwind mappings
 
-Use src/web/tailwind.config.ts for framework-level token parity:
+Use `tailwind.config.ts` for framework-level token parity:
 
 - colors.green, colors.cream, colors.orange, colors.text, colors.white
 - borderRadius.card, borderRadius.btn, borderRadius.chip
@@ -274,7 +269,7 @@ Use src/web/tailwind.config.ts for framework-level token parity:
 
 ### Component tokens
 
-Use src/web/src/components/ui/button.tsx variants to avoid one-off button styling in new pages unless a page-specific CTA treatment is required.
+Use `src/renderer/components/ui/button.tsx` variants to avoid one-off button styling in new pages unless a page-specific CTA treatment is required.
 
 ## Accessibility baseline
 

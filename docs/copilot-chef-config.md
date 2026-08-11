@@ -68,8 +68,9 @@ Preferences are stored in the `UserPreference` Prisma model and served through `
 
 #### `COPILOT_CHEF_DATABASE_URL`
 
-- Default: `file:./data/copilot-chef.db`
-- Affects: SQLite database path used by Prisma. The Electron main process sets this automatically and external overrides are respected.
+- Compatibility fallback: `file:./data/copilot-chef.db` when the shared loader is used outside the Electron startup path.
+- Electron default: `{userData}/data/copilot-chef.db`, resolved by `src/main/server/start.ts` before database bootstrap.
+- Affects: SQLite database path used by Prisma. Explicit environment overrides are respected.
 
 #### `COPILOT_CHEF_SERVER_PORT`
 

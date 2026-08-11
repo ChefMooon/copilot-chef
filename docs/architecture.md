@@ -71,8 +71,6 @@ Desktop-local startup flow:
 2. In `local` mode, `startServer()` builds runtime token/config and starts Hono with port fallback
 3. Renderer requests runtime connection details through `server:getConfig`
 
-The old Tauri and Next.js package layout has been removed.
-
 ---
 
 ## 3. Runtime Modes
@@ -176,7 +174,7 @@ The app uses two configuration paths:
 1. Electron settings stored under the user data directory through `src/main/settings/store.ts`.
 2. Environment variable overrides consumed by the embedded server and shared config loader.
 
-Important environment variables include `COPILOT_CHEF_DATABASE_URL` and `COPILOT_CHEF_SERVER_PORT`.
+Important compatibility environment variables include `COPILOT_CHEF_DATABASE_URL` and `COPILOT_CHEF_SERVER_PORT`. The names are retained for existing installations; they do not indicate an active Copilot runtime.
 
 For LAN and browser access behavior, see `docs/lan-browser-access.md` and `docs/copilot-chef-config.md`.
 
@@ -224,7 +222,7 @@ The desktop app release currently uses a single `v{semver}` tag in the same GitH
 
 ### SQLite in WAL mode
 
-The database is a single SQLite file (`data/copilot-chef.db`). All database access is mediated by the Hono server process — clients never connect to SQLite directly.
+The database is a single SQLite file (`{userData}/data/copilot-chef.db`). All database access is mediated by the Hono server process — clients never connect to SQLite directly.
 
 WAL mode is configured at startup via raw PRAGMAs applied by `prisma.ts` after the Prisma client is initialized:
 
@@ -243,11 +241,7 @@ Key models: `Meal`, `GroceryList`, `GroceryItem`, `UserPreference`, `Recipe`, `R
 
 ### Backup
 
-```bash
-copilot-chef-server db backup <output-path>
-```
-
-This checkpoints the WAL first (`PRAGMA wal_checkpoint(TRUNCATE)`), then copies the `.db` file to the output path. The result is a complete, consistent snapshot.
+There is no standalone database-backup command in the current package. For a file-level backup, stop the app first and copy the SQLite database from the Electron user-data directory. Include the matching `.db-wal` and `.db-shm` files when they exist, or use an SQLite-aware backup process while the app is stopped.
 
 ---
 
@@ -280,7 +274,7 @@ Browser Client ──HTTP──┼──→ Hono Server (single Node.js process)
                  │    └────┬────┘  ← concurrent reads via WAL
                  │         │
                  │    ┌────┴────┐
-                 │    │ SQLite  │  ← data/copilot-chef.db
+                 │    │ SQLite  │  ← {userData}/data/copilot-chef.db
                  │    │  (WAL)  │  ← + .db-wal  + .db-shm
                  │    └─────────┘
 ```

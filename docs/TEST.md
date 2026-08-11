@@ -2,15 +2,14 @@
 
 ## Purpose
 
-This document summarizes the current state of automated test coverage in Copilot Chef.
+This document summarizes the current state of automated test coverage in Local Recipe Book.
 It is a practical coverage map, not a line-by-line percentage report.
 
-## Current Snapshot (2026-04-28)
+## Current Snapshot
 
 - Test runner: Vitest
 - Last full run: passing
-- Result: 13 test files, 96 tests passed
-- Runtime: about 6.3 seconds
+- Result: 45 test files, 217 tests passed
 
 Command used:
 
@@ -30,38 +29,56 @@ Because of that, this document reports qualitative coverage by feature area.
 
 ### Shared Schemas and Config
 
-- Recipe schema validation, including backward-compatible import handling
-  - src/shared/schemas/recipe-schemas.test.ts
-- Chat request schema validation for page context payloads
-  - src/shared/schemas/chat.test.ts
+- Recipe and menu-export schema validation, including backward-compatible import handling
+  - `src/shared/schemas/recipe-schemas.test.ts`
+  - `src/shared/schemas/menu-export-schemas.test.ts`
+- Menu export formatting and escaping
+  - `src/shared/menu-export.test.ts`
 - Server and client config loading from TOML and environment variables
-  - src/shared/config/__tests__/loader.test.ts
+  - `src/shared/config/__tests__/loader.test.ts`
 
 ### Main Process Server Logic
 
-- Recipe ingest HTML parsing helpers (ingredient lines and cook notes)
-  - src/main/server/services/recipe-service.ingest-parser.test.ts
-- Copilot session lifecycle behavior (create, resume, fallback)
-  - src/main/server/copilot/copilot-chef.session.test.ts
-- Copilot tool handlers, including meal CRUD/tool flows and history recording
-  - src/main/server/copilot/copilot-chef.tools.test.ts
+- Recipe ingest HTML parsing helpers, ingredient normalization, and unit conversion
+  - `src/main/server/services/recipe-service.ingest-parser.test.ts`
+  - `src/main/server/lib/ingredient-normalizer.test.ts`
+  - `src/main/server/lib/unit-converter.test.ts`
+- Meal ordering, meal-bank operations, last-made synchronization, and analytics
+  - `src/main/server/services/meal-service.reorder.test.ts`
+  - `src/main/server/services/meal-service.last-made.test.ts`
+  - `src/main/server/services/meal-service.analytics.test.ts`
+- Grocery service behavior and route validation
+  - `src/main/server/services/grocery-service.test.ts`
+  - `src/main/server/routes/grocery-lists.test.ts`
+- Route behavior for meals, prep lists, menu export, and stats
+  - `src/main/server/routes/meals.reorder.test.ts`
+  - `src/main/server/routes/meals.slot-batch.test.ts`
+  - `src/main/server/routes/prep-lists.test.ts`
+  - `src/main/server/routes/menu-export.test.ts`
+  - `src/main/server/routes/stats.test.ts`
+- LAN runtime settings resolution
+  - `src/main/server/lib/lan.test.ts`
 
 ### Renderer Logic and UI Behavior
 
-- Instruction annotation logic for matching ingredient amounts in steps
-  - src/renderer/lib/recipe-instruction-annotations.test.ts
-- Calendar profile date behavior and profile resolution logic
-  - src/renderer/lib/calendar.test.ts
-- Page context routing and serialization behavior
-  - src/renderer/context/page-context-routing.test.ts
-- Chat provider payload behavior with active route context
-  - src/renderer/context/chat-context.test.tsx
-- Page-level context producers across major routes
-  - src/renderer/pages/page-context-producers.test.tsx
-- Meal plan profile-aware rendering behaviors in day/week/month views
-  - src/renderer/components/meal-plan/ProfileViews.test.tsx
-- Settings meal type profile management UI flows
-  - src/renderer/components/settings/MealTypesSection.test.tsx
+- Application shell, connection, browser platform, and core utility behavior
+  - `src/renderer/components/layout/app-shell.test.tsx`
+  - `src/renderer/lib/platform/browser.test.ts`
+  - `src/renderer/lib/calendar.test.ts`
+  - `src/renderer/lib/grocery.test.ts`
+  - `src/renderer/lib/recipe-instruction-annotations.test.ts`
+- Meal-plan conflict, drag/drop, duplicate, edit, meal-bank, profile, menu-export, and undo/redo flows
+  - `src/renderer/components/meal-plan/`
+  - `src/renderer/pages/meal-plan.conflict-flow.test.tsx`
+- Recipe detail, cards, and add-recipe workflows
+  - `src/renderer/pages/recipes/detail.test.tsx`
+  - `src/renderer/components/recipes/`
+- Settings, LAN onboarding, and meal-type management
+  - `src/renderer/components/settings/`
+- Accessibility and browser QA behavior for selected controls and routes
+  - `src/renderer/components/ui/accessible-heatmap-cell.test.tsx`
+  - `src/renderer/pages/connect.qa.test.tsx`
+  - `src/renderer/pages/throttling-ui.qa.test.tsx`
 
 ## Coverage Gaps and Risk Areas
 

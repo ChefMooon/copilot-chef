@@ -12,7 +12,7 @@
 ## 2. Repository Structure
 
 ```
-copilot-chef/
+local-recipe-book/
 ├── src/main/      Electron main process, IPC, embedded Hono server
 │   └── server/
 │       ├── static-web.ts    Static web process — serves browser renderer build
@@ -38,8 +38,8 @@ copilot-chef/
 
 ```bash
 # 1. Clone and install all workspace dependencies
-git clone https://github.com/copilot-chef/copilot-chef
-cd copilot-chef
+git clone https://github.com/ChefMooon/local-recipe-book.git
+cd local-recipe-book
 npm install
 
 # 2. Apply the Prisma schema to create the SQLite database
@@ -132,10 +132,12 @@ schema change → service method → server route → client page/component
 4. Create or update a service in `src/main/server/services/`
 5. Export it from `src/main/server/services.ts` if needed
 
-**Service pattern** (every method follows this):
+**Current service boundary**:
+
+Services are constructed from `src/main/server/services.ts` and use the shared database/bootstrap infrastructure. Database readiness is currently handled by the idempotent logic in `src/main/server/lib/bootstrap.ts`; do not add feature-specific schema repair, seed, or duplicate bootstrap behavior in a new service. The architecture improvement plan proposes making this dependency explicit at the runtime boundary.
+
 ```ts
 async getItems(): Promise<Item[]> {
-  await bootstrapDatabase();
   const rows = await prisma.item.findMany();
   return rows.map(serialize);
 }
@@ -207,7 +209,7 @@ npm run test
 npx vitest run src/shared/config/__tests__/loader.test.ts
 ```
 
-Tests use [Vitest](https://vitest.dev). Current test coverage lives primarily under `src/main/server/` and `src/shared/config/__tests__/`.
+Tests use [Vitest](https://vitest.dev). Tests are distributed across `src/main/`, `src/shared/`, and `src/renderer/`; see `docs/TEST.md` for the current snapshot and coverage gaps.
 
 ---
 
@@ -219,9 +221,9 @@ npm run db:push       # apply schema change to SQLite (no migration files)
 npm run db:generate   # regenerate Prisma client
 ```
 
-> **Never skip `db:generate` after `db:push`.** Stale Prisma clients produce runtime type errors that look like import errors.
+> **Never skip `db:generate` after `db:push` during normal development.** Stale Prisma clients produce runtime type errors that look like import errors. On Windows, an active Electron process can lock the Prisma engine; stop it first, or use `npm run db:push -- --skip-generate` followed by `npx prisma generate --no-engine` when only client/types need updating.
 
-If you need to reset a local dev database, remove the SQLite file from the app data directory or point `COPILOT_CHEF_DATABASE_URL` at a fresh file and rerun setup.
+If you need to reset a local dev database, remove the SQLite file from the app data directory or point the compatibility variable `COPILOT_CHEF_DATABASE_URL` at a fresh file and rerun setup.
 
 ---
 
@@ -247,6 +249,8 @@ GET /api/health  200  4ms
 POST /api/meals  200  24ms
 ```
 
+The `[copilot-chef]` log prefix is an internal compatibility identifier; the application product name is Local Recipe Book.
+
 ### Electron DevTools
 
 Press `F12` in the Electron window during development to open Chromium DevTools. The Network tab shows renderer requests to the embedded server.
@@ -255,7 +259,7 @@ Press `F12` in the Electron window during development to open Chromium DevTools.
 
 If the server fails to start with `SQLITE_BUSY` or lock errors:
 - Ensure no other process is holding the app database file open.
-- Check any custom `COPILOT_CHEF_DATABASE_URL` override you are using.
+- Check any custom `COPILOT_CHEF_DATABASE_URL` override you are using. The variable name is retained for compatibility.
 - Let the Electron app own the SQLite connection; the renderer should never touch the database directly.
 
 
