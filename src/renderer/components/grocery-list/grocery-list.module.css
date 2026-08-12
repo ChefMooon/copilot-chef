@@ -30,21 +30,32 @@
 }
 
 .btnNewList {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   font-size: 0.82rem;
   font-weight: 700;
   background: var(--orange);
-  color: #fffdf8;
-  border: none;
+  color: var(--white);
+  border: 1px solid var(--orange);
   border-radius: 10px;
   padding: 0.55rem 1.1rem;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.15s;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow);
   margin-top: 0.25rem;
 }
 
 .btnNewList:hover {
   background: var(--orange-light);
+  border-color: var(--orange-light);
+}
+
+.btnNewList:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(197, 98, 42, 0.16);
 }
 
 .sectionLabel {

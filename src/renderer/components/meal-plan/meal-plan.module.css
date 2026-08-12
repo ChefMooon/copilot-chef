@@ -967,14 +967,30 @@
 }
 
 .btnAddMeal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   font-size: 0.82rem;
   font-weight: 700;
   background: var(--green);
-  color: #fffdf8;
-  border: none;
-  border-radius: 8px;
-  padding: 0.45rem 1rem;
+  color: var(--white);
+  border: 1px solid var(--green);
+  border-radius: 10px;
+  padding: 0.55rem 1rem;
   cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: all 0.15s ease;
+}
+
+.btnAddMeal:hover {
+  background: var(--green-light);
+  border-color: var(--green-light);
+}
+
+.btnAddMeal:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 94, 69, 0.14);
 }
 
 .weekNavLabel,

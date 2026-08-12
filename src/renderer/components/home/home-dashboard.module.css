@@ -417,9 +417,12 @@
 }
 
 .cardActionButton {
-  min-height: 1.9rem;
-  padding-inline: 0.7rem;
-  border-color: rgba(59, 94, 69, 0.24);
+  min-height: 2rem;
+  padding-inline: 0.8rem;
+  border-radius: 10px;
+  border-color: rgba(59, 94, 69, 0.22);
+  background: var(--white);
+  box-shadow: none;
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -429,13 +432,14 @@
 }
 
 .cardActionButton:hover {
-  border-color: var(--green-light);
+  border-color: var(--green);
   background: var(--green-pale);
   color: var(--green);
 }
 
 .cardActionButton:focus-visible {
   border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(59, 94, 69, 0.14);
 }
 
 .heatmapWrap {
