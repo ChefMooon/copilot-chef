@@ -59,6 +59,34 @@ Also defined in `src/renderer/globals.css` for utility frameworks and shared UI 
 - --border: #EDE6D6
 - --radius: 10px
 
+### Theme option logic
+
+The renderer theme is resolved from the persisted app preference and then applied
+by setting the root dataset attribute used throughout the app. The current model is:
+
+- `ui_theme` accepts the values `system`, `light`, or `dark` and defaults to `system`.
+- `system` resolves against `window.matchMedia("(prefers-color-scheme: dark)")` and
+  applies the matching root theme automatically.
+- `light` and `dark` bypass the OS preference and lock the app to one palette.
+- The effective theme is surfaced as `document.documentElement.dataset.theme`, which
+  drives the CSS variable set in `src/renderer/globals.css`.
+
+Custom theme profiles are a separate persisted object: `ui_custom_theme_profile`.
+This is a versioned profile payload, not a new built-in theme mode. The schema
+requires:
+
+- `version: 1`
+- `id`: a stable slug identifier
+- `name`: user-facing profile name
+- `tokens`: a semantic token set covering background, surface, muted, elevated,
+  foreground, border, primary, accent, success/warning/danger states, focus,
+  overlay, chart grid, chart series, and heatmap values
+
+Custom themes should be treated as a semantic-token override layer on top of the
+active base theme. They must keep the same layout contract and accessibility
+checks as the built-in palettes, even when the base theme is dark or the custom
+profile introduces a more saturated palette.
+
 ### Dark-mode rules
 
 Runtime UI surfaces must use semantic variables rather than literal light-palette
@@ -67,6 +95,11 @@ panels, `var(--muted)` for secondary bands and intermediate editor regions, and
 `var(--text)` or `var(--text-muted)` for content and metadata. Use the semantic
 accent variables for selected, warning, and destructive states so their contrast
 survives both themes.
+
+The active theme should always be read through the semantic token contract rather
+than hard-coded background or text colors. This remains true when a custom theme
+profile is active: the semantic names remain stable while the underlying values
+change.
 
 Literal warm-white backgrounds, light cream gradients, and light-mode dark text
 are only appropriate when the surface is explicitly part of print/export output.
@@ -81,6 +114,10 @@ content such as chat inputs and popovers. The Electron title bar has its own
 `--header-*` tokens; do not reuse page-surface tokens for its navigation or
 window controls. `--border` is reserved for structural boundaries and must
 remain at least 3:1 against both the page and card surfaces in dark mode.
+
+When custom themes are previewed or applied, preserve the same elevation model and
+focus treatment; do not swap to ad hoc token names or hard-coded colors within
+components unless the token set explicitly defines a replacement.
 
 ### Data visualization palette
 
@@ -333,4 +370,5 @@ Implementation rules:
 
 | Version | Date | Summary |
 | --- | --- | --- |
+| 1.1 | 2026-08-12 | Added the dark-mode and custom-theme option logic, including `system`/`light`/`dark` resolution and the semantic token profile model |
 | 1.0 | 2026-03-17 | Initial design system grounded in Home, Meal Plan, Grocery List, Stats, and Settings implementation |
