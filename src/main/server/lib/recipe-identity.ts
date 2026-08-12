@@ -16,7 +16,13 @@ export function normalizeRecipeSourceUrl(sourceUrl: string | null | undefined) {
     return null;
   }
 
-  return new URL(trimmed).toString();
+  const candidate = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : /^\/\//.test(trimmed)
+      ? `https:${trimmed}`
+      : `https://${trimmed}`;
+
+  return new URL(candidate).toString();
 }
 
 export function buildDuplicateRecipeTitle(baseTitle: string, copyNumber: number) {

@@ -6,6 +6,8 @@ import {
   type RecipeCanonicalUnit,
 } from "../recipe-units";
 
+export type { RecipeCanonicalUnit } from "../recipe-units";
+
 const recipeOriginSchema = z.enum(["manual", "imported"]);
 const recipeCuisineSchema = z.enum(CUISINE_VALUES);
 

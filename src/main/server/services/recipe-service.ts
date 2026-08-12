@@ -35,6 +35,7 @@ import {
   UpdateRecipeInputSchema,
   type CreateRecipeInput,
   type IngestResult,
+  type RecipeCanonicalUnit,
   type RecipeExportJson,
   type UpdateRecipeInput,
 } from "../schemas/recipe-schemas";
@@ -777,7 +778,11 @@ export function parseIngredientLinesFromHtml(html: string) {
 
     listElement.children("li").each((_: number, liElement: Element) => {
       const directSpans = $(liElement).children("span");
-      const contentSpans = directSpans.slice(1);
+      const fallbackContentSpans = directSpans.slice(1);
+      const firstSpanText = collapseWhitespace(directSpans.eq(0).text());
+      const hasLeadingAmount = /[\d¼½¾⅓⅔⅛⅜⅝⅞]/.test(firstSpanText);
+
+      const contentSpans = hasLeadingAmount ? directSpans : fallbackContentSpans;
 
       if (!contentSpans.length) {
         const fallback = collapseWhitespace($(liElement).text());
@@ -937,6 +942,226 @@ export function parseCookNotesFromHtml(html: string) {
 
   candidates.sort((a, b) => b.length - a.length);
   return candidates[0] ?? null;
+}
+
+export type RecipeIngestionReport = {
+  source: {
+    url: string | null;
+    sourceLabel: string | null;
+    title: string;
+    description: string | null;
+    markdownLength: number;
+    htmlLength: number;
+  };
+  ingredientExtraction: {
+    source: "html" | "markdown" | "fallback";
+    rawCandidates: string[];
+    normalized: Array<{
+      name: string;
+      quantity: number | null;
+      unit: RecipeCanonicalUnit | null;
+      notes: string | null;
+      confidence: "high" | "low";
+      raw: string;
+    }>;
+    flaggedLowConfidence: Array<{
+      name: string;
+      quantity: number | null;
+      unit: RecipeCanonicalUnit | null;
+      notes: string | null;
+      confidence: "low";
+      raw: string;
+    }>;
+  };
+  instructions: {
+    source: "markdown" | "default";
+    raw: string[];
+    final: string[];
+    fallbackUsed: boolean;
+  };
+  cookNotes: {
+    present: boolean;
+    raw: string | null;
+    final: string | null;
+  };
+  finalRecipe: {
+    title: string;
+    description: string | null;
+    servings: number;
+    prepTime: number | null;
+    cookTime: number | null;
+    difficulty: string | null;
+    cuisine: null;
+    sourceUrl: string | null;
+    sourceLabel: string | null;
+    origin: "imported";
+    ingredients: Array<{
+      name: string;
+      quantity: number | null;
+      unit: RecipeCanonicalUnit | null;
+      notes: string | null;
+      order: number;
+      confidence: "high" | "low";
+      raw: string;
+    }>;
+    instructions: string[];
+    cookNotes: string | null;
+    tags: string[];
+  };
+  validation: {
+    passed: boolean;
+    warnings: string[];
+  };
+};
+
+export function buildRecipeIngestionReport({
+  markdown,
+  html,
+  title,
+  description,
+  sourceUrl,
+  sourceLabel,
+}: {
+  markdown: string;
+  html: string;
+  title: string;
+  description?: string | null;
+  sourceUrl?: string | null;
+  sourceLabel?: string | null;
+}): RecipeIngestionReport {
+  const trimmedTitle = (title ?? "").trim() || "Imported Recipe";
+  const htmlIngredients = html ? parseIngredientLinesFromHtml(html) : [];
+  const markdownIngredients = sectionLines(markdown, ["ingredient"]);
+  const ingredientCandidates = htmlIngredients.length > 0 ? htmlIngredients : markdownIngredients;
+  const ingredientSource: RecipeIngestionReport["ingredientExtraction"]["source"] =
+    htmlIngredients.length > 0 ? "html" : markdownIngredients.length > 0 ? "markdown" : "fallback";
+  const normalized = normalizeIngredients(ingredientCandidates);
+  const normalizedWithRaw = normalized.map((entry, index) => ({
+    ...entry,
+    raw: ingredientCandidates[index] ?? entry.name,
+  }));
+  const flaggedLowConfidence = normalizedWithRaw.filter(
+    (entry) => entry.confidence === "low"
+  );
+
+  const warnings: string[] = [];
+  if (ingredientSource === "fallback") {
+    warnings.push("No ingredient section found in source content.");
+  }
+  if (ingredientSource === "markdown" && htmlIngredients.length === 0) {
+    warnings.push("No HTML ingredient list found; using markdown section as fallback.");
+  }
+
+  const rawInstructions = sectionLines(markdown, ["instruction", "direction", "method"]);
+  const instructionsFinal = rawInstructions.length > 0 ? rawInstructions : ["Review and edit steps before saving."];
+  const hasSeeNoteReference = normalized.some((ingredient) =>
+    /see note/i.test(ingredient.notes ?? "")
+  );
+  const finalCookNotes =
+    hasSeeNoteReference && html
+      ? compactMultilineString(parseCookNotesFromHtml(html))
+      : null;
+
+  const finalRecipe = {
+    title: trimmedTitle,
+    description: compactString(description ?? null),
+    servings: 2,
+    prepTime: null,
+    cookTime: null,
+    difficulty: null,
+    cuisine: null,
+    sourceUrl: sourceUrl ?? null,
+    sourceLabel: sourceLabel ?? null,
+    origin: "imported" as const,
+    ingredients: normalizedWithRaw.map((entry, index) => ({
+      name: entry.name,
+      quantity: entry.quantity,
+      unit: entry.unit as RecipeCanonicalUnit | null,
+      notes: entry.notes,
+      order: index,
+      confidence: entry.confidence,
+      raw: entry.raw,
+    })),
+    instructions: instructionsFinal,
+    cookNotes: finalCookNotes,
+    tags: sourceLabel ? [`source:${sourceLabel}`] : [],
+  };
+
+  return {
+    source: {
+      url: sourceUrl ?? null,
+      sourceLabel: sourceLabel ?? null,
+      title: trimmedTitle,
+      description: compactString(description ?? null),
+      markdownLength: markdown.length,
+      htmlLength: html.length,
+    },
+    ingredientExtraction: {
+      source: ingredientSource,
+      rawCandidates: ingredientCandidates,
+      normalized: normalizedWithRaw.map(({ name, quantity, unit, notes, confidence, raw }) => ({
+        name,
+        quantity,
+        unit: unit as RecipeCanonicalUnit | null,
+        notes,
+        confidence,
+        raw,
+      })),
+      flaggedLowConfidence: flaggedLowConfidence.map(({ name, quantity, unit, notes, raw }) => ({
+        name,
+        quantity,
+        unit: unit as RecipeCanonicalUnit | null,
+        notes,
+        confidence: "low" as const,
+        raw,
+      })),
+    },
+    instructions: {
+      source: rawInstructions.length > 0 ? "markdown" : "default",
+      raw: rawInstructions,
+      final: instructionsFinal,
+      fallbackUsed: rawInstructions.length === 0,
+    },
+    cookNotes: {
+      present: Boolean(finalCookNotes),
+      raw: finalCookNotes,
+      final: finalCookNotes,
+    },
+    finalRecipe,
+    validation: {
+      passed: warnings.length === 0,
+      warnings,
+    },
+  };
+}
+
+export async function runRecipeIngestionDiagnostic(
+  sourceUrl: string
+): Promise<RecipeIngestionReport> {
+  const cleanedUrl = new URL(sourceUrl).toString();
+  const sourceLabel = new URL(cleanedUrl).hostname.replace(/^www\./, "");
+  const defuddle = buildDefuddleCommand(cleanedUrl);
+  const result = await execFileAsync(defuddle.command, defuddle.args, {
+    timeout: 45000,
+    maxBuffer: 1024 * 1024 * 8,
+    windowsHide: true,
+  });
+  const payload = JSON.parse(result.stdout) as {
+    title?: string;
+    description?: string;
+    content?: string;
+  };
+  const markdown = payload.content ?? "";
+  const html = (await fetchRecipeHtml(cleanedUrl)) ?? "";
+
+  return buildRecipeIngestionReport({
+    markdown,
+    html,
+    title: payload.title ?? "Imported Recipe",
+    description: payload.description ?? "",
+    sourceUrl: cleanedUrl,
+    sourceLabel,
+  });
 }
 
 async function fetchRecipeHtml(url: string) {
@@ -1580,50 +1805,41 @@ export class RecipeService {
       };
     }
 
-    const recipeHtml = await fetchRecipeHtml(cleanedUrl);
-    const ingredientLinesFromHtml = recipeHtml
-      ? parseIngredientLinesFromHtml(recipeHtml)
-      : [];
-    const ingredientLines =
-      ingredientLinesFromHtml.length > 0
-        ? ingredientLinesFromHtml
-        : sectionLines(markdown, ["ingredient"]);
-    const instructions = sectionLines(markdown, ["instruction", "direction", "method"]);
-    const normalized = normalizeIngredients(ingredientLines);
-    const hasSeeNoteReference = normalized.some((ingredient) =>
-      /see note/i.test(ingredient.notes ?? "")
-    );
-    const cookNotes =
-      hasSeeNoteReference && recipeHtml
-        ? compactMultilineString(parseCookNotesFromHtml(recipeHtml))
-        : null;
+    const report = buildRecipeIngestionReport({
+      markdown,
+      html: (await fetchRecipeHtml(cleanedUrl)) ?? "",
+      title: title.trim() || "Imported Recipe",
+      description,
+      sourceUrl: cleanedUrl,
+      sourceLabel,
+    });
 
     return {
       duplicate: false,
       recipe: {
-        title: title.trim() || "Imported Recipe",
-        description: compactString(description),
-        servings: 2,
-        prepTime: null,
-        cookTime: null,
-        difficulty: null,
-        cuisine: null,
-        cookNotes,
-        instructions: instructions.length > 0 ? instructions : ["Review and edit steps before saving."],
-        sourceUrl: cleanedUrl,
-        sourceLabel,
-        origin: "imported",
+        title: report.finalRecipe.title,
+        description: report.finalRecipe.description,
+        servings: report.finalRecipe.servings,
+        prepTime: report.finalRecipe.prepTime,
+        cookTime: report.finalRecipe.cookTime,
+        difficulty: report.finalRecipe.difficulty,
+        cuisine: report.finalRecipe.cuisine,
+        cookNotes: report.finalRecipe.cookNotes,
+        instructions: report.finalRecipe.instructions,
+        sourceUrl: report.finalRecipe.sourceUrl,
+        sourceLabel: report.finalRecipe.sourceLabel,
+        origin: report.finalRecipe.origin,
         linkedSubRecipes: [],
-        tags: [`source:${sourceLabel}`],
-        ingredients: normalized.map((ingredient, index) => ({
+        tags: report.finalRecipe.tags,
+        ingredients: report.finalRecipe.ingredients.map((ingredient) => ({
           name: ingredient.name,
           quantity: ingredient.quantity,
           unit: ingredient.unit,
           notes: ingredient.notes,
-          order: index,
+          order: ingredient.order,
         })),
       },
-      flaggedIngredients: normalized.filter((ingredient) => ingredient.confidence === "low"),
+      flaggedIngredients: report.ingredientExtraction.flaggedLowConfidence,
     };
   }
 

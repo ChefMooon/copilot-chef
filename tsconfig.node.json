@@ -11,6 +11,7 @@
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
     "allowSyntheticDefaultImports": true,
+    "types": ["node"],
     "outDir": "./out/main",
     "rootDir": ".",
     "paths": {
@@ -20,7 +21,9 @@
   "include": [
     "src/main/**/*.ts",
     "src/shared/**/*.ts",
-    "src/preload/**/*.ts"
+    "src/preload/**/*.ts",
+    "scripts/**/*.ts",
+    "scripts/**/*.mts"
   ],
   "exclude": ["node_modules", "out", "dist"]
 }

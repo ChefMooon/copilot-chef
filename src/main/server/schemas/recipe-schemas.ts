@@ -9,6 +9,7 @@ export {
   type UpdateRecipeInput,
   type RecipeExportJson,
   type IngestResult,
+  type RecipeCanonicalUnit,
   type RecipeSave,
 } from "@shared/schemas/recipe-schemas";
 
