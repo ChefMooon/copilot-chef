@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [1.0.1] - TBD
 
+### Added
+
+- Added desktop lifecycle controls for launch-at-login, launch minimized, close-to-tray behavior, and theme preferences, along with a Connection section for viewing app and server diagnostics.
+
 ### Fixed
 
 - Fixed the Update Default Meal Plan Profile modal, scrolling now works
