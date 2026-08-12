@@ -35,6 +35,7 @@ import {
   UpdateRecipeInputSchema,
   type CreateRecipeInput,
   type IngestResult,
+  type IngestProgressEvent,
   type RecipeCanonicalUnit,
   type RecipeExportJson,
   type UpdateRecipeInput,
@@ -1038,6 +1039,7 @@ export function buildRecipeIngestionReport({
   const normalized = normalizeIngredients(ingredientCandidates);
   const normalizedWithRaw = normalized.map((entry, index) => ({
     ...entry,
+    order: index,
     raw: ingredientCandidates[index] ?? entry.name,
   }));
   const flaggedLowConfidence = normalizedWithRaw.filter(
@@ -1107,8 +1109,9 @@ export function buildRecipeIngestionReport({
         confidence,
         raw,
       })),
-      flaggedLowConfidence: flaggedLowConfidence.map(({ name, quantity, unit, notes, raw }) => ({
+      flaggedLowConfidence: flaggedLowConfidence.map(({ name, quantity, unit, notes, raw, order }) => ({
         name,
+        order,
         quantity,
         unit: unit as RecipeCanonicalUnit | null,
         notes,
@@ -1164,9 +1167,10 @@ export async function runRecipeIngestionDiagnostic(
   });
 }
 
-async function fetchRecipeHtml(url: string) {
+async function fetchRecipeHtml(url: string, signal?: AbortSignal) {
   try {
     const response = await fetch(url, {
+      signal,
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
@@ -1211,6 +1215,7 @@ function toIngestExistingRecipe(recipe: SerializedRecipe) {
     sourceUrl: recipe.sourceUrl,
     sourceLabel: recipe.sourceLabel,
     origin: toOrigin(recipe.origin),
+    favourite: recipe.favourite,
     rating: recipe.rating,
     cookNotes: recipe.cookNotes,
     lastMadeAt: recipe.lastMadeAt,
@@ -1759,11 +1764,25 @@ export class RecipeService {
       .map((entry) => entry.recipe);
   }
 
-  async ingestFromUrl(url: string): Promise<IngestResult> {
+  async ingestFromUrl(
+    url: string,
+    options: {
+      signal?: AbortSignal;
+      onProgress?: (event: Extract<IngestProgressEvent, { type: "progress" }>) => void;
+    } = {}
+  ): Promise<IngestResult> {
     await bootstrapDatabase();
 
     const cleanedUrl = new URL(url).toString();
     const sourceLabel = new URL(cleanedUrl).hostname.replace(/^www\./, "");
+
+    const reportProgress = (
+      stage: Extract<IngestProgressEvent, { type: "progress" }>["stage"],
+      message: string
+    ) => options.onProgress?.({ type: "progress", stage, message });
+
+    options.signal?.throwIfAborted();
+    reportProgress("fetching", "Fetching recipe page...");
 
     let markdown = "";
     let title = "";
@@ -1778,6 +1797,7 @@ export class RecipeService {
           timeout: 45000,
           maxBuffer: 1024 * 1024 * 8,
           windowsHide: true,
+          signal: options.signal,
         }
       );
       const payload = JSON.parse(result.stdout) as {
@@ -1793,6 +1813,8 @@ export class RecipeService {
       throw new Error("Unable to ingest recipe from URL");
     }
 
+    options.signal?.throwIfAborted();
+    reportProgress("checking-duplicates", "Checking your recipe library...");
     const conflict = await this.findRecipeConflict({
       title: normalizeRecipeTitle(title.trim() || "Imported Recipe"),
       sourceUrl: cleanedUrl,
@@ -1805,15 +1827,18 @@ export class RecipeService {
       };
     }
 
+    options.signal?.throwIfAborted();
+    reportProgress("extracting", "Extracting recipe details...");
     const report = buildRecipeIngestionReport({
       markdown,
-      html: (await fetchRecipeHtml(cleanedUrl)) ?? "",
+      html: (await fetchRecipeHtml(cleanedUrl, options.signal)) ?? "",
       title: title.trim() || "Imported Recipe",
       description,
       sourceUrl: cleanedUrl,
       sourceLabel,
     });
 
+    reportProgress("preparing", "Preparing recipe draft...");
     return {
       duplicate: false,
       recipe: {

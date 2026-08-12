@@ -166,6 +166,7 @@ const recipeIngredientExportSchema = recipeIngredientBaseSchema
 
 const normalizedIngredientSchema = z.object({
   name: requiredTrimmedStringSchema,
+  order: z.number().int().nonnegative(),
   quantity: quantitySchema.nullable(),
   quantityNumerator: z.number().int().nonnegative().nullable().optional(),
   quantityDenominator: z.number().int().positive().nullable().optional(),
@@ -284,6 +285,22 @@ export const IngestResultSchema = z.union([
   recipeDraftResultSchema,
 ]);
 
+export const IngestProgressEventSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("progress"),
+    stage: z.enum(["fetching", "checking-duplicates", "extracting", "preparing"]),
+    message: z.string(),
+  }),
+  z.object({
+    type: z.literal("result"),
+    data: IngestResultSchema,
+  }),
+  z.object({
+    type: z.literal("error"),
+    message: z.string(),
+  }),
+]);
+
 export const RecipeSaveSchema = z.object({
   title: requiredTrimmedStringSchema,
   description: nullableTrimmedStringSchema.optional(),
@@ -304,5 +321,6 @@ export type CreateRecipeInput = z.input<typeof CreateRecipeInputSchema>;
 export type UpdateRecipeInput = z.input<typeof UpdateRecipeInputSchema>;
 export type RecipeExportJson = z.infer<typeof RecipeExportJsonSchema>;
 export type IngestResult = z.infer<typeof IngestResultSchema>;
+export type IngestProgressEvent = z.infer<typeof IngestProgressEventSchema>;
 export type RecipeSave = z.infer<typeof RecipeSaveSchema>;
 export type RecipeConflict = z.infer<typeof RecipeConflictSchema>;

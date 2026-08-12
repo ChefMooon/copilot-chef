@@ -1,6 +1,7 @@
 import { Hono, type Context } from "hono";
 import {
   CreateRecipeInputSchema,
+  IngestProgressEventSchema,
   UpdateRecipeInputSchema,
   RecipeExportJsonSchema,
   type RecipeFilters,
@@ -201,12 +202,71 @@ recipesRoutes.post("/recipes/import", async (c) => {
 });
 
 recipesRoutes.post("/recipes/ingest", async (c) => {
+  let body: unknown;
   try {
-    const body = await c.req.json();
+    body = await c.req.json();
     const schema = z.object({ url: z.string().url() });
     const input = schema.parse(body);
-    const data = await recipeService.ingestFromUrl(input.url);
-    return c.json({ data });
+
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        let closed = false;
+        const requestSignal = c.req.raw.signal;
+
+        const close = () => {
+          if (!closed) {
+            closed = true;
+            controller.close();
+          }
+        };
+
+        const send = (event: unknown) => {
+          if (closed || requestSignal.aborted) {
+            return;
+          }
+
+          const parsed = IngestProgressEventSchema.safeParse(event);
+          if (!parsed.success) {
+            throw new Error("Unable to prepare the recipe import result.");
+          }
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(parsed.data)}\n\n`));
+        };
+
+        requestSignal.addEventListener("abort", close, { once: true });
+
+        void recipeService
+          .ingestFromUrl(input.url, {
+            signal: requestSignal,
+            onProgress: (event) => send(event),
+          })
+          .then((data) => {
+            send({ type: "result", data });
+            close();
+          })
+          .catch((error: unknown) => {
+            if (requestSignal.aborted) {
+              close();
+              return;
+            }
+
+            send({
+              type: "error",
+              message: error instanceof Error ? error.message : "Unable to ingest recipe",
+            });
+            close();
+          });
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Cache-Control": "no-cache, no-store",
+        Connection: "keep-alive",
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "X-Accel-Buffering": "no",
+      },
+    });
   } catch (error) {
     return c.json(
       { error: error instanceof Error ? error.message : "Unable to ingest recipe", code: "RECIPE_INGEST_FAILED" },

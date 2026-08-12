@@ -31,11 +31,13 @@ export {
   CreateRecipeInputSchema,
   UpdateRecipeInputSchema,
   IngestResultSchema,
+  IngestProgressEventSchema,
   RecipeExportJsonSchema,
   RecipeSaveSchema,
   type CreateRecipeInput,
   type UpdateRecipeInput,
   type RecipeExportJson,
   type IngestResult,
+  type IngestProgressEvent,
   type RecipeSave,
 } from "./schemas/recipe-schemas";

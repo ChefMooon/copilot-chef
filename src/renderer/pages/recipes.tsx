@@ -1,8 +1,8 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router";
 
 import {
-  confirmIngestRecipe,
   createRecipe,
   deleteRecipe,
   exportRecipes,
@@ -12,6 +12,7 @@ import {
   updateRecipe,
   type RecipePayload,
 } from "@/lib/api";
+import type { CreateRecipeInput, IngestResult } from "@shared/types";
 import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
 import { recipeKeys } from "@/lib/query-keys";
@@ -134,6 +135,7 @@ function downloadJson(data: unknown, fileName: string) {
 }
 
 export default function RecipesPage() {
+  const navigate = useNavigate();
   const config = useServerConfig();
   const apiReady = isServerConfigReady(config);
   const queryClient = useQueryClient();
@@ -152,6 +154,10 @@ export default function RecipesPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [showIngest, setShowIngest] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [ingestDraft, setIngestDraft] = useState<CreateRecipeInput | null>(null);
+  const [ingestWarnings, setIngestWarnings] = useState<
+    Extract<IngestResult, { duplicate: false }>["flaggedIngredients"]
+  >([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<RecipePayload | null>(
     null
@@ -269,13 +275,6 @@ export default function RecipesPage() {
 
   const deleteMutation = useMutation({
     mutationFn: deleteRecipe,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: recipesKey });
-    },
-  });
-
-  const confirmIngestMutation = useMutation({
-    mutationFn: confirmIngestRecipe,
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: recipesKey });
     },
@@ -399,6 +398,8 @@ export default function RecipesPage() {
 
     await createMutation.mutateAsync(input);
     setShowAddModal(false);
+    setIngestDraft(null);
+    setIngestWarnings([]);
     setRecipeEditorDraft(null);
   }
 
@@ -464,6 +465,8 @@ export default function RecipesPage() {
             <Button
               onClick={() => {
                 setEditingRecipe(null);
+                setIngestDraft(null);
+                setIngestWarnings([]);
                 setShowAddModal(true);
               }}
               size="sm"
@@ -587,8 +590,9 @@ export default function RecipesPage() {
       {showAddModal ? (
         <Suspense fallback={null}>
           <AddRecipeModal
-            key={editingRecipe?.id ?? "new-recipe"}
-            initialRecipe={editingRecipe}
+            key={editingRecipe?.id ?? (ingestDraft ? "ingest-draft" : "new-recipe")}
+            initialRecipe={editingRecipe ?? ingestDraft}
+            flaggedIngredients={ingestWarnings}
             isSaving={createMutation.isPending || updateMutation.isPending}
             onClose={() => {
               if (createMutation.isPending || updateMutation.isPending) {
@@ -596,6 +600,8 @@ export default function RecipesPage() {
               }
               setShowAddModal(false);
               setEditingRecipe(null);
+              setIngestDraft(null);
+              setIngestWarnings([]);
               setRecipeEditorDraft(null);
             }}
             onDraftContextChange={setRecipeEditorDraft}
@@ -609,11 +615,17 @@ export default function RecipesPage() {
         <Suspense fallback={null}>
           <IngestModal
             onClose={() => setShowIngest(false)}
+            onViewRecipe={(recipeId) => {
+              setShowIngest(false);
+              navigate(`/recipes/${recipeId}`);
+            }}
             onDraft={async (draft) => {
               if (!draft.duplicate) {
-                await confirmIngestMutation.mutateAsync(draft.recipe);
+                setIngestDraft(draft.recipe);
+                setIngestWarnings(draft.flaggedIngredients);
+                setShowIngest(false);
+                setShowAddModal(true);
               }
-              setShowIngest(false);
             }}
           />
         </Suspense>

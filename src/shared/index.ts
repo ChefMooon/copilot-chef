@@ -55,6 +55,7 @@ export {
   UpdateRecipeInputSchema,
   RecipeExportJsonSchema,
   IngestResultSchema,
+  IngestProgressEventSchema,
   RecipeSaveSchema,
 } from "./schemas/recipe-schemas";
 export {
@@ -67,6 +68,7 @@ export type {
   UpdateRecipeInput,
   RecipeExportJson,
   IngestResult,
+  IngestProgressEvent,
   RecipeSave,
   RecipeConflict,
 } from "./schemas/recipe-schemas";

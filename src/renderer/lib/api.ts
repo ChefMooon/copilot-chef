@@ -3,6 +3,7 @@ import {
   type CreateMealTypeProfileInput,
   type CreateRecipeInput,
   type IngestResult,
+  type IngestProgressEvent,
   type MealIngredient,
   type MealPayload,
   type MealTypeDefinitionPayload,
@@ -489,15 +490,108 @@ export async function getRecipeIterations(id: string) {
   return response.data;
 }
 
-export async function ingestRecipe(url: string): Promise<IngestResult> {
-  const response = await fetchJson<{ data: IngestResult }>(
-    "/api/recipes/ingest",
-    {
-      method: "POST",
-      body: JSON.stringify({ url }),
+export async function ingestRecipe(
+  url: string,
+  options: {
+    signal?: AbortSignal;
+    onProgress?: (event: Extract<IngestProgressEvent, { type: "progress" }>) => void;
+  } = {}
+): Promise<IngestResult> {
+  const response = await fetch(`${getApiBase()}/api/recipes/ingest`, {
+    method: "POST",
+    body: JSON.stringify({ url }),
+    cache: "no-store",
+    signal: options.signal,
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      handleRejectedBrowserToken();
     }
-  );
-  return response.data;
+
+    let message = `Request failed with status ${response.status}`;
+    try {
+      const payload = (await response.json()) as ApiErrorBody;
+      message = payload.error ?? message;
+    } catch {
+      // Keep the status-based fallback when the server did not return JSON.
+    }
+    throw new ApiError(message, response.status);
+  }
+
+  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+  if (contentType.includes("application/json")) {
+    const payload = (await response.json()) as { data?: IngestResult; error?: string };
+    if (!payload.data) {
+      throw new ApiError(
+        payload.error ?? "Recipe import did not return a result.",
+        response.status
+      );
+    }
+    return payload.data;
+  }
+
+  if (!response.body) {
+    throw new ApiError("Recipe import did not return a progress stream.", response.status);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  const processFrame = (frame: string): IngestResult | null => {
+    const data = frame
+      .split("\n")
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice("data:".length).trimStart())
+      .join("\n");
+    if (!data) {
+      return null;
+    }
+
+    const event = JSON.parse(data) as IngestProgressEvent;
+    if (event.type === "progress") {
+      options.onProgress?.(event);
+      return null;
+    }
+    if (event.type === "error") {
+      throw new ApiError(event.message, response.status);
+    }
+    return event.data;
+  };
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+
+      const frames = buffer.replaceAll("\r\n", "\n").split("\n\n");
+      buffer = frames.pop() ?? "";
+
+      for (const frame of frames) {
+        const result = processFrame(frame);
+        if (result) {
+          return result;
+        }
+      }
+
+      if (done) {
+        const result = processFrame(buffer);
+        if (result) {
+          return result;
+        }
+        break;
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  throw new ApiError("Recipe import ended before returning a result.", response.status);
 }
 
 export async function confirmIngestRecipe(

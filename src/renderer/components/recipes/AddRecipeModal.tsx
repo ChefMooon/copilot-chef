@@ -58,7 +58,8 @@ type FormState = {
 
 type AddRecipeModalProps = {
   open: boolean;
-  initialRecipe?: RecipePayload | null;
+  initialRecipe?: RecipePayload | CreateRecipeInput | null;
+  flaggedIngredients?: Array<{ order: number; name: string }>;
   focusTitleRequestKey?: number;
   isSaving?: boolean;
   onClose: () => void;
@@ -94,7 +95,9 @@ function createEmptyIngredientGroup(name = ""): IngredientGroupDraft {
   };
 }
 
-function toIngredientGroups(recipe?: RecipePayload | null): IngredientGroupDraft[] {
+type RecipeEditorInput = RecipePayload | CreateRecipeInput;
+
+function toIngredientGroups(recipe?: RecipeEditorInput | null): IngredientGroupDraft[] {
   if (!recipe || recipe.ingredients.length === 0) {
     return [createEmptyIngredientGroup()];
   }
@@ -111,7 +114,7 @@ function toIngredientGroups(recipe?: RecipePayload | null): IngredientGroupDraft
 
     if (existingGroup) {
       existingGroup.ingredients.push({
-        id: ingredient.id,
+        id: "id" in ingredient ? ingredient.id : createUuid(),
         name: ingredient.name,
         amount:
           typeof ingredient.quantity === "number" && Number.isFinite(ingredient.quantity)
@@ -128,7 +131,7 @@ function toIngredientGroups(recipe?: RecipePayload | null): IngredientGroupDraft
       name: groupName,
       ingredients: [
         {
-          id: ingredient.id,
+          id: "id" in ingredient ? ingredient.id : createUuid(),
           name: ingredient.name,
           amount:
             typeof ingredient.quantity === "number" && Number.isFinite(ingredient.quantity)
@@ -157,6 +160,7 @@ function flattenIngredientGroups(groups: IngredientGroupDraft[]) {
 export function AddRecipeModal({
   open,
   initialRecipe,
+  flaggedIngredients = [],
   focusTitleRequestKey,
   isSaving,
   onClose,
@@ -448,6 +452,21 @@ export function AddRecipeModal({
         </div>
 
         <div className="flex-1 overflow-y-auto px-3.5 py-3 sm:px-5 sm:py-4">
+          {flaggedIngredients.length > 0 ? (
+            <div className="mb-4 rounded-card border border-orange/30 bg-orange/5 p-3" role="status">
+              <p className="font-semibold text-text">Review imported ingredients</p>
+              <p className="mt-1 text-sm text-text-muted">
+                These ingredients were parsed with lower confidence. You can edit them before saving.
+              </p>
+              <ul className="mt-2 list-disc pl-5 text-sm text-text-muted">
+                {flaggedIngredients.map((ingredient) => (
+                  <li key={`${ingredient.order}-${ingredient.name}`}>
+                    {ingredient.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <div className="grid gap-2.5 sm:gap-3 md:grid-cols-2">
             <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.06em] text-text-muted sm:text-sm sm:normal-case sm:tracking-normal">

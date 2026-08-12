@@ -301,6 +301,7 @@ export type RecipePayload = {
 export type {
   CreateRecipeInput,
   IngestResult,
+  IngestProgressEvent,
   RecipeConflict,
   RecipeExportJson,
 } from "./schemas/recipe-schemas";
