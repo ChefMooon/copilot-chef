@@ -122,6 +122,18 @@ function tryPort(config: ServerConfig, port: number): Promise<ServerInfo> {
   });
 }
 
+export function closeHttpServer(server: Pick<ServerType, "close">): Promise<void> {
+  return new Promise<void>((resolvePromise, rejectPromise) => {
+    server.close((error) => {
+      if (error) {
+        rejectPromise(error);
+        return;
+      }
+      resolvePromise();
+    });
+  });
+}
+
 // ── Public API ───────────────────────────────────────────────
 export async function startServer(): Promise<ServerInfo> {
   // Generate random auth token for this session
@@ -186,7 +198,7 @@ export async function startServer(): Promise<ServerInfo> {
 
 export async function stopServer(): Promise<void> {
   if (httpServer) {
-    httpServer.close();
+    await closeHttpServer(httpServer);
     httpServer = null;
     serverPort = null;
     runtimeSettings = null;

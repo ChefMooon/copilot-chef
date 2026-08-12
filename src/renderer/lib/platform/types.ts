@@ -6,6 +6,15 @@ export type ServerConfig = {
   mode: "local" | "remote";
 };
 
+export type ServerStatus = {
+  running: boolean;
+  port: number | null;
+  bindHost: string | null;
+  advertisedHost: string | null;
+  url: string | null;
+  lanEnabled: boolean;
+};
+
 export type UpdateEventHandlers = {
   onAvailable?: (info?: { version?: string }) => void;
   onNotAvailable?: () => void;
@@ -26,6 +35,14 @@ export type PlatformCapabilities = {
   pdfExport: boolean;
   updates: boolean;
   lanManagement: boolean;
+  lifecycle: boolean;
+};
+
+export type LifecycleStatus = {
+  supported: boolean;
+  launchAtLogin: boolean;
+  launchMinimized: boolean;
+  reason?: string;
 };
 
 export type LanStatus = {
@@ -62,11 +79,15 @@ export type RendererPlatform = {
   runtime: RuntimeMode;
   capabilities: PlatformCapabilities;
   getServerConfig: () => Promise<ServerConfig>;
+  getServerStatus: () => Promise<ServerStatus>;
+  getAppVersion: () => Promise<string>;
   getSetting: (key: string) => Promise<unknown>;
   setSetting: (key: string, value: unknown) => Promise<void>;
   getAllSettings: () => Promise<Record<string, unknown>>;
   subscribeUpdates: (handlers: UpdateEventHandlers) => () => void;
   checkForUpdates: () => Promise<unknown>;
+  getLifecycleStatus: () => Promise<LifecycleStatus>;
+  setLaunchAtLogin: (enabled: boolean) => Promise<LifecycleStatus>;
   exportMenuPdf: (payload: MenuPdfExportPayload) => Promise<MenuPdfExportResult>;
   getLanStatus: () => Promise<LanStatus | null>;
   restartLanServices: () => Promise<unknown>;

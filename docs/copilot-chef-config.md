@@ -29,6 +29,8 @@ These settings are stored in `{userData}/settings.json` through `src/main/settin
 | `remote_api_key` | — | Remote bearer token used when `server_mode` is `remote` |
 | `app_close_to_tray` | `true` | Hides to tray on close instead of quitting |
 | `lan_enabled` | `false` | Enables LAN API binding |
+| `app_launch_at_login` | `false` | Desktop-only native launch-at-login preference. Windows and macOS use Electron login-item integration; packaged Linux builds use an XDG autostart entry. Browser mode and development builds do not apply it. |
+| `app_launch_minimized` | `false` | Desktop-only startup visibility preference. When enabled, the app starts hidden in the tray. Browser mode does not apply this setting. |
 | `lan_web_enabled` | mirrors `lan_enabled` | Enables the browser web process independently |
 | `lan_web_port` | `4173` | Port used by the browser UI process |
 | `lan_api_port` | inherits `server_port` | API port used when LAN mode is active |

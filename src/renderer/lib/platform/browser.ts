@@ -273,8 +273,21 @@ export function createBrowserPlatform(): RendererPlatform {
       pdfExport: false,
       updates: false,
       lanManagement: false,
+      lifecycle: false,
     },
     getServerConfig: resolveBrowserServerConfig,
+    getServerStatus: async () => ({
+      running: false,
+      port: null,
+      bindHost: null,
+      advertisedHost: null,
+      url: null,
+      lanEnabled: false,
+    }),
+    getAppVersion: async () => {
+      const runtimeConfig = await getBrowserRuntimeConfig();
+      return runtimeConfig?.version ?? "Browser runtime";
+    },
     getSetting: async (key) => {
       const storage = getStorage();
       if (!storage) return undefined;
@@ -315,6 +328,18 @@ export function createBrowserPlatform(): RendererPlatform {
     },
     subscribeUpdates: () => () => {},
     checkForUpdates: async () => null,
+    getLifecycleStatus: async () => ({
+      supported: false,
+      launchAtLogin: false,
+      launchMinimized: false,
+      reason: "Desktop lifecycle settings are unavailable in browser mode.",
+    }),
+    setLaunchAtLogin: async () => ({
+      supported: false,
+      launchAtLogin: false,
+      launchMinimized: false,
+      reason: "Desktop lifecycle settings are unavailable in browser mode.",
+    }),
     exportMenuPdf: async (_payload: MenuPdfExportPayload): Promise<MenuPdfExportResult> => {
       return {
         status: "error",

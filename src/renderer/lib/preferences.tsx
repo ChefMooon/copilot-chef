@@ -17,10 +17,12 @@ import { getPlatform } from "@/lib/platform";
 
 export type UiPreferenceState = {
   theme: AppSettingTheme;
+  setThemePreference: (theme: AppSettingTheme) => Promise<void>;
 };
 
 const DEFAULT_PREFERENCES: UiPreferenceState = {
   theme: APP_SETTING_DEFAULTS.ui_theme,
+  setThemePreference: async () => {},
 };
 
 const PreferencesContext = createContext<UiPreferenceState>(DEFAULT_PREFERENCES);
@@ -54,6 +56,13 @@ export function PreferenceProvider({ children }: PropsWithChildren) {
     root.dataset.theme = resolved;
   }, []);
 
+  const setThemePreference = useCallback(async (nextTheme: AppSettingTheme) => {
+    await getPlatform().setSetting("ui_theme", nextTheme);
+    const resolved = resolveEffectiveTheme(nextTheme);
+    setTheme(resolved);
+    document.documentElement.dataset.theme = resolved;
+  }, []);
+
   useEffect(() => {
     void syncTheme();
 
@@ -73,7 +82,10 @@ export function PreferenceProvider({ children }: PropsWithChildren) {
     };
   }, [syncTheme]);
 
-  const value = useMemo<UiPreferenceState>(() => ({ theme }), [theme]);
+  const value = useMemo<UiPreferenceState>(
+    () => ({ theme, setThemePreference }),
+    [setThemePreference, theme]
+  );
 
   return (
     <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>

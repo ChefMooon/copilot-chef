@@ -3,8 +3,10 @@ import type {
   MenuPdfExportResult,
   MachineTokenResult,
   LanStatus,
+  LifecycleStatus,
   RendererPlatform,
   ServerConfig,
+  ServerStatus,
   UpdateEventHandlers,
 } from "./types";
 
@@ -20,10 +22,15 @@ export function createElectronPlatform(): RendererPlatform {
       pdfExport: true,
       updates: true,
       lanManagement: true,
+      lifecycle: true,
     },
     getServerConfig: async () => {
       return (await api.invoke("server:getConfig")) as ServerConfig;
     },
+    getServerStatus: async () => {
+      return (await api.invoke("server:getStatus")) as ServerStatus;
+    },
+    getAppVersion: () => api.invoke("app:getVersion"),
     getSetting: (key) => api.invoke("app:settings:get", key),
     setSetting: async (key, value) => {
       await api.invoke("app:settings:set", { key, value });
@@ -54,6 +61,12 @@ export function createElectronPlatform(): RendererPlatform {
       };
     },
     checkForUpdates: () => api.invoke("updates:check"),
+    getLifecycleStatus: async () => {
+      return (await api.invoke("lifecycle:getStatus")) as LifecycleStatus;
+    },
+    setLaunchAtLogin: async (enabled) => {
+      return (await api.invoke("lifecycle:setLaunchAtLogin", enabled)) as LifecycleStatus;
+    },
     exportMenuPdf: async (payload: MenuPdfExportPayload) => {
       return (await api.invoke(
         "menu:exportPdf",

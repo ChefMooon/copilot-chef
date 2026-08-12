@@ -6,6 +6,7 @@ import { registerIpcHandlers } from "./ipc/index";
 import { LocalRecipeBookRuntime } from "./runtime";
 import { getSetting, ensureSetting } from "./settings/store";
 import { setupAutoUpdater } from "./updates/service";
+import { createShutdownGate } from "./shutdown";
 
 // ── Constants ────────────────────────────────────────────────
 const DEFAULT_WINDOW_WIDTH = 1200;
@@ -16,8 +17,14 @@ const MIN_WINDOW_HEIGHT = 600;
 // ── Module-level refs ────────────────────────────────────────
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
-let quitting = false;
 const runtime = new LocalRecipeBookRuntime();
+const shutdownGate = createShutdownGate({
+  requestRuntimeQuit: () => runtime.requestQuit(),
+  quit: () => app.quit(),
+  onError: (error) => {
+    console.error("[copilot-chef] application shutdown failed:", error);
+  },
+});
 
 // ── Resource helpers ─────────────────────────────────────────
 function getResourcePath(...segments: string[]): string {
@@ -55,7 +62,9 @@ function createWindow(): BrowserWindow {
   });
 
   win.on("ready-to-show", () => {
-    win.show();
+    if (getSetting("app_launch_minimized") !== true) {
+      win.show();
+    }
   });
 
   // External links → system browser
@@ -66,11 +75,19 @@ function createWindow(): BrowserWindow {
 
   // Close-to-tray
   win.on("close", (e) => {
-    if (!quitting && getSetting("app_close_to_tray") === true) {
+    if (shutdownGate.isQuitting()) {
+      return;
+    }
+
+    if (getSetting("app_close_to_tray") === true) {
       e.preventDefault();
       win.hide();
       updateTrayMenu();
+      return;
     }
+
+    e.preventDefault();
+    shutdownGate.request();
   });
 
   // Load renderer
@@ -124,7 +141,6 @@ function updateTrayMenu(trayRef?: Tray): void {
     {
       label: "Quit",
       click: () => {
-        quitting = true;
         app.quit();
       },
     },
@@ -147,7 +163,8 @@ app.whenReady().then(async () => {
 
   // Initialize default settings
   ensureSetting("app_close_to_tray", true);
-  ensureSetting("app_minimize_to_tray", true);
+  ensureSetting("app_launch_at_login", false);
+  ensureSetting("app_launch_minimized", false);
   ensureSetting("updates_check_on_startup", true);
   ensureSetting("home_upcoming_days", 7);
   ensureSetting("home_upcoming_layout", "list");
@@ -201,21 +218,18 @@ app.whenReady().then(async () => {
   }
 });
 
-app.on("before-quit", async () => {
-  if (quitting) {
+app.on("before-quit", (event) => {
+  if (shutdownGate.isFinalQuitRequested()) {
     return;
   }
 
-  quitting = true;
-  await runtime.requestQuit();
+  event.preventDefault();
+  shutdownGate.request();
 });
 
 app.on("window-all-closed", () => {
-  // Keep running in tray on Windows/Linux
-  if (process.platform === "darwin") {
-    // macOS: standard behavior, app stays in dock
-  }
-  // Don't quit — tray keeps the app alive
+  // Window close is coordinated by the close handler so runtime cleanup
+  // completes before Electron exits.
 });
 
 app.on("activate", () => {

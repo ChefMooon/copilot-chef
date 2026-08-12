@@ -23,9 +23,11 @@ export type {
   MenuPdfExportPayload,
   MenuPdfExportResult,
   LanStatus,
+  LifecycleStatus,
   MachineTokenResult,
   RendererPlatform,
   ServerConfig,
+  ServerStatus,
   UpdateEventHandlers,
 } from "./types";
 

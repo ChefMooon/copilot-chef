@@ -4,6 +4,8 @@ export const IPC_CHANNELS = [
   "lan:getStatus",
   "lan:restart",
   "app:getVersion",
+  "lifecycle:getStatus",
+  "lifecycle:setLaunchAtLogin",
   "window:minimize",
   "window:toggleMaximize",
   "window:isMaximized",
@@ -49,6 +51,18 @@ export type IpcInvokeMap = {
   "lan:getStatus": () => Promise<unknown>;
   "lan:restart": () => Promise<{ api: unknown; web: unknown }>;
   "app:getVersion": () => Promise<string>;
+  "lifecycle:getStatus": () => Promise<{
+    supported: boolean;
+    launchAtLogin: boolean;
+    launchMinimized: boolean;
+    reason?: string;
+  }>;
+  "lifecycle:setLaunchAtLogin": (enabled: boolean) => Promise<{
+    supported: boolean;
+    launchAtLogin: boolean;
+    launchMinimized: boolean;
+    reason?: string;
+  }>;
   "window:minimize": () => Promise<void>;
   "window:toggleMaximize": () => Promise<void>;
   "window:isMaximized": () => Promise<boolean>;

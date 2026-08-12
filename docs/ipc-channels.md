@@ -27,6 +27,8 @@ These channels use `ipcMain.handle(...)` in main and `window.api.invoke(...)` in
 | `lan:getStatus` | renderer -> main | none | Returns LAN diagnostics and machine token metadata | `src/main/ipc/index.ts` |
 | `lan:restart` | renderer -> main | none | Restarts API + static web services (non-remote mode) | `src/main/ipc/index.ts` |
 | `app:getVersion` | renderer -> main | none | Returns app version string | `src/main/ipc/index.ts` |
+| `lifecycle:getStatus` | renderer -> main | none | Returns redacted launch-at-login and launch-minimized status | `src/main/ipc/index.ts` |
+| `lifecycle:setLaunchAtLogin` | renderer -> main | `enabled: boolean` | Applies native launch-at-login configuration and returns status | `src/main/ipc/index.ts` |
 | `window:minimize` | renderer -> main | none | Minimizes focused window | `src/main/ipc/index.ts` |
 | `window:toggleMaximize` | renderer -> main | none | Toggles maximize/unmaximize on focused window | `src/main/ipc/index.ts` |
 | `window:isMaximized` | renderer -> main | none | Returns focused window maximize state | `src/main/ipc/index.ts` |

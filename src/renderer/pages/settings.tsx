@@ -47,6 +47,8 @@ import {
 } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
 import { getPlatform, type LanStatus } from "@/lib/platform";
+import { usePreferences } from "@/lib/preferences";
+import type { AppSettingTheme } from "@shared/config/settings";
 import {
   CUISINE_OPTIONS,
   RECIPE_DEFAULT_SORT_OPTIONS,
@@ -133,7 +135,11 @@ const LanQrCodeModal = lazy(async () => {
   return { default: module.LanQrCodeModal };
 });
 
-type TabId = "dietary-profile" | "meal-plans" | "app-settings";
+type TabId =
+  | "dietary-profile"
+  | "meal-plans"
+  | "app-settings"
+  | "connection";
 
 type HomeUpcomingDetail = "standard" | "detailed";
 type MealBankPlacement = "left" | "right" | "bottom";
@@ -202,6 +208,7 @@ const TABS: Array<{ id: TabId; label: string; panelId: string }> = [
   },
   { id: "meal-plans", label: "Meal Plans", panelId: "panel-meal-plans" },
   { id: "app-settings", label: "App Settings", panelId: "panel-app-settings" },
+  { id: "connection", label: "Connection", panelId: "panel-connection" },
 ];
 
 const TAB_IDS = TABS.map((t) => t.id);
@@ -256,6 +263,7 @@ function clearBrowserTimer(timerRef: MutableRefObject<number | null>) {
 
 export default function SettingsPage() {
   const config = useServerConfig();
+  const { setThemePreference } = usePreferences();
   const apiReady = isServerConfigReady(config);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -296,6 +304,18 @@ export default function SettingsPage() {
   const [connectionSaving, setConnectionSaving] = useState(false);
   const [connectionSaved, setConnectionSaved] = useState(false);
   const [updatesCheckOnStartup, setUpdatesCheckOnStartup] = useState(true);
+  const [closeToTray, setCloseToTray] = useState(true);
+  const [launchMinimized, setLaunchMinimized] = useState(false);
+  const [launchAtLogin, setLaunchAtLogin] = useState(false);
+  const [themePreference, setThemePreferenceDraft] =
+    useState<AppSettingTheme>("system");
+  const [lifecycleUnavailableReason, setLifecycleUnavailableReason] =
+    useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<{
+    version: string;
+    serverRunning: boolean;
+    lanRunning: boolean | null;
+  } | null>(null);
   const [checkingForUpdates, setCheckingForUpdates] = useState(false);
   const [manualUpdateCheckPending, setManualUpdateCheckPending] =
     useState(false);
@@ -398,6 +418,49 @@ export default function SettingsPage() {
       })
       .catch(() => {
         // defaults already set
+      });
+  }, []);
+
+  useEffect(() => {
+    Promise.all([
+      platform.getAppVersion(),
+      platform.getServerStatus(),
+      platform.capabilities.lanManagement
+        ? platform.getLanStatus()
+        : Promise.resolve(null),
+    ])
+      .then(([version, serverStatus, lan]) => {
+        setDiagnostics({
+          version,
+          serverRunning: serverStatus.running,
+          lanRunning: lan?.api.running ?? null,
+        });
+      })
+      .catch(() => setDiagnostics(null));
+  }, []);
+
+  useEffect(() => {
+    Promise.all([
+      platform.getSetting("app_close_to_tray"),
+      platform.getSetting("app_launch_minimized"),
+      platform.getSetting("ui_theme"),
+      platform.getLifecycleStatus(),
+    ])
+      .then(([closeToTrayValue, launchMinimizedValue, themeValue, lifecycle]) => {
+        if (typeof closeToTrayValue === "boolean") {
+          setCloseToTray(closeToTrayValue);
+        }
+        if (typeof launchMinimizedValue === "boolean") {
+          setLaunchMinimized(launchMinimizedValue);
+        }
+        if (themeValue === "light" || themeValue === "dark" || themeValue === "system") {
+          setThemePreferenceDraft(themeValue);
+        }
+        setLaunchAtLogin(lifecycle.launchAtLogin);
+        setLifecycleUnavailableReason(lifecycle.supported ? null : lifecycle.reason ?? null);
+      })
+      .catch(() => {
+        setLifecycleUnavailableReason("Desktop lifecycle settings are unavailable.");
       });
   }, []);
 
@@ -919,6 +982,50 @@ export default function SettingsPage() {
     }
   };
 
+  const handleThemeChange = async (value: string) => {
+    if (value !== "light" && value !== "dark" && value !== "system") return;
+    const next = value as AppSettingTheme;
+    const previous = themePreference;
+    setThemePreferenceDraft(next);
+    try {
+      await setThemePreference(next);
+    } catch {
+      setThemePreferenceDraft(previous);
+      toast({ title: "Could not save theme preference.", variant: "error" });
+    }
+  };
+
+  const handleDesktopToggle = async (
+    key: "app_close_to_tray" | "app_launch_minimized",
+    checked: boolean,
+    setValue: (value: boolean) => void,
+    label: string
+  ) => {
+    setValue(checked);
+    try {
+      await platform.setSetting(key, checked);
+    } catch {
+      setValue(!checked);
+      toast({ title: `Could not save ${label}.`, variant: "error" });
+    }
+  };
+
+  const handleLaunchAtLogin = async (checked: boolean) => {
+    const previous = launchAtLogin;
+    setLaunchAtLogin(checked);
+    try {
+      const status = await platform.setLaunchAtLogin(checked);
+      setLaunchAtLogin(status.launchAtLogin);
+      setLifecycleUnavailableReason(status.supported ? null : status.reason ?? null);
+      if (!status.supported) {
+        throw new Error(status.reason);
+      }
+    } catch {
+      setLaunchAtLogin(previous);
+      toast({ title: "Could not save launch-at-login preference.", variant: "error" });
+    }
+  };
+
   const saveHomeSetting = async <K extends keyof HomeDashboardSettings>(
     key: K,
     value: HomeDashboardSettings[K],
@@ -1301,9 +1408,120 @@ export default function SettingsPage() {
         className={styles.tabPanel}
       >
         <p className={styles.tabDescription}>
-          Configure connection details, automation access, app behavior,
-          planning defaults, and privacy controls.
+          Configure desktop behavior, planning defaults, and privacy controls.
         </p>
+        <CollapsibleSection id="general" label="General">
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Application behavior</h2>
+              <p className={styles.cardDescription}>
+                Set how Local Recipe Book looks and behaves on this device.
+              </p>
+            </div>
+            <div className={styles.fieldGroup}>
+              <label className={styles.fieldLabel}>Theme</label>
+              <select
+                aria-label="Theme"
+                className={styles.select}
+                onChange={(event) => void handleThemeChange(event.target.value)}
+                value={themePreference}
+              >
+                <option value="system">Use system preference</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </div>
+            {platform.capabilities.lifecycle ? (
+              <div className={styles.toggleList} style={{ marginTop: "1rem" }}>
+                <ToggleRow
+                  checked={closeToTray}
+                  description="Hide the window and keep the app, server, and tray icon running when you close it."
+                  label="Close to tray"
+                  onChange={(checked) =>
+                    void handleDesktopToggle(
+                      "app_close_to_tray",
+                      checked,
+                      setCloseToTray,
+                      "close-to-tray preference"
+                    )
+                  }
+                />
+                <ToggleRow
+                  checked={launchAtLogin}
+                  description="Start Local Recipe Book when you sign in to your computer."
+                  label="Launch at login"
+                  onChange={(checked) => void handleLaunchAtLogin(checked)}
+                />
+                <ToggleRow
+                  checked={launchMinimized}
+                  description="Start hidden in the tray instead of opening the main window."
+                  label="Launch minimized"
+                  onChange={(checked) =>
+                    void handleDesktopToggle(
+                      "app_launch_minimized",
+                      checked,
+                      setLaunchMinimized,
+                      "launch-minimized preference"
+                    )
+                  }
+                />
+              </div>
+            ) : (
+              <p className={styles.fieldHint} style={{ marginTop: "1rem" }}>
+                Desktop startup and tray settings are unavailable in browser mode.
+                {lifecycleUnavailableReason ? ` ${lifecycleUnavailableReason}` : ""}
+              </p>
+            )}
+            <div className={styles.toggleList} style={{ marginTop: "1rem" }}>
+              <ToggleRow
+                checked={updatesCheckOnStartup}
+                description="Automatically check for app updates on launch (packaged app only)."
+                label="Check for updates at startup"
+                onChange={(checked) => void handleToggleStartupUpdateCheck(checked)}
+              />
+            </div>
+            {platform.capabilities.updates && (
+              <div className={styles.actionsRow} style={{ marginTop: "1rem" }}>
+                <Button
+                  disabled={checkingForUpdates}
+                  onClick={() => void handleCheckForUpdates()}
+                  type="button"
+                  variant="outline"
+                >
+                  {checkingForUpdates ? "Checking…" : "Check for updates"}
+                </Button>
+              </div>
+            )}
+          </div>
+        </CollapsibleSection>
+        <CollapsibleSection id="diagnostics" label="Diagnostics">
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Runtime status</h2>
+              <p className={styles.cardDescription}>
+                Non-sensitive runtime details for troubleshooting. Credentials and tokens are never shown here.
+              </p>
+            </div>
+            <div className={styles.twoColumn}>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>App version</label>
+                <input aria-label="App version" className={styles.select} readOnly value={diagnostics?.version ?? "Unavailable"} />
+              </div>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Runtime mode</label>
+                <input aria-label="Runtime mode" className={styles.select} readOnly value={platform.runtime} />
+              </div>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>Server status</label>
+                <input aria-label="Server status" className={styles.select} readOnly value={diagnostics?.serverRunning ? "Running" : "Unavailable"} />
+              </div>
+              <div className={styles.fieldGroup}>
+                <label className={styles.fieldLabel}>LAN status</label>
+                <input aria-label="LAN status" className={styles.select} readOnly value={diagnostics?.lanRunning === null ? "Unavailable in browser mode" : diagnostics?.lanRunning ? "Running" : "Stopped"} />
+              </div>
+            </div>
+          </div>
+        </CollapsibleSection>
         <CollapsibleSection id="meal-bank" label="Meal Bank">
           <div className={styles.card}>
             <div className={styles.cardHeader}>
@@ -1350,6 +1568,19 @@ export default function SettingsPage() {
             </div>
           </div>
         </CollapsibleSection>
+      </div>
+
+      {/* ── Tab 4: Connection ── */}
+      <div
+        id="panel-connection"
+        role="tabpanel"
+        aria-labelledby="connection"
+        hidden={activeTab !== "connection"}
+        className={styles.tabPanel}
+      >
+        <p className={styles.tabDescription}>
+          Configure the local server, remote connections, and trusted browser access.
+        </p>
         <CollapsibleSection id="connection" label="Connection">
           <div className={styles.card}>
             <div className={styles.cardHeader}>
@@ -1368,14 +1599,6 @@ export default function SettingsPage() {
                     ...prev,
                     mode: checked ? "remote" : "local",
                   }))
-                }
-              />
-              <ToggleRow
-                checked={updatesCheckOnStartup}
-                label="Check for updates at startup"
-                description="Automatically check for app updates on launch (packaged app only)."
-                onChange={(checked) =>
-                  void handleToggleStartupUpdateCheck(checked)
                 }
               />
             </div>
@@ -1619,17 +1842,18 @@ export default function SettingsPage() {
                     ? "Saved ✓"
                     : "Save connection"}
               </Button>
-              <Button
-                disabled={checkingForUpdates}
-                onClick={() => void handleCheckForUpdates()}
-                type="button"
-                variant="outline"
-              >
-                {checkingForUpdates ? "Checking…" : "Check for updates"}
-              </Button>
             </div>
           </div>
         </CollapsibleSection>
+      </div>
+
+      {/* ── App Settings continuation ── */}
+      <div
+        id="panel-app-settings-continuation"
+        role="presentation"
+        hidden={activeTab !== "app-settings"}
+        className={styles.tabPanel}
+      >
 
         <CollapsibleSection id="home-dashboard" label="Home Dashboard">
           <div className={styles.card}>

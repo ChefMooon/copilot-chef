@@ -10,6 +10,7 @@ import {
   revealMachineToken,
 } from "../server/lib/machine-token";
 import { getSetting, setSetting, getAllSettings } from "../settings/store";
+import { getLifecycleStatus, setLaunchAtLogin } from "../lifecycle";
 
 type MenuPdfExportPayload = {
   htmlContent: string;
@@ -93,6 +94,11 @@ export function registerIpcHandlers(): void {
     return app.getVersion();
   });
 
+  ipcMain.handle("lifecycle:getStatus", () => getLifecycleStatus());
+  ipcMain.handle("lifecycle:setLaunchAtLogin", (_event, enabled: boolean) =>
+    setLaunchAtLogin(enabled)
+  );
+
   // ── Window controls ─────────────────────────────────────
   ipcMain.handle("window:minimize", () => {
     const win = BrowserWindow.getFocusedWindow();
@@ -126,6 +132,9 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle("app:settings:set", async (_event, payload: { key: string; value: unknown }) => {
     setSetting(payload.key, payload.value);
+    if (payload.key === "app_launch_minimized") {
+      return getLifecycleStatus();
+    }
     if (
       payload.key === "machine_api_key" ||
       payload.key.startsWith("lan_") ||

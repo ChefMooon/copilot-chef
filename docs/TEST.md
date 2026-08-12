@@ -87,7 +87,7 @@ The following areas currently have little or no automated coverage.
 ### Electron and App Shell
 
 - Main process startup lifecycle in src/main/index.ts
-- Tray lifecycle and close-to-tray behavior
+- Direct Electron tray/window event wiring remains primarily a manual smoke-test area; shutdown coordination is covered by src/main/shutdown.test.ts and server close completion by src/main/server/start.test.ts
 - Preload bridge contract in src/preload/index.ts
 - IPC handler wiring in src/main/ipc/index.ts
 
