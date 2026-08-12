@@ -16,13 +16,12 @@ type Props = {
 };
 
 const COLORS = [
-  "#3B5E45",
-  "#4d7a5a",
-  "#6FA882",
-  "#A8C8B0",
-  "#c5ddc9",
-  "#E4DDD0",
-  "#d6cfc5",
+  "var(--chart-series-1)",
+  "var(--chart-series-2)",
+  "var(--chart-series-3)",
+  "var(--chart-series-4)",
+  "var(--chart-series-5)",
+  "var(--chart-series-6)",
 ];
 
 export function CuisineChart({ data }: Props) {
@@ -37,7 +36,7 @@ export function CuisineChart({ data }: Props) {
           margin={{ top: 4, right: 4, bottom: 24, left: -20 }}
         >
           <CartesianGrid
-            stroke="#E4DDD0"
+            stroke="var(--chart-grid)"
             strokeDasharray="3 3"
             vertical={false}
           />
@@ -46,22 +45,22 @@ export function CuisineChart({ data }: Props) {
             axisLine={false}
             dataKey="cuisine"
             interval={0}
-            tick={{ fontSize: 10, fill: "#6b7280" }}
+            tick={{ fontSize: 10, fill: "var(--chart-axis)" }}
             tickLine={false}
             textAnchor="end"
           />
           <YAxis
             allowDecimals={false}
             axisLine={false}
-            tick={{ fontSize: 10, fill: "#9ca3af" }}
+            tick={{ fontSize: 10, fill: "var(--chart-muted)" }}
             tickLine={false}
           />
           <Tooltip
             contentStyle={{
               borderRadius: 8,
-              border: "1px solid #E4DDD0",
+              border: "1px solid var(--chart-grid)",
               fontSize: 12,
-              background: "#fffdf8",
+              background: "var(--chart-tooltip)",
             }}
           />
           <Bar dataKey="count" name="Meals" radius={[3, 3, 0, 0]}>

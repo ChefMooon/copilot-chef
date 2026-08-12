@@ -25,8 +25,7 @@ export function RouteErrorBoundary() {
         display: "grid",
         placeItems: "center",
         padding: "24px",
-        background:
-          "radial-gradient(circle at 20% 20%, rgba(59, 94, 69, 0.12), transparent 38%), radial-gradient(circle at 80% 10%, rgba(197, 98, 42, 0.14), transparent 45%), linear-gradient(180deg, #f8f4ec 0%, #f5f0e8 55%, #efe7d8 100%)",
+        background: "var(--background)",
       }}
     >
       <div

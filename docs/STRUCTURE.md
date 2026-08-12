@@ -16,6 +16,7 @@
 | Browser page remediation planning | `browser-page-remediation-plan.md` | Template for quick-win and deep-refactor fix planning after QA completion |
 | Test coverage status | `TEST.md` | Current automated test snapshot, coverage map, and gaps |
 | Architecture improvement plan | `plans/local-recipe-book-architecture-improvement-plan.md` | Proposed, review-only plan for locking and improving the current architecture |
+| Customizable themes frontend plan | `plans/customizable-themes-frontend-plan.md` | Future implementation plan for applying and editing the existing custom theme profile contract |
 | Release process | `release-guide.md` | Packaging and release workflow guidance |
 
 The filenames `copilot-chef-config.md` and `copilot-chef-style-guide.md` are retained as internal compatibility identifiers. Their public product terminology is Local Recipe Book.

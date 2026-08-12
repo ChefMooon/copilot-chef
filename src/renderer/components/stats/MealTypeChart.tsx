@@ -16,12 +16,12 @@ type Props = {
 };
 
 const COLORS = [
-  "#3B5E45",
-  "#4d7a5a",
-  "#6FA882",
-  "#A8C8B0",
-  "#c5ddc9",
-  "#E4DDD0",
+  "var(--chart-series-1)",
+  "var(--chart-series-2)",
+  "var(--chart-series-3)",
+  "var(--chart-series-4)",
+  "var(--chart-series-5)",
+  "var(--chart-series-6)",
 ];
 
 export function MealTypeChart({ data }: Props) {
@@ -38,20 +38,20 @@ export function MealTypeChart({ data }: Props) {
         >
           <CartesianGrid
             horizontal={false}
-            stroke="#E4DDD0"
+            stroke="var(--chart-grid)"
             strokeDasharray="3 3"
           />
           <XAxis
             allowDecimals={false}
             axisLine={false}
-            tick={{ fontSize: 10, fill: "#9ca3af" }}
+            tick={{ fontSize: 10, fill: "var(--chart-muted)" }}
             tickLine={false}
             type="number"
           />
           <YAxis
             axisLine={false}
             dataKey="mealType"
-            tick={{ fontSize: 10, fill: "#6b7280" }}
+            tick={{ fontSize: 10, fill: "var(--chart-axis)" }}
             tickLine={false}
             type="category"
             width={60}
@@ -59,9 +59,9 @@ export function MealTypeChart({ data }: Props) {
           <Tooltip
             contentStyle={{
               borderRadius: 8,
-              border: "1px solid #E4DDD0",
+              border: "1px solid var(--chart-grid)",
               fontSize: 12,
-              background: "#fffdf8",
+              background: "var(--chart-tooltip)",
             }}
           />
           <Bar dataKey="slotCount" name="Meals" radius={[0, 3, 3, 0]}>

@@ -59,6 +59,29 @@ Also defined in `src/renderer/globals.css` for utility frameworks and shared UI 
 - --border: #EDE6D6
 - --radius: 10px
 
+### Dark-mode rules
+
+Runtime UI surfaces must use semantic variables rather than literal light-palette
+colors. Use `var(--background)` for page surfaces, `var(--card)` for cards and
+panels, `var(--muted)` for secondary bands and intermediate editor regions, and
+`var(--text)` or `var(--text-muted)` for content and metadata. Use the semantic
+accent variables for selected, warning, and destructive states so their contrast
+survives both themes.
+
+Literal warm-white backgrounds, light cream gradients, and light-mode dark text
+are only appropriate when the surface is explicitly part of print/export output.
+White foreground text is appropriate on intentionally saturated green or orange
+controls. New CSS modules should be checked with `html[data-theme="dark"]` and
+must keep labels, disabled controls, drag handles, focus rings, and intermediate
+editor panels distinguishable from their surrounding surface.
+
+Dark surfaces use three levels of elevation: `--background` for the page,
+`--card` for standard panels, and `--card-elevated` for focused or interactive
+content such as chat inputs and popovers. The Electron title bar has its own
+`--header-*` tokens; do not reuse page-surface tokens for its navigation or
+window controls. `--border` is reserved for structural boundaries and must
+remain at least 3:1 against both the page and card surfaces in dark mode.
+
 ### Data visualization palette
 
 Current chart and heatmap palette used by Home and Stats.
@@ -283,6 +306,9 @@ WCAG contrast checks for key production pairs:
 | #3B5E45 on #FFFDF8 | 7.19:1 | Pass AAA |
 | #FFFDF8 on #C5622A | 4.01:1 | Pass AA for large text only |
 | #C5622A on #F5F0E8 | 3.59:1 | Pass AA for large text only |
+| #607568 on #0D1410 | 3.77:1 | Pass for non-text boundaries |
+| #607568 on #18241D | 3.24:1 | Pass for non-text boundaries |
+| #527F60 on #173025 | 3.07:1 | Pass for active navigation state |
 
 Implementation rules:
 
@@ -290,6 +316,9 @@ Implementation rules:
 - Avoid using orange as the only carrier for small text.
 - Preserve focus-visible outlines on interactive elements.
 - Ensure keyboard navigation for tabs, modals, popovers, and list actions.
+- Treat 3:1 as the minimum for structural boundaries, active states, and other
+	non-text UI indicators; treat 4.5:1 as the minimum for normal-size text.
+- Keep contrast token assertions covered by the focused theme regression test.
 
 ## New page checklist
 

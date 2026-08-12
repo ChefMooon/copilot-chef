@@ -28,7 +28,7 @@ export function TopMealsList({ meals }: Props) {
                     ×{meal.count}
                   </span>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-[#E4DDD0]">
+                <div className="h-1.5 overflow-hidden rounded-full bg-[var(--chart-grid)]">
                   <div
                     className="h-full rounded-full bg-green transition-all duration-500"
                     style={{ width: `${(meal.count / max) * 100}%` }}

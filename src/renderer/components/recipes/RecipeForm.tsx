@@ -77,16 +77,16 @@ export function RecipeForm({ initialValue, onSubmit }: RecipeFormProps) {
   }
 
   return (
-    <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+    <div className="space-y-3 rounded-xl border border-cream-dark bg-white p-4 text-text">
       <h2 className="text-lg font-semibold">Add Recipe</h2>
       <input
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-md border border-cream-dark bg-cream px-3 py-2 text-sm text-text"
         onChange={(event) => setTitle(event.target.value)}
         placeholder="Recipe title"
         value={title}
       />
       <textarea
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-md border border-cream-dark bg-cream px-3 py-2 text-sm text-text"
         onChange={(event) => setDescription(event.target.value)}
         placeholder="Description"
         rows={2}

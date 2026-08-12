@@ -49,11 +49,14 @@ export function PreferenceProvider({ children }: PropsWithChildren) {
   });
 
   const syncTheme = useCallback(async () => {
-    const value = await getPlatform().getSetting("ui_theme");
-    const resolved = resolveEffectiveTheme(value);
-    setTheme(resolved);
-    const root = document.documentElement;
-    root.dataset.theme = resolved;
+    try {
+      const value = await getPlatform().getSetting("ui_theme");
+      const resolved = resolveEffectiveTheme(value);
+      setTheme(resolved);
+      document.documentElement.dataset.theme = resolved;
+    } catch {
+      // Keep the initial effective theme when persisted settings are unavailable.
+    }
   }, []);
 
   const setThemePreference = useCallback(async (nextTheme: AppSettingTheme) => {
@@ -69,11 +72,15 @@ export function PreferenceProvider({ children }: PropsWithChildren) {
     const mediaQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
     const listener = () => {
       const value = getPlatform().getSetting("ui_theme");
-      void value.then((stored) => {
-        const resolved = resolveEffectiveTheme(stored);
-        setTheme(resolved);
-        document.documentElement.dataset.theme = resolved;
-      });
+      void value
+        .then((stored) => {
+          const resolved = resolveEffectiveTheme(stored);
+          setTheme(resolved);
+          document.documentElement.dataset.theme = resolved;
+        })
+        .catch(() => {
+          // Keep the current effective theme when persisted settings are unavailable.
+        });
     };
 
     mediaQuery?.addEventListener?.("change", listener);

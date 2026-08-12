@@ -34,7 +34,7 @@
   margin-bottom: 1.25rem;
   border: 1px solid rgba(59, 94, 69, 0.1);
   border-radius: 18px;
-  background: var(--white);
+  background: var(--card-elevated);
   box-shadow: var(--shadow-lg);
 }
 
@@ -393,9 +393,9 @@
 
 .card {
   padding: 1.1rem 1.25rem;
-  border: 1px solid rgba(59, 94, 69, 0.08);
+  border: 1px solid var(--border);
   border-radius: 16px;
-  background: var(--white);
+  background: var(--card);
   box-shadow: var(--shadow);
 }
 
@@ -559,7 +559,7 @@
   height: 8px;
   overflow: hidden;
   border-radius: 999px;
-  background: var(--cream-dark);
+  background: var(--border);
 }
 
 .progressFill {

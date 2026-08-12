@@ -106,22 +106,22 @@ function formatMealType(mealType: string) {
 
 function getHeatColor(meals: number, isFuture: boolean) {
   if (isFuture) {
-    return "var(--cream-dark)";
+    return "var(--heatmap-future)";
   }
 
   if (meals === 0) {
-    return "#E4DDD0";
+    return "var(--heatmap-empty)";
   }
 
   if (meals === 1) {
-    return "#A8C8B0";
+    return "var(--heatmap-low)";
   }
 
   if (meals === 2) {
-    return "#6FA882";
+    return "var(--heatmap-medium)";
   }
 
-  return "var(--green)";
+  return "var(--heatmap-high)";
 }
 
 function getGreeting() {
@@ -521,7 +521,7 @@ export function HomeDashboard() {
 
                       <div className={styles.heatmapLegend}>
                         <span className={styles.legendLabel}>Less</span>
-                        {["#E4DDD0", "#A8C8B0", "#6FA882", "#3B5E45"].map(
+                        {["var(--heatmap-empty)", "var(--heatmap-low)", "var(--heatmap-medium)", "var(--heatmap-high)"].map(
                           (color) => (
                             <div
                               className={styles.legendSquare}

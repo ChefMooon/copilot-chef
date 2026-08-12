@@ -118,7 +118,8 @@
 }
 
 .undoRedoBtn:disabled {
-  color: rgba(44, 36, 22, 0.4);
+  color: var(--text-muted);
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
@@ -179,8 +180,8 @@
   max-height: min(74vh, calc(100vh - var(--meal-bank-top) - var(--meal-bank-chat-clearance)));
   border: 1px solid rgba(59, 94, 69, 0.12);
   border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255, 253, 248, 1) 0%, rgba(246, 240, 226, 0.92) 100%);
-  box-shadow: 0 12px 26px rgba(48, 36, 23, 0.14);
+  background: var(--card);
+  box-shadow: var(--shadow-lg);
   min-width: 0;
   overflow: hidden;
   transition:
@@ -309,8 +310,8 @@
   width: 36px;
   border-radius: 14px;
   border: 1px solid rgba(59, 94, 69, 0.26);
-  background: linear-gradient(180deg, rgba(248, 246, 239, 0.98) 0%, rgba(241, 236, 224, 0.98) 100%);
-  box-shadow: 0 7px 14px rgba(48, 36, 23, 0.16);
+  background: var(--card);
+  box-shadow: var(--shadow);
   padding: 0.28rem 0.16rem 0.22rem;
 }
 
@@ -476,7 +477,7 @@
   color: var(--text-muted);
   font-size: 0.84rem;
   line-height: 1.45;
-  background: rgba(255, 253, 248, 0.72);
+  background: var(--muted);
 }
 
 .mealBankList {
@@ -529,7 +530,7 @@
 .mealBankScheduleButton {
   border-radius: 999px;
   border: 1px solid var(--cream-dark);
-  background: rgba(255, 253, 248, 0.88);
+  background: var(--card);
   color: var(--text-muted);
   cursor: pointer;
   font-size: 0.68rem;
@@ -555,7 +556,7 @@
   padding: 0.65rem 0.85rem;
   border: 1px solid rgba(59, 94, 69, 0.12);
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(255, 253, 248, 1) 0%, rgba(212, 228, 216, 0.28) 100%);
+  background: var(--muted);
 }
 
 .cardFocusCopy {
@@ -1224,7 +1225,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(59, 94, 69, 0.18);
-  background: rgba(255, 253, 248, 0.92);
+  background: var(--card);
   color: var(--green);
   border-radius: 8px;
   z-index: 1;
@@ -1662,7 +1663,7 @@
   min-height: 1.9rem;
   border-radius: 10px;
   border: 1px solid var(--cream-dark);
-  background: rgba(255, 253, 248, 0.96);
+  background: var(--card);
   color: var(--green);
   padding: 0 0.54rem;
   font-size: 0.62rem;
@@ -1723,7 +1724,7 @@
   gap: 0.35rem;
   padding: 0.65rem 1rem 0.75rem;
   border-bottom: 1px solid var(--cream-dark);
-  background: rgba(237, 230, 214, 0.24);
+  background: var(--muted);
 }
 
 .popoverMealTypeChip {
@@ -1784,7 +1785,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 253, 248, 0.96);
+  background: var(--card);
   border: 1px solid var(--cream-dark);
   cursor: pointer;
   color: var(--text);
@@ -1823,7 +1824,7 @@
 .popoverOverflowActions {
   padding: 0.55rem 0.7rem;
   border-bottom: 1px solid var(--cream-dark);
-  background: rgba(245, 240, 232, 0.72);
+  background: var(--muted);
 }
 
 .popoverOpenDayBtn {
@@ -1831,7 +1832,7 @@
   min-height: 30px;
   border-radius: 8px;
   border: 1px solid var(--cream-dark);
-  background: rgba(255, 253, 248, 0.96);
+  background: var(--card);
   color: var(--green);
   font-size: 0.72rem;
   font-weight: 800;
@@ -2348,9 +2349,9 @@
 .btnAiSuggest {
   font-size: 0.75rem;
   font-weight: 700;
-  background: #fbf6e8;
-  color: #8a6e20;
-  border: 1.5px solid #e8d98a;
+  background: color-mix(in srgb, var(--orange) 10%, var(--card));
+  color: var(--orange);
+  border: 1.5px solid color-mix(in srgb, var(--orange) 45%, var(--border));
   border-radius: 8px;
   padding: 0.34rem 0.7rem;
   cursor: pointer;
@@ -2358,8 +2359,8 @@
 }
 
 .btnAiSuggest:hover {
-  background: #f5ecc0;
-  border-color: #c5a84b;
+  background: color-mix(in srgb, var(--orange) 18%, var(--card));
+  border-color: var(--orange);
 }
 
 .btnGhost {
@@ -2399,9 +2400,9 @@
 .btnDelete {
   font-size: 0.78rem;
   font-weight: 700;
-  background: #f6e5df;
-  color: #a0441a;
-  border: 1.5px solid #e9bca9;
+  background: color-mix(in srgb, var(--orange) 12%, var(--card));
+  color: var(--orange);
+  border: 1.5px solid color-mix(in srgb, var(--orange) 40%, var(--border));
   border-radius: 8px;
   padding: 0.34rem 0.72rem;
   cursor: pointer;
@@ -2409,9 +2410,9 @@
 }
 
 .btnDelete:hover {
-  background: #efcdbf;
-  border-color: #ca8b6f;
-  color: #7a2f0d;
+  background: color-mix(in srgb, var(--orange) 20%, var(--card));
+  border-color: var(--orange-light);
+  color: var(--orange);
 }
 
 .btnDelete:disabled,
@@ -2486,9 +2487,9 @@
 .confirmationError {
   margin: 0;
   font-size: 0.8rem;
-  color: #a0441a;
-  background: #fbefe9;
-  border: 1px solid #f1cbbd;
+  color: var(--orange);
+  background: color-mix(in srgb, var(--orange) 12%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--orange) 35%, var(--border));
   border-radius: 8px;
   padding: 0.42rem 0.55rem;
 }
@@ -2515,7 +2516,7 @@
 .duplicatePanel {
   width: min(760px, 100%);
   max-height: min(92vh, 760px);
-  background: linear-gradient(180deg, #fffdf8 0%, #f7f1e4 100%);
+  background: var(--card);
   border: 1px solid rgba(202, 187, 160, 0.95);
   border-radius: 20px;
   box-shadow: 0 22px 60px rgba(44, 36, 22, 0.24);
@@ -2559,9 +2560,9 @@
 .duplicateError {
   margin: 0;
   font-size: 0.8rem;
-  color: #a0441a;
-  background: #fbefe9;
-  border: 1px solid #f1cbbd;
+  color: var(--orange);
+  background: color-mix(in srgb, var(--orange) 12%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--orange) 35%, var(--border));
   border-radius: 8px;
   padding: 0.42rem 0.55rem;
 }
@@ -3013,7 +3014,7 @@
   height: 36px;
   border: 1px solid var(--cream-dark);
   border-radius: 10px;
-  background: rgba(255, 253, 248, 0.96);
+  background: var(--card);
   color: var(--text-muted);
   display: inline-flex;
   align-items: center;
@@ -3177,7 +3178,7 @@
 
 .dropIntentGhostBtn {
   border: 1px solid var(--cream-dark);
-  background: rgba(255, 253, 248, 0.96);
+  background: var(--card);
   color: var(--text);
 }
 
@@ -3269,7 +3270,7 @@
   gap: 0.7rem;
   align-items: center;
   padding: 0.85rem 0.95rem;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--card);
   border: 1px solid rgba(201, 188, 163, 0.92);
   border-left: 4px solid var(--green);
   border-radius: 16px;
@@ -3360,9 +3361,9 @@
   margin: 0 1.25rem;
   padding: 0.65rem 0.8rem;
   border-radius: 10px;
-  border: 1px solid #ebc0b1;
-  background: #f9ece6;
-  color: #943b18;
+  border: 1px solid color-mix(in srgb, var(--orange) 35%, var(--border));
+  background: color-mix(in srgb, var(--orange) 12%, var(--card));
+  color: var(--orange);
   font-size: 0.81rem;
   font-weight: 700;
 }
@@ -3797,8 +3798,8 @@
 }
 
 .btnInstructionRemove:hover {
-  color: #a0441a;
-  background: #fbefe9;
+  color: var(--orange);
+  background: color-mix(in srgb, var(--orange) 12%, var(--card));
 }
 
 .btnAddStep {

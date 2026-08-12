@@ -43,7 +43,7 @@ type Props = {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-text-muted after:h-px after:flex-1 after:bg-[#E4DDD0] after:content-['']">
+    <div className="flex items-center gap-3 text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-text-muted after:h-px after:flex-1 after:bg-[var(--chart-grid)] after:content-['']">
       {children}
     </div>
   );

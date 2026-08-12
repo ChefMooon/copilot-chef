@@ -27,42 +27,42 @@ export function WeeklyTrendChart({ data }: Props) {
         >
           <defs>
             <linearGradient id="mealsGradient" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="5%" stopColor="#3B5E45" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#3B5E45" stopOpacity={0} />
+              <stop offset="5%" stopColor="var(--chart-series-1)" stopOpacity={0.25} />
+              <stop offset="95%" stopColor="var(--chart-series-1)" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid
             strokeDasharray="3 3"
-            stroke="#E4DDD0"
+            stroke="var(--chart-grid)"
             vertical={false}
           />
           <XAxis
             dataKey="weekLabel"
-            tick={{ fontSize: 10, fill: "#9ca3af" }}
+            tick={{ fontSize: 10, fill: "var(--chart-muted)" }}
             tickLine={false}
             axisLine={false}
             interval={2}
           />
           <YAxis
             allowDecimals={false}
-            tick={{ fontSize: 10, fill: "#9ca3af" }}
+            tick={{ fontSize: 10, fill: "var(--chart-muted)" }}
             tickLine={false}
             axisLine={false}
           />
           <Tooltip
             contentStyle={{
               borderRadius: 8,
-              border: "1px solid #E4DDD0",
+              border: "1px solid var(--chart-grid)",
               fontSize: 12,
-              background: "#fffdf8",
+              background: "var(--chart-tooltip)",
             }}
-            labelStyle={{ fontWeight: 700, color: "#1a1a1a" }}
+            labelStyle={{ fontWeight: 700, color: "var(--foreground)" }}
           />
           <Area
             dataKey="meals"
             fill="url(#mealsGradient)"
             name="Meals"
-            stroke="#3B5E45"
+            stroke="var(--chart-series-1)"
             strokeWidth={2}
             type="monotone"
           />

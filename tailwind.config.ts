@@ -5,11 +5,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        green: { DEFAULT: "#3B5E45", light: "#5A7D63", pale: "#D4E4D8" },
-        cream: { DEFAULT: "#F5F0E8", dark: "#EDE6D6" },
-        orange: { DEFAULT: "#C5622A", light: "#E8885A" },
-        text: { DEFAULT: "#2C2416", muted: "#7A6A58" },
-        white: "#FFFDF8",
+          green: {
+            DEFAULT: "rgb(var(--green-rgb) / <alpha-value>)",
+            light: "rgb(var(--green-light-rgb) / <alpha-value>)",
+            pale: "rgb(var(--green-pale-rgb) / <alpha-value>)",
+          },
+          cream: {
+            DEFAULT: "rgb(var(--cream-rgb) / <alpha-value>)",
+            dark: "rgb(var(--cream-dark-rgb) / <alpha-value>)",
+          },
+          orange: {
+            DEFAULT: "rgb(var(--orange-rgb) / <alpha-value>)",
+            light: "rgb(var(--orange-light-rgb) / <alpha-value>)",
+          },
+          text: {
+            DEFAULT: "rgb(var(--text-rgb) / <alpha-value>)",
+            muted: "rgb(var(--text-muted-rgb) / <alpha-value>)",
+          },
+          white: "rgb(var(--white-rgb) / <alpha-value>)",
       },
       fontFamily: {
         serif: ["Georgia", "serif"],

@@ -31,12 +31,12 @@ export function PlanVsLogCard({
         </div>
       </div>
 
-      <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#E4DDD0]">
+      <div className="mt-4 h-3 overflow-hidden rounded-full bg-[var(--chart-grid)]">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{
             width: `${Math.min((avgMealsPerActiveDay / 3) * 100, 100)}%`,
-            background: "linear-gradient(90deg, #3B5E45, #6FA882)",
+            background: "linear-gradient(90deg, var(--chart-series-1), var(--chart-series-3))",
           }}
         />
       </div>

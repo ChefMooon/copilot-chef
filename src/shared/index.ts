@@ -11,6 +11,13 @@ export {
   resolveUiThemePreference,
 } from "./config/settings";
 export type { AppSettingKey, AppSettingTheme, AppSettingValue } from "./config/settings";
+export {
+  CustomThemeProfileSchema,
+  THEME_PROFILE_VERSION,
+  ThemeSemanticTokensSchema,
+  parseCustomThemeProfile,
+} from "./config/theme";
+export type { CustomThemeProfileV1, ThemeSemanticTokensV1 } from "./config/theme";
 export { loadServerConfig, loadClientConfig } from "./config/loader";
 // API contract
 export { ApiPaths } from "./api/types";

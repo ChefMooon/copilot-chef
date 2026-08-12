@@ -9,6 +9,7 @@ import {
   normalizeStoredAppSetting,
   resolveUiThemePreference,
 } from "../settings";
+import { parseCustomThemeProfile } from "../theme";
 
 let tmpDir: string;
 
@@ -194,5 +195,46 @@ describe("typed settings contract", () => {
     expect(resolveUiThemePreference("system")).toBe("system");
     expect(resolveUiThemePreference("banana")).toBe("system");
     expect(resolveUiThemePreference(null)).toBe("system");
+  });
+
+  it("accepts versioned custom theme profiles and rejects malformed profiles", () => {
+    const profile = {
+      version: 1,
+      id: "sage-night",
+      name: "Sage Night",
+      tokens: {
+        background: "#101613",
+        surface: "#18241d",
+        surfaceMuted: "#21352c",
+        surfaceElevated: "#233329",
+        foreground: "#eef4ee",
+        foregroundMuted: "#adbea8",
+        border: "#2c3932",
+        primary: "#8bbf9b",
+        primaryForeground: "#101613",
+        accent: "#e29a68",
+        accentForeground: "#101613",
+        success: "#7db18d",
+        warning: "#e29a68",
+        danger: "#e88484",
+        focus: "#93c8a6",
+        overlay: "#10161399",
+        chartGrid: "#2c3932",
+        chartSeries: ["#8bbf9b", "#e29a68"],
+        heatmap: {
+          empty: "#233329",
+          low: "#3d624b",
+          medium: "#5f936f",
+          high: "#8bbf9b",
+          future: "#2c3932",
+        },
+      },
+    };
+
+    expect(parseCustomThemeProfile(profile)).toEqual(profile);
+    expect(parseCustomThemeProfile({ ...profile, version: 2 })).toBeNull();
+    expect(parseCustomThemeProfile({ ...profile, tokens: { ...profile.tokens, background: "white" } })).toBeNull();
+    expect(normalizeStoredAppSetting("ui_custom_theme_profile", profile)).toEqual(profile);
+    expect(APP_SETTING_DEFAULTS.ui_custom_theme_profile).toBeNull();
   });
 });

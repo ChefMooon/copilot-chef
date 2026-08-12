@@ -14,11 +14,11 @@ type Props = {
 };
 
 function getHeatColor(meals: number, isFuture: boolean) {
-  if (isFuture) return "var(--cream-dark)";
-  if (meals === 0) return "#E4DDD0";
-  if (meals === 1) return "#A8C8B0";
-  if (meals === 2) return "#6FA882";
-  return "#3B5E45";
+  if (isFuture) return "var(--heatmap-future)";
+  if (meals === 0) return "var(--heatmap-empty)";
+  if (meals === 1) return "var(--heatmap-low)";
+  if (meals === 2) return "var(--heatmap-medium)";
+  return "var(--heatmap-high)";
 }
 
 export function ActivityHeatmap({ weeks, monthStarts }: Props) {
@@ -87,7 +87,7 @@ export function ActivityHeatmap({ weeks, monthStarts }: Props) {
 
         <div className={styles.legend}>
           <span className={styles.legendLabel}>Less</span>
-          {["#E4DDD0", "#A8C8B0", "#6FA882", "#3B5E45"].map((color) => (
+          {["var(--heatmap-empty)", "var(--heatmap-low)", "var(--heatmap-medium)", "var(--heatmap-high)"].map((color) => (
             <div
               className={styles.legendSquare}
               key={color}
