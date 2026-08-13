@@ -2,16 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.1] - TBD
+## [1.1.0] - TBD
 
 ### Added
 
 - Added desktop lifecycle controls for launch-at-login, launch minimized, close-to-tray behavior, and theme preferences, along with a Connection section for viewing app and server diagnostics.
+- Added configurable light, dark, and system theme options.
+- Added repeatable recipe-ingestion tests and improved URL recipe importing, including earlier duplicate detection.
+- Added a setting to remember the desktop window position and size between restarts.
+
+### Changed
+
+- Improved meal-plan date navigation and refreshed its dark-theme behavior.
+- Updated the interface iconography and refined settings controls for a clearer, more consistent experience.
 
 ### Fixed
 
 - Fixed the Update Default Meal Plan Profile modal, scrolling now works
 - Fixed the meal add/edit modal rendering so stray `disabled=` text no longer appears above the form fields.
+- Fixed recipe cards so favorite-state changes are reflected immediately.
+- Improved prep-list item styling.
 
 ## [1.0.0] - 2026-05-27
 
