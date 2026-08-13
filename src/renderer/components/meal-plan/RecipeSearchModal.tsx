@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { X } from "@phosphor-icons/react";
 
 import { listRecipes } from "@/lib/api";
 import { getCuisineLabel } from "@shared/api/constants";
@@ -228,8 +229,13 @@ export function RecipeSearchModal({
       >
         <div className={styles.recipeSearchModalHeader}>
           <h3 className={styles.recipeSearchModalTitle}>Link A Recipe</h3>
-          <button className={styles.modalClose} onClick={onClose} type="button">
-            x
+          <button
+            aria-label="Close recipe search dialog"
+            className={styles.modalClose}
+            onClick={onClose}
+            type="button"
+          >
+            <X aria-hidden="true" size={18} weight="regular" />
           </button>
         </div>
 

@@ -1,4 +1,5 @@
 import * as matchers from "@testing-library/jest-dom/matchers";
+import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, expect } from "vitest";
 
 import { setCachedConfigForTests } from "@/lib/config";

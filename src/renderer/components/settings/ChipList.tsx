@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DotsSixVertical, X } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -117,14 +118,17 @@ export function ChipList({
               onReorder(next);
             }}
           >
-            <span className={styles.chipHandle}>⠿</span>
+            <span aria-hidden="true" className={styles.chipHandle}>
+              <DotsSixVertical size={18} weight="regular" />
+            </span>
             <span className={styles.chipLabel}>{item}</span>
             <button
+              aria-label={`Remove ${item}`}
               className={styles.chipRemove}
               onClick={() => onRemove(item)}
               type="button"
             >
-              ×
+              <X aria-hidden="true" size={14} weight="regular" />
             </button>
           </div>
         ))}

@@ -4,6 +4,7 @@ import {
   listProgress,
   type GroceryList,
 } from "@/lib/grocery";
+import { Star } from "@phosphor-icons/react";
 
 import styles from "./grocery-list.module.css";
 
@@ -48,6 +49,7 @@ export function ListsSidebar({
             </div>
           </div>
           <button
+            aria-label={`${list.favourite ? "Remove" : "Add"} ${list.name} ${list.favourite ? "from" : "to"} favourites`}
             className={`${styles.listRowFav} ${list.favourite ? styles.listRowFavOn : ""}`}
             onClick={(event) => {
               event.stopPropagation();
@@ -55,7 +57,7 @@ export function ListsSidebar({
             }}
             type="button"
           >
-            {list.favourite ? "⭐" : "☆"}
+            <Star aria-hidden="true" size={18} weight={list.favourite ? "bold" : "regular"} />
           </button>
           <span className={styles.listRowPct}>{listProgress(list.items)}%</span>
         </div>

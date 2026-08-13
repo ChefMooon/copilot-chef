@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowDown, ArrowUp, CookingPot, DotsSixVertical, Star, Trash, X } from "@phosphor-icons/react";
 import type { MealPayload, PrepListGenerateInput } from "@shared/types";
 
 import { fetchJson, isApiError } from "@/lib/api";
@@ -17,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { VisualIcon } from "@/components/ui/icon";
 import { useToast } from "@/components/providers/toast-provider";
 import {
   PREP_GROUP_OPTIONS,
@@ -36,6 +38,7 @@ import {
   updatePrepListInCollection,
   upsertPrepList,
 } from "@/lib/prep-lists";
+import { QUICK_FILTER_ICON_REGISTRY } from "@/lib/icon-registry";
 
 import styles from "@/components/grocery-list/grocery-list.module.css";
 
@@ -806,7 +809,10 @@ export default function PrepListsPage() {
             onClick={() => setActiveFilter(filter.id)}
             type="button"
           >
-            <span>{filter.icon}</span>
+            <VisualIcon
+              aria-hidden="true"
+              icon={QUICK_FILTER_ICON_REGISTRY[filter.icon]}
+            />
             <span>{filter.label}</span>
           </button>
         ))}
@@ -836,6 +842,7 @@ export default function PrepListsPage() {
               key={list.id}
             >
               <button
+                aria-label={`${list.favourite ? "Remove" : "Add"} ${list.name} ${list.favourite ? "from" : "to"} favourites`}
                 className={`${styles.quickCardFav} ${list.favourite ? styles.quickCardFavActive : ""}`}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -843,7 +850,7 @@ export default function PrepListsPage() {
                 }}
                 type="button"
               >
-                {list.favourite ? "⭐" : "☆"}
+                <Star aria-hidden="true" size={18} weight={list.favourite ? "bold" : "regular"} />
               </button>
               <button
                 className={styles.quickCardAction}
@@ -889,6 +896,7 @@ export default function PrepListsPage() {
                 </div>
               </div>
               <button
+                aria-label={`${list.favourite ? "Remove" : "Add"} ${list.name} ${list.favourite ? "from" : "to"} favourites`}
                 className={`${styles.listRowFav} ${list.favourite ? styles.listRowFavOn : ""}`}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -896,7 +904,7 @@ export default function PrepListsPage() {
                 }}
                 type="button"
               >
-                {list.favourite ? "⭐" : "☆"}
+                <Star aria-hidden="true" size={18} weight={list.favourite ? "bold" : "regular"} />
               </button>
               <div className={styles.listRowPct}>{list.completionPercentage}%</div>
             </div>
@@ -977,8 +985,8 @@ export default function PrepListsPage() {
                     </select>
                   </label>
                 </div>
-                <button className={styles.btnDeleteList} onClick={() => setDeleteCandidateId(selectedList.id)} type="button">
-                  🗑
+                <button aria-label={`Delete list ${selectedList.name}`} className={styles.btnDeleteList} onClick={() => setDeleteCandidateId(selectedList.id)} type="button">
+                  <Trash aria-hidden="true" size={18} />
                 </button>
               </div>
             </div>
@@ -1053,7 +1061,7 @@ export default function PrepListsPage() {
                       style={{ cursor: isManualSort ? "grab" : "not-allowed", opacity: isManualSort ? 1 : 0.4 }}
                       title={isManualSort ? "Drag to reorder" : "Switch sort mode to Manual to reorder"}
                     >
-                      ⠿
+                      <DotsSixVertical aria-hidden="true" size={18} />
                     </span>
                     <input
                       aria-label={`Mark ${item.name} complete`}
@@ -1095,25 +1103,27 @@ export default function PrepListsPage() {
                     </div>
                     <div className={styles.itemRowActions}>
                       <button
+                        aria-label={`Move ${item.name} up`}
                         className={styles.iconBtn}
                         disabled={!isManualSort || index === 0}
                         onClick={() => void movePrepItem(item.id, -1)}
                         title={isManualSort ? "Move up" : "Reorder only in Manual sort"}
                         type="button"
                       >
-                        ↑
+                        <ArrowUp aria-hidden="true" size={18} />
                       </button>
                       <button
+                        aria-label={`Move ${item.name} down`}
                         className={styles.iconBtn}
                         disabled={!isManualSort || index === orderedItems.length - 1}
                         onClick={() => void movePrepItem(item.id, 1)}
                         title={isManualSort ? "Move down" : "Reorder only in Manual sort"}
                         type="button"
                       >
-                        ↓
+                        <ArrowDown aria-hidden="true" size={18} />
                       </button>
-                      <button className={`${styles.iconBtn} ${styles.itemDeleteBtn}`} onClick={() => void deleteItem(selectedList.id, item.id)} type="button">
-                        ✕
+                      <button aria-label={`Remove ${item.name}`} className={`${styles.iconBtn} ${styles.itemDeleteBtn}`} onClick={() => void deleteItem(selectedList.id, item.id)} type="button">
+                        <X aria-hidden="true" size={18} />
                       </button>
                     </div>
                   </div>
@@ -1202,7 +1212,7 @@ export default function PrepListsPage() {
           </div>
         ) : (
           <div className={styles.editorPlaceholder}>
-            <div className={styles.editorPlaceholderIcon}>🥣</div>
+            <CookingPot aria-hidden="true" className={styles.editorPlaceholderIcon} size={40} />
             <p className={styles.editorPlaceholderText}>Select a prep list to edit it.</p>
           </div>
         )}
@@ -1251,7 +1261,7 @@ export default function PrepListsPage() {
             <div className={styles.newListHeader}>
               <h3 className={styles.newListTitle}>Create Prep List</h3>
               <button className={styles.modalCloseBtn} onClick={() => setShowModal(false)} type="button">
-                ✕
+                <X aria-hidden="true" size={18} />
               </button>
             </div>
             <div className={styles.newListBody}>
@@ -1429,7 +1439,7 @@ export default function PrepListsPage() {
             <div className={styles.newListHeader}>
               <h3 className={styles.newListTitle}>Prep List Notes</h3>
               <button className={styles.modalCloseBtn} onClick={closeNotesModal} type="button">
-                ✕
+                <X aria-hidden="true" size={18} />
               </button>
             </div>
             <div className={styles.notesModalBody}>

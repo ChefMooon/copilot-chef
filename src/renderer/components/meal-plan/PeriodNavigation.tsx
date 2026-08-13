@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 
 import styles from "./meal-plan.module.css";
 
@@ -33,7 +33,7 @@ export function PeriodNavigation({
         type="button"
         title={previousLabel}
       >
-        <ChevronLeft aria-hidden="true" size={18} strokeWidth={1.8} />
+        <CaretLeft aria-hidden="true" size={18} weight="regular" />
       </button>
       <div className={styles.periodNavLabel}>{children}</div>
       <button
@@ -43,7 +43,7 @@ export function PeriodNavigation({
         type="button"
         title={nextLabel}
       >
-        <ChevronRight aria-hidden="true" size={18} strokeWidth={1.8} />
+        <CaretRight aria-hidden="true" size={18} weight="regular" />
       </button>
       {accentColor ? (
         <span

@@ -4,14 +4,19 @@ import type {
   PrepListPayload,
   PrepListSortMode,
 } from "@shared/types";
+import type { QuickFilterIconKey } from "@/lib/icon-registry";
 
 export const PREP_QUICK_FILTERS = [
-  { id: "today", label: "Today", icon: "📅" },
-  { id: "upcoming", label: "Next 7 Days", icon: "🗓️" },
-  { id: "ongoing", label: "Ongoing", icon: "🧾" },
-  { id: "fav", label: "Favourites", icon: "⭐" },
-  { id: "recent", label: "Recent", icon: "🕐" },
-] as const;
+  { id: "today", label: "Today", icon: "calendar" },
+  { id: "upcoming", label: "Next 7 Days", icon: "calendar-range" },
+  { id: "ongoing", label: "Ongoing", icon: "receipt" },
+  { id: "fav", label: "Favourites", icon: "star" },
+  { id: "recent", label: "Recent", icon: "clock" },
+] as const satisfies ReadonlyArray<{
+  id: string;
+  label: string;
+  icon: QuickFilterIconKey;
+}>;
 
 export type PrepQuickFilter = (typeof PREP_QUICK_FILTERS)[number]["id"];
 export type PrepItem = PrepItemPayload;

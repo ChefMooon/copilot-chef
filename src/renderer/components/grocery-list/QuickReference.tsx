@@ -6,6 +6,8 @@ import {
   type GroceryList,
   type QuickFilter,
 } from "@/lib/grocery";
+import { VisualIcon } from "@/components/ui/icon";
+import { QUICK_FILTER_ICON_REGISTRY } from "@/lib/icon-registry";
 
 import styles from "./grocery-list.module.css";
 
@@ -41,7 +43,10 @@ export function QuickReference({
             onClick={() => onSelectFilter(filter.id)}
             type="button"
           >
-            <span>{filter.icon}</span>
+            <VisualIcon
+              aria-hidden="true"
+              icon={QUICK_FILTER_ICON_REGISTRY[filter.icon]}
+            />
             <span>{filter.label}</span>
           </button>
         ))}
@@ -75,6 +80,7 @@ export function QuickReference({
                 key={list.id}
               >
                 <button
+                  aria-label={`${list.favourite ? "Remove" : "Add"} ${list.name} ${list.favourite ? "from" : "to"} favourites`}
                   className={`${styles.quickCardFav} ${list.favourite ? styles.quickCardFavActive : ""}`}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -82,7 +88,11 @@ export function QuickReference({
                   }}
                   type="button"
                 >
-                  {list.favourite ? "⭐" : "☆"}
+                  <VisualIcon
+                    aria-hidden="true"
+                    icon={QUICK_FILTER_ICON_REGISTRY.star}
+                    weight={list.favourite ? "bold" : "regular"}
+                  />
                 </button>
                 <button
                   className={styles.quickCardAction}

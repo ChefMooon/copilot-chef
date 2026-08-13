@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
+import { X } from "@phosphor-icons/react";
 
 import {
   buildMonthCellAriaLabel,
@@ -341,7 +342,7 @@ export function MonthView({
                   onClick={() => setPopover(null)}
                   type="button"
                 >
-                  <span className={styles.popoverCloseGlyph}>x</span>
+                  <X aria-hidden="true" size={18} weight="regular" />
                 </button>
               </div>
               <div className={styles.popoverHeaderActionsRow}>

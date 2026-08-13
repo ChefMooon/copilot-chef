@@ -1,7 +1,10 @@
 "use client";
 
+import { X } from "@phosphor-icons/react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { VisualIcon } from "@/components/ui/icon";
 import { CUISINE_OPTIONS } from "@shared/api/constants";
 
 type RecipeFilterSidebarProps = {
@@ -48,7 +51,7 @@ export function RecipeFilterSidebar({
               type="button"
               variant="ghost"
             >
-              ×
+              <VisualIcon aria-hidden="true" icon={X} size={16} />
             </Button>
           ) : null}
         </div>

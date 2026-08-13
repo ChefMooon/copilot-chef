@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { type RecipePayload } from "@/lib/api";
 
@@ -106,6 +106,57 @@ describe("RecipeCard layout", () => {
     expect(articleQueries.getByText("Manual")).toHaveClass("py-0.5");
     expect(articleQueries.getByText(/Prep/i)).toBeInTheDocument();
     expect(articleQueries.getByText(/Cook/i)).toBeInTheDocument();
+  });
+});
+
+describe("RecipeCard optional actions", () => {
+  it("renders named favourite, edit, and delete actions and invokes callbacks", () => {
+    const onToggleFavourite = vi.fn();
+    const onEdit = vi.fn();
+    const onDelete = vi.fn();
+
+    render(
+      <MemoryRouter>
+        <RecipeCard
+          onDelete={onDelete}
+          onEdit={onEdit}
+          onToggleFavourite={onToggleFavourite}
+          recipe={baseRecipe}
+        />
+      </MemoryRouter>
+    );
+
+    const favouriteButton = screen.getByRole("button", {
+      name: "Add Roast Chicken to favourites",
+    });
+    expect(screen.getByRole("button", { name: "Edit Roast Chicken" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete Roast Chicken" })).toBeInTheDocument();
+    expect(favouriteButton.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+
+    fireEvent.click(favouriteButton);
+    fireEvent.click(screen.getByRole("button", { name: "Edit Roast Chicken" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete Roast Chicken" }));
+
+    expect(onToggleFavourite).toHaveBeenCalledWith(baseRecipe, true);
+    expect(onEdit).toHaveBeenCalledWith(baseRecipe);
+    expect(onDelete).toHaveBeenCalledWith(baseRecipe);
+  });
+
+  it("uses the selected favourite state and accessible name", () => {
+    render(
+      <MemoryRouter>
+        <RecipeCard
+          onToggleFavourite={vi.fn()}
+          recipe={{ ...baseRecipe, favourite: true }}
+        />
+      </MemoryRouter>
+    );
+
+    const favouriteButton = screen.getByRole("button", {
+      name: "Remove Roast Chicken from favourites",
+    });
+    expect(favouriteButton.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    fireEvent.click(favouriteButton);
   });
 });
 

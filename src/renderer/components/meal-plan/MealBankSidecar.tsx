@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
+import { Plus } from "@phosphor-icons/react";
 
 import {
   getMealPlanDragPayload,
@@ -223,7 +224,7 @@ export function MealBankSidecar({
                 onClick={() => setShowAddMenu((open) => !open)}
                 type="button"
               >
-                <span className={styles.mealBankAddGlyph}>+</span>
+                <Plus aria-hidden="true" className={styles.mealBankAddGlyph} size={18} weight="regular" />
               </button>
               {showAddMenu ? (
                 <div className={styles.mealBankAddMenu} role="menu">

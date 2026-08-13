@@ -107,7 +107,7 @@ describe("AddRecipeModal", () => {
     fireEvent.change(screen.getByPlaceholderText("Weeknight Lemon Pasta"), {
       target: { value: "Pasta" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "+ Add Step" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add Step" }));
     fireEvent.change(screen.getByPlaceholderText("Describe this step"), {
       target: { value: "Boil water" },
     });
@@ -155,5 +155,27 @@ describe("AddRecipeModal", () => {
     await waitFor(() => {
       expect(screen.getByPlaceholderText("Weeknight Lemon Pasta")).toHaveFocus();
     });
+  });
+
+  it("names instruction reorder controls and preserves disabled boundaries", () => {
+    render(
+      <ToastProvider>
+        <AddRecipeModal
+          onClose={() => {}}
+          onSave={async () => {}}
+          open
+        />
+      </ToastProvider>
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Step" }));
+
+    const moveUp = screen.getByRole("button", { name: "Move step 1 up" });
+    const moveDown = screen.getByRole("button", { name: "Move step 1 down" });
+
+    expect(moveUp).toBeDisabled();
+    expect(moveDown).toBeDisabled();
+    expect(moveUp.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(moveDown.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
   });
 });

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { ShoppingCart } from "@phosphor-icons/react";
 import { useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -231,7 +232,7 @@ export default function GroceryListPage() {
       {isInitialListLoad ? (
         <div className={styles.mainCols}>
           <div className={styles.editorPlaceholder}>
-            <div className={styles.editorPlaceholderIcon}>🛒</div>
+            <ShoppingCart aria-hidden="true" className={styles.editorPlaceholderIcon} size={40} />
             <p className={styles.editorPlaceholderText}>
               Loading grocery lists...
             </p>
@@ -428,7 +429,7 @@ export default function GroceryListPage() {
               />
             ) : (
               <div className={styles.editorPlaceholder}>
-                <div className={styles.editorPlaceholderIcon}>🛒</div>
+                <ShoppingCart aria-hidden="true" className={styles.editorPlaceholderIcon} size={40} />
                 <p className={styles.editorPlaceholderText}>
                   Select a list to start editing.
                 </p>

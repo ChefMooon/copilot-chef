@@ -13,6 +13,9 @@ describe("NewListModal", () => {
   it("disables Create List while name is empty", async () => {
     render(<NewListModal onClose={() => {}} onCreate={async () => {}} />);
 
+    expect(
+      await screen.findByRole("button", { name: "Close create grocery list dialog" })
+    ).toBeEnabled();
     const button = await screen.findByRole("button", { name: "Create List" });
     expect(button).toBeDisabled();
 

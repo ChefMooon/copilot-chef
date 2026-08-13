@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
+import { Plus } from "@phosphor-icons/react";
 
 import { DayView } from "@/components/meal-plan/DayView";
 import { DuplicateMealModal } from "@/components/meal-plan/DuplicateMealModal";
@@ -616,11 +617,15 @@ export default function MealPlanPage() {
     );
 
     try {
-      await reorderSlotMealsApi(slotDate, slotType, orderedIds);
+      await reorderSlotMealsApi(
+        normalizeMealDate(slotDate).toISOString(),
+        fromCalendarMealType(slotType),
+        orderedIds
+      );
       recordAction({
         type: "reorder",
         slotDate: normalizeMealDate(slotDate).toISOString(),
-        slotType: fromCalendarMealType(slotType),
+        slotMealType: fromCalendarMealType(slotType),
         previousOrderedIds,
         nextOrderedIds: orderedIds,
         summary,
@@ -1925,7 +1930,8 @@ export default function MealPlanPage() {
             }
             type="button"
           >
-            + Add Meal
+            <Plus aria-hidden="true" size={18} weight="regular" />
+            <span>Add Meal</span>
           </button>
           <button
             className={styles.btnToday}

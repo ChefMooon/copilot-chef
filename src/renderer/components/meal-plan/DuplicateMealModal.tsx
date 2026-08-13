@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { X } from "@phosphor-icons/react";
 
 import {
   getMealTypeDefinitionsForDate,
@@ -204,12 +205,13 @@ export function DuplicateMealModal({
             </h2>
           </div>
           <button
+            aria-label="Close duplicate meal dialog"
             className={styles.modalClose}
             data-autofocus={firstSelectableIndex < 0 ? "true" : undefined}
             onClick={onClose}
             type="button"
           >
-            x
+            <X aria-hidden="true" size={18} weight="regular" />
           </button>
         </div>
 

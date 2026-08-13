@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState, type CSSProperties, type DragEvent } from "react";
+import { Copy, DotsSixVertical, PencilSimple, Plus } from "@phosphor-icons/react";
 
 import {
   createEmptyMeal,
@@ -531,7 +532,7 @@ export function WeekView({
                                         }
 
                                         if (
-                                          activePayload.kind === "meal" &&
+                                          activePayload?.kind === "meal" &&
                                           activePayload.mealId === meal.id
                                         ) {
                                           return;
@@ -598,33 +599,12 @@ export function WeekView({
                                       title="Duplicate meal"
                                       type="button"
                                     >
-                                      <svg
+                                      <Copy
                                         aria-hidden="true"
                                         className={styles.weekMealActionIcon}
-                                        viewBox="0 0 24 24"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                      >
-                                        <rect
-                                          fill="none"
-                                          height="11"
-                                          rx="2"
-                                          stroke="currentColor"
-                                          strokeWidth="1.7"
-                                          width="11"
-                                          x="9"
-                                          y="9"
-                                        />
-                                        <rect
-                                          fill="none"
-                                          height="11"
-                                          rx="2"
-                                          stroke="currentColor"
-                                          strokeWidth="1.7"
-                                          width="11"
-                                          x="4"
-                                          y="4"
-                                        />
-                                      </svg>
+                                        size={18}
+                                        weight="regular"
+                                      />
                                     </button>
                                   </div>
                                 );
@@ -648,7 +628,7 @@ export function WeekView({
                                     title="Add meal"
                                     type="button"
                                   >
-                                    +
+                                    <Plus aria-hidden="true" size={18} weight="regular" />
                                   </button>
                                 ) : (
                                   <button
@@ -677,25 +657,12 @@ export function WeekView({
                                     onClick={() => onOpenSlotManager(day, type)}
                                     type="button"
                                   >
-                                    <svg
+                                    <PencilSimple
                                       aria-hidden="true"
                                       className={styles.slotManageIcon}
-                                      viewBox="0 0 24 24"
-                                      xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                      <path
-                                        d="M15.07 4a0.49 0.49 0 0 0 -0.36 -0.15 0.5 0.5 0 0 0 -0.35 0.14L3.44 14.91a0.5 0.5 0 0 0 0 0.71l4.94 4.94a0.51 0.51 0 0 0 0.36 0.15 0.49 0.49 0 0 0 0.35 -0.15L20 9.65a0.51 0.51 0 0 0 0 -0.71Z"
-                                        fill="currentColor"
-                                      />
-                                      <path
-                                        d="M2.43 16.8a0.51 0.51 0 0 0 -0.84 0.24L0.08 23.31a0.49 0.49 0 0 0 0.14 0.47 0.51 0.51 0 0 0 0.47 0.14L7 22.41a0.49 0.49 0 0 0 0.36 -0.35 0.52 0.52 0 0 0 -0.12 -0.49Z"
-                                        fill="currentColor"
-                                      />
-                                      <path
-                                        d="M23.2 2.92 21.08 0.8a2.52 2.52 0 0 0 -3.54 0l-1.41 1.42a0.48 0.48 0 0 0 0 0.7l4.95 5a0.48 0.48 0 0 0 0.7 0l1.42 -1.47a2.5 2.5 0 0 0 0 -3.53Z"
-                                        fill="currentColor"
-                                      />
-                                    </svg>
+                                      size={18}
+                                      weight="regular"
+                                    />
                                   </button>
                                 ) : null}
                                 {slotMeals.length >= 2 ? (
@@ -710,9 +677,7 @@ export function WeekView({
                                     title="Drag entire slot"
                                     type="button"
                                   >
-                                    <span aria-hidden="true" className={styles.slotDragHandleGlyph}>
-                                      ::
-                                    </span>
+                                    <DotsSixVertical aria-hidden="true" size={18} weight="regular" />
                                   </button>
                                 ) : null}
                               </div>

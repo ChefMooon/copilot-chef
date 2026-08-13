@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { X } from "@phosphor-icons/react";
 
 import { type CustomPersonaPayload } from "@/lib/api";
 
@@ -202,11 +203,12 @@ export function PersonaModal({
             </span>
           </div>
           <button
+            aria-label="Close"
             className={styles.personaModalClose}
             onClick={onClose}
             type="button"
           >
-            ✕
+            <X aria-hidden="true" size={18} weight="regular" />
           </button>
         </div>
 

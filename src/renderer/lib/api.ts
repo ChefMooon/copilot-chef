@@ -43,6 +43,7 @@ export type SettingsPreferences = PreferencesPayload;
 export type { MealTypeDefinitionPayload, MealTypeProfilePayload };
 export type { MealSubTypeDefinitionPayload };
 export type { RecipeMadeHistoryPayload };
+export type { RecipeIterationPayload };
 export type { RecipePayload };
 
 export type RecipeListFilters = {

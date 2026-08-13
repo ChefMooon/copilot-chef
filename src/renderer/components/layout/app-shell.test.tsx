@@ -49,7 +49,10 @@ describe("AppShell", () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText("⚙")).toBeTruthy();
+    const settingsLink = document.querySelector(`.${styles.settingsButton}`);
+    expect(settingsLink).not.toBeNull();
+    expect(settingsLink).toBeTruthy();
+    expect(settingsLink?.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("hides header settings on narrow layouts and keeps settings in hamburger menu", () => {
@@ -63,7 +66,7 @@ describe("AppShell", () => {
       </MemoryRouter>
     );
 
-    expect(screen.queryByText("⚙")).toBeNull();
+    expect(document.querySelector(`.${styles.settingsButton}`)).toBeNull();
 
     const menu = document.querySelector(`.${styles.mobileMenu}`);
     expect(menu).toBeTruthy();

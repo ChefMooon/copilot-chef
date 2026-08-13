@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { ArrowDown, ArrowUp, X } from "@phosphor-icons/react";
 
 import {
   buildTypeConfig,
@@ -428,11 +429,12 @@ export function EditModal({
                 </span>
               </div>
               <button
+                aria-label="Close dialog"
                 className={styles.modalClose}
                 onClick={onClose}
                 type="button"
               >
-                x
+                <X aria-hidden="true" size={18} weight="regular" />
               </button>
             </div>
             <div className={styles.modalBody}>
@@ -941,13 +943,14 @@ export function EditModal({
                             value={ingredient.notes ?? ""}
                           />
                           <button
+                            aria-label={`Remove ingredient ${index + 1}`}
                             className={styles.btnInstructionRemove}
                             key={`ingredient-remove-${index}`}
                             onClick={() => removeIngredient(index)}
                             title="Remove ingredient"
                             type="button"
                           >
-                            ×
+                            <X aria-hidden="true" size={16} weight="regular" />
                           </button>
                         </>
                       ))}
@@ -979,25 +982,28 @@ export function EditModal({
                             />
                             <div className={styles.instructionActions}>
                               <button
+                                aria-label={`Move instruction ${index + 1} up`}
                                 className={styles.btnInstructionOrder}
                                 disabled={index === 0}
                                 onClick={() => moveInstruction(index, "up")}
                                 title="Move up"
                                 type="button"
-                              >↑</button>
+                              ><ArrowUp aria-hidden="true" size={16} weight="regular" /></button>
                               <button
+                                aria-label={`Move instruction ${index + 1} down`}
                                 className={styles.btnInstructionOrder}
                                 disabled={index === form.instructions.length - 1}
                                 onClick={() => moveInstruction(index, "down")}
                                 title="Move down"
                                 type="button"
-                              >↓</button>
+                              ><ArrowDown aria-hidden="true" size={16} weight="regular" /></button>
                               <button
+                                aria-label={`Remove instruction ${index + 1}`}
                                 className={styles.btnInstructionRemove}
                                 onClick={() => removeInstruction(index)}
                                 title="Remove step"
                                 type="button"
-                              >×</button>
+                              ><X aria-hidden="true" size={16} weight="regular" /></button>
                             </div>
                           </li>
                         ))}

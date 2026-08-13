@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { X } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
+import { VisualIcon } from "@/components/ui/icon";
 
 const FOCUSABLE_SELECTOR =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -162,7 +164,7 @@ export function RecipeExportModal({
               onClick={onClose}
               type="button"
             >
-              x
+              <VisualIcon aria-hidden="true" icon={X} size={16} />
             </button>
           </div>
         </div>

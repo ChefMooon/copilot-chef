@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { TrashSimple } from "@phosphor-icons/react";
 
 import styles from "./meal-plan.module.css";
 
@@ -57,16 +58,11 @@ export function TrashDropZone({ visible, onDropMeal }: TrashDropZoneProps) {
         onDropMeal(mealId);
       }}
       role="button"
+      aria-label="Drop meal to delete"
       tabIndex={-1}
     >
       <span aria-hidden="true" className={styles.trashZoneIcon}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M3 6h18" />
-          <path d="M8 6V4h8v2" />
-          <path d="M19 6l-1 14H6L5 6" />
-          <path d="M10 11v6" />
-          <path d="M14 11v6" />
-        </svg>
+        <TrashSimple aria-hidden="true" size={24} weight="regular" />
       </span>
       <span className={styles.trashZoneLabel}>Drop meal to delete</span>
     </div>

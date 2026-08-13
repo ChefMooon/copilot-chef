@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
+import { Check, CookingPot, X } from "@phosphor-icons/react";
 
 import { fetchJson } from "@/lib/api";
 import { isServerConfigReady } from "@/lib/config";
@@ -75,7 +76,7 @@ export default function PrepViewPage() {
     <div className={styles.overlay}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <span className={styles.logo}>🔪</span>
+          <CookingPot aria-hidden="true" className={styles.logo} size={28} />
           <div>
             <div className={styles.listName}>{list.name}</div>
             <div className={styles.progressText}>
@@ -84,7 +85,7 @@ export default function PrepViewPage() {
           </div>
         </div>
         <button className={styles.closeBtn} onClick={() => navigate("/prep-lists")} type="button">
-          ✕ Done
+          <X aria-hidden="true" size={18} /> Done
         </button>
       </div>
       <div className={styles.progressBarBg}>
@@ -125,7 +126,7 @@ export default function PrepViewPage() {
                 type="button"
               >
                 <div className={`${styles.checkCircle} ${item.checked ? styles.checkFilled : ""}`}>
-                  {item.checked ? <span className={styles.checkmark}>✓</span> : null}
+                  {item.checked ? <Check aria-hidden="true" className={styles.checkmark} size={16} weight="bold" /> : null}
                 </div>
                 <div className={styles.itemInfo}>
                   <span className={styles.itemName}>{item.name}</span>

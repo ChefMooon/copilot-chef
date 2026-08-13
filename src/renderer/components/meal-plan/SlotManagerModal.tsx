@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { ArrowDown, ArrowUp, DotsSixVertical, X, Plus } from "@phosphor-icons/react";
 
 import {
   getTypeConfig,
@@ -309,12 +310,13 @@ export function SlotManagerModal({
               </h2>
             </div>
             <button
+              aria-label="Close slot manager"
               className={styles.modalClose}
               data-autofocus="true"
               onClick={() => onClose(didMutate)}
               type="button"
             >
-              x
+              <X aria-hidden="true" size={18} weight="regular" />
             </button>
           </div>
 
@@ -375,10 +377,11 @@ export function SlotManagerModal({
                           event.preventDefault();
                           void handleDropOnMeal(meal.id);
                         }}
+                        aria-label={`Drag ${meal.name} to reorder`}
                         title="Drag to reorder"
                         type="button"
                       >
-                        ≡
+                        <DotsSixVertical aria-hidden="true" size={18} weight="regular" />
                       </button>
 
                       <div className={styles.slotManagerMealCopy}>
@@ -392,21 +395,23 @@ export function SlotManagerModal({
                         {!isFirst ? (
                           <button
                             className={styles.slotManagerArrowBtn}
+                            aria-label={`Move ${meal.name} up`}
                             disabled={isReordering}
                             onClick={() => void moveMealByOffset(meal.id, -1)}
                             type="button"
                           >
-                            ▲
+                            <ArrowUp aria-hidden="true" size={18} weight="regular" />
                           </button>
                         ) : null}
                         {!isLast ? (
                           <button
                             className={styles.slotManagerArrowBtn}
+                            aria-label={`Move ${meal.name} down`}
                             disabled={isReordering}
                             onClick={() => void moveMealByOffset(meal.id, 1)}
                             type="button"
                           >
-                            ▼
+                            <ArrowDown aria-hidden="true" size={18} weight="regular" />
                           </button>
                         ) : null}
                       </div>
@@ -441,7 +446,8 @@ export function SlotManagerModal({
 
           <div className={styles.slotManagerFooter}>
             <button className={styles.btnAddMeal} onClick={onAddMeal} type="button">
-              + Add Meal
+              <Plus aria-hidden="true" size={18} weight="regular" />
+              <span>Add Meal</span>
             </button>
           </div>
         </div>

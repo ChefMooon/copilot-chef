@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
+import { ArrowRight, CalendarDots, Fire, ShoppingCart } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { RouteErrorState } from "@/components/ui/route-error-state";
@@ -369,14 +370,20 @@ export function HomeDashboard() {
                 )}
               >
                 <div className={styles.cardHeader}>
-                  <div className={styles.cardTitle}>⏭️ Upcoming Meals</div>
+                  <div className={styles.cardTitle}>
+                    <CalendarDots aria-hidden="true" size={20} weight="regular" />
+                    <span>Upcoming Meals</span>
+                  </div>
                   <Button
                     asChild
                     className={styles.cardActionButton}
                     size="sm"
                     variant="outline"
                   >
-                    <Link to="/meal-plan">Open Planner →</Link>
+                    <Link to="/meal-plan">
+                      <span>Open Planner</span>
+                      <ArrowRight aria-hidden="true" size={16} weight="regular" />
+                    </Link>
                   </Button>
                 </div>
 
@@ -456,14 +463,20 @@ export function HomeDashboard() {
                 {settings.showMealActivity ? (
                   <div className={styles.card}>
                     <div className={styles.cardHeader}>
-                      <div className={styles.cardTitle}>🔥 Meal Activity</div>
+                      <div className={styles.cardTitle}>
+                        <Fire aria-hidden="true" size={20} weight="regular" />
+                        <span>Meal Activity</span>
+                      </div>
                       <Button
                         asChild
                         className={styles.cardActionButton}
                         size="sm"
                         variant="outline"
                       >
-                        <Link to="/stats">View Stats →</Link>
+                        <Link to="/stats">
+                          <span>View Stats</span>
+                          <ArrowRight aria-hidden="true" size={16} weight="regular" />
+                        </Link>
                       </Button>
                     </div>
 
@@ -539,14 +552,20 @@ export function HomeDashboard() {
                 {settings.showGroceryList ? (
                   <div className={styles.card}>
                     <div className={styles.cardHeader}>
-                      <div className={styles.cardTitle}>🛒 Grocery List</div>
+                      <div className={styles.cardTitle}>
+                        <ShoppingCart aria-hidden="true" size={20} weight="regular" />
+                        <span>Grocery List</span>
+                      </div>
                       <Button
                         asChild
                         className={styles.cardActionButton}
                         size="sm"
                         variant="outline"
                       >
-                        <Link to="/grocery-list">Full List →</Link>
+                        <Link to="/grocery-list">
+                          <span>Full List</span>
+                          <ArrowRight aria-hidden="true" size={16} weight="regular" />
+                        </Link>
                       </Button>
                     </div>
 

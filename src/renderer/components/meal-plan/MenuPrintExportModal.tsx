@@ -2,7 +2,7 @@ import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Download, Maximize2, Printer, X } from "lucide-react";
+import { Download, ArrowsOut, Printer, X } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
@@ -482,7 +482,7 @@ export function MenuPrintExportModal({
                   type="button"
                   variant="outline"
                 >
-                  <Maximize2 aria-hidden="true" size={16} /> Preview
+                  <ArrowsOut aria-hidden="true" size={16} /> Preview
                 </Button>
                 <Button
                   disabled={isExporting || mealsQuery.isLoading}

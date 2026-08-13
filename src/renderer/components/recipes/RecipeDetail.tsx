@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { Star } from "@phosphor-icons/react";
 import { convertIngredient, type UnitMode } from "@/lib/recipe-units";
 import { formatFraction } from "@/lib/fractions";
 import { annotateInstructionSteps } from "@/lib/recipe-instruction-annotations";
@@ -18,6 +19,7 @@ import { AddRecipeModal } from "@/components/recipes/AddRecipeModal";
 import { DerivedRecipesModal } from "@/components/recipes/DerivedRecipesModal";
 import { RecipeMadeHistoryModal } from "@/components/recipes/RecipeMadeHistoryModal";
 import { Button } from "@/components/ui/button";
+import { VisualIcon } from "@/components/ui/icon";
 
 import { CookingMode } from "./CookingMode";
 import { IngredientRow } from "./IngredientRow";
@@ -302,11 +304,17 @@ export function RecipeDetail({
               </h1>
               <button
                 aria-label={`${recipe.favourite ? "Remove from" : "Add to"} favourites`}
-                className={`print-hidden rounded-full border px-2 py-1 text-sm transition-colors ${recipe.favourite ? "border-orange/30 bg-orange/10 text-orange" : "border-cream-dark bg-cream text-text-muted hover:border-orange/40 hover:text-orange"}`}
+                className={`print-hidden inline-flex items-center gap-1 rounded-full border px-2 py-1 text-sm transition-colors ${recipe.favourite ? "border-orange/30 bg-orange/10 text-orange" : "border-cream-dark bg-cream text-text-muted hover:border-orange/40 hover:text-orange"}`}
                 onClick={() => void handleToggleFavourite(!recipe.favourite)}
                 type="button"
               >
-                {recipe.favourite ? "★ Favourite" : "☆ Favourite"}
+                <VisualIcon
+                  aria-hidden="true"
+                  icon={Star}
+                  size={15}
+                  weight={recipe.favourite ? "bold" : "regular"}
+                />
+                Favourite
               </button>
             </div>
             {recipe.description ? (

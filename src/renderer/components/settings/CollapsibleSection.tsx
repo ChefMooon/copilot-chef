@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { CaretDown } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
@@ -74,11 +74,14 @@ export function CollapsibleSection({
   return (
     <section className={styles.section}>
       <button
+        aria-controls={`${id}-content`}
+        aria-expanded={isOpen}
         className={styles.sectionButton}
         onClick={() => setIsOpen((open) => !open)}
         type="button"
       >
-        <ChevronDown
+        <CaretDown
+          aria-hidden="true"
           className={cn(
             styles.sectionChevron,
             !isOpen && styles.sectionChevronClosed
@@ -89,6 +92,7 @@ export function CollapsibleSection({
         <span aria-hidden className={styles.sectionRule} />
       </button>
       <div
+        id={`${id}-content`}
         className={cn(
           styles.sectionContent,
           !isOpen && styles.sectionContentClosed

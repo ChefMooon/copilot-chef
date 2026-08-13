@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { CaretDown, CaretUp, DotsSixVertical, Plus } from "@phosphor-icons/react";
 
 import { type CreateRecipeInput, type RecipeConflict } from "@shared/types";
-import { CUISINE_OPTIONS } from "@shared/api/constants";
+import { CUISINE_OPTIONS, CUISINE_VALUES, type CuisineValue } from "@shared/api/constants";
 
 import { Button } from "@/components/ui/button";
+import { VisualIcon } from "@/components/ui/icon";
 import { useToast } from "@/components/providers/toast-provider";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -97,30 +99,59 @@ function createEmptyIngredientGroup(name = ""): IngredientGroupDraft {
 
 type RecipeEditorInput = RecipePayload | CreateRecipeInput;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function toEditorString(value: unknown): string {
+  return typeof value === "string" ? value : "";
+}
+
+function toEditorStrings(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function toCuisineValue(value: unknown): CuisineValue | "" {
+  return typeof value === "string" && CUISINE_VALUES.includes(value as CuisineValue)
+    ? (value as CuisineValue)
+    : "";
+}
+
 function toIngredientGroups(recipe?: RecipeEditorInput | null): IngredientGroupDraft[] {
-  if (!recipe || recipe.ingredients.length === 0) {
+  const ingredients = recipe && Array.isArray(recipe.ingredients) ? recipe.ingredients : [];
+
+  if (ingredients.length === 0) {
     return [createEmptyIngredientGroup()];
   }
 
   const groupsByName = new Map<string, IngredientGroupDraft>();
 
-  for (const ingredient of recipe.ingredients) {
-    const normalized = ingredient.unit?.toLowerCase();
+  for (const value of ingredients) {
+    const ingredient = isRecord(value) ? (value as Record<string, unknown>) : {};
+    const normalizedUnit = toEditorString(ingredient.unit).toLowerCase();
+    const normalized = normalizedUnit || null;
     const unit = isRecipeIngredientUnit(normalized) ? normalized : "g";
 
-    const groupName = (ingredient.group ?? "").trim();
+    const groupName = toEditorString(ingredient.group).trim();
     const groupKey = groupName.toLowerCase();
     const existingGroup = groupsByName.get(groupKey);
 
+    const ingredientId = typeof ingredient.id === "string" ? ingredient.id : createUuid();
+    const ingredientName = toEditorString(ingredient.name);
+    const ingredientQuantity = ingredient.quantity;
+    const ingredientNotes = toEditorString(ingredient.notes);
+
     if (existingGroup) {
       existingGroup.ingredients.push({
-        id: "id" in ingredient ? ingredient.id : createUuid(),
-        name: ingredient.name,
+        id: ingredientId,
+        name: ingredientName,
         amount:
-          typeof ingredient.quantity === "number" && Number.isFinite(ingredient.quantity)
-            ? formatFraction(ingredient.quantity)
+          typeof ingredientQuantity === "number" && Number.isFinite(ingredientQuantity)
+            ? formatFraction(ingredientQuantity)
             : "",
-        notes: ingredient.notes ?? "",
+        notes: ingredientNotes,
         unit,
       });
       continue;
@@ -131,13 +162,13 @@ function toIngredientGroups(recipe?: RecipeEditorInput | null): IngredientGroupD
       name: groupName,
       ingredients: [
         {
-          id: "id" in ingredient ? ingredient.id : createUuid(),
-          name: ingredient.name,
+          id: ingredientId,
+          name: ingredientName,
           amount:
-            typeof ingredient.quantity === "number" && Number.isFinite(ingredient.quantity)
-              ? formatFraction(ingredient.quantity)
+            typeof ingredientQuantity === "number" && Number.isFinite(ingredientQuantity)
+              ? formatFraction(ingredientQuantity)
               : "",
-          notes: ingredient.notes ?? "",
+          notes: ingredientNotes,
           unit,
         },
       ],
@@ -205,22 +236,19 @@ export function AddRecipeModal({
 
     if (openingNow) {
       setForm({
-        title: initialRecipe?.title ?? "",
-        description: initialRecipe?.description ?? "",
-        sourceUrl: initialRecipe?.sourceUrl ?? "",
-        sourceLabel: initialRecipe?.sourceLabel ?? "",
+        title: toEditorString(initialRecipe?.title),
+        description: toEditorString(initialRecipe?.description),
+        sourceUrl: toEditorString(initialRecipe?.sourceUrl),
+        sourceLabel: toEditorString(initialRecipe?.sourceLabel),
         servings: String(initialRecipe?.servings ?? 2),
         prepTime: initialRecipe?.prepTime != null ? String(initialRecipe.prepTime) : "",
         cookTime: initialRecipe?.cookTime != null ? String(initialRecipe.cookTime) : "",
-        difficulty: initialRecipe?.difficulty ?? "",
-        cuisine: initialRecipe?.cuisine ?? "",
+        difficulty: toEditorString(initialRecipe?.difficulty),
+        cuisine: toCuisineValue(initialRecipe?.cuisine),
         rating: initialRecipe?.rating != null ? String(initialRecipe.rating) : "",
-        cookNotes: initialRecipe?.cookNotes ?? "",
-        instructions:
-          initialRecipe?.instructions && initialRecipe.instructions.length > 0
-            ? payloadToInstructionDrafts(initialRecipe.instructions)
-            : [],
-        tagsText: initialRecipe?.tags.join(", ") ?? "",
+        cookNotes: toEditorString(initialRecipe?.cookNotes),
+        instructions: payloadToInstructionDrafts(toEditorStrings(initialRecipe?.instructions)),
+        tagsText: toEditorStrings(initialRecipe?.tags).join(", "),
         ingredientGroups: toIngredientGroups(initialRecipe),
       });
     }
@@ -320,7 +348,7 @@ export function AddRecipeModal({
           : null,
       ingredientCount,
       instructionCount,
-      cuisine: form.cuisine.trim() || null,
+      cuisine: toCuisineValue(form.cuisine) || null,
       difficulty: form.difficulty.trim() || null,
       tagsCount,
     });
@@ -386,7 +414,7 @@ export function AddRecipeModal({
       prepTime: form.prepTime.trim() ? Number.parseInt(form.prepTime.trim(), 10) : null,
       cookTime: form.cookTime.trim() ? Number.parseInt(form.cookTime.trim(), 10) : null,
       difficulty: form.difficulty.trim() || null,
-      cuisine: form.cuisine.trim() || null,
+      cuisine: toCuisineValue(form.cuisine) || null,
       rating: form.rating.trim() ? Number.parseInt(form.rating.trim(), 10) : null,
       cookNotes: form.cookNotes.trim() || null,
       sourceRecipeId: initialRecipe?.sourceRecipeId ?? undefined,
@@ -665,7 +693,9 @@ export function AddRecipeModal({
                           onDragEnd={() => setDraggedIndex(null)}
                           title="Drag to reorder step"
                         >
-                          <div className="flex h-7 w-7 items-center justify-center text-xs text-text-muted">⋮⋮</div>
+                          <div className="flex h-7 w-7 items-center justify-center text-xs text-text-muted">
+                            <VisualIcon aria-hidden="true" icon={DotsSixVertical} size={16} />
+                          </div>
                           <Button
                             className="h-7 w-7 p-0 text-xs opacity-0 transition group-hover:opacity-100"
                             disabled={index === 0}
@@ -675,11 +705,11 @@ export function AddRecipeModal({
                               setField("instructions", next);
                             }}
                             size="sm"
-                            title="Move step up"
+                            aria-label={`Move step ${index + 1} up`}
                             type="button"
                             variant="ghost"
                           >
-                            ▲
+                            <VisualIcon aria-hidden="true" icon={CaretUp} size={14} />
                           </Button>
                           <Button
                             className="h-7 w-7 p-0 text-xs opacity-0 transition group-hover:opacity-100"
@@ -690,11 +720,11 @@ export function AddRecipeModal({
                               setField("instructions", next);
                             }}
                             size="sm"
-                            title="Move step down"
+                            aria-label={`Move step ${index + 1} down`}
                             type="button"
                             variant="ghost"
                           >
-                            ▼
+                            <VisualIcon aria-hidden="true" icon={CaretDown} size={14} />
                           </Button>
                         </div>
                         <div className="flex-1">
@@ -747,7 +777,8 @@ export function AddRecipeModal({
                     type="button"
                     variant="outline"
                   >
-                    + Add Step
+                    <VisualIcon aria-hidden="true" icon={Plus} size={14} />
+                    Add Step
                   </Button>
                 </div>
               </div>
@@ -991,7 +1022,8 @@ export function AddRecipeModal({
                         type="button"
                         variant="outline"
                       >
-                        + Add Ingredient
+                        <VisualIcon aria-hidden="true" icon={Plus} size={14} />
+                        Add Ingredient
                       </Button>
                     </div>
                   </div>
@@ -1012,7 +1044,8 @@ export function AddRecipeModal({
                 type="button"
                 variant="outline"
               >
-                + Add Group
+                <VisualIcon aria-hidden="true" icon={Plus} size={14} />
+                Add Group
               </Button>
             </div>
           </div>

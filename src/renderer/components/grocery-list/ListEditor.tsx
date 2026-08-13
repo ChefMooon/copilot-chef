@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CalendarBlank, PaperPlaneTilt, ShoppingCart, Trash, X } from "@phosphor-icons/react";
 
 import {
   listProgress,
@@ -175,13 +176,13 @@ export function ListEditor({
                 title="Change date"
                 type="button"
               >
-                📅 {formatListDate(list.date)}
+                <CalendarBlank aria-hidden="true" size={18} /> {formatListDate(list.date)}
               </button>
             </div>
           </div>
           <div className={styles.editorHeaderActions}>
             <button className={styles.btnShop} onClick={onShop} type="button">
-              🛒 Shop
+              <ShoppingCart aria-hidden="true" size={18} /> Shop
             </button>
             <button
               className={styles.btnTelegramDisabled}
@@ -189,15 +190,16 @@ export function ListEditor({
               title="Coming soon - send to Telegram"
               type="button"
             >
-              ✈ Send to Telegram
+              <PaperPlaneTilt aria-hidden="true" size={18} /> Send to Telegram
             </button>
             <button
+              aria-label={`Delete list ${list.name}`}
               className={styles.btnDeleteList}
               onClick={() => setShowDeleteConfirm(true)}
               title="Delete list"
               type="button"
             >
-              🗑
+              <Trash aria-hidden="true" size={18} />
             </button>
           </div>
         </div>
@@ -291,6 +293,7 @@ export function ListEditor({
             <div className={styles.newListHeader}>
               <h3 className={styles.newListTitle}>Change Date</h3>
               <button
+                aria-label="Close change date dialog"
                 className={styles.modalCloseBtn}
                 onClick={() => {
                   setEditingDate(false);
@@ -299,7 +302,7 @@ export function ListEditor({
                 }}
                 type="button"
               >
-                ✕
+                <X aria-hidden="true" size={18} />
               </button>
             </div>
             <div className={styles.newListBody}>
@@ -379,11 +382,12 @@ export function ListEditor({
             <div className={styles.newListHeader}>
               <h3 className={styles.newListTitle}>Delete List</h3>
               <button
+                aria-label="Close delete list dialog"
                 className={styles.modalCloseBtn}
                 onClick={() => setShowDeleteConfirm(false)}
                 type="button"
               >
-                ✕
+                <X aria-hidden="true" size={18} />
               </button>
             </div>
             <div className={styles.newListBody}>

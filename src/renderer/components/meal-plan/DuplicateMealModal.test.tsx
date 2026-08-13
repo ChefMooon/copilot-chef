@@ -19,6 +19,8 @@ const mealTypeProfiles: MealTypeProfilePayload[] = [
     priority: 0,
     startDate: null,
     endDate: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
     mealTypes: [
       {
         id: "breakfast",
@@ -28,6 +30,8 @@ const mealTypeProfiles: MealTypeProfilePayload[] = [
         color: "#f97316",
         enabled: true,
         sortOrder: 0,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
       },
       {
         id: "dinner",
@@ -37,6 +41,8 @@ const mealTypeProfiles: MealTypeProfilePayload[] = [
         color: "#22c55e",
         enabled: true,
         sortOrder: 1,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
       },
     ],
   },

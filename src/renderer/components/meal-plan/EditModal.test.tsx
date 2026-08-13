@@ -215,6 +215,37 @@ describe("EditModal", () => {
     expect(screen.getByLabelText("Meal Photo")).toBeInTheDocument();
   });
 
+  it("names ingredient and instruction icon actions independently of their glyphs", () => {
+    render(
+      <EditModal
+        meal={{
+          ...editableMeal,
+          ingredients: [
+            {
+              name: "Pasta",
+              quantity: "1",
+              unit: "cup",
+              group: null,
+              notes: null,
+              order: 0,
+            },
+          ],
+        }}
+        mealSubTypes={[]}
+        mealTypeProfiles={mealTypeProfiles}
+        onClose={vi.fn()}
+        onDelete={vi.fn(async () => undefined)}
+        onSave={vi.fn(async () => undefined)}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Remove ingredient 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Move instruction 1 up" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Move instruction 2 up" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Move instruction 1 down" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Remove instruction 2" })).toBeInTheDocument();
+  });
+
   it("does not render stray disabled text in the modal body", () => {
     const { container } = render(
       <EditModal

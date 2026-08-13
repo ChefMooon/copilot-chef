@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router";
 import { type PropsWithChildren, useEffect, useState } from "react";
+import { Gear, List, Minus, Square, SquaresFour, X } from "@phosphor-icons/react";
 
 import { getPlatform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
@@ -114,9 +115,7 @@ export function AppShell({ children }: PropsWithChildren) {
               onClick={() => setMenuOpen((open) => !open)}
               type="button"
             >
-              <span className={styles.hamburgerBar} />
-              <span className={styles.hamburgerBar} />
-              <span className={styles.hamburgerBar} />
+              <List aria-hidden="true" size={20} weight="regular" />
             </button>
 
             {!isNarrowLayout ? (
@@ -129,7 +128,7 @@ export function AppShell({ children }: PropsWithChildren) {
                 to="/settings"
                 title="Settings"
               >
-                ⚙
+                <Gear aria-hidden="true" size={18} weight="regular" />
               </Link>
             ) : null}
 
@@ -154,10 +153,7 @@ export function AppShell({ children }: PropsWithChildren) {
                   title="Minimize"
                   type="button"
                 >
-                  <span
-                    aria-hidden="true"
-                    className={cn(styles.windowControlIcon, styles.iconMinimize)}
-                  />
+                  <Minus aria-hidden="true" className={styles.windowControlIcon} size={14} weight="regular" />
                 </button>
                 <button
                   aria-label={isMaximized ? "Restore window" : "Maximize window"}
@@ -172,13 +168,11 @@ export function AppShell({ children }: PropsWithChildren) {
                   title={isMaximized ? "Restore" : "Maximize"}
                   type="button"
                 >
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      styles.windowControlIcon,
-                      isMaximized ? styles.iconRestore : styles.iconMaximize
-                    )}
-                  />
+                  {isMaximized ? (
+                    <SquaresFour aria-hidden="true" className={styles.windowControlIcon} size={14} weight="regular" />
+                  ) : (
+                    <Square aria-hidden="true" className={styles.windowControlIcon} size={14} weight="regular" />
+                  )}
                 </button>
                 <button
                   aria-label="Close window"
@@ -196,10 +190,7 @@ export function AppShell({ children }: PropsWithChildren) {
                   title="Close"
                   type="button"
                 >
-                  <span
-                    aria-hidden="true"
-                    className={cn(styles.windowControlIcon, styles.iconClose)}
-                  />
+                  <X aria-hidden="true" className={styles.windowControlIcon} size={14} weight="regular" />
                 </button>
               </div>
             ) : null}

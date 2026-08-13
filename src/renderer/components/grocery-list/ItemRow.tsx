@@ -1,4 +1,5 @@
 import { useState, type DragEvent } from "react";
+import { ArrowDown, ArrowUp, CaretDown, CaretUp, DotsSixVertical, X } from "@phosphor-icons/react";
 
 import { CATEGORIES, UNITS, type GroceryItem } from "@/lib/grocery";
 
@@ -62,7 +63,7 @@ export function ItemRow({
     >
       <div className={styles.itemRowMain}>
         <span className={styles.dragHandle} title="Drag to reorder">
-          ⠿
+          <DotsSixVertical aria-hidden="true" size={18} />
         </span>
         <input
           aria-label={`Mark ${item.name} as collected`}
@@ -115,38 +116,42 @@ export function ItemRow({
         </select>
         <div className={styles.itemRowActions}>
           <button
+            aria-label="Move item up"
             className={styles.iconBtn}
             disabled={index === 0}
             onClick={() => onMove(-1)}
             title="Move up"
             type="button"
           >
-            ↑
+            <ArrowUp aria-hidden="true" size={18} />
           </button>
           <button
+            aria-label="Move item down"
             className={styles.iconBtn}
             disabled={index === total - 1}
             onClick={() => onMove(1)}
             title="Move down"
             type="button"
           >
-            ↓
+            <ArrowDown aria-hidden="true" size={18} />
           </button>
           <button
+            aria-label={expanded ? "Hide more fields" : "Show more fields"}
             className={styles.iconBtn}
             onClick={() => setExpanded((value) => !value)}
             title="More fields"
             type="button"
           >
-            {expanded ? "▲" : "▼"}
+            {expanded ? <CaretUp aria-hidden="true" size={18} /> : <CaretDown aria-hidden="true" size={18} />}
           </button>
           <button
+            aria-label={`Remove ${item.name}`}
             className={`${styles.iconBtn} ${styles.itemDeleteBtn}`}
             onClick={onDelete}
             title="Remove"
             type="button"
           >
-            ✕
+            <X aria-hidden="true" size={18} />
           </button>
         </div>
       </div>

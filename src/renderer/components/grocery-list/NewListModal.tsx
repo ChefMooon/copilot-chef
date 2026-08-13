@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { X } from "@phosphor-icons/react";
 
 import styles from "./grocery-list.module.css";
 
@@ -145,11 +146,12 @@ export function NewListModal({ onClose, onCreate }: Props) {
         <div className={styles.newListHeader}>
           <h3 className={styles.newListTitle}>New Grocery List</h3>
           <button
+            aria-label="Close create grocery list dialog"
             className={styles.modalCloseBtn}
             onClick={onClose}
             type="button"
           >
-            ✕
+            <X aria-hidden="true" size={18} />
           </button>
         </div>
         <div className={`${styles.newListBody} flex-1 overflow-y-auto`}>

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { Maximize2 } from "lucide-react";
+import { ArrowsOut, Minus, Plus } from "@phosphor-icons/react";
 
 import type { RecipeMadeHistoryPayload } from "@shared/types";
 import { AuthenticatedImage } from "@/components/ui/AuthenticatedImage";
+import { VisualIcon } from "@/components/ui/icon";
 
 const PHOTO_ZOOM_MIN = 0.5;
 const PHOTO_ZOOM_MAX = 3;
@@ -268,7 +269,7 @@ export function RecipeMadeHistoryModal({
                         }}
                         type="button"
                       >
-                        <Maximize2 aria-hidden="true" size={14} />
+                        <VisualIcon aria-hidden="true" icon={ArrowsOut} size={14} />
                       </button>
                       <AuthenticatedImage
                         alt={entry.photoFileName ?? `${entry.mealName} photo`}
@@ -291,7 +292,7 @@ export function RecipeMadeHistoryModal({
         <div
           aria-label="Cooking history photo viewer backdrop"
           className="fixed inset-0 z-[560] flex items-center justify-center bg-black/55 px-3 py-4 backdrop-blur-[2px] sm:px-6 sm:py-6"
-          style={{ WebkitAppRegion: "no-drag" }}
+          style={{ ["-webkit-app-region" as string]: "no-drag" }}
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
               resetPhotoViewer();
@@ -302,13 +303,13 @@ export function RecipeMadeHistoryModal({
             aria-label="Cooking history photo viewer"
             aria-modal="true"
             className="relative z-10 flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-[18px] border border-cream-dark bg-white shadow-2xl"
-            style={{ WebkitAppRegion: "no-drag" }}
+            style={{ ["-webkit-app-region" as string]: "no-drag" }}
             onMouseDown={(event) => event.stopPropagation()}
             role="dialog"
           >
             <div
               className="relative z-20 flex flex-wrap items-center justify-between gap-3 border-b border-cream-dark bg-cream/70 px-3 py-3 sm:px-4"
-              style={{ WebkitAppRegion: "no-drag" }}
+              style={{ ["-webkit-app-region" as string]: "no-drag" }}
             >
               <div>
                 <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-orange">
@@ -324,7 +325,7 @@ export function RecipeMadeHistoryModal({
                   onClick={() => updatePhotoZoom(photoZoom - PHOTO_ZOOM_STEP)}
                   type="button"
                 >
-                  -
+                  <VisualIcon aria-hidden="true" icon={Minus} size={14} />
                 </button>
                 <button
                   aria-label="Reset zoom"
@@ -341,7 +342,7 @@ export function RecipeMadeHistoryModal({
                   onClick={() => updatePhotoZoom(photoZoom + PHOTO_ZOOM_STEP)}
                   type="button"
                 >
-                  +
+                  <VisualIcon aria-hidden="true" icon={Plus} size={14} />
                 </button>
                 <button
                   aria-label="Close viewer"
@@ -357,7 +358,7 @@ export function RecipeMadeHistoryModal({
             <div
               aria-label="Cooking history photo canvas"
               className="relative z-0 flex min-h-0 flex-1 items-center justify-center overflow-auto bg-[linear-gradient(180deg,rgba(245,240,232,0.72),rgba(245,240,232,0.28))] p-3 sm:p-6"
-              style={{ WebkitAppRegion: "no-drag" }}
+              style={{ ["-webkit-app-region" as string]: "no-drag" }}
               onDoubleClick={() => {
                 if (photoZoom > 1) {
                   updatePhotoZoom(1);

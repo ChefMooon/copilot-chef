@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Check, CookingPot, X } from "@phosphor-icons/react";
 import { useParams, useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -39,7 +40,7 @@ function GroceryShopContent({
     <div className={styles.overlay}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <span className={styles.logo}>🍳</span>
+          <CookingPot aria-hidden="true" className={styles.logo} size={28} />
           <div>
             <div className={styles.listName}>{list.name}</div>
             <div className={styles.progressText}>
@@ -52,7 +53,7 @@ function GroceryShopContent({
           onClick={() => navigate("/grocery-list")}
           type="button"
         >
-          ✕ Done
+          <X aria-hidden="true" size={18} /> Done
         </button>
       </div>
       <div className={styles.progressBarBg}>
@@ -90,7 +91,7 @@ function GroceryShopContent({
                   className={`${styles.checkCircle} ${item.checked ? styles.checkFilled : ""}`}
                 >
                   {item.checked ? (
-                    <span className={styles.checkmark}>✓</span>
+                    <Check aria-hidden="true" className={styles.checkmark} size={16} weight="bold" />
                   ) : null}
                 </div>
                 <div className={styles.itemInfo}>
