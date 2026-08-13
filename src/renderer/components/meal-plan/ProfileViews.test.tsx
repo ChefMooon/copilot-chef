@@ -250,6 +250,48 @@ describe("profile-aware meal plan views", () => {
     expect((weekendChip as HTMLElement).style.color).toBe("rgb(168, 87, 116)");
   });
 
+  it("uses meal-type tinting without a left color bar in day and week views", () => {
+    const { container } = render(
+      <DayView
+        date={new Date("2026-04-18T12:00:00")}
+        meals={sampleMeals}
+        mealTypeProfiles={[defaultProfile, weekendProfile]}
+        setDate={vi.fn()}
+        onEdit={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    const dayMealCard = container.querySelector(
+      `button.${styles.timelineMealCard}`
+    ) as HTMLButtonElement;
+
+    expect(dayMealCard).toBeTruthy();
+    expect(dayMealCard.style.getPropertyValue("--meal-type-color")).toBe("#3B5E45");
+    expect(dayMealCard.style.borderLeft).toBe("");
+
+    cleanup();
+
+    const { container: weekContainer } = render(
+      <WeekView
+        date={new Date("2026-04-17T12:00:00")}
+        meals={sampleMeals}
+        mealTypeProfiles={[defaultProfile, weekendProfile]}
+        setDate={vi.fn()}
+        onEdit={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    const weekMealCard = weekContainer.querySelector(
+      `button.${styles.weekSlotMealCard}`
+    ) as HTMLButtonElement;
+
+    expect(weekMealCard).toBeTruthy();
+    expect(weekMealCard.style.getPropertyValue("--meal-type-color")).toBe("#3B5E45");
+    expect(weekMealCard.style.borderLeft).toBe("");
+  });
+
   it("shows profile details in the month popover even when no meals are planned", () => {
     render(
       <MonthView
@@ -271,6 +313,28 @@ describe("profile-aware meal plan views", () => {
     expect(screen.getByText("Profile starts on this day")).toBeTruthy();
     expect(screen.getByText("No meals planned.")).toBeTruthy();
     expect(screen.getByText("Brunch")).toBeTruthy();
+  });
+
+  it("marks the selected month day while its popover is open", () => {
+    render(
+      <MonthView
+        date={new Date("2026-04-17T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[defaultProfile, weekendProfile]}
+        setDate={vi.fn()}
+        onEdit={vi.fn()}
+      />
+    );
+
+    const selectedDay = screen.getByRole("button", {
+      name: /Saturday, April 18/i,
+    });
+
+    expect(selectedDay).toHaveAttribute("aria-pressed", "false");
+    fireEvent.click(selectedDay);
+
+    expect(selectedDay).toHaveAttribute("aria-pressed", "true");
+    expect(selectedDay.className).toContain(styles.monthCellSelected);
   });
 
   it("shows only enabled meal type chips in month popover when no meals exist", () => {
@@ -386,7 +450,12 @@ describe("profile-aware meal plan views", () => {
       })
     );
 
-    expect(screen.getAllByText("Lunch").length).toBeGreaterThan(0);
+    const lunchChip = screen
+      .getAllByText("Lunch")
+      .find((element) => element.className === styles.popoverMealTypeChip);
+
+    expect(lunchChip).toBeTruthy();
+    expect((lunchChip as HTMLElement).style.color).toBe("");
     expect(screen.getByText("Leftover Lunch")).toBeTruthy();
   });
 

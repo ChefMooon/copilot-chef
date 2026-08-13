@@ -669,15 +669,15 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--cream-dark);
+  border-bottom: 1px solid var(--border);
 }
 
 .dayNavBtn {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1.5px solid var(--cream-dark);
-  background: var(--cream);
+  border: 1.5px solid var(--border);
+  background: var(--card);
   cursor: pointer;
   font-size: 1rem;
   color: var(--text-muted);
@@ -782,8 +782,9 @@
 
 .timelineMealCard {
   width: 100%;
-  border: none;
-  background: var(--cream);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--card-foreground);
   border-radius: 10px;
   padding: 0.45rem 0.6rem;
   cursor: pointer;
@@ -795,8 +796,15 @@
   text-align: left;
 }
 
+@supports (background: color-mix(in srgb, white, black)) {
+  .timelineMealCard {
+    background: color-mix(in srgb, var(--meal-type-color, var(--primary)) 14%, var(--card));
+    border-color: color-mix(in srgb, var(--meal-type-color, var(--primary)) 32%, var(--border));
+  }
+}
+
 .timelineMealCard:hover {
-  background: var(--cream-dark);
+  background: var(--card-elevated);
   transform: translateX(2px);
 }
 
@@ -825,7 +833,7 @@
 
 .timelineEmptySlot {
   height: 36px;
-  border: 1.5px dashed var(--cream-dark);
+  border: 1.5px dashed var(--border);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -837,14 +845,14 @@
 }
 
 .timelineEmptySlot:hover {
-  border-color: rgba(59, 94, 69, 0.42);
-  background: rgba(59, 94, 69, 0.04);
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
 }
 
 .timelineEmptySlot:focus-visible {
-  border-color: var(--green);
-  background: rgba(59, 94, 69, 0.04);
-  box-shadow: 0 0 0 2px rgba(59, 94, 69, 0.14);
+  border-color: var(--ring);
+  background: color-mix(in srgb, var(--ring) 8%, var(--card));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 28%, transparent);
 }
 
 .slotDropTarget {
@@ -1027,37 +1035,37 @@
 
 .weekBoardCorner {
   padding: 0.9rem 0.85rem;
-  border-right: 1px solid var(--cream-dark);
-  border-bottom: 1px solid var(--cream-dark);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-muted);
-  background: var(--cream);
+  background: var(--muted);
 }
 
 .weekDayHeader {
   padding: 0.75rem 0.6rem 0.6rem;
-  border-right: 1px solid var(--cream-dark);
-  border-bottom: 1px solid var(--cream-dark);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   text-align: center;
-  background: var(--white);
+  background: var(--card);
 }
 
 .weekDayHeaderToday {
-  background: rgba(59, 94, 69, 0.05);
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
 }
 
 .weekDayHeaderProfileStart {
-  background: linear-gradient(180deg, rgba(212, 228, 216, 0.45) 0%, var(--white) 68%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--secondary) 72%, transparent) 0%, var(--card) 68%);
 }
 
 .weekTypeCell {
   padding: 0.9rem 0.85rem;
-  border-right: 1px solid var(--cream-dark);
-  border-bottom: 1px solid var(--cream-dark);
-  background: var(--cream);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -1081,24 +1089,24 @@
 .weekSlotCell {
   min-height: 90px;
   padding: 0.7rem;
-  border-right: 1px solid var(--cream-dark);
-  border-bottom: 1px solid var(--cream-dark);
-  background: var(--white);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
   display: flex;
 }
 
 .weekSlotCellToday {
-  background: rgba(59, 94, 69, 0.03);
+  background: color-mix(in srgb, var(--primary) 5%, var(--card));
 }
 
 .weekSlotCellUnavailable {
-  background: linear-gradient(180deg, rgba(237, 230, 214, 0.42) 0%, rgba(255, 253, 248, 0.9) 100%);
+  background: linear-gradient(180deg, var(--muted) 0%, var(--card) 100%);
 }
 
 .weekSlotEmpty {
   width: 100%;
   min-height: 100%;
-  border: 1.5px dashed var(--cream-dark);
+  border: 1.5px dashed var(--border);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -1110,14 +1118,14 @@
 }
 
 .weekSlotEmpty:hover {
-  border-color: rgba(59, 94, 69, 0.42);
-  background: rgba(59, 94, 69, 0.04);
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, var(--card));
 }
 
 .weekSlotEmpty:focus-visible {
-  border-color: var(--green);
-  background: rgba(59, 94, 69, 0.04);
-  box-shadow: 0 0 0 2px rgba(59, 94, 69, 0.14);
+  border-color: var(--ring);
+  background: color-mix(in srgb, var(--ring) 8%, var(--card));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 28%, transparent);
 }
 
 .emptySlotButton {
@@ -1189,7 +1197,18 @@
   width: 100%;
   min-height: 2.05rem;
   text-align: left;
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--meal-type-color, var(--primary)) 22%, var(--card));
   transition: filter 0.14s, transform 0.14s, box-shadow 0.14s;
+}
+
+@supports (background: color-mix(in srgb, white, black)) {
+  .weekSlotMealCard {
+    background: color-mix(in srgb, var(--meal-type-color, var(--primary)) 14%, var(--card));
+    border-color: color-mix(in srgb, var(--meal-type-color, var(--primary)) 32%, var(--border));
+  }
 }
 
 .weekSlotMealCardHasSubType {
@@ -1240,7 +1259,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(59, 94, 69, 0.18);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
   background: var(--card);
   color: var(--green);
   border-radius: 8px;
@@ -1255,8 +1274,8 @@
 }
 
 .weekMealActionBtn:hover:not(:disabled) {
-  background: var(--green-pale);
-  border-color: rgba(59, 94, 69, 0.28);
+  background: var(--secondary);
+  border-color: var(--primary);
   color: var(--text);
   transform: translateY(-1px);
 }
@@ -1515,12 +1534,12 @@
   color: var(--text-muted);
   text-align: center;
   padding: 0.65rem 0;
-  border-bottom: 1px solid var(--cream-dark);
+  border-bottom: 1px solid var(--border);
 }
 
 .monthCell {
-  border-right: 1px solid var(--cream-dark);
-  border-bottom: 1px solid var(--cream-dark);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   padding: 0.5rem 0.6rem;
   min-height: 60px;
   display: flex;
@@ -1535,7 +1554,7 @@
 }
 
 .monthCellEmpty {
-  background: rgba(237, 230, 214, 0.3);
+  background: color-mix(in srgb, var(--muted) 45%, var(--background));
 }
 
 .monthCellHasMeals {
@@ -1548,7 +1567,17 @@
 
 .monthCellHasMeals:hover,
 .monthCellInteractive:hover {
-  background: var(--cream-dark);
+  background: var(--muted);
+}
+
+.monthCellInteractive:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--ring);
+}
+
+.monthCellSelected {
+  background: color-mix(in srgb, var(--primary) 12%, var(--card));
+  box-shadow: inset 0 0 0 2px var(--primary);
 }
 
 .monthCellProfileStart {
@@ -1561,7 +1590,7 @@
 }
 
 .monthCellToday {
-  background: rgba(59, 94, 69, 0.04);
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
 }
 
 .monthCellNum {
@@ -1619,10 +1648,11 @@
   position: fixed;
   z-index: 301;
   -webkit-app-region: no-drag;
-  background: var(--white);
+  background: var(--card-elevated);
   border-radius: 12px;
   box-shadow: var(--shadow-lg);
-  border: 1px solid var(--cream-dark);
+  border: 1px solid var(--border);
+  color: var(--card-foreground);
   width: 240px;
   max-height: calc(100vh - 24px);
   display: flex;
@@ -1647,7 +1677,7 @@
   flex-direction: column;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--cream-dark);
+  border-bottom: 1px solid var(--border);
 }
 
 .popoverHeaderTopRow {
@@ -1678,7 +1708,7 @@
 .popoverHeaderActionBtn {
   min-height: 1.9rem;
   border-radius: 10px;
-  border: 1px solid var(--cream-dark);
+  border: 1px solid var(--border);
   background: var(--card);
   color: var(--green);
   padding: 0 0.54rem;
@@ -1692,14 +1722,14 @@
 }
 
 .popoverHeaderActionBtn:hover {
-  border-color: rgba(59, 94, 69, 0.32);
-  background: var(--green-pale);
+  border-color: var(--primary);
+  background: var(--secondary);
 }
 
 .popoverHeaderActionBtn:focus-visible {
   outline: none;
-  border-color: var(--green);
-  box-shadow: 0 0 0 2px rgba(59, 94, 69, 0.14);
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 28%, transparent);
 }
 
 .popoverDate {
@@ -1739,7 +1769,7 @@
   flex-wrap: wrap;
   gap: 0.35rem;
   padding: 0.65rem 1rem 0.75rem;
-  border-bottom: 1px solid var(--cream-dark);
+  border-bottom: 1px solid var(--border);
   background: var(--muted);
 }
 
@@ -1747,6 +1777,7 @@
   display: inline-flex;
   align-items: center;
   border: 1px solid currentColor;
+  color: var(--text);
   border-radius: 999px;
   padding: 0.18rem 0.45rem;
   font-size: 0.54rem;
@@ -1802,7 +1833,7 @@
   align-items: center;
   justify-content: center;
   background: var(--card);
-  border: 1px solid var(--cream-dark);
+  border: 1px solid var(--border);
   cursor: pointer;
   color: var(--text);
   font-size: 0.86rem;
@@ -1819,15 +1850,15 @@
 }
 
 .popoverClose:hover {
-  border-color: rgba(59, 94, 69, 0.32);
-  background: var(--green-pale);
-  color: var(--green);
+  border-color: var(--primary);
+  background: var(--secondary);
+  color: var(--primary);
 }
 
 .popoverClose:focus-visible {
   outline: none;
-  border-color: var(--green);
-  box-shadow: 0 0 0 2px rgba(59, 94, 69, 0.14);
+  border-color: var(--ring);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 28%, transparent);
 }
 
 .popoverMeals {
@@ -1872,7 +1903,7 @@
 .popoverMealGroup {
   display: flex;
   flex-direction: column;
-  border-bottom: 1px solid var(--cream-dark);
+  border-bottom: 1px solid var(--border);
 }
 
 .popoverMealGroup:last-child {
@@ -1888,7 +1919,7 @@
   justify-content: space-between;
   gap: 0.6rem;
   padding: 0.7rem 1rem 0.55rem;
-  background: rgba(237, 230, 214, 0.22);
+  background: var(--muted);
 }
 
 .popoverGroupEmpty {
@@ -1913,7 +1944,7 @@
   cursor: pointer;
   text-align: left;
   transition: background 0.12s, box-shadow 0.12s;
-  border-bottom: 1px solid var(--cream-dark);
+  border-bottom: 1px solid var(--border);
 }
 
 .popoverMealRow:last-child {
@@ -1921,13 +1952,13 @@
 }
 
 .popoverMealRow:hover {
-  background: var(--cream);
+  background: var(--muted);
 }
 
 .popoverMealRow:focus-visible {
   outline: none;
-  background: var(--cream);
-  box-shadow: inset 0 0 0 2px rgba(59, 94, 69, 0.14);
+  background: var(--muted);
+  box-shadow: inset 0 0 0 2px var(--ring);
 }
 
 .popoverDot {
@@ -2060,6 +2091,9 @@
   padding: 3px 9px;
   border-radius: 99px;
   width: fit-content;
+  color: var(--text);
+  background: var(--card);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--meal-type-color, var(--primary)) 30%, var(--border));
 }
 
 .modalDateLabel {

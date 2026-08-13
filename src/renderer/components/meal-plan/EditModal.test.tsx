@@ -232,6 +232,10 @@ describe("EditModal", () => {
     expect(screen.getByLabelText(/sub-type/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/day/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /meal photo/i })).toBeInTheDocument();
+    const mealTypeBadge = screen.getByText("Dinner", { selector: "span" });
+
+    expect(mealTypeBadge).toBeInTheDocument();
+    expect((mealTypeBadge as HTMLElement).style.color).toBe("");
     expect(container).not.toHaveTextContent("disabled=");
   });
 });

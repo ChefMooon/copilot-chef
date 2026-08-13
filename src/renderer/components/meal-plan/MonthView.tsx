@@ -151,6 +151,10 @@ export function MonthView({
   }, [popover]);
 
   useEffect(() => {
+    setPopover(null);
+  }, [month, year]);
+
+  useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setPopover(null);
@@ -231,6 +235,7 @@ export function MonthView({
           const mealTypes = profileContext.mealTypes;
           const cellMeals = mealsForDay(meals, cellDate, mealTypes);
           const todayMatch = isSameDay(cellDate, today);
+          const selectedMatch = popover != null && isSameDay(cellDate, popover.date);
           const isMuted =
             highlightedProfileId != null &&
             profileContext.profile.id !== highlightedProfileId;
@@ -238,7 +243,8 @@ export function MonthView({
           return (
             <button
               aria-label={buildMonthCellAriaLabel(cellDate, profileContext, cellMeals)}
-              className={`${styles.monthCell} ${todayMatch ? styles.monthCellToday : ""} ${styles.monthCellInteractive} ${cellMeals.length ? styles.monthCellHasMeals : ""} ${profileContext.isProfileStart ? styles.monthCellProfileStart : ""} ${isMuted ? styles.monthProfileMuted : ""}`}
+              aria-pressed={selectedMatch}
+              className={`${styles.monthCell} ${todayMatch ? styles.monthCellToday : ""} ${selectedMatch ? styles.monthCellSelected : ""} ${styles.monthCellInteractive} ${cellMeals.length ? styles.monthCellHasMeals : ""} ${profileContext.isProfileStart ? styles.monthCellProfileStart : ""} ${isMuted ? styles.monthProfileMuted : ""}`}
               key={index}
               onClick={(event) => handleDayClick(event, cellDate)}
               style={{ boxShadow: `inset 0 3px 0 ${profileContext.accentColor}` }}
@@ -369,7 +375,7 @@ export function MonthView({
                     <div className={styles.popoverMealGroupHeader}>
                       <span
                         className={styles.popoverMealTypeChip}
-                        style={{ borderColor: typeConfig.dot, color: typeConfig.text }}
+                        style={{ borderColor: typeConfig.dot }}
                       >
                         {typeConfig.label}
                       </span>

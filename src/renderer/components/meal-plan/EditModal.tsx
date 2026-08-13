@@ -307,7 +307,6 @@ export function EditModal({
   const typeConfig =
     mealTypeConfig[form.type] ?? {
       dot: "#6A7C91",
-      bg: "#EEF2F5",
       text: "#31404F",
       label: form.mealTypeDefinition?.name ?? form.type,
       enabled: true,
@@ -401,7 +400,11 @@ export function EditModal({
               <div className={styles.modalHeaderLeft}>
                 <span
                   className={styles.modalTypeBadge}
-                  style={{ background: typeConfig.bg, color: typeConfig.text }}
+                  style={
+                    {
+                      "--meal-type-color": typeConfig.dot,
+                    } as React.CSSProperties
+                  }
                 >
                   {typeConfig.label}
                 </span>

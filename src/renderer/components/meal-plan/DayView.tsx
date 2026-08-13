@@ -457,7 +457,9 @@ export function DayView({
                               { x: event.clientX, y: event.clientY }
                             );
                           }}
-                          style={{ borderLeft: `3px solid ${typeConfig.dot}` }}
+                          style={{
+                            "--meal-type-color": typeConfig.dot,
+                          } as CSSProperties}
                           type="button"
                         >
                           <span className={styles.timelineMealName}>{meal.name}</span>

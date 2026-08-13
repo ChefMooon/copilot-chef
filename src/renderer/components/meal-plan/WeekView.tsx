@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState, type DragEvent } from "react";
+import { Fragment, useMemo, useState, type CSSProperties, type DragEvent } from "react";
 
 import {
   createEmptyMeal,
@@ -558,9 +558,8 @@ export function WeekView({
                                         );
                                       }}
                                       style={{
-                                        background: typeConfig.bg,
-                                        borderLeft: `3px solid ${typeConfig.dot}`,
-                                      }}
+                                        "--meal-type-color": typeConfig.dot,
+                                      } as CSSProperties}
                                       type="button"
                                     >
                                       <span className={styles.weekChipName}>{meal.name}</span>

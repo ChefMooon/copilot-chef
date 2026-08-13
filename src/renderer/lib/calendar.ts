@@ -166,7 +166,6 @@ export type MealSlot = {
 
 export type MealTypeConfig = {
   dot: string;
-  bg: string;
   text: string;
   label: string;
   enabled: boolean;
@@ -526,7 +525,6 @@ export function buildTypeConfig(definitions: MealTypeDefinitionPayload[]) {
   for (const definition of definitions) {
     config[definition.slug] = {
       dot: definition.color,
-      bg: mixHex(definition.color, "#FFFFFF", 0.82),
       text: getTextColor(definition.color),
       label: definition.name,
       enabled: definition.enabled,
@@ -552,7 +550,6 @@ export function getTypeConfig(
   return (
     config[mealType] ?? {
       dot: "#6A7C91",
-      bg: mixHex("#6A7C91", "#FFFFFF", 0.82),
       text: getTextColor("#6A7C91"),
       label: humanizeMealType(mealType),
       enabled: true,
