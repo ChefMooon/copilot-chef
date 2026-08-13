@@ -202,6 +202,15 @@
   background: var(--cream, #f5f0eb);
 }
 
+.item:focus-visible {
+  outline: 2px solid var(--green, #3b5e45);
+  outline-offset: 2px;
+}
+
+.item:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .itemDone {
   opacity: 0.5;
 }

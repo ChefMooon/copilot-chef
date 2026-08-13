@@ -835,7 +835,7 @@
 
 .itemRowExtra {
   padding: 0.5rem 1.25rem 0.65rem 2.8rem;
-  background: var(--muted);
+  background: transparent;
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
