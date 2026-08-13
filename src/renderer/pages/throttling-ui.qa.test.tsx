@@ -207,7 +207,11 @@ describe("throttling UI regression coverage", () => {
     const module = await import("./recipes");
     const RecipesPage = module.default;
 
-    render(<RecipesPage />);
+    render(
+      <MemoryRouter>
+        <RecipesPage />
+      </MemoryRouter>
+    );
 
     expect(
       screen.getByText("Recipe requests are temporarily rate limited.")
