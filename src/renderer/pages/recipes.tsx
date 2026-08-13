@@ -309,12 +309,13 @@ export default function RecipesPage() {
     recipe: RecipePayload,
     nextValue: boolean
   ) {
-    const previousRecipes = recipesQuery.data ?? [];
-    const nextRecipes = previousRecipes.map((entry) =>
-      entry.id === recipe.id ? { ...entry, favourite: nextValue } : entry
+    queryClient.setQueriesData<RecipePayload[]>(
+      { queryKey: recipesKey },
+      (current) =>
+        current?.map((entry) =>
+          entry.id === recipe.id ? { ...entry, favourite: nextValue } : entry
+        )
     );
-
-    queryClient.setQueryData(recipesKey, nextRecipes);
     queryClient.setQueryData(recipeKeys.detail(recipe.id), {
       ...recipe,
       favourite: nextValue,
@@ -322,16 +323,22 @@ export default function RecipesPage() {
 
     try {
       const updated = await updateRecipe(recipe.id, { favourite: nextValue });
-      queryClient.setQueryData(
-        recipesKey,
-        (current: RecipePayload[] | undefined) =>
-          (current ?? nextRecipes).map((entry) =>
+      queryClient.setQueriesData<RecipePayload[]>(
+        { queryKey: recipesKey },
+        (current) =>
+          current?.map((entry) =>
             entry.id === updated.id ? updated : entry
           )
       );
       queryClient.setQueryData(recipeKeys.detail(recipe.id), updated);
     } catch {
-      queryClient.setQueryData(recipesKey, previousRecipes);
+      queryClient.setQueriesData<RecipePayload[]>(
+        { queryKey: recipesKey },
+        (current) =>
+          current?.map((entry) =>
+            entry.id === recipe.id ? recipe : entry
+          )
+      );
       queryClient.setQueryData(recipeKeys.detail(recipe.id), recipe);
       toast({
         title: "Could not update favourite.",

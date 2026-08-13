@@ -51,7 +51,7 @@ export function RecipeCard({
           {onToggleFavourite ? (
             <Button
               aria-label={`${recipe.favourite ? "Remove" : "Add"} ${recipe.title} ${recipe.favourite ? "from" : "to"} favourites`}
-              className={`h-4 w-4 min-w-4 rounded-[4px] p-0 ${recipe.favourite ? "text-orange hover:text-orange" : "text-text-muted hover:text-orange"}`}
+              className={`h-4 w-4 min-w-4 rounded-[4px] border p-0 ${recipe.favourite ? "border-orange/30 bg-orange/10 text-orange hover:bg-orange/15 hover:text-orange" : "border-cream-dark bg-cream text-text-muted hover:border-orange/40 hover:bg-orange/5 hover:text-orange"}`}
               onClick={() => onToggleFavourite(recipe, !recipe.favourite)}
               size="icon"
               type="button"

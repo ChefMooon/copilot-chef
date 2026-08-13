@@ -143,7 +143,7 @@ describe("RecipeCard optional actions", () => {
   });
 
   it("uses the selected favourite state and accessible name", () => {
-    render(
+    const { rerender } = render(
       <MemoryRouter>
         <RecipeCard
           onToggleFavourite={vi.fn()}
@@ -155,8 +155,24 @@ describe("RecipeCard optional actions", () => {
     const favouriteButton = screen.getByRole("button", {
       name: "Remove Roast Chicken from favourites",
     });
+    expect(favouriteButton).toHaveClass("border-orange/30", "bg-orange/10", "text-orange");
     expect(favouriteButton.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
     fireEvent.click(favouriteButton);
+
+    rerender(
+      <MemoryRouter>
+        <RecipeCard
+          onToggleFavourite={vi.fn()}
+          recipe={baseRecipe}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("button", { name: "Add Roast Chicken to favourites" })).toHaveClass(
+      "border-cream-dark",
+      "bg-cream",
+      "text-text-muted"
+    );
   });
 });
 
