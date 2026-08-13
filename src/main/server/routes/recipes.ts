@@ -205,7 +205,7 @@ recipesRoutes.post("/recipes/ingest", async (c) => {
   let body: unknown;
   try {
     body = await c.req.json();
-    const schema = z.object({ url: z.string().url() });
+    const schema = z.object({ url: z.string().trim().min(1) });
     const input = schema.parse(body);
 
     const encoder = new TextEncoder();

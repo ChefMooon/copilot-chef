@@ -26,6 +26,7 @@ import {
 } from "../lib/ingredient-normalizer";
 import {
   buildDuplicateRecipeTitle,
+  cleanRecipeSourceUrl,
   normalizeRecipeSourceUrl,
   normalizeRecipeTitle,
   sanitizeRecipeTitle,
@@ -1183,7 +1184,10 @@ async function fetchRecipeHtml(url: string, signal?: AbortSignal) {
     }
 
     return response.text();
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) {
+      throw error;
+    }
     return null;
   }
 }
@@ -1372,11 +1376,12 @@ export class RecipeService {
     await bootstrapDatabase();
     const input = CreateRecipeInputSchema.parse(data);
     const title = sanitizeRequiredRecipeTitle(input.title);
-    const sourceUrl = normalizeRecipeSourceUrl(input.sourceUrl);
+    const sourceUrl = cleanRecipeSourceUrl(input.sourceUrl);
+    const normalizedSourceUrl = normalizeRecipeSourceUrl(sourceUrl);
 
     const conflict = await this.findRecipeConflict({
       title: normalizeRecipeTitle(title),
-      sourceUrl,
+      sourceUrl: normalizedSourceUrl,
     });
     if (conflict) {
       throw conflict;
@@ -1410,7 +1415,7 @@ export class RecipeService {
             cuisine: compactString(input.cuisine),
             instructions: JSON.stringify(input.instructions),
             sourceUrl,
-            normalizedSourceUrl: sourceUrl,
+            normalizedSourceUrl,
             sourceLabel: compactString(input.sourceLabel),
             origin: input.origin ?? "manual",
             favourite: input.favourite ?? false,
@@ -1486,13 +1491,15 @@ export class RecipeService {
     const nextTitle =
       input.title !== undefined ? sanitizeRequiredRecipeTitle(input.title) : undefined;
     const nextSourceUrl =
-      input.sourceUrl !== undefined ? normalizeRecipeSourceUrl(input.sourceUrl) : undefined;
+      input.sourceUrl !== undefined ? cleanRecipeSourceUrl(input.sourceUrl) : undefined;
+    const nextNormalizedSourceUrl =
+      input.sourceUrl !== undefined ? normalizeRecipeSourceUrl(nextSourceUrl) : undefined;
 
     if (input.title !== undefined || input.sourceUrl !== undefined) {
       const conflict = await this.findRecipeConflict({
         title:
           nextTitle !== undefined ? normalizeRecipeTitle(nextTitle) : undefined,
-        sourceUrl: nextSourceUrl,
+        sourceUrl: nextNormalizedSourceUrl,
         excludeRecipeId: id,
       });
 
@@ -1522,7 +1529,7 @@ export class RecipeService {
     }
     if (input.sourceUrl !== undefined) {
       updateData.sourceUrl = nextSourceUrl;
-      updateData.normalizedSourceUrl = nextSourceUrl;
+      updateData.normalizedSourceUrl = nextNormalizedSourceUrl;
     }
     if (input.sourceLabel !== undefined) {
       updateData.sourceLabel = compactString(input.sourceLabel);
@@ -1616,7 +1623,7 @@ export class RecipeService {
       ) {
         const retryConflict = await this.findRecipeConflict({
           title: nextTitle !== undefined ? normalizeRecipeTitle(nextTitle) : undefined,
-          sourceUrl: nextSourceUrl,
+          sourceUrl: nextNormalizedSourceUrl,
           excludeRecipeId: id,
         });
 
@@ -1773,13 +1780,30 @@ export class RecipeService {
   ): Promise<IngestResult> {
     await bootstrapDatabase();
 
-    const cleanedUrl = new URL(url).toString();
+    const cleanedUrl = cleanRecipeSourceUrl(url);
+    if (!cleanedUrl) {
+      throw new Error("Recipe URL is required");
+    }
+    const normalizedSourceUrl = normalizeRecipeSourceUrl(cleanedUrl);
     const sourceLabel = new URL(cleanedUrl).hostname.replace(/^www\./, "");
 
     const reportProgress = (
       stage: Extract<IngestProgressEvent, { type: "progress" }>["stage"],
       message: string
     ) => options.onProgress?.({ type: "progress", stage, message });
+
+    options.signal?.throwIfAborted();
+    reportProgress("checking-duplicates", "Checking your recipe library...");
+    const sourceConflict = await this.findRecipeConflict({
+      sourceUrl: normalizedSourceUrl,
+    });
+
+    if (sourceConflict) {
+      return {
+        duplicate: true,
+        existing: sourceConflict.existing,
+      };
+    }
 
     options.signal?.throwIfAborted();
     reportProgress("fetching", "Fetching recipe page...");
@@ -1814,10 +1838,9 @@ export class RecipeService {
     }
 
     options.signal?.throwIfAborted();
-    reportProgress("checking-duplicates", "Checking your recipe library...");
     const conflict = await this.findRecipeConflict({
       title: normalizeRecipeTitle(title.trim() || "Imported Recipe"),
-      sourceUrl: cleanedUrl,
+      sourceUrl: normalizedSourceUrl,
     });
 
     if (conflict) {

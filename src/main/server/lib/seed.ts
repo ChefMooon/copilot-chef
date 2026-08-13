@@ -10,6 +10,7 @@ import { prisma } from "./prisma";
 import { addDays, startOfDay } from "./date";
 import type { MealIngredient } from "@shared/types";
 import {
+  cleanRecipeSourceUrl,
   normalizeRecipeSourceUrl,
   normalizeRecipeTitle,
   sanitizeRecipeTitle,
@@ -244,12 +245,13 @@ function buildHistoricalMeals(referenceDate: Date) {
 }
 
 function recipeIdentityData(title: string, sourceUrl?: string | null) {
-  const canonicalSourceUrl = normalizeRecipeSourceUrl(sourceUrl);
+  const displaySourceUrl = cleanRecipeSourceUrl(sourceUrl);
+  const canonicalSourceUrl = normalizeRecipeSourceUrl(displaySourceUrl);
 
   return {
     title: sanitizeRecipeTitle(title),
     normalizedTitle: normalizeRecipeTitle(title),
-    sourceUrl: canonicalSourceUrl,
+    sourceUrl: displaySourceUrl,
     normalizedSourceUrl: canonicalSourceUrl,
   };
 }

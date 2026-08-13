@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import {
   buildDuplicateRecipeTitle,
+  cleanRecipeSourceUrl,
   normalizeRecipeSourceUrl,
   normalizeRecipeTitle,
   sanitizeRecipeTitle,
@@ -540,20 +541,41 @@ async function reconcileRecipeIdentityColumns() {
 
     usedTitles.add(nextNormalizedTitle);
 
-    const canonicalSourceUrl = normalizeRecipeSourceUrl(recipe.sourceUrl);
-    const nextSourceUrl =
+    let nextSourceUrl = recipe.sourceUrl?.trim() || null;
+    let canonicalSourceUrl: string | null = null;
+
+    try {
+      nextSourceUrl = cleanRecipeSourceUrl(recipe.sourceUrl);
+      canonicalSourceUrl = normalizeRecipeSourceUrl(nextSourceUrl);
+    } catch (error) {
+      console.warn(
+        `[recipe-identity] Unable to normalize legacy source URL for recipe ${recipe.id}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+
+    const nextNormalizedSourceUrl =
       canonicalSourceUrl && !usedSourceUrls.has(canonicalSourceUrl)
         ? canonicalSourceUrl
         : null;
 
-    if (nextSourceUrl) {
-      usedSourceUrls.add(nextSourceUrl);
+    if (nextNormalizedSourceUrl) {
+      usedSourceUrls.add(nextNormalizedSourceUrl);
+    } else if (canonicalSourceUrl) {
+      console.warn(
+        `[recipe-identity] Duplicate canonical source URL for recipe ${recipe.id}; preserving display URL and clearing normalized identity.`
+      );
     }
 
-    const nextNormalizedSourceUrl = nextSourceUrl;
-    const nextSourceLabel = nextSourceUrl
-      ? recipe.sourceLabel?.trim() || new URL(nextSourceUrl).hostname.replace(/^www\./, "")
-      : null;
+    let nextSourceLabel = recipe.sourceLabel?.trim() || null;
+    if (!nextSourceLabel && nextSourceUrl) {
+      try {
+        nextSourceLabel = new URL(nextSourceUrl).hostname.replace(/^www\./, "");
+      } catch {
+        nextSourceLabel = null;
+      }
+    }
 
     if (
       nextTitle === recipe.title &&
@@ -576,6 +598,14 @@ async function reconcileRecipeIdentityColumns() {
       WHERE "id" = ${recipe.id}
     `;
   }
+}
+async function dropRecipeIdentityIndexes() {
+  await prisma.$executeRawUnsafe(
+    `DROP INDEX IF EXISTS "Recipe_normalizedTitle_key"`
+  );
+  await prisma.$executeRawUnsafe(
+    `DROP INDEX IF EXISTS "Recipe_normalizedSourceUrl_key"`
+  );
 }
 
 async function ensureRecipeIdentityIndexes() {
@@ -642,6 +672,7 @@ export async function ensureDatabaseSchema(): Promise<void> {
   await repairBrokenMealSortOrderColumn();
   await repairMalformedMealSubTypeIndex();
   await normalizeMealSortOrderValues();
+  await dropRecipeIdentityIndexes();
   await reconcileRecipeIdentityColumns();
   await ensureRecipeIdentityIndexes();
 }
