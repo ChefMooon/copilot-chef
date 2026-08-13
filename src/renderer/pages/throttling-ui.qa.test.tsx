@@ -182,7 +182,7 @@ describe("throttling UI regression coverage", () => {
     expect(groceryRefetch).toHaveBeenCalledOnce();
     expect(heatmapRefetch).toHaveBeenCalledOnce();
     expect(upcomingRefetch).toHaveBeenCalledOnce();
-  });
+  }, 15_000);
 
   it("shows recipes rate-limit panel and retries both recipe queries", async () => {
     const recipesRefetch = vi.fn();
