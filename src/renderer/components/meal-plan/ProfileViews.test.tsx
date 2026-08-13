@@ -224,6 +224,78 @@ describe("profile-aware meal plan views", () => {
     cleanup();
   });
 
+  it("provides accessible period navigation for day, week, and month views", () => {
+    const dayPrevious = vi.fn();
+    const { unmount: unmountDay } = render(
+      <DayView
+        date={new Date("2026-04-18T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[defaultProfile]}
+        setDate={dayPrevious}
+        onEdit={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    const dayPreviousButton = screen.getByRole("button", {
+      name: "Go to previous day",
+    });
+    const dayNextButton = screen.getByRole("button", {
+      name: "Go to next day",
+    });
+    expect(dayPreviousButton).toHaveAttribute("title", "Go to previous day");
+    expect(dayNextButton).toHaveAttribute("title", "Go to next day");
+    fireEvent.click(dayPreviousButton);
+    expect(dayPrevious).toHaveBeenCalledWith(new Date("2026-04-17T12:00:00"));
+    fireEvent.click(dayNextButton);
+    expect(dayPrevious).toHaveBeenLastCalledWith(new Date("2026-04-19T12:00:00"));
+    unmountDay();
+
+    const weekPrevious = vi.fn();
+    render(
+      <WeekView
+        date={new Date("2026-04-18T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[defaultProfile]}
+        setDate={weekPrevious}
+        onEdit={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Go to previous week" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Go to next week" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Go to previous week" }));
+    expect(weekPrevious).toHaveBeenCalledWith(new Date("2026-04-11T12:00:00"));
+    fireEvent.click(screen.getByRole("button", { name: "Go to next week" }));
+    expect(weekPrevious).toHaveBeenLastCalledWith(new Date("2026-04-25T12:00:00"));
+    cleanup();
+
+    const monthPrevious = vi.fn();
+    render(
+      <MonthView
+        date={new Date("2026-04-18T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[defaultProfile]}
+        setDate={monthPrevious}
+        onEdit={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Go to previous month" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Go to next month" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Go to previous month" }));
+    const expectedPreviousMonth = new Date("2026-04-18T12:00:00");
+    expectedPreviousMonth.setDate(1);
+    expectedPreviousMonth.setMonth(expectedPreviousMonth.getMonth() - 1);
+    expect(monthPrevious).toHaveBeenCalledWith(expectedPreviousMonth);
+    fireEvent.click(screen.getByRole("button", { name: "Go to next month" }));
+    const expectedNextMonth = new Date("2026-04-18T12:00:00");
+    expectedNextMonth.setDate(1);
+    expectedNextMonth.setMonth(expectedNextMonth.getMonth() + 1);
+    expect(monthPrevious).toHaveBeenLastCalledWith(expectedNextMonth);
+  });
+
   it("renders mixed-profile week headers and unavailable slots", () => {
     render(
       <WeekView

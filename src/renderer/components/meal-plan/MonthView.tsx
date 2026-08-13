@@ -15,6 +15,7 @@ import {
 } from "@/lib/calendar";
 import type { MealTypeProfilePayload } from "@shared/types";
 
+import { PeriodNavigation } from "./PeriodNavigation";
 import styles from "./meal-plan.module.css";
 
 type MonthViewProps = {
@@ -199,17 +200,18 @@ export function MonthView({
 
   return (
     <div className={styles.monthView}>
-      <div className={styles.monthNav}>
-        <button className={styles.dayNavBtn} onClick={prevMonth} type="button">
-          {"<"}
-        </button>
+      <PeriodNavigation
+        accentColor={getMealTypeProfileContext(date, mealTypeProfiles).accentColor}
+        className={styles.monthNav}
+        nextLabel="Go to next month"
+        onNext={nextMonth}
+        onPrevious={prevMonth}
+        previousLabel="Go to previous month"
+      >
         <span className={styles.monthNavLabel}>
           {MONTHS[month]} {year}
         </span>
-        <button className={styles.dayNavBtn} onClick={nextMonth} type="button">
-          {">"}
-        </button>
-      </div>
+      </PeriodNavigation>
 
       <div className={styles.monthGrid}>
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (

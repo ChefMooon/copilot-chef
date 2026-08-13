@@ -17,6 +17,7 @@ import {
 } from "@/lib/calendar";
 import type { MealTypeProfilePayload } from "@shared/types";
 
+import { PeriodNavigation } from "./PeriodNavigation";
 import styles from "./meal-plan.module.css";
 
 type DayViewProps = {
@@ -210,13 +211,14 @@ export function DayView({
 
   return (
     <div className={`${styles.dayView} ${isMuted ? styles.dayProfileMuted : ""}`}>
-      <div
+      <PeriodNavigation
         className={styles.dayNav}
-        style={{ boxShadow: `inset 0 3px 0 ${profileContext.accentColor}` }}
+        accentColor={profileContext.accentColor}
+        nextLabel="Go to next day"
+        onNext={next}
+        onPrevious={prev}
+        previousLabel="Go to previous day"
       >
-        <button className={styles.dayNavBtn} onClick={prev} type="button">
-          {"<"}
-        </button>
         <div className={styles.dayNavTitle}>
           <span className={styles.dayNavWeekday}>
             {date.toLocaleDateString("default", { weekday: "long" })}
@@ -232,10 +234,7 @@ export function DayView({
             ) : null}
           </span>
         </div>
-        <button className={styles.dayNavBtn} onClick={next} type="button">
-          {">"}
-        </button>
-      </div>
+      </PeriodNavigation>
 
       <div className={styles.dayTimeline}>
         {daySlots.map(({ type, meals: slotMeals }, index) => {

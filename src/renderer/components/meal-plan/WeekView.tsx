@@ -6,6 +6,7 @@ import {
   DAYS,
   getMealPlanDragPayload,
   getMonday,
+  getMealTypeProfileContext,
   getMealTypeProfileContexts,
   setMealPlanDragPayload,
   getTypeConfig,
@@ -19,6 +20,7 @@ import {
 } from "@/lib/calendar";
 import type { MealTypeProfilePayload } from "@shared/types";
 
+import { PeriodNavigation } from "./PeriodNavigation";
 import styles from "./meal-plan.module.css";
 
 type WeekViewProps = {
@@ -65,6 +67,10 @@ export function WeekView({
   const dayProfileContexts = useMemo(
     () => getMealTypeProfileContexts(days, mealTypeProfiles),
     [days, mealTypeProfiles]
+  );
+  const navigationProfileContext = getMealTypeProfileContext(
+    date,
+    mealTypeProfiles
   );
   const slotsByDay = useMemo(
     () =>
@@ -262,17 +268,18 @@ export function WeekView({
 
   return (
     <div className={styles.weekView}>
-      <div className={styles.weekNav}>
-        <button className={styles.dayNavBtn} onClick={prevWeek} type="button">
-          {"<"}
-        </button>
+      <PeriodNavigation
+        accentColor={navigationProfileContext.accentColor}
+        className={styles.weekNav}
+        nextLabel="Go to next week"
+        onNext={nextWeek}
+        onPrevious={prevWeek}
+        previousLabel="Go to previous week"
+      >
         <span className={styles.weekNavLabel}>
           {startLabel} - {endLabel}
         </span>
-        <button className={styles.dayNavBtn} onClick={nextWeek} type="button">
-          {">"}
-        </button>
-      </div>
+      </PeriodNavigation>
       <div className={styles.weekBoardScroller}>
         <div className={styles.weekBoard}>
           <div className={styles.weekBoardCorner}>Meal</div>
@@ -287,7 +294,6 @@ export function WeekView({
               <div
                 className={`${styles.weekDayHeader} ${todayMatch ? styles.weekDayHeaderToday : ""} ${profileContext.isProfileStart ? styles.weekDayHeaderProfileStart : ""} ${isMuted ? styles.weekProfileMuted : ""}`}
                 key={`header-${day.toISOString()}`}
-                style={{ boxShadow: `inset 0 3px 0 ${profileContext.accentColor}` }}
               >
                 <span className={styles.weekColWeekday}>{DAYS[day.getDay()]}</span>
                 <span
@@ -305,6 +311,11 @@ export function WeekView({
                 {profileContext.isProfileStart ? (
                   <span className={styles.weekProfileTransition}>Profile starts</span>
                 ) : null}
+                <span
+                  aria-hidden="true"
+                  className={styles.weekDayHeaderAccent}
+                  style={{ backgroundColor: profileContext.accentColor }}
+                />
               </div>
             );
           })}

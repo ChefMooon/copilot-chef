@@ -279,7 +279,7 @@
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  min-height: 52px;
+  min-height: 38px;
   touch-action: manipulation;
 }
 
@@ -662,24 +662,24 @@
   filter: saturate(0.7);
 }
 
-.dayNav,
-.weekNav,
-.monthNav {
+.periodNav {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
+  min-height: 52px;
+  padding: 0;
   border-bottom: 1px solid var(--border);
 }
 
-.dayNavBtn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1.5px solid var(--border);
-  background: var(--card);
+.periodNavButton {
+  width: 44px;
+  height: auto;
+  align-self: stretch;
+  margin: 0;
+  border: 0;
+  background: transparent;
   cursor: pointer;
-  font-size: 1rem;
   color: var(--text-muted);
   display: flex;
   align-items: center;
@@ -687,27 +687,68 @@
   transition: all 0.15s;
 }
 
-.dayNavBtn:hover {
-  border-color: var(--green);
+.periodNavButton:first-child {
+  border-right: 1px solid var(--border);
+  border-radius: 17px 0 0;
+}
+
+.periodNavButton:last-child {
+  border-left: 1px solid var(--border);
+  border-radius: 0 17px 0 0;
+}
+
+.periodNavButton:hover {
   color: var(--green);
   background: var(--green-pale);
 }
 
+.periodNavButton:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: -3px;
+}
+
+.periodNavAccent {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  height: 3px;
+  pointer-events: none;
+}
+
+.periodNavLabel {
+  position: absolute;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: min(18rem, calc(100% - 7rem));
+  min-height: 26px;
+  padding: 0.1rem 0.75rem;
+  transform: translateX(-50%);
+  pointer-events: none;
+  text-align: center;
+}
+
 .dayNavTitle {
   text-align: center;
+  line-height: 1.05;
 }
 
 .dayNavWeekday {
   font-family: var(--font-lora), Georgia, serif;
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-weight: 700;
+  line-height: 1.1;
   display: block;
 }
 
 .dayNavDate {
-  font-size: 0.82rem;
+  font-size: 0.74rem;
   color: var(--text-muted);
   font-weight: 600;
+  line-height: 1.1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1013,6 +1054,17 @@
   font-size: 1.15rem;
 }
 
+.dayNav .periodNavLabel {
+  min-height: 32px;
+}
+
+.dayNav .dayNavTitle,
+.weekNav .weekNavLabel,
+.monthNav .monthNavLabel {
+  position: relative;
+  z-index: 1;
+}
+
 .weekGrid,
 .monthGrid {
   display: grid;
@@ -1046,11 +1098,22 @@
 }
 
 .weekDayHeader {
+  position: relative;
   padding: 0.75rem 0.6rem 0.6rem;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   text-align: center;
   background: var(--card);
+}
+
+.weekDayHeaderAccent {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  height: 3px;
+  pointer-events: none;
 }
 
 .weekDayHeaderToday {
@@ -1484,10 +1547,29 @@
     flex-direction: column;
   }
 
-  .dayNav,
-  .weekNav,
-  .monthNav {
-    padding: 1rem;
+  .periodNav {
+    min-height: 36px;
+  }
+
+  .periodNavButton {
+    width: 40px;
+  }
+
+  .periodNavLabel {
+    min-width: min(16rem, calc(100% - 6.5rem));
+    padding: 0.1rem 0.6rem;
+  }
+
+  .dayNav .periodNavLabel {
+    min-height: 28px;
+  }
+
+  .dayNav .dayNavWeekday {
+    font-size: 1rem;
+  }
+
+  .dayNav .dayNavDate {
+    font-size: 0.7rem;
   }
 
   .dayTimeline {
