@@ -1,18 +1,33 @@
-import { app, shell, BrowserWindow, Tray, Menu, nativeImage } from "electron";
+import {
+  app,
+  shell,
+  BrowserWindow,
+  Tray,
+  Menu,
+  nativeImage,
+  screen,
+  type Rectangle,
+} from "electron";
 import { join, resolve } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 
 import { registerIpcHandlers } from "./ipc/index";
 import { LocalRecipeBookRuntime } from "./runtime";
-import { getSetting, ensureSetting } from "./settings/store";
+import { getSetting, setSetting, ensureSetting } from "./settings/store";
 import { setupAutoUpdater } from "./updates/service";
 import { createShutdownGate } from "./shutdown";
+import {
+  DEFAULT_WINDOW_STATE_OPTIONS,
+  WINDOW_STATE_SETTING_KEY,
+  captureWindowState,
+  resolveWindowState,
+} from "./window-state";
 
 // ── Constants ────────────────────────────────────────────────
-const DEFAULT_WINDOW_WIDTH = 1200;
-const DEFAULT_WINDOW_HEIGHT = 800;
-const MIN_WINDOW_WIDTH = 900;
-const MIN_WINDOW_HEIGHT = 600;
+const DEFAULT_WINDOW_WIDTH = DEFAULT_WINDOW_STATE_OPTIONS.defaultWidth;
+const DEFAULT_WINDOW_HEIGHT = DEFAULT_WINDOW_STATE_OPTIONS.defaultHeight;
+const MIN_WINDOW_WIDTH = DEFAULT_WINDOW_STATE_OPTIONS.minWidth;
+const MIN_WINDOW_HEIGHT = DEFAULT_WINDOW_STATE_OPTIONS.minHeight;
 
 // ── Module-level refs ────────────────────────────────────────
 let mainWindow: BrowserWindow | null = null;
@@ -34,6 +49,22 @@ function getResourcePath(...segments: string[]): string {
   return resolve(__dirname, "../../", ...segments);
 }
 
+function getDisplayWorkAreas(): Rectangle[] {
+  return screen.getAllDisplays().map((display) => display.workArea);
+}
+
+function shouldRememberWindowState(): boolean {
+  return getSetting("app_remember_window_state") === true;
+}
+
+function saveWindowState(win: BrowserWindow): void {
+  if (!shouldRememberWindowState()) return;
+  setSetting(
+    WINDOW_STATE_SETTING_KEY,
+    captureWindowState(win.getNormalBounds(), win.isMaximized())
+  );
+}
+
 // ── Window ───────────────────────────────────────────────────
 function createWindow(): BrowserWindow {
   const windowIconPath = getResourcePath(
@@ -42,12 +73,20 @@ function createWindow(): BrowserWindow {
   );
 
   const isMac = process.platform === "darwin";
+  const restoredState = shouldRememberWindowState()
+    ? resolveWindowState(
+        getSetting(WINDOW_STATE_SETTING_KEY),
+        getDisplayWorkAreas(),
+        DEFAULT_WINDOW_STATE_OPTIONS
+      )
+    : { bounds: null, maximized: false };
 
   const win = new BrowserWindow({
     width: DEFAULT_WINDOW_WIDTH,
     height: DEFAULT_WINDOW_HEIGHT,
     minWidth: MIN_WINDOW_WIDTH,
     minHeight: MIN_WINDOW_HEIGHT,
+    ...(restoredState.bounds ?? {}),
     show: false,
     title: "Local Recipe Book",
     icon: windowIconPath,
@@ -60,6 +99,13 @@ function createWindow(): BrowserWindow {
       sandbox: false,
     },
   });
+
+  if (restoredState.maximized) {
+    win.maximize();
+  }
+
+  win.on("maximize", () => saveWindowState(win));
+  win.on("unmaximize", () => saveWindowState(win));
 
   win.on("ready-to-show", () => {
     if (getSetting("app_launch_minimized") !== true) {
@@ -75,6 +121,8 @@ function createWindow(): BrowserWindow {
 
   // Close-to-tray
   win.on("close", (e) => {
+    saveWindowState(win);
+
     if (shutdownGate.isQuitting()) {
       return;
     }
@@ -165,6 +213,7 @@ app.whenReady().then(async () => {
   ensureSetting("app_close_to_tray", true);
   ensureSetting("app_launch_at_login", false);
   ensureSetting("app_launch_minimized", false);
+  ensureSetting("app_remember_window_state", false);
   ensureSetting("updates_check_on_startup", true);
   ensureSetting("home_upcoming_days", 7);
   ensureSetting("home_upcoming_layout", "list");
@@ -224,6 +273,9 @@ app.on("before-quit", (event) => {
   }
 
   event.preventDefault();
+  if (mainWindow) {
+    saveWindowState(mainWindow);
+  }
   shutdownGate.request();
 });
 

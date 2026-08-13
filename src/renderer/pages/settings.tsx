@@ -306,6 +306,7 @@ export default function SettingsPage() {
   const [updatesCheckOnStartup, setUpdatesCheckOnStartup] = useState(true);
   const [closeToTray, setCloseToTray] = useState(true);
   const [launchMinimized, setLaunchMinimized] = useState(false);
+  const [rememberWindowState, setRememberWindowState] = useState(false);
   const [launchAtLogin, setLaunchAtLogin] = useState(false);
   const [themePreference, setThemePreferenceDraft] =
     useState<AppSettingTheme>("system");
@@ -443,22 +444,40 @@ export default function SettingsPage() {
     Promise.all([
       platform.getSetting("app_close_to_tray"),
       platform.getSetting("app_launch_minimized"),
+      platform.getSetting("app_remember_window_state"),
       platform.getSetting("ui_theme"),
       platform.getLifecycleStatus(),
     ])
-      .then(([closeToTrayValue, launchMinimizedValue, themeValue, lifecycle]) => {
-        if (typeof closeToTrayValue === "boolean") {
-          setCloseToTray(closeToTrayValue);
+      .then(
+        ([
+          closeToTrayValue,
+          launchMinimizedValue,
+          rememberWindowStateValue,
+          themeValue,
+          lifecycle,
+        ]) => {
+          if (typeof closeToTrayValue === "boolean") {
+            setCloseToTray(closeToTrayValue);
+          }
+          if (typeof launchMinimizedValue === "boolean") {
+            setLaunchMinimized(launchMinimizedValue);
+          }
+          if (typeof rememberWindowStateValue === "boolean") {
+            setRememberWindowState(rememberWindowStateValue);
+          }
+          if (
+            themeValue === "light" ||
+            themeValue === "dark" ||
+            themeValue === "system"
+          ) {
+            setThemePreferenceDraft(themeValue);
+          }
+          setLaunchAtLogin(lifecycle.launchAtLogin);
+          setLifecycleUnavailableReason(
+            lifecycle.supported ? null : lifecycle.reason ?? null
+          );
         }
-        if (typeof launchMinimizedValue === "boolean") {
-          setLaunchMinimized(launchMinimizedValue);
-        }
-        if (themeValue === "light" || themeValue === "dark" || themeValue === "system") {
-          setThemePreferenceDraft(themeValue);
-        }
-        setLaunchAtLogin(lifecycle.launchAtLogin);
-        setLifecycleUnavailableReason(lifecycle.supported ? null : lifecycle.reason ?? null);
-      })
+      )
       .catch(() => {
         setLifecycleUnavailableReason("Desktop lifecycle settings are unavailable.");
       });
@@ -996,7 +1015,10 @@ export default function SettingsPage() {
   };
 
   const handleDesktopToggle = async (
-    key: "app_close_to_tray" | "app_launch_minimized",
+    key:
+      | "app_close_to_tray"
+      | "app_launch_minimized"
+      | "app_remember_window_state",
     checked: boolean,
     setValue: (value: boolean) => void,
     label: string
@@ -1023,6 +1045,15 @@ export default function SettingsPage() {
     } catch {
       setLaunchAtLogin(previous);
       toast({ title: "Could not save launch-at-login preference.", variant: "error" });
+    }
+  };
+
+  const handleResetWindowLayout = async () => {
+    try {
+      await platform.resetWindowLayout?.();
+      toast({ title: "Window layout reset." });
+    } catch {
+      toast({ title: "Could not reset window layout.", variant: "error" });
     }
   };
 
@@ -1465,6 +1496,28 @@ export default function SettingsPage() {
                     )
                   }
                 />
+                <ToggleRow
+                  checked={rememberWindowState}
+                  description="Reopen the main window at its last position, size, and maximize state."
+                  label="Remember window layout"
+                  onChange={(checked) =>
+                    void handleDesktopToggle(
+                      "app_remember_window_state",
+                      checked,
+                      setRememberWindowState,
+                      "window layout preference"
+                    )
+                  }
+                />
+                <div className={styles.actionsRow}>
+                  <Button
+                    onClick={() => void handleResetWindowLayout()}
+                    type="button"
+                    variant="outline"
+                  >
+                    Reset window layout
+                  </Button>
+                </div>
               </div>
             ) : (
               <p className={styles.fieldHint} style={{ marginTop: "1rem" }}>

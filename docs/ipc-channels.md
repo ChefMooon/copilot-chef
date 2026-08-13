@@ -32,6 +32,7 @@ These channels use `ipcMain.handle(...)` in main and `window.api.invoke(...)` in
 | `window:minimize` | renderer -> main | none | Minimizes focused window | `src/main/ipc/index.ts` |
 | `window:toggleMaximize` | renderer -> main | none | Toggles maximize/unmaximize on focused window | `src/main/ipc/index.ts` |
 | `window:isMaximized` | renderer -> main | none | Returns focused window maximize state | `src/main/ipc/index.ts` |
+| `window:resetLayout` | renderer -> main | none | Clears saved layout and resets the focused window to visible default bounds | `src/main/ipc/index.ts` |
 | `window:close` | renderer -> main | none | Closes focused window | `src/main/ipc/index.ts` |
 | `app:settings:get` | renderer -> main | `key: string` | Reads a setting value by key | `src/main/ipc/index.ts` |
 | `app:settings:set` | renderer -> main | `{ key, value }` | Writes a setting; may restart LAN services for related keys | `src/main/ipc/index.ts` |

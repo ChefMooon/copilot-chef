@@ -9,6 +9,7 @@ export const IPC_CHANNELS = [
   "window:minimize",
   "window:toggleMaximize",
   "window:isMaximized",
+  "window:resetLayout",
   "window:close",
   "app:settings:get",
   "app:settings:set",
@@ -66,6 +67,7 @@ export type IpcInvokeMap = {
   "window:minimize": () => Promise<void>;
   "window:toggleMaximize": () => Promise<void>;
   "window:isMaximized": () => Promise<boolean>;
+  "window:resetLayout": () => Promise<void>;
   "window:close": () => Promise<void>;
   "app:settings:get": (key: string) => Promise<unknown>;
   "app:settings:set": (payload: { key: string; value: unknown }) => Promise<void>;

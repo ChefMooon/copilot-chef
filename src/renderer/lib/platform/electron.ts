@@ -98,6 +98,9 @@ export function createElectronPlatform(): RendererPlatform {
     isWindowMaximized: async () => {
       return api.isWindowMaximized();
     },
+    resetWindowLayout: async () => {
+      await api.resetWindowLayout();
+    },
     closeWindow: async () => {
       await api.closeWindow();
     },

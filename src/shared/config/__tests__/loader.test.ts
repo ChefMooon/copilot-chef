@@ -185,8 +185,10 @@ describe("typed settings contract", () => {
     expect(normalizeStoredAppSetting("ui_theme", "dark")).toBe("dark");
     expect(APP_SETTING_DEFAULTS.app_launch_at_login).toBe(false);
     expect(APP_SETTING_DEFAULTS.app_launch_minimized).toBe(false);
+    expect(APP_SETTING_DEFAULTS.app_remember_window_state).toBe(false);
     expect(normalizeStoredAppSetting("app_launch_at_login", "true")).toBe(true);
     expect(normalizeStoredAppSetting("app_launch_minimized", "invalid")).toBe(false);
+    expect(normalizeStoredAppSetting("app_remember_window_state", "invalid")).toBe(false);
   });
 
   it("resolves the effective renderer theme for light, dark, and system values", () => {

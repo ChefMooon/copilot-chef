@@ -31,6 +31,7 @@ These settings are stored in `{userData}/settings.json` through `src/main/settin
 | `lan_enabled` | `false` | Enables LAN API binding |
 | `app_launch_at_login` | `false` | Desktop-only native launch-at-login preference. Windows and macOS use Electron login-item integration; packaged Linux builds use an XDG autostart entry. Browser mode and development builds do not apply it. |
 | `app_launch_minimized` | `false` | Desktop-only startup visibility preference. When enabled, the app starts hidden in the tray. Browser mode does not apply this setting. |
+| `app_remember_window_state` | `false` | Desktop-only preference to restore the main window's last valid position, size, and maximized state. Browser mode does not apply it. |
 | `updates_check_on_startup` | `true` | Checks for available app updates when the desktop app starts |
 | `ui_theme` | `"system"` | Selects the application theme: `light`, `dark`, or `system` |
 | `lan_web_enabled` | mirrors `lan_enabled` | Enables the browser web process independently |

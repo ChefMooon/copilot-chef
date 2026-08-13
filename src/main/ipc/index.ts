@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, screen } from "electron";
 import { writeFile } from "node:fs/promises";
 import { getServerInfo, restartServer } from "../server/start";
 import { resolveLanRuntimeSettings, probeLanReachability } from "../server/lib/lan";
@@ -11,6 +11,11 @@ import {
 } from "../server/lib/machine-token";
 import { getSetting, setSetting, getAllSettings } from "../settings/store";
 import { getLifecycleStatus, setLaunchAtLogin } from "../lifecycle";
+import {
+  DEFAULT_WINDOW_STATE_OPTIONS,
+  WINDOW_STATE_SETTING_KEY,
+  resetWindowLayout,
+} from "../window-state";
 
 type MenuPdfExportPayload = {
   htmlContent: string;
@@ -118,6 +123,15 @@ export function registerIpcHandlers(): void {
   ipcMain.handle("window:isMaximized", () => {
     const win = BrowserWindow.getFocusedWindow();
     return win?.isMaximized() ?? false;
+  });
+
+  ipcMain.handle("window:resetLayout", () => {
+    const win = BrowserWindow.getFocusedWindow();
+    if (!win) return;
+
+    const workArea = screen.getDisplayMatching(win.getNormalBounds()).workArea;
+    resetWindowLayout(win, workArea, DEFAULT_WINDOW_STATE_OPTIONS);
+    setSetting(WINDOW_STATE_SETTING_KEY, null);
   });
 
   ipcMain.handle("window:close", () => {

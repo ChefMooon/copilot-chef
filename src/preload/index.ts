@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from "electron";
 
 import type { IpcEventChannel, IpcEventMap, IpcInvokeMap } from "../shared/ipc";
 
-function invokeWindowChannel<K extends "window:minimize" | "window:toggleMaximize" | "window:isMaximized" | "window:close">(
+function invokeWindowChannel<K extends "window:minimize" | "window:toggleMaximize" | "window:isMaximized" | "window:resetLayout" | "window:close">(
   channel: K
 ): Promise<Awaited<ReturnType<IpcInvokeMap[K]>>> {
   return ipcRenderer.invoke(channel) as Promise<Awaited<ReturnType<IpcInvokeMap[K]>>>;
@@ -28,6 +28,7 @@ const api = {
   isWindowMaximized: async () => {
     return invokeWindowChannel("window:isMaximized");
   },
+  resetWindowLayout: () => invokeWindowChannel("window:resetLayout"),
   closeWindow: () => invokeWindowChannel("window:close"),
   off: <K extends IpcEventChannel>(
     channel: K,

@@ -75,6 +75,7 @@ Key settings:
 | `remote_server_url` | — | Remote API URL when `server_mode = "remote"` |
 | `remote_api_key` | — | Remote API bearer token |
 | `app_close_to_tray` | `true` | Hide to tray on close |
+| `app_remember_window_state` | `false` | Restore the last desktop window position, size, and maximized state |
 | `lan_enabled` | `false` | Enables LAN API binding |
 | `lan_web_enabled` | mirrors `lan_enabled` | Enables the static browser UI server |
 | `lan_web_port` | `4173` | Port for the static browser UI |

@@ -12,6 +12,7 @@ type WindowApi = {
   minimizeWindow: () => Promise<Awaited<ReturnType<IpcInvokeMap["window:minimize"]>>>;
   toggleMaximizeWindow: () => Promise<Awaited<ReturnType<IpcInvokeMap["window:toggleMaximize"]>>>;
   isWindowMaximized: () => Promise<Awaited<ReturnType<IpcInvokeMap["window:isMaximized"]>>>;
+  resetWindowLayout: () => Promise<Awaited<ReturnType<IpcInvokeMap["window:resetLayout"]>>>;
   closeWindow: () => Promise<Awaited<ReturnType<IpcInvokeMap["window:close"]>>>;
 };
 

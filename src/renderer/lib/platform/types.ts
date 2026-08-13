@@ -98,5 +98,6 @@ export type RendererPlatform = {
   minimizeWindow?: () => Promise<void>;
   toggleMaximizeWindow?: () => Promise<void>;
   isWindowMaximized?: () => Promise<boolean>;
+  resetWindowLayout?: () => Promise<void>;
   closeWindow?: () => Promise<void>;
 };
