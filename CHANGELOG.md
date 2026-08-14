@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.1] - 2025-08-14
+
+### Added
+
+- Imported recipes now include clickable source links so you can open the original recipe directly.
+
+### Changed
+
+- Upcoming meals on the dashboard are now grouped more clearly by meal and day.
+- Renamed the Settings “Connection” tab to “Network” and refined its placement for easier navigation.
+
+### Fixed
+
+- Corrected dark-theme styling inconsistencies across the meal plan, dashboard, and settings views.
+
 ## [1.1.0] - 2025-08-13
 
 ### Added
