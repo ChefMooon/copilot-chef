@@ -298,19 +298,53 @@
 .upcomingGroup {
   display: flex;
   flex-direction: column;
-  gap: 0.42rem;
+  gap: 0.65rem;
   min-width: 0;
-  padding: 0.52rem;
-  border: 1px solid var(--cream-dark);
+  padding: 0.65rem;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: rgba(244, 238, 226, 0.5);
+  background: var(--muted);
 }
 
-.upcomingGroupTitle {
-  color: var(--text-muted);
-  font-size: 0.68rem;
+.upcomingGroupHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.12rem;
+}
+
+.upcomingGroupWeekday {
+  color: var(--foreground);
+  font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.upcomingGroupDate {
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.upcomingMealTypeGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.upcomingMealTypeGroup + .upcomingMealTypeGroup {
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--border);
+}
+
+.upcomingMealTypeTitle {
+  margin-bottom: 0.3rem;
+  color: var(--muted-foreground);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
@@ -326,9 +360,9 @@
   justify-content: space-between;
   min-width: 0;
   padding: 0.38rem 0.5rem;
-  border: 1px solid var(--cream-dark);
+  border: 1px solid var(--border);
   border-radius: 9px;
-  background: var(--white);
+  background: var(--card);
 }
 
 .upcomingCardCompact .upcomingMealRow {

@@ -7,10 +7,15 @@ import { Button } from "@/components/ui/button";
 import { RouteErrorState } from "@/components/ui/route-error-state";
 import { AccessibleHeatmapCell } from "@/components/ui/accessible-heatmap-cell";
 import { fetchJson, isRateLimitedApiError } from "@/lib/api";
+import { useMealTypeProfiles } from "@/lib/use-meal-types";
 import { isServerConfigReady } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
 import { getPlatform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
+import {
+  getDefaultMealTypeProfile,
+  getMealTypeDefinitionsForDate,
+} from "@/lib/calendar";
 
 import styles from "./home-dashboard.module.css";
 
@@ -53,6 +58,11 @@ type UpcomingMealsPayload = {
   days: number;
   from: string;
   to: string;
+  meals: UpcomingMealPayload[];
+};
+
+type UpcomingMealTypeGroup = {
+  mealType: string;
   meals: UpcomingMealPayload[];
 };
 
@@ -139,9 +149,28 @@ function getGreeting() {
   return "Good evening";
 }
 
+function parseUpcomingDate(dateKey: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
+
+  if (match) {
+    return new Date(
+      Number(match[1]),
+      Number(match[2]) - 1,
+      Number(match[3]),
+      12,
+      0,
+      0,
+      0
+    );
+  }
+
+  return new Date(dateKey);
+}
+
 export function HomeDashboard() {
   const config = useServerConfig();
   const apiReady = isServerConfigReady(config);
+  const mealTypeProfilesQuery = useMealTypeProfiles();
   const [settings, setSettings] = useState<HomeDashboardSettings>(
     HOME_SETTINGS_DEFAULTS
   );
@@ -285,20 +314,67 @@ export function HomeDashboard() {
   const groceryList = groceryListQuery.data;
   const heatmap = heatmapQuery.data?.weeks ?? [];
   const upcomingMeals = upcomingMealsQuery.data?.meals ?? [];
+  const mealTypeProfiles = mealTypeProfilesQuery.data?.length
+    ? mealTypeProfilesQuery.data
+    : [getDefaultMealTypeProfile()];
 
   const groupedUpcomingMeals = useMemo(() => {
-    return upcomingMeals.reduce<Record<string, UpcomingMealPayload[]>>(
+    const groupedByDate = upcomingMeals.reduce<
+      Record<string, UpcomingMealTypeGroup[]>
+    >(
       (accumulator, meal) => {
-        const key = meal.date ?? "unscheduled";
-        if (!accumulator[key]) {
-          accumulator[key] = [];
+        const dateKey = meal.date ?? "unscheduled";
+        const dateGroup = accumulator[dateKey] ?? [];
+        const mealTypeGroup = dateGroup.find(
+          (group) => group.mealType === meal.mealType
+        );
+
+        if (mealTypeGroup) {
+          mealTypeGroup.meals.push(meal);
+        } else {
+          dateGroup.push({ mealType: meal.mealType, meals: [meal] });
         }
-        accumulator[key].push(meal);
+
+        accumulator[dateKey] = dateGroup;
         return accumulator;
       },
       {}
     );
-  }, [upcomingMeals]);
+
+    return Object.fromEntries(
+      Object.entries(groupedByDate).map(([dateKey, groups]) => {
+        if (dateKey === "unscheduled") {
+          return [dateKey, groups];
+        }
+
+        const date = parseUpcomingDate(dateKey);
+        const definitions = getMealTypeDefinitionsForDate(
+          date,
+          mealTypeProfiles
+        );
+        const order = new Map(
+          definitions
+            .slice()
+            .sort((left, right) => left.sortOrder - right.sortOrder)
+            .map((definition, index) => [definition.slug, index])
+        );
+
+        return [
+          dateKey,
+          groups
+            .map((group, index) => ({
+              group,
+              index,
+              order: order.get(group.mealType) ?? Number.MAX_SAFE_INTEGER,
+            }))
+            .sort(
+              (left, right) => left.order - right.order || left.index - right.index
+            )
+            .map(({ group }) => group),
+        ];
+      })
+    );
+  }, [mealTypeProfiles, upcomingMeals]);
 
   const upcomingGroupKeys = useMemo(() => {
     return Object.keys(groupedUpcomingMeals).sort();
@@ -398,52 +474,75 @@ export function HomeDashboard() {
                 ) : (
                   <div className={styles.upcomingGroupedList}>
                     {upcomingGroupKeys.map((dateKey) => {
-                      const label =
+                      const date =
                         dateKey === "unscheduled"
-                          ? "Unscheduled"
-                          : new Date(dateKey).toLocaleDateString("en-US", {
-                              weekday: "short",
-                              month: "short",
-                              day: "numeric",
-                            });
+                          ? null
+                          : parseUpcomingDate(dateKey);
 
                       return (
                         <div className={styles.upcomingGroup} key={dateKey}>
-                          <div className={styles.upcomingGroupTitle}>
-                            {label}
+                          <div className={styles.upcomingGroupHeader}>
+                            <div className={styles.upcomingGroupWeekday}>
+                              {date
+                                ? date.toLocaleDateString("en-US", {
+                                    weekday: "short",
+                                  })
+                                : "Unscheduled"}
+                            </div>
+                            {date ? (
+                              <div className={styles.upcomingGroupDate}>
+                                {date.toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                              </div>
+                            ) : null}
                           </div>
-                          <div className={styles.upcomingGroupMeals}>
-                            {groupedUpcomingMeals[dateKey].map((meal) => (
-                              <div
-                                className={styles.upcomingMealRow}
-                                key={meal.id}
-                              >
-                                <div>
-                                  <div className={styles.upcomingMealName}>
-                                    {meal.name}
+                          <div className={styles.upcomingMealTypeGroups}>
+                            {groupedUpcomingMeals[dateKey].map(
+                              ({ mealType, meals }) => (
+                                <div
+                                  className={styles.upcomingMealTypeGroup}
+                                  key={mealType}
+                                >
+                                  <div className={styles.upcomingMealTypeTitle}>
+                                    {formatMealType(mealType)}
                                   </div>
-                                  <div className={styles.upcomingMeta}>
-                                    {formatMealType(meal.mealType)}
-                                    {meal.mealSubTypeDefinition ? (
-                                      <span
-                                        className={styles.upcomingMealSubType}
-                                        style={{ color: meal.mealSubTypeDefinition.color }}
+                                  <div className={styles.upcomingGroupMeals}>
+                                    {meals.map((meal) => (
+                                      <div
+                                        className={styles.upcomingMealRow}
+                                        key={meal.id}
                                       >
-                                        {meal.mealSubTypeDefinition.name}
-                                      </span>
-                                    ) : null}
-                                    {settings.upcomingDetail === "detailed" &&
-                                    meal.cuisine
-                                      ? ` · ${meal.cuisine}`
-                                      : ""}
-                                    {settings.upcomingDetail === "detailed" &&
-                                    meal.linkedRecipe?.title
-                                      ? ` · ${meal.linkedRecipe.title}`
-                                      : ""}
+                                        <div>
+                                          <div className={styles.upcomingMealName}>
+                                            {meal.name}
+                                          </div>
+                                          <div className={styles.upcomingMeta}>
+                                            {meal.mealSubTypeDefinition ? (
+                                              <span
+                                                className={styles.upcomingMealSubType}
+                                                style={{ color: meal.mealSubTypeDefinition.color }}
+                                              >
+                                                {meal.mealSubTypeDefinition.name}
+                                              </span>
+                                            ) : null}
+                                            {settings.upcomingDetail === "detailed" &&
+                                            meal.cuisine
+                                              ? ` · ${meal.cuisine}`
+                                              : ""}
+                                            {settings.upcomingDetail === "detailed" &&
+                                            meal.linkedRecipe?.title
+                                              ? ` · ${meal.linkedRecipe.title}`
+                                              : ""}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
                                   </div>
                                 </div>
-                              </div>
-                            ))}
+                              )
+                            )}
                           </div>
                         </div>
                       );

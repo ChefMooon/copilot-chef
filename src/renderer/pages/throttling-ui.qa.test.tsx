@@ -128,6 +128,7 @@ describe("throttling UI regression coverage", () => {
     const upcomingRefetch = vi.fn();
 
     useQueryMock
+      .mockReturnValueOnce(queryState({ data: [] }))
       .mockReturnValueOnce(
         queryState({
           data: {

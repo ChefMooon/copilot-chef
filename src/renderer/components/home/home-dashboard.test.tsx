@@ -1,0 +1,201 @@
+// @vitest-environment jsdom
+
+import { cleanup, render, screen, within } from "@testing-library/react";
+import { MemoryRouter } from "react-router";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { HomeDashboard } from "@/components/home/home-dashboard";
+
+const { getSettingMock, useMealTypeProfilesMock, useQueryMock } = vi.hoisted(() => ({
+  getSettingMock: vi.fn(),
+  useMealTypeProfilesMock: vi.fn(),
+  useQueryMock: vi.fn(),
+}));
+
+vi.mock("@tanstack/react-query", () => ({
+  useQuery: useQueryMock,
+}));
+
+vi.mock("@/lib/platform", () => ({
+  getPlatform: () => ({
+    runtime: "browser",
+    getSetting: getSettingMock,
+  }),
+}));
+
+vi.mock("@/lib/use-meal-types", () => ({
+  useMealTypeProfiles: useMealTypeProfilesMock,
+}));
+
+vi.mock("@/lib/use-server-config", () => ({
+  useServerConfig: () => ({ url: "http://localhost:3001", token: "test" }),
+}));
+
+vi.mock("@/lib/config", () => ({
+  isServerConfigReady: () => true,
+}));
+
+vi.mock("@/lib/api", () => ({
+  fetchJson: vi.fn(),
+  isRateLimitedApiError: () => false,
+}));
+
+function queryState(data: unknown) {
+  return {
+    data,
+    isLoading: false,
+    isError: false,
+    error: undefined,
+    refetch: vi.fn(),
+  };
+}
+
+describe("HomeDashboard upcoming meals", () => {
+  beforeEach(() => {
+    useQueryMock.mockReset();
+    getSettingMock.mockReset();
+    useMealTypeProfilesMock.mockReset();
+    getSettingMock.mockResolvedValue(null);
+    useMealTypeProfilesMock.mockReturnValue({ data: [] });
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("groups same-type meals and keeps the date hierarchy readable", async () => {
+    useMealTypeProfilesMock.mockReturnValue({
+      data: [
+        {
+          id: "custom-weekday",
+          name: "Custom Weekday",
+          color: "#3b5e45",
+          description: null,
+          isDefault: false,
+          priority: 10,
+          startDate: null,
+          endDate: null,
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          mealTypes: [
+            {
+              id: "lunch",
+              profileId: "custom-weekday",
+              name: "Lunch",
+              slug: "lunch",
+              color: "#7db18d",
+              enabled: true,
+              sortOrder: 10,
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-01T00:00:00.000Z",
+            },
+            {
+              id: "dinner",
+              profileId: "custom-weekday",
+              name: "Dinner",
+              slug: "dinner",
+              color: "#7db18d",
+              enabled: true,
+              sortOrder: 20,
+              createdAt: "2026-01-01T00:00:00.000Z",
+              updatedAt: "2026-01-01T00:00:00.000Z",
+            },
+          ],
+        },
+      ],
+    });
+
+    const upcomingData = {
+      days: 7,
+      from: "2026-08-14",
+      to: "2026-08-20",
+      meals: [
+        {
+          id: "dinner-main",
+          name: "Roasted vegetables",
+          date: "2026-08-14",
+          mealType: "dinner",
+          mealSubTypeDefinition: {
+            id: "main",
+            name: "Main",
+            slug: "main",
+            color: "#7db18d",
+          },
+          cuisine: "Mediterranean",
+          linkedRecipe: { title: "Weeknight vegetables" },
+        },
+        {
+          id: "dinner-side",
+          name: "Herbed rice",
+          date: "2026-08-14",
+          mealType: "dinner",
+          mealSubTypeDefinition: {
+            id: "side",
+            name: "Side",
+            slug: "side",
+            color: "#7db18d",
+          },
+          cuisine: null,
+          linkedRecipe: null,
+        },
+        {
+          id: "lunch-main",
+          name: "Tomato toast",
+          date: "2026-08-14",
+          mealType: "lunch",
+          mealSubTypeDefinition: null,
+          cuisine: null,
+          linkedRecipe: null,
+        },
+      ],
+    };
+
+    useQueryMock.mockImplementation(({ queryKey }: { queryKey: string[] }) => {
+      if (queryKey[1] === "meal-summary") {
+        return queryState({
+          from: "2026-08-10",
+          to: "2026-08-16",
+          totalSlots: 3,
+        });
+      }
+
+      if (queryKey[1] === "grocery-list") {
+        return queryState(null);
+      }
+
+      if (queryKey[1] === "heatmap") {
+        return queryState({ weeks: [], monthStarts: {} });
+      }
+
+      return queryState(upcomingData);
+    });
+    getSettingMock.mockImplementation((key: string) =>
+      Promise.resolve(key === "home_upcoming_detail" ? "detailed" : null)
+    );
+
+    render(
+      <MemoryRouter>
+        <HomeDashboard />
+      </MemoryRouter>
+    );
+
+    const dinnerHeading = await screen.findByText("Dinner");
+    const dinnerGroup = dinnerHeading.parentElement;
+
+    expect(dinnerGroup).not.toBeNull();
+    expect(
+      within(dinnerGroup as HTMLElement).getByText("Roasted vegetables")
+    ).toBeTruthy();
+    expect(within(dinnerGroup as HTMLElement).getByText("Herbed rice")).toBeTruthy();
+    expect(screen.getByText("Lunch")).toBeTruthy();
+    expect(screen.getByText("Fri")).toBeTruthy();
+    expect(screen.getByText("Aug 14")).toBeTruthy();
+    expect(screen.getByText(/Mediterranean/)).toBeTruthy();
+    expect(screen.getByText(/Weeknight vegetables/)).toBeTruthy();
+
+    const mealTypeGroups = screen.getByText("Lunch").parentElement?.parentElement;
+    expect(mealTypeGroups?.textContent?.indexOf("Lunch")).toBeLessThan(
+      mealTypeGroups?.textContent?.indexOf("Dinner") ?? -1
+    );
+  });
+});
