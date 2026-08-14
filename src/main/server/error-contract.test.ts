@@ -1,6 +1,25 @@
 import { Hono } from "hono";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
+
+const electronMock = vi.hoisted(() => {
+  const userDataPath = process.env.TEMP ?? process.cwd();
+
+  return {
+    app: {
+      isPackaged: false,
+      getPath: (name: string) => {
+        if (name !== "userData") {
+          throw new Error(`Unsupported Electron path: ${name}`);
+        }
+
+        return userDataPath;
+      },
+    },
+  };
+});
+
+vi.mock("electron", () => electronMock);
 
 import { createApp } from "./app";
 
