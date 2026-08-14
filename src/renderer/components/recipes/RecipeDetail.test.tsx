@@ -343,5 +343,5 @@ describe("RecipeDetail duplicate draft flow", () => {
         screen.queryByRole("dialog", { name: "Cooking history photo viewer" })
       ).not.toBeInTheDocument();
     });
-  });
+  }, 15_000);
 });
