@@ -1080,6 +1080,7 @@
 }
 
 .weekBoard {
+  --week-grid-border: color-mix(in srgb, var(--text-muted) 28%, var(--card));
   display: grid;
   grid-template-columns: 128px repeat(7, minmax(128px, 1fr));
   min-width: 1040px;
@@ -1087,8 +1088,8 @@
 
 .weekBoardCorner {
   padding: 0.9rem 0.85rem;
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--week-grid-border);
+  border-bottom: 1px solid var(--week-grid-border);
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -1100,8 +1101,8 @@
 .weekDayHeader {
   position: relative;
   padding: 0.75rem 0.6rem 0.6rem;
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--week-grid-border);
+  border-bottom: 1px solid var(--week-grid-border);
   text-align: center;
   background: var(--card);
 }
@@ -1126,12 +1127,13 @@
 
 .weekTypeCell {
   padding: 0.9rem 0.85rem;
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--week-grid-border);
+  border-bottom: 1px solid var(--week-grid-border);
   background: var(--muted);
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--primary) 22%, transparent);
 }
 
 .weekTypeDot {
@@ -1142,18 +1144,20 @@
 }
 
 .weekTypeLabel {
-  font-size: 0.64rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  line-height: 1.3;
+  min-width: 0;
+  color: var(--text);
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .weekSlotCell {
   min-height: 90px;
   padding: 0.7rem;
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--week-grid-border);
+  border-bottom: 1px solid var(--week-grid-border);
   background: var(--card);
   display: flex;
 }
@@ -1412,26 +1416,19 @@
   max-width: 100%;
   margin-top: 0.45rem;
   padding: 0.22rem 0.5rem;
-  border: 1px solid currentColor;
+  border: 1px solid var(--profile-accent, var(--border));
   border-radius: 999px;
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  background: color-mix(in srgb, var(--profile-accent, var(--secondary)) 14%, var(--card));
+  color: var(--text);
+  font-size: 0.62rem;
+  font-weight: 850;
+  letter-spacing: 0.05em;
   line-height: 1.2;
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.weekProfileTransition {
-  display: block;
-  margin-top: 0.35rem;
-  font-size: 0.56rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  text-transform: uppercase;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--profile-accent, var(--border)) 16%, transparent);
 }
 
 .weekSlotUnavailable {
@@ -3105,9 +3102,9 @@
   width: 36px;
   min-width: 36px;
   height: 36px;
-  border: 1px solid rgba(193, 176, 145, 0.95);
+  border: 1px solid var(--cream-dark);
   border-radius: 10px;
-  background: linear-gradient(180deg, rgba(255, 253, 248, 0.98) 0%, rgba(249, 243, 232, 0.98) 100%);
+  background: var(--card);
   color: var(--text-muted);
   display: inline-flex;
   align-items: center;
@@ -3117,10 +3114,10 @@
 }
 
 .slotDragHandleBtn:hover {
-  border-color: #c5b28f;
-  background: linear-gradient(180deg, #fffaf0 0%, #f4ead7 100%);
+  border-color: var(--green);
+  background: var(--cream);
   color: var(--text);
-  box-shadow: 0 4px 10px rgba(44, 36, 22, 0.1);
+  box-shadow: var(--shadow);
 }
 
 .slotDragHandleBtn:active {
@@ -3129,7 +3126,7 @@
 
 .slotDragHandleBtn:focus-visible {
   border-color: var(--green);
-  box-shadow: 0 0 0 2px rgba(59, 94, 69, 0.14);
+  box-shadow: 0 0 0 2px var(--ring);
 }
 
 .slotDragHandleGlyph {

@@ -19,7 +19,10 @@ import {
   type MealPlanDropTarget,
   type MealPlanDragPayload,
 } from "@/lib/calendar";
-import type { MealTypeProfilePayload } from "@shared/types";
+import type {
+  MealTypeDefinitionPayload,
+  MealTypeProfilePayload,
+} from "@shared/types";
 
 import { PeriodNavigation } from "./PeriodNavigation";
 import styles from "./meal-plan.module.css";
@@ -129,6 +132,58 @@ export function WeekView({
       );
     });
   }, [mergedMealTypes, slotsByDay]);
+  const rowMealTypeConfigs = useMemo(() => {
+    const activeDefinitions = new Map(
+      navigationProfileContext.mealTypes.map((definition) => [
+        definition.slug,
+        definition,
+      ])
+    );
+    const candidatesByType = new Map<
+      string,
+      Map<string, { definition: MealTypeDefinitionPayload; count: number }>
+    >();
+
+    for (const { mealTypes } of slotsByDay) {
+      for (const definition of mealTypes) {
+        const candidates = candidatesByType.get(definition.slug) ?? new Map();
+        const candidate = candidates.get(definition.id);
+
+        if (candidate) {
+          candidate.count += 1;
+        } else {
+          candidates.set(definition.id, { definition, count: 1 });
+        }
+
+        candidatesByType.set(definition.slug, candidates);
+      }
+    }
+
+    return new Map(
+      rowMealTypes.map((type) => {
+        const candidates = Array.from(candidatesByType.get(type)?.values() ?? []);
+        const activeDefinition = activeDefinitions.get(type);
+        const selected = candidates.sort((left, right) => {
+          const leftIsActive = left.definition.id === activeDefinition?.id;
+          const rightIsActive = right.definition.id === activeDefinition?.id;
+
+          return (
+            Number(rightIsActive) - Number(leftIsActive) ||
+            right.count - left.count ||
+            left.definition.sortOrder - right.definition.sortOrder ||
+            left.definition.name.localeCompare(right.definition.name)
+          );
+        })[0]?.definition;
+
+        return [
+          type,
+          selected
+            ? getTypeConfig(type, [selected])
+            : getTypeConfig(type, mergedMealTypes),
+        ] as const;
+      })
+    );
+  }, [mergedMealTypes, navigationProfileContext.mealTypes, rowMealTypes, slotsByDay]);
   const draggedMealId = draggedPayload?.kind === "meal" ? draggedPayload.mealId : null;
   const draggedSlotMealIds =
     draggedPayload?.kind === "slot" ? new Set(draggedPayload.mealIds) : null;
@@ -304,14 +359,13 @@ export function WeekView({
                 </span>
                 <span
                   className={styles.weekProfileChip}
-                  style={{ borderColor: profileContext.accentColor, color: profileContext.accentColor }}
+                  style={{
+                    "--profile-accent": profileContext.accentColor,
+                  } as CSSProperties}
                   title={profileContext.rangeLabel ?? profileContext.profile.description ?? undefined}
                 >
                   {profileContext.profile.name}
                 </span>
-                {profileContext.isProfileStart ? (
-                  <span className={styles.weekProfileTransition}>Profile starts</span>
-                ) : null}
                 <span
                   aria-hidden="true"
                   className={styles.weekDayHeaderAccent}
@@ -323,7 +377,8 @@ export function WeekView({
 
           {days.length > 0
             ? rowMealTypes.map((type) => {
-                const typeConfig = getTypeConfig(type, mergedMealTypes);
+                const typeConfig =
+                  rowMealTypeConfigs.get(type) ?? getTypeConfig(type, mergedMealTypes);
 
                 return (
                   <Fragment key={type}>
@@ -334,7 +389,6 @@ export function WeekView({
                       />
                       <span
                         className={styles.weekTypeLabel}
-                        style={{ color: typeConfig.text }}
                       >
                         {typeConfig.label}
                       </span>

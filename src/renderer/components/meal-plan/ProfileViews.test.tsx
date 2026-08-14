@@ -47,6 +47,14 @@ const defaultProfile: MealTypeProfilePayload = {
   ],
 };
 
+const customLabelProfile: MealTypeProfilePayload = {
+  ...defaultProfile,
+  mealTypes: defaultProfile.mealTypes.map((definition) => ({
+    ...definition,
+    name: definition.slug === "breakfast" ? "Sunrise" : "Supper",
+  })),
+};
+
 const weekendProfile: MealTypeProfilePayload = {
   id: "weekend-profile",
   name: "Weekend",
@@ -310,7 +318,6 @@ describe("profile-aware meal plan views", () => {
 
     expect(screen.getAllByText("Default").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Weekend").length).toBeGreaterThan(0);
-    expect(screen.getByText("Profile starts")).toBeTruthy();
     expect(screen.getByText("Brunch")).toBeTruthy();
     expect(screen.getAllByText("Not in profile").length).toBeGreaterThan(0);
 
@@ -319,7 +326,26 @@ describe("profile-aware meal plan views", () => {
       .find((element) => element.className.includes(styles.weekProfileChip));
 
     expect(weekendChip).toBeTruthy();
-    expect((weekendChip as HTMLElement).style.color).toBe("rgb(168, 87, 116)");
+    expect((weekendChip as HTMLElement).style.getPropertyValue("--profile-accent")).toBe(
+      "#A85774"
+    );
+  });
+
+  it("renders configured custom meal-type names in the shared week rows", () => {
+    render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[customLabelProfile]}
+        setDate={vi.fn()}
+        onEdit={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getByText("Sunrise")).toHaveClass(styles.weekTypeLabel);
+    expect(screen.getByText("Supper")).toHaveClass(styles.weekTypeLabel);
+    expect(screen.getAllByText("Default").length).toBeGreaterThan(0);
   });
 
   it("uses meal-type tinting without a left color bar in day and week views", () => {
