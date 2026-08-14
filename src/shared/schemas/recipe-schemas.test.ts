@@ -214,6 +214,30 @@ describe("recipe schemas", () => {
     expect(parsed.sourceUrl).toBeNull();
   });
 
+  it.each(["http://example.com/recipe", "https://example.com/recipe"]) (
+    "accepts %s source URLs",
+    (sourceUrl) => {
+      const parsed = CreateRecipeInputSchema.parse({
+        ...baseRecipe,
+        sourceUrl,
+      });
+
+      expect(parsed.sourceUrl).toBe(sourceUrl);
+    }
+  );
+
+  it.each(["ftp://example.com/recipe", "example.com/recipe"]) (
+    "rejects %s source URLs",
+    (sourceUrl) => {
+      const result = CreateRecipeInputSchema.safeParse({
+        ...baseRecipe,
+        sourceUrl,
+      });
+
+      expect(result.success).toBe(false);
+    }
+  );
+
   it("accepts sourceRecipeId for iteration lineage", () => {
     const parsed = CreateRecipeInputSchema.parse({
       ...baseRecipe,

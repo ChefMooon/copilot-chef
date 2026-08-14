@@ -193,7 +193,21 @@ const sourceUrlSchema = z.preprocess((value) => {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
-}, z.string().url().nullable());
+}, z.string().url().nullable()).refine(
+  (value) => {
+    if (value === null) {
+      return true;
+    }
+
+    try {
+      const protocol = new URL(value).protocol;
+      return protocol === "http:" || protocol === "https:";
+    } catch {
+      return false;
+    }
+  },
+  "Source URL must use http:// or https://"
+);
 
 export const CreateRecipeInputSchema = z.object({
   title: requiredTrimmedStringSchema,

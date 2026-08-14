@@ -90,7 +90,12 @@ export function RecipeCard({
           ) : null}
         </div>
       </div>
-      <SourceBadge compact origin={recipe.origin} sourceLabel={recipe.sourceLabel} />
+      <SourceBadge
+        compact
+        origin={recipe.origin}
+        sourceLabel={recipe.sourceLabel}
+        sourceUrl={recipe.sourceUrl}
+      />
       <p className="mt-1.5 line-clamp-2 text-[13px] leading-snug text-text-muted sm:mt-2 sm:text-sm">
         {recipe.description || "No description"}
       </p>

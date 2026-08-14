@@ -363,6 +363,7 @@ export function RecipeDetail({
           <SourceBadge
             origin={recipe.origin}
             sourceLabel={recipe.sourceLabel}
+            sourceUrl={recipe.sourceUrl}
           />
           {recipe.difficulty ? (
             <span className="rounded-chip border border-cream-dark bg-cream px-2 py-0.5 text-[0.72rem] font-bold uppercase tracking-[0.06em]">
@@ -515,36 +516,32 @@ export function RecipeDetail({
           </p>
         ) : null}
         <ol className="recipe-print-steps mt-3 list-decimal space-y-2.5 pl-5 text-[0.92rem] leading-relaxed text-text">
-          {(view === "detailed" ? detailedInstructionSteps : recipe.instructions).map(
-            (step, index) => (
-              <li
-                key={
-                  view === "detailed"
-                    ? `${index}-${step.parts.map((part) => part.type === "text" ? part.value : part.text).join("")}`
-                    : `${index}-${step}`
-                }
-              >
-                {view === "detailed"
-                  ? step.parts.map((part, partIndex) => {
-                      if (part.type === "text") {
-                        return (
-                          <span key={`text-${partIndex}`}>{part.value}</span>
-                        );
-                      }
-
+          {view === "detailed"
+            ? detailedInstructionSteps.map((step, index) => (
+                <li
+                  key={`${index}-${step.parts.map((part) => part.type === "text" ? part.value : part.text).join("")}`}
+                >
+                  {step.parts.map((part, partIndex) => {
+                    if (part.type === "text") {
                       return (
-                        <span key={`${part.ingredientId}-${partIndex}`}>
-                          {part.text}
-                          <span className="ml-1 rounded-full bg-green/10 px-1.5 py-0.5 text-[0.76rem] font-semibold text-green">
-                            {part.amountText}
-                          </span>
-                        </span>
+                        <span key={`text-${partIndex}`}>{part.value}</span>
                       );
-                    })
-                  : step}
-              </li>
-            )
-          )}
+                    }
+
+                    return (
+                      <span key={`${part.ingredientId}-${partIndex}`}>
+                        {part.text}
+                        <span className="ml-1 rounded-full bg-green/10 px-1.5 py-0.5 text-[0.76rem] font-semibold text-green">
+                          {part.amountText}
+                        </span>
+                      </span>
+                    );
+                  })}
+                </li>
+              ))
+            : recipe.instructions.map((step, index) => (
+                <li key={`${index}-${step}`}>{step}</li>
+              ))}
         </ol>
       </section>
 
