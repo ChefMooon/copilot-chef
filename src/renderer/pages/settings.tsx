@@ -201,14 +201,23 @@ function normalizeHomeBool(input: unknown, fallback: boolean) {
 }
 
 const TABS: Array<{ id: TabId; label: string; panelId: string }> = [
+  { id: "app-settings",
+    label: "App Settings",
+    panelId: "panel-app-settings"
+  },
   {
     id: "dietary-profile",
     label: "Dietary Profile",
     panelId: "panel-dietary-profile",
   },
-  { id: "meal-plans", label: "Meal Plans", panelId: "panel-meal-plans" },
-  { id: "app-settings", label: "App Settings", panelId: "panel-app-settings" },
-  { id: "connection", label: "Connection", panelId: "panel-connection" },
+  { id: "meal-plans",
+    label: "Meal Plans",
+    panelId: "panel-meal-plans"
+  },
+  { id: "connection",
+    label: "Network",
+    panelId: "panel-connection"
+  },
 ];
 
 const TAB_IDS = TABS.map((t) => t.id);

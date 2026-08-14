@@ -36,3 +36,15 @@ describe("dark theme contrast tokens", () => {
     expect(contrastRatio(activeNavigation, header)).toBeGreaterThanOrEqual(3);
   });
 });
+
+describe("settings tab selected-state contrast tokens", () => {
+  it("keeps the selected tab legible in light mode", () => {
+    expect(contrastRatio("#3b5e45", "#d4e4d8")).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio("#3b5e45", "#f5f0e8")).toBeGreaterThanOrEqual(3);
+  });
+
+  it("keeps the selected tab legible in dark mode", () => {
+    expect(contrastRatio("#f1f7f1", "#21352c")).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio("#a5d8b3", "#0d1410")).toBeGreaterThanOrEqual(3);
+  });
+});

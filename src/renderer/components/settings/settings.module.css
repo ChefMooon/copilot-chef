@@ -1215,9 +1215,9 @@
 }
 
 .tabButtonActive {
-  border-color: #2c4a1e;
-  background: rgba(44, 74, 30, 0.09);
-  color: #2c4a1e;
+  border-color: var(--primary);
+  background: var(--secondary);
+  color: var(--secondary-foreground);
 }
 
 .tabPanel {
