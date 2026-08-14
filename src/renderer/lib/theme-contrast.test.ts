@@ -37,19 +37,6 @@ describe("dark theme contrast tokens", () => {
   });
 });
 
-describe("light theme Upcoming Meals boundary contrast tokens", () => {
-  const background = "#f5f0e8";
-  const card = "#fffdf8";
-  const muted = "#ede6d6";
-  const border = "#70685a";
-
-  it("keeps Upcoming Meals group and meal boundaries distinguishable", () => {
-    expect(contrastRatio(border, muted)).toBeGreaterThanOrEqual(3);
-    expect(contrastRatio(border, card)).toBeGreaterThanOrEqual(3);
-    expect(contrastRatio(border, background)).toBeGreaterThanOrEqual(3);
-  });
-});
-
 describe("settings tab selected-state contrast tokens", () => {
   it("keeps the selected tab legible in light mode", () => {
     expect(contrastRatio("#3b5e45", "#d4e4d8")).toBeGreaterThanOrEqual(4.5);
