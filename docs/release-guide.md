@@ -16,7 +16,7 @@ Pushing a `v` tag starts the desktop release workflow.
 
 ## Before Tagging
 
-- Ensure `main` contains the release commit.
+- Ensure the release metadata is committed on `main` with a message such as `chore: prepare v1.1.1 release`, then push that commit to `origin` before creating the tag.
 - Update `package.json` `version` to match the intended release.
 - Update `CHANGELOG.md` if you are maintaining release notes.
 - Verify local validation passes:
@@ -33,7 +33,9 @@ The release workflow reruns build, lint, and test on GitHub before packaging, so
 
 ## Create a Release
 
-Tag from the repository root:
+The publish-release skill creates and pushes the requested tag after local validation and release metadata preparation. It then updates the resulting GitHub Release draft with the validated changelog entry and presents the draft URL for review. Leave the release as a draft until it has been reviewed.
+
+Manual tag creation from the repository root:
 
 ```bash
 git tag v1.0.0
@@ -55,6 +57,8 @@ git push origin v1.0.0
 7. Packages and publishes the Windows installer with `electron-builder --win --publish always`.
 
 The workflow uses the repository `GITHUB_TOKEN` to publish the release assets defined by the Electron Builder config in `package.json`.
+
+After the workflow creates the GitHub Release draft, update its body with the validated `CHANGELOG.md` entry for the matching version. This keeps the release draft useful even when electron-builder adds generated commit information automatically. Verify the changelog text and installer artifacts are present before publishing or treating the release as complete.
 
 The package still contains internal `copilot-chef` identifiers for compatibility. Verify the Electron Builder publish target in `package.json` before a public release; changing those identifiers is outside this documentation update.
 
