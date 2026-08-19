@@ -2152,7 +2152,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.1rem 1.4rem;
+  padding: 0.75rem 1.4rem 0.45rem;
   border-bottom: 2px solid var(--cream-dark);
 }
 
@@ -2427,42 +2427,31 @@
 
 .modalFooter {
   display: flex;
-  flex-direction: column;
-  padding: 1rem 1.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 0.65rem 1.4rem;
   border-top: 1px solid var(--cream-dark);
-  gap: 0.6rem;
-}
-
-.modalFooterTop,
-.modalFooterBottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.modalFooterAux {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
+  gap: 0.6rem 0.75rem;
 }
 
 .modalFooterSecondary,
 .modalFooterPrimary {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.45rem;
+  min-width: 0;
 }
 
 .modalFooterSecondary {
-  justify-content: flex-end;
-  flex: 1 1 auto;
-  min-width: 0;
+  justify-content: flex-start;
+  flex: 0 1 auto;
 }
 
 .modalFooterPrimary {
   justify-content: flex-end;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  margin-left: auto;
 }
 
 .footerActionButton {
@@ -3558,34 +3547,20 @@
     align-items: stretch;
   }
 
-  .modalFooterTop,
-  .modalFooterBottom {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   .modalFooterSecondary,
   .modalFooterPrimary {
+    width: 100%;
     justify-content: flex-start;
     flex-wrap: wrap;
   }
 
-  .modalFooterAux,
-  .modalFooterSecondary,
-  .modalFooterPrimary {
-    width: 100%;
-  }
-
-  .modalFooterAux > *,
   .modalFooterSecondary > *,
   .modalFooterPrimary > * {
     flex: 1 1 calc(50% - 0.3rem);
   }
 
   .modalFooterPrimary .btnSave {
-    flex-basis: 100%;
-    width: 100%;
+    flex: 1 1 100%;
   }
 
   .btnAiSuggest {

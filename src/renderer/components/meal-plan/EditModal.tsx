@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, X } from "@phosphor-icons/react";
+import {
+  ArrowDown,
+  ArrowUp,
+  FilePlus,
+  LinkSimple,
+  Trash,
+  X,
+} from "@phosphor-icons/react";
 
 import {
   buildTypeConfig,
@@ -1239,49 +1246,51 @@ export function EditModal({
             </div>
 
             <div className={styles.modalFooter}>
-              <div className={styles.modalFooterTop}>
-                <div className={styles.modalFooterSecondary}>
+              <div className={styles.modalFooterSecondary}>
                   {form.id && onSaveAsRecipe && !isLinked ? (
                     <button
+                      aria-label="Save as Recipe"
                       className={`${styles.btnSaveAsRecipe} ${styles.footerActionButton}`}
                       disabled={isSaving || !form.name.trim()}
                       onClick={() => onSaveAsRecipe({ ...form, name: form.name.trim() })}
+                      title="Save as Recipe"
                       type="button"
                     >
-                      Save as Recipe
+                      <FilePlus aria-hidden="true" size={18} weight="regular" />
                     </button>
                   ) : null}
                   {form.id ? (
                     <button
+                      aria-label="Delete"
                       className={`${styles.btnDelete} ${styles.footerActionButton}`}
                       disabled={isSaving || isDeleting}
                       onClick={() => {
                         setDeleteError(undefined);
                         setShowDeleteConfirmation(true);
                       }}
+                      title="Delete"
                       type="button"
                     >
-                      Delete
+                      <Trash aria-hidden="true" size={18} weight="regular" />
                     </button>
                   ) : null}
                   {!isLinked ? (
                     <button
+                      aria-label="Link Recipe"
                       className={`${styles.btnLinkRecipe} ${styles.footerActionButton}`}
                       disabled={isSaving || isDeleting}
                       onClick={() => {
                         setRecipeLinkError(null);
                         setShowRecipeSearchModal(true);
                       }}
+                      title="Link Recipe"
                       type="button"
                     >
-                      Link Recipe
+                      <LinkSimple aria-hidden="true" size={18} weight="regular" />
                     </button>
                   ) : null}
-                </div>
               </div>
-              <div className={styles.modalFooterBottom}>
-                <div className={styles.modalFooterAux} />
-                <div className={styles.modalFooterPrimary}>
+              <div className={styles.modalFooterPrimary}>
                   {recipeLinkError ? (
                     <span className={styles.confirmationError} role="alert">
                       {recipeLinkError}
@@ -1313,7 +1322,6 @@ export function EditModal({
                   >
                     {isSaving ? "Saving..." : "Save Changes"}
                   </button>
-                </div>
               </div>
             </div>
           </div>

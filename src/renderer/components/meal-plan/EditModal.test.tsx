@@ -353,6 +353,40 @@ describe("EditModal", () => {
     expect(screen.getByRole("button", { name: "Remove instruction 2" })).toBeInTheDocument();
   });
 
+  it("renders secondary footer actions as named icon-only controls", () => {
+    render(
+      <EditModal
+        meal={editableMeal}
+        mealSubTypes={[]}
+        mealTypeProfiles={mealTypeProfiles}
+        onClose={vi.fn()}
+        onDelete={vi.fn(async () => undefined)}
+        onSave={vi.fn(async () => undefined)}
+        onSaveAsRecipe={vi.fn()}
+      />
+    );
+
+    const saveAsRecipe = screen.getByRole("button", { name: "Save as Recipe" });
+    const deleteButton = screen.getByRole("button", { name: "Delete" });
+    const linkRecipe = screen.getByRole("button", { name: "Link Recipe" });
+
+    expect(saveAsRecipe).toHaveAttribute("title", "Save as Recipe");
+    expect(deleteButton).toHaveAttribute("title", "Delete");
+    expect(linkRecipe).toHaveAttribute("title", "Link Recipe");
+    expect(saveAsRecipe.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(deleteButton.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(linkRecipe.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    const saveChanges = screen.getByRole("button", { name: "Save Changes" });
+    expect(saveAsRecipe.compareDocumentPosition(cancel)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(cancel.compareDocumentPosition(saveChanges)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+  });
+
   it("does not render stray disabled text in the modal body", () => {
     const { container } = render(
       <EditModal
