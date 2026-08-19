@@ -28,6 +28,7 @@ type MonthViewProps = {
   onRequestDayView?: () => void;
   onRequestWeekView?: () => void;
   onEdit: (meal: EditableMeal) => void;
+  onAddMeal?: (meal: EditableMeal) => void;
 };
 
 type PopoverState = {
@@ -53,6 +54,7 @@ export function MonthView({
   onRequestDayView,
   onRequestWeekView,
   onEdit,
+  onAddMeal = onEdit,
 }: MonthViewProps) {
   const [popover, setPopover] = useState<PopoverState | null>(null);
   const [popoverPosition, setPopoverPosition] = useState<{
@@ -385,7 +387,7 @@ export function MonthView({
                       <button
                         className={styles.slotAddMoreBtn}
                         onClick={() => {
-                          onEdit(
+                          onAddMeal(
                             createEmptyMeal(
                               new Date(popover.date),
                               slot.type,

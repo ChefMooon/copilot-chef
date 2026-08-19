@@ -31,6 +31,7 @@ const FOCUSABLE_SELECTOR =
 
 type EditModalProps = {
   meal: EditableMeal;
+  addContext?: "global" | "calendar-slot";
   mealSubTypes: MealSubTypeDefinitionPayload[];
   mealTypeProfiles: MealTypeProfilePayload[];
   onClose: () => void;
@@ -43,6 +44,7 @@ type EditModalProps = {
 
 export function EditModal({
   meal,
+  addContext = "global",
   mealSubTypes,
   mealTypeProfiles,
   onClose,
@@ -67,6 +69,8 @@ export function EditModal({
   const photoInputRef = useRef<HTMLInputElement | null>(null);
 
   const isLinked = form.recipeId !== null && form.linkedRecipe !== null;
+  const isNewMeal = !form.id;
+  const isCalendarSlotAdd = isNewMeal && addContext === "calendar-slot";
   const linkedRecipe = form.linkedRecipe;
 
   useEffect(() => {
@@ -129,7 +133,9 @@ export function EditModal({
       Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
 
     const initialTarget =
-      panel.querySelector<HTMLElement>("[autofocus]") ?? getFocusable()[0] ?? panel;
+      panel.querySelector<HTMLElement>(
+        "[data-autofocus='true'], [autofocus]"
+      ) ?? getFocusable()[0] ?? panel;
     initialTarget.focus();
 
     const tabHandler = (event: KeyboardEvent) => {
@@ -309,7 +315,7 @@ export function EditModal({
     mealTypeConfig[form.type] ?? {
       dot: "#6A7C91",
       text: "#31404F",
-      label: form.mealTypeDefinition?.name ?? form.type,
+      label: form.mealTypeDefinition?.name ?? (form.type || "Select meal type"),
       enabled: true,
       sortOrder: Number.MAX_SAFE_INTEGER,
     };
@@ -319,6 +325,187 @@ export function EditModal({
   const selectableMealSubTypes = mealSubTypes.filter(
     (definition) =>
       definition.enabled || definition.id === form.mealSubTypeDefinitionId
+  );
+  const hasRequiredMealFields = form.name.trim().length > 0 && form.type.trim().length > 0;
+
+  const mealContextFields = (
+    <div className={styles.formRow}>
+      {!isCalendarSlotAdd ? (
+        <div className={styles.formGroup}>
+          <label className={styles.formLabel} htmlFor="meal-type-select">
+            Meal Type
+          </label>
+          <select
+            className={styles.formInput}
+            id="meal-type-select"
+            onChange={(event) => {
+              const nextType = event.target.value as EditableMeal["type"];
+              const definition =
+                mealTypes.find((entry) => entry.slug === nextType) ?? null;
+              setForm((current) => ({
+                ...current,
+                type: nextType,
+                mealTypeDefinitionId: definition?.id ?? null,
+                mealTypeDefinition: definition,
+              }));
+            }}
+            value={form.type}
+          >
+            {isNewMeal ? <option value="">Select meal type</option> : null}
+            {selectableMealTypes.map((definition) => (
+              <option key={definition.id} value={definition.slug}>
+                {definition.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : null}
+      <div className={styles.formGroup}>
+        <label className={styles.formLabel} htmlFor="meal-sub-type-select">
+          Sub-type
+        </label>
+        <select
+          className={styles.formInput}
+          id="meal-sub-type-select"
+          onChange={(event) => {
+            const nextId = event.target.value;
+            const definition =
+              selectableMealSubTypes.find((entry) => entry.id === nextId) ?? null;
+            setForm((current) => ({
+              ...current,
+              mealSubTypeDefinitionId: definition?.id ?? null,
+              mealSubTypeDefinition: definition,
+            }));
+          }}
+          value={form.mealSubTypeDefinitionId ?? ""}
+        >
+          <option value="">None</option>
+          {selectableMealSubTypes.map((definition) => (
+            <option key={definition.id} value={definition.id}>
+              {definition.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      {!isCalendarSlotAdd ? (
+        <div className={styles.formGroup}>
+          <label className={styles.formLabel} htmlFor="meal-day-input">
+            Day
+          </label>
+          <input
+            className={styles.formInput}
+            id="meal-day-input"
+            onChange={(event) => {
+              const nextDate = new Date(`${event.target.value}T12:00:00`);
+              if (!Number.isNaN(nextDate.getTime())) {
+                setForm((current) => {
+                  if (!isNewMeal || isCalendarSlotAdd || !current.type) {
+                    return { ...current, date: nextDate };
+                  }
+
+                  const nextDefinition = getMealTypeDefinitionsForDate(
+                    nextDate,
+                    mealTypeProfiles
+                  ).find(
+                    (definition) =>
+                      definition.slug === current.type && definition.enabled
+                  );
+
+                  return {
+                    ...current,
+                    date: nextDate,
+                    type: nextDefinition ? current.type : "",
+                    mealTypeDefinitionId: nextDefinition?.id ?? null,
+                    mealTypeDefinition: nextDefinition ?? null,
+                  };
+                });
+              }
+            }}
+            type="date"
+            value={toDateInputValue(form.date)}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const mealPhotoSection = (
+    <div className={styles.formGroup}>
+      <button
+        aria-controls="meal-photo-section"
+        aria-expanded={isPhotoSectionOpen}
+        className={styles.photoSectionToggle}
+        onClick={() => setIsPhotoSectionOpen((current) => !current)}
+        type="button"
+      >
+        <span>Meal Photo</span>
+        <span className={styles.photoSectionToggleRight}>
+          {activePhotoSrc ? (
+            <span className={styles.photoAttachmentStatus}>Photo attached.</span>
+          ) : null}
+          <span className={styles.photoSectionToggleHint}>
+            {isPhotoSectionOpen ? "Hide" : "Show"}
+          </span>
+        </span>
+      </button>
+      {isPhotoSectionOpen ? (
+        <div className={styles.photoSectionContent} id="meal-photo-section">
+          {activePhotoSrc ? (
+            <div className="mb-2">
+              <AuthenticatedImage
+                alt={form.photoFileName ?? "Meal photo"}
+                className={styles.photoPreviewImage}
+                src={activePhotoSrc}
+              />
+            </div>
+          ) : null}
+          <div className={styles.photoInputRow}>
+            <input
+              accept="image/*"
+              aria-label="Meal Photo"
+              className={styles.photoFileInputHidden}
+              disabled={!isPhotoAttachSupported}
+              id="meal-photo-input"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                void handlePhotoChange(file);
+              }}
+              ref={photoInputRef}
+              type="file"
+            />
+            <button
+              className={styles.photoFilePickerButton}
+              disabled={!isPhotoAttachSupported}
+              onClick={() => photoInputRef.current?.click()}
+              type="button"
+            >
+              Choose File
+            </button>
+            <span className={styles.photoFileName} title={activePhotoLabel}>
+              {activePhotoLabel}
+            </span>
+            {activePhotoSrc ? (
+              <button
+                className={styles.btnGhost}
+                onClick={() => {
+                  setField("photoDataUrl", null);
+                  setField("photoUrl", null);
+                  setField("photoFileName", null);
+                }}
+                type="button"
+              >
+                Remove Photo
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+      {!isPhotoAttachSupported ? (
+        <span className={styles.formHint}>
+          Photo attachment is available in the desktop app.
+        </span>
+      ) : null}
+    </div>
   );
 
   const handleDeleteConfirm = async () => {
@@ -488,35 +675,38 @@ export function EditModal({
                 </div>
               ) : null}
 
-              {/* ── Shared: Meal Type + Date ─────────────────────────── */}
+              {isLinked ? <>
               <div className={styles.formRow}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel} htmlFor="meal-type-select">
-                    Meal Type
-                  </label>
-                  <select
-                    className={styles.formInput}
-                    id="meal-type-select"
-                    onChange={(event) => {
-                      const nextType = event.target.value as EditableMeal["type"];
-                      const definition =
-                        mealTypes.find((entry) => entry.slug === nextType) ?? null;
-                      setForm((current) => ({
-                        ...current,
-                        type: nextType,
-                        mealTypeDefinitionId: definition?.id ?? null,
-                        mealTypeDefinition: definition,
-                      }));
-                    }}
-                    value={form.type}
-                  >
-                    {selectableMealTypes.map((definition) => (
-                      <option key={definition.id} value={definition.slug}>
-                        {definition.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {!isCalendarSlotAdd ? (
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel} htmlFor="meal-type-select">
+                      Meal Type
+                    </label>
+                    <select
+                      className={styles.formInput}
+                      id="meal-type-select"
+                      onChange={(event) => {
+                        const nextType = event.target.value as EditableMeal["type"];
+                        const definition =
+                          mealTypes.find((entry) => entry.slug === nextType) ?? null;
+                        setForm((current) => ({
+                          ...current,
+                          type: nextType,
+                          mealTypeDefinitionId: definition?.id ?? null,
+                          mealTypeDefinition: definition,
+                        }));
+                      }}
+                      value={form.type}
+                    >
+                      {isNewMeal ? <option value="">Select meal type</option> : null}
+                      {selectableMealTypes.map((definition) => (
+                        <option key={definition.id} value={definition.slug}>
+                          {definition.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
                 <div className={styles.formGroup}>
                   <label className={styles.formLabel} htmlFor="meal-sub-type-select">
                     Sub-type
@@ -529,7 +719,6 @@ export function EditModal({
                       const definition =
                         selectableMealSubTypes.find((entry) => entry.id === nextId) ??
                         null;
-
                       setForm((current) => ({
                         ...current,
                         mealSubTypeDefinitionId: definition?.id ?? null,
@@ -546,23 +735,45 @@ export function EditModal({
                     ))}
                   </select>
                 </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel} htmlFor="meal-day-input">
-                    Day
-                  </label>
-                  <input
-                    className={styles.formInput}
-                    id="meal-day-input"
-                    onChange={(event) => {
-                      const nextDate = new Date(`${event.target.value}T12:00:00`);
-                      if (!Number.isNaN(nextDate.getTime())) {
-                        setField("date", nextDate);
-                      }
-                    }}
-                    type="date"
-                    value={toDateInputValue(form.date)}
-                  />
-                </div>
+                {!isCalendarSlotAdd ? (
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel} htmlFor="meal-day-input">
+                      Day
+                    </label>
+                    <input
+                      className={styles.formInput}
+                      id="meal-day-input"
+                      onChange={(event) => {
+                        const nextDate = new Date(`${event.target.value}T12:00:00`);
+                        if (!Number.isNaN(nextDate.getTime())) {
+                          setForm((current) => {
+                            if (!isNewMeal || isCalendarSlotAdd || !current.type) {
+                              return { ...current, date: nextDate };
+                            }
+
+                            const nextDefinition = getMealTypeDefinitionsForDate(
+                              nextDate,
+                              mealTypeProfiles
+                            ).find(
+                              (definition) =>
+                                definition.slug === current.type && definition.enabled
+                            );
+
+                            return {
+                              ...current,
+                              date: nextDate,
+                              type: nextDefinition ? current.type : "",
+                              mealTypeDefinitionId: nextDefinition?.id ?? null,
+                              mealTypeDefinition: nextDefinition ?? null,
+                            };
+                          });
+                        }
+                      }}
+                      type="date"
+                      value={toDateInputValue(form.date)}
+                    />
+                  </div>
+                ) : null}
               </div>
 
               <div className={styles.formGroup}>
@@ -641,6 +852,7 @@ export function EditModal({
                   </span>
                 ) : null}
               </div>
+              </> : null}
 
               {/* ── Mode B: Read-only recipe display ────────────────── */}
               {isLinked && linkedRecipe ? (
@@ -773,6 +985,7 @@ export function EditModal({
                     </label>
                     <input
                       autoFocus
+                      data-autofocus="true"
                       className={styles.formInput}
                       id="meal-name-input"
                       onChange={(event) => setField("name", event.target.value)}
@@ -797,6 +1010,9 @@ export function EditModal({
                       value={form.description}
                     />
                   </div>
+
+                  {mealContextFields}
+                  {mealPhotoSection}
 
                   <div className={styles.formGroup}>
                     <label className={styles.formLabel} htmlFor="meal-cuisine-select">
@@ -1080,7 +1296,10 @@ export function EditModal({
                   </button>
                   <button
                     className={`${styles.btnSave} ${styles.footerActionButton}`}
-                    disabled={isSaving || (!isLinked && !form.name.trim())}
+                    disabled={
+                      isSaving ||
+                      (!isLinked && !hasRequiredMealFields)
+                    }
                     onClick={async () => {
                       setIsSaving(true);
                       try {
@@ -1119,6 +1338,11 @@ export function EditModal({
           setRecipeLinkError(null);
         }}
         onSelectRecipe={async (recipe, servings, personalNote) => {
+          if (!hasRequiredMealFields) {
+            setRecipeLinkError("Enter a meal name and select a meal type before linking a recipe.");
+            return;
+          }
+
           const linkedMeal = buildLinkedMeal(form, recipe, {
             servings,
             personalNote,

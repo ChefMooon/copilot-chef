@@ -29,6 +29,7 @@ type DayViewProps = {
   dragDisabled?: boolean;
   setDate: (date: Date) => void;
   onEdit: (meal: EditableMeal) => void;
+  onAddMeal?: (meal: EditableMeal) => void;
   onOpenSlotManager: (date: Date, type: CalendarMealType) => void;
   onDropPayload: (
     payload: MealPlanDragPayload,
@@ -45,6 +46,7 @@ export function DayView({
   dragDisabled = false,
   setDate,
   onEdit,
+  onAddMeal = onEdit,
   onOpenSlotManager,
   onDropPayload,
 }: DayViewProps) {
@@ -308,7 +310,7 @@ export function DayView({
                     <button
                       className={`${styles.timelineEmptySlot} ${styles.emptySlotButton} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
                       onClick={() =>
-                        onEdit(
+                        onAddMeal(
                           createEmptyMeal(
                             new Date(date),
                             type,
@@ -484,7 +486,7 @@ export function DayView({
                         className={styles.slotAddMoreBtn}
                         disabled={Boolean(draggedPayload) || isApplyingDrop}
                         onClick={() =>
-                          onEdit(
+                          onAddMeal(
                             createEmptyMeal(
                               new Date(date),
                               type,

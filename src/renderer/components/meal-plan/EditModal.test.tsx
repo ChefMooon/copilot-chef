@@ -140,11 +140,118 @@ const editableMeal: EditableMeal = {
   linkedRecipe: null,
 };
 
+const newMeal: EditableMeal = {
+  ...editableMeal,
+  id: "",
+  name: "",
+  type: "",
+  mealTypeDefinitionId: null,
+  mealTypeDefinition: null,
+};
+
 afterEach(() => {
   cleanup();
 });
 
 describe("EditModal", () => {
+  it("focuses meal name when opening a global add modal", async () => {
+    render(
+      <EditModal
+        meal={newMeal}
+        mealSubTypes={[]}
+        mealTypeProfiles={mealTypeProfiles}
+        onClose={vi.fn()}
+        onDelete={vi.fn(async () => undefined)}
+        onSave={vi.fn(async () => undefined)}
+      />
+    );
+
+    expect(await screen.findByLabelText("Meal Name")).toHaveFocus();
+  });
+
+  it("hides meal type and day for a calendar-slot add", async () => {
+    render(
+      <EditModal
+        addContext="calendar-slot"
+        meal={{ ...newMeal, type: "DINNER", mealTypeDefinition: mealTypeProfiles[0].mealTypes[0] }}
+        mealSubTypes={[]}
+        mealTypeProfiles={mealTypeProfiles}
+        onClose={vi.fn()}
+        onDelete={vi.fn(async () => undefined)}
+        onSave={vi.fn(async () => undefined)}
+      />
+    );
+
+    expect(await screen.findByLabelText("Meal Name")).toHaveFocus();
+    expect(screen.queryByLabelText("Meal Type")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Day")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Sub-type")).toBeInTheDocument();
+  });
+
+  it("requires a meal type before saving a global add", async () => {
+    const onSave = vi.fn(async () => undefined);
+
+    render(
+      <EditModal
+        meal={newMeal}
+        mealSubTypes={[]}
+        mealTypeProfiles={mealTypeProfiles}
+        onClose={vi.fn()}
+        onDelete={vi.fn(async () => undefined)}
+        onSave={onSave}
+      />
+    );
+
+    expect(await screen.findByRole("option", { name: "Select meal type" })).toBeInTheDocument();
+    const saveButton = screen.getByRole("button", { name: "Save Changes" });
+    expect(saveButton).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText("Meal Name"), {
+      target: { value: "New dinner" },
+    });
+    fireEvent.change(screen.getByLabelText("Meal Type"), {
+      target: { value: "DINNER" },
+    });
+
+    expect(saveButton).toBeEnabled();
+    fireEvent.click(saveButton);
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "New dinner", type: "DINNER" })
+    );
+  });
+
+  it("places meal context and photo after description in standalone mode", async () => {
+    render(
+      <EditModal
+        meal={newMeal}
+        mealSubTypes={[]}
+        mealTypeProfiles={mealTypeProfiles}
+        onClose={vi.fn()}
+        onDelete={vi.fn(async () => undefined)}
+        onSave={vi.fn(async () => undefined)}
+      />
+    );
+
+    const mealName = await screen.findByLabelText("Meal Name");
+    const description = screen.getByLabelText("Description");
+    const mealType = screen.getByLabelText("Meal Type");
+    const mealPhoto = screen.getByRole("button", { name: /meal photo/i });
+    const cuisine = screen.getByLabelText("Cuisine");
+
+    expect(mealName.compareDocumentPosition(description)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(description.compareDocumentPosition(mealType)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(mealType.compareDocumentPosition(mealPhoto)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(mealPhoto.compareDocumentPosition(cuisine)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+  });
+
   it("navigates to the linked recipe detail path when View Recipe is clicked", () => {
     const navigate = vi.fn();
 

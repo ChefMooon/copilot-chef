@@ -35,6 +35,7 @@ type WeekViewProps = {
   dragDisabled?: boolean;
   setDate: (date: Date) => void;
   onEdit: (meal: EditableMeal) => void;
+  onAddMeal?: (meal: EditableMeal) => void;
   onDuplicateMeal: (meal: EditableMeal) => void;
   onOpenSlotManager: (date: Date, type: CalendarMealType) => void;
   onDropPayload: (
@@ -52,6 +53,7 @@ export function WeekView({
   dragDisabled = false,
   setDate,
   onEdit,
+  onAddMeal = onEdit,
   onDuplicateMeal,
   onOpenSlotManager,
   onDropPayload,
@@ -466,7 +468,7 @@ export function WeekView({
                               <button
                                 className={`${styles.weekSlotEmpty} ${styles.emptySlotButton} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
                                 onClick={() =>
-                                  onEdit(
+                                  onAddMeal(
                                     createEmptyMeal(
                                       new Date(day),
                                       type,
@@ -670,7 +672,7 @@ export function WeekView({
                                     className={styles.slotAddIconBtn}
                                     disabled={Boolean(draggedPayload) || isApplyingDrop}
                                     onClick={() =>
-                                      onEdit(
+                                      onAddMeal(
                                         createEmptyMeal(
                                           new Date(day),
                                           type,
@@ -689,7 +691,7 @@ export function WeekView({
                                     className={`${styles.slotAddMoreBtn} ${styles.emptySlotButton}`}
                                     disabled={Boolean(draggedPayload) || isApplyingDrop}
                                     onClick={() =>
-                                      onEdit(
+                                      onAddMeal(
                                         createEmptyMeal(
                                           new Date(day),
                                           type,

@@ -156,6 +156,9 @@ export default function MealPlanPage() {
   }, []);
   const [date, setDate] = useState(() => new Date());
   const [editMeal, setEditMeal] = useState<EditableMeal | null>(null);
+  const [editMealContext, setEditMealContext] = useState<
+    "global" | "calendar-slot"
+  >("global");
   const [slotManagerState, setSlotManagerState] =
     useState<SlotManagerState | null>(null);
   const [pendingDropIntent, setPendingDropIntent] =
@@ -1901,6 +1904,14 @@ export default function MealPlanPage() {
         ? "Plan and review your meals week by week."
         : `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 
+  const openEditMeal = (
+    meal: EditableMeal,
+    context: "global" | "calendar-slot" = "global"
+  ) => {
+    setEditMealContext(context);
+    setEditMeal(meal);
+  };
+
   return (
     <div className={styles.calendarPage}>
       <div className={styles.pageHeader}>
@@ -1912,22 +1923,7 @@ export default function MealPlanPage() {
         <div className={styles.pageHeaderRight}>
           <button
             className={styles.btnAddMeal}
-            onClick={() =>
-              setEditMeal(
-                createEmptyMeal(
-                  new Date(date),
-                  mealTypeDefinitions.find((definition) => definition.enabled)
-                    ?.slug ??
-                    mealTypeDefinitions[0]?.slug ??
-                    "DINNER",
-                  mealTypeDefinitions.find(
-                    (definition) => definition.enabled
-                  ) ??
-                    mealTypeDefinitions[0] ??
-                    null
-                )
-              )
-            }
+            onClick={() => openEditMeal(createEmptyMeal(new Date(date), ""))}
             type="button"
           >
             <Plus aria-hidden="true" size={18} weight="regular" />
@@ -2083,7 +2079,8 @@ export default function MealPlanPage() {
               meals={meals}
               mealTypeProfiles={mealTypeProfiles}
               highlightedProfileId={highlightedProfileId}
-              onEdit={setEditMeal}
+              onEdit={(meal) => openEditMeal(meal)}
+              onAddMeal={(meal) => openEditMeal(meal, "calendar-slot")}
               onOpenSlotManager={openSlotManager}
               onDropPayload={onDropPayload}
               setDate={setDate}
@@ -2096,7 +2093,8 @@ export default function MealPlanPage() {
               meals={meals}
               mealTypeProfiles={mealTypeProfiles}
               highlightedProfileId={highlightedProfileId}
-              onEdit={setEditMeal}
+              onEdit={(meal) => openEditMeal(meal)}
+              onAddMeal={(meal) => openEditMeal(meal, "calendar-slot")}
               onDuplicateMeal={setDuplicateMeal}
               onOpenSlotManager={openSlotManager}
               onDropPayload={onDropPayload}
@@ -2109,7 +2107,8 @@ export default function MealPlanPage() {
               meals={meals}
               mealTypeProfiles={mealTypeProfiles}
               highlightedProfileId={highlightedProfileId}
-              onEdit={setEditMeal}
+              onEdit={(meal) => openEditMeal(meal)}
+              onAddMeal={(meal) => openEditMeal(meal, "calendar-slot")}
               onRequestDayView={() => switchView("day")}
               onRequestWeekView={() => switchView("week")}
               setDate={setDate}
@@ -2255,6 +2254,8 @@ export default function MealPlanPage() {
 
       {editMeal ? (
         <EditModal
+          addContext={editMealContext}
+          key={`${editMeal.id || "new"}-${editMealContext}`}
           meal={editMeal}
           mealSubTypes={mealSubTypes}
           mealTypeProfiles={mealTypeProfiles}
@@ -2312,12 +2313,13 @@ export default function MealPlanPage() {
           onAddMeal={() => {
             const slot = slotManagerState;
             closeSlotManager(false);
-            setEditMeal(
+            openEditMeal(
               createEmptyMeal(
                 new Date(slot.date),
                 slot.type,
                 findMealTypeDefinition(slot.type, slot.date)
-              )
+              ),
+              "calendar-slot"
             );
           }}
           onClose={closeSlotManager}
