@@ -18,4 +18,20 @@ describe("server convertIngredient", () => {
       approximate: true,
     });
   });
+
+  it("preserves cup quantities in cup mode", () => {
+    expect(convertIngredient(3.5, "cup", "flour", "cup")).toEqual({
+      quantity: 3.5,
+      unit: "cup",
+      approximate: false,
+    });
+  });
+
+  it("uses the generic flour density when converting to grams", () => {
+    expect(convertIngredient(3.5, "cup", "flour", "grams")).toEqual({
+      quantity: 437.5,
+      unit: "g",
+      approximate: true,
+    });
+  });
 });

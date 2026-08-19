@@ -28,6 +28,7 @@ export const TO_G: Record<string, number> = {
 const COUNT_UNITS = new Set(["clove", "slice", "piece", "pinch", "dash", "count"]);
 
 export const DENSITY_G_PER_CUP: Record<string, number> = {
+  flour: 125,
   "all-purpose flour": 125,
   "bread flour": 120,
   "whole wheat flour": 120,
@@ -205,6 +206,9 @@ export function convertIngredient(
   if (category === "volume") {
     const ml = quantity * TO_ML[normalizedUnit];
     if (targetMode === "cup") {
+      if (normalizedUnit === "cup") {
+        return { quantity, unit: "cup", approximate: false };
+      }
       const converted = fromMl(ml);
       return {
         quantity: converted.quantity,
