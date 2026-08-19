@@ -6,6 +6,7 @@ import { listMealSubTypeDefinitions, listMealTypeProfiles } from "@/lib/api";
 
 import { QueryProvider } from "@/components/providers/query-provider";
 import { ToastProvider } from "@/components/providers/toast-provider";
+import { UpdateProvider } from "@/components/providers/update-provider";
 import { AppShell } from "@/components/layout/app-shell";
 import { ConnectionBanner } from "@/components/layout/connection-banner";
 import { useServerConnection } from "@/lib/connection";
@@ -166,10 +167,16 @@ export function AuthenticatedAppLayout() {
     );
   }
 
+  if (!config) {
+    return null;
+  }
+
   return (
     <QueryProvider>
       <ToastProvider>
-        <AppContent config={config} />
+        <UpdateProvider>
+          <AppContent config={config} />
+        </UpdateProvider>
       </ToastProvider>
     </QueryProvider>
   );

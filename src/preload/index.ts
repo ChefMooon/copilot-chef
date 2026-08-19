@@ -17,11 +17,8 @@ const api = {
       Awaited<ReturnType<IpcInvokeMap[K]>>
     >;
   },
-  on: <K extends IpcEventChannel>(
-    channel: K,
-    listener: IpcEventMap[K]
-  ): void => {
-    ipcRenderer.on(channel, (_event, ...args) => listener(...args));
+  on: <K extends IpcEventChannel>(channel: K, listener: IpcEventMap[K]): void => {
+    ipcRenderer.on(channel, listener as (...args: unknown[]) => void);
   },
   minimizeWindow: () => invokeWindowChannel("window:minimize"),
   toggleMaximizeWindow: () => invokeWindowChannel("window:toggleMaximize"),
@@ -34,7 +31,7 @@ const api = {
     channel: K,
     listener: IpcEventMap[K]
   ): void => {
-    ipcRenderer.removeListener(channel, listener);
+    ipcRenderer.removeListener(channel, listener as (...args: unknown[]) => void);
   },
 };
 

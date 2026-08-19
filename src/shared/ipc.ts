@@ -21,6 +21,8 @@ export const IPC_CHANNELS = [
   "machine-token:clear",
   "menu:exportPdf",
   "updates:check",
+  "updates:is-supported",
+  "updates:get-state",
   "updates:install",
 ] as const;
 
@@ -86,13 +88,33 @@ export type IpcInvokeMap = {
     | { status: "error"; message: string }
   >;
   "updates:check": () => Promise<unknown>;
+  "updates:is-supported": () => Promise<boolean>;
+  "updates:get-state": () => Promise<UpdateState>;
   "updates:install": () => Promise<unknown>;
 };
 
+export type UpdateInfo = {
+  version?: string;
+  releaseDate?: string;
+  releaseNotes?: string | null;
+};
+
+export type UpdateProgress = {
+  percent?: number;
+  bytesPerSecond?: number;
+  transferred?: number;
+  total?: number;
+};
+
+export type UpdateState =
+  | { status: "idle" | "checking" | "not-available"; info?: undefined; progress?: undefined; error?: undefined }
+  | { status: "available" | "downloading" | "downloaded"; info: UpdateInfo; progress?: UpdateProgress; error?: undefined }
+  | { status: "error"; info?: UpdateInfo; progress?: UpdateProgress; error: string };
+
 export type IpcEventMap = {
-  "updates:available": (...args: unknown[]) => void;
+  "updates:available": (info: UpdateInfo) => void;
   "updates:not-available": (...args: unknown[]) => void;
-  "updates:progress": (...args: unknown[]) => void;
-  "updates:downloaded": (...args: unknown[]) => void;
-  "updates:error": (...args: unknown[]) => void;
+  "updates:progress": (progress: UpdateProgress) => void;
+  "updates:downloaded": (info: UpdateInfo) => void;
+  "updates:error": (message: string) => void;
 };

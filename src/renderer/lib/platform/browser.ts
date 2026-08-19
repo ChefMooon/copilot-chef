@@ -327,7 +327,10 @@ export function createBrowserPlatform(): RendererPlatform {
       return all;
     },
     subscribeUpdates: () => () => {},
+    getUpdatesSupported: async () => false,
     checkForUpdates: async () => null,
+    getUpdateState: async () => ({ status: "idle" }),
+    installUpdate: async () => null,
     getLifecycleStatus: async () => ({
       supported: false,
       launchAtLogin: false,

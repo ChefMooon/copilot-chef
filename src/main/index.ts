@@ -261,7 +261,7 @@ app.whenReady().then(async () => {
 
   // Auto-updater (production only)
   if (app.isPackaged) {
-    setupAutoUpdater(mainWindow, {
+    setupAutoUpdater(() => mainWindow, {
       checkOnStartup: getSetting("updates_check_on_startup") !== false,
     });
   }

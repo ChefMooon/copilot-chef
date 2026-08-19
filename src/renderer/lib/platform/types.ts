@@ -16,10 +16,14 @@ export type ServerStatus = {
 };
 
 export type UpdateEventHandlers = {
-  onAvailable?: (info?: { version?: string }) => void;
+  onAvailable?: (info: UpdateInfo) => void;
   onNotAvailable?: () => void;
-  onError?: (message?: string) => void;
+  onProgress?: (progress: UpdateProgress) => void;
+  onDownloaded?: (info: UpdateInfo) => void;
+  onError?: (message: string) => void;
 };
+
+export type { UpdateInfo, UpdateProgress, UpdateState } from "../../../shared/ipc";
 
 export type MenuPdfExportPayload = {
   htmlContent: string;
@@ -85,7 +89,10 @@ export type RendererPlatform = {
   setSetting: (key: string, value: unknown) => Promise<void>;
   getAllSettings: () => Promise<Record<string, unknown>>;
   subscribeUpdates: (handlers: UpdateEventHandlers) => () => void;
+  getUpdatesSupported: () => Promise<boolean>;
   checkForUpdates: () => Promise<unknown>;
+  getUpdateState: () => Promise<UpdateState>;
+  installUpdate: () => Promise<unknown>;
   getLifecycleStatus: () => Promise<LifecycleStatus>;
   setLaunchAtLogin: (enabled: boolean) => Promise<LifecycleStatus>;
   exportMenuPdf: (payload: MenuPdfExportPayload) => Promise<MenuPdfExportResult>;

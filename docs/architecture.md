@@ -212,8 +212,10 @@ The desktop app release currently uses a single `v{semver}` tag in the same GitH
 ### Client updates
 
 - Powered by `electron-updater` against the GitHub publish target defined in `package.json`.
-- On startup: silent check; notification badge shown if update available.
-- Settings page: "Check for Updates" button, current version, "Install & Restart" action.
+- On startup: silent check; available releases download automatically and surface a persistent global toast, including progress and a final "Install & Restart" action.
+- The renderer replays the latest updater state after startup or window recreation through `updates:get-state`, so the prompt is not lost before the UI subscribes.
+- Settings page: "Check for Updates" button, update status/progress, and the same explicit "Install & Restart" action.
+- Browser mode and development builds do not expose desktop update controls.
 - Release metadata is published through Electron Builder.
 
 ---

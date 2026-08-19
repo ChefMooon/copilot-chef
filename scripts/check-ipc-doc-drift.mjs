@@ -61,6 +61,7 @@ async function main() {
     ...collectByRegex(ipcIndexContent, /ipcMain\.handle\(\s*"([^"]+)"/g),
     ...collectByRegex(updatesServiceContent, /ipcMain\.handle\(\s*"([^"]+)"/g),
     ...collectByRegex(updatesServiceContent, /webContents\.send\("([^"]+)"/g),
+    ...collectByRegex(updatesServiceContent, /sendUpdateEvent\([^,]+,\s*"([^"]+)"/g),
   ]);
 
   const docChannels = collectDocChannels(ipcDocContent);

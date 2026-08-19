@@ -94,10 +94,12 @@ export function ToastProvider({ children }: PropsWithChildren) {
         },
       ]);
 
-      const timer = setTimeout(() => {
-        removeToast(id);
-      }, duration);
-      timersRef.current.set(id, timer);
+      if (duration > 0) {
+        const timer = setTimeout(() => {
+          removeToast(id);
+        }, duration);
+        timersRef.current.set(id, timer);
+      }
     },
     [removeToast]
   );

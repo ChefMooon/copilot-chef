@@ -99,6 +99,10 @@ export function registerIpcHandlers(): void {
     return app.getVersion();
   });
 
+  ipcMain.handle("updates:is-supported", () => {
+    return app.isPackaged && process.platform === "win32";
+  });
+
   ipcMain.handle("lifecycle:getStatus", () => getLifecycleStatus());
   ipcMain.handle("lifecycle:setLaunchAtLogin", (_event, enabled: boolean) =>
     setLaunchAtLogin(enabled)

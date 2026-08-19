@@ -19,6 +19,7 @@ import { TagCloud } from "@/components/settings/TagCloud";
 import styles from "@/components/settings/settings.module.css";
 import { ToggleSwitch } from "@/components/settings/ToggleSwitch";
 import { useToast } from "@/components/providers/toast-provider";
+import { useUpdates } from "@/components/providers/update-provider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -276,6 +277,7 @@ export default function SettingsPage() {
   const apiReady = isServerConfigReady(config);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { supported: updatesSupported, state: updateState, checkForUpdates } = useUpdates();
   const patchMutation = useMutation({ mutationFn: patchPreferences });
   const resetMutation = useMutation({ mutationFn: resetPreferences });
 
@@ -602,50 +604,24 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
-    const handleUpdateAvailable = (...args: unknown[]) => {
-      const info = args[0] as { version?: string } | undefined;
-      if (!manualUpdateCheckPending) {
-        return;
-      }
+    if (!manualUpdateCheckPending) return;
+    if (updateState.status === "available" || updateState.status === "downloading" || updateState.status === "downloaded") {
       setManualUpdateCheckPending(false);
       setCheckingForUpdates(false);
-      toast({
-        title: "Update available",
-        description: info?.version
-          ? `Version ${info.version} is available to download.`
-          : "A new version is available to download.",
-      });
-    };
-
-    const handleUpdateNotAvailable = () => {
-      if (!manualUpdateCheckPending) {
-        return;
-      }
+    } else if (updateState.status === "not-available") {
       setManualUpdateCheckPending(false);
       setCheckingForUpdates(false);
       toast({ title: "You are up to date." });
-    };
-
-    const handleUpdateError = (...args: unknown[]) => {
-      const message = args[0] as string | undefined;
-      if (!manualUpdateCheckPending) {
-        return;
-      }
+    } else if (updateState.status === "error") {
       setManualUpdateCheckPending(false);
       setCheckingForUpdates(false);
       toast({
         title: "Update check failed",
-        description: message || "Could not check for updates right now.",
+        description: updateState.error || "Could not check for updates right now.",
         variant: "error",
       });
-    };
-
-    return platform.subscribeUpdates({
-      onAvailable: handleUpdateAvailable,
-      onNotAvailable: handleUpdateNotAvailable,
-      onError: handleUpdateError,
-    });
-  }, [manualUpdateCheckPending, toast]);
+    }
+  }, [manualUpdateCheckPending, toast, updateState]);
 
   useEffect(() => {
     if (!preferences) {
@@ -1131,7 +1107,7 @@ export default function SettingsPage() {
     setManualUpdateCheckPending(true);
 
     try {
-      const result = await platform.checkForUpdates();
+      const result = await checkForUpdates();
       if (result === null) {
         setManualUpdateCheckPending(false);
         setCheckingForUpdates(false);
@@ -1542,8 +1518,20 @@ export default function SettingsPage() {
                 onChange={(checked) => void handleToggleStartupUpdateCheck(checked)}
               />
             </div>
-            {platform.capabilities.updates && (
-              <div className={styles.actionsRow} style={{ marginTop: "1rem" }}>
+            {updatesSupported && (
+              <div style={{ marginTop: "1rem" }}>
+                <p className={styles.fieldHint}>
+                  Update status: {updateState.status === "downloading"
+                    ? `Downloading${updateState.progress?.percent != null ? ` ${Math.round(updateState.progress.percent)}%` : "…"}`
+                    : updateState.status === "downloaded"
+                      ? `Ready to install${updateState.info.version ? ` (v${updateState.info.version})` : ""}`
+                      : updateState.status === "available"
+                        ? "Available; downloading in the background"
+                        : updateState.status === "error"
+                          ? "Update check failed"
+                          : "No update available"}
+                </p>
+                <div className={styles.actionsRow}>
                 <Button
                   disabled={checkingForUpdates}
                   onClick={() => void handleCheckForUpdates()}
@@ -1552,6 +1540,17 @@ export default function SettingsPage() {
                 >
                   {checkingForUpdates ? "Checking…" : "Check for updates"}
                 </Button>
+                {updateState.status === "downloaded" ? (
+                  <Button
+                    onClick={() => {
+                      void platform.installUpdate();
+                    }}
+                    type="button"
+                  >
+                    Install & Restart
+                  </Button>
+                ) : null}
+                </div>
               </div>
             )}
           </div>

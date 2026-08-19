@@ -92,6 +92,11 @@ vi.mock("@/components/providers/toast-provider", () => ({
   ToastProvider: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="toast-provider">{children}</div>
   ),
+  useToast: () => ({
+    toast: vi.fn(),
+    dismissAll: vi.fn(),
+    setDragging: vi.fn(),
+  }),
 }));
 
 vi.mock("@/components/layout/app-shell", () => ({

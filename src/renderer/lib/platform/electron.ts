@@ -8,6 +8,8 @@ import type {
   ServerConfig,
   ServerStatus,
   UpdateEventHandlers,
+  UpdateInfo,
+  UpdateProgress,
 } from "./types";
 
 export function createElectronPlatform(): RendererPlatform {
@@ -43,24 +45,33 @@ export function createElectronPlatform(): RendererPlatform {
     },
     subscribeUpdates: (handlers: UpdateEventHandlers) => {
       const available = (...args: unknown[]) => {
-        handlers.onAvailable?.(args[0] as { version?: string } | undefined);
+        handlers.onAvailable?.(args[0] as UpdateInfo);
       };
       const notAvailable = () => handlers.onNotAvailable?.();
+      const progress = (...args: unknown[]) => handlers.onProgress?.(args[0] as UpdateProgress);
+      const downloaded = (...args: unknown[]) => handlers.onDownloaded?.(args[0] as UpdateInfo);
       const error = (...args: unknown[]) => {
-        handlers.onError?.(args[0] as string | undefined);
+        handlers.onError?.(args[0] as string);
       };
 
       api.on("updates:available", available);
       api.on("updates:not-available", notAvailable);
+      api.on("updates:progress", progress);
+      api.on("updates:downloaded", downloaded);
       api.on("updates:error", error);
 
       return () => {
         api.off("updates:available", available);
         api.off("updates:not-available", notAvailable);
+        api.off("updates:progress", progress);
+        api.off("updates:downloaded", downloaded);
         api.off("updates:error", error);
       };
     },
+    getUpdatesSupported: () => api.invoke("updates:is-supported"),
     checkForUpdates: () => api.invoke("updates:check"),
+    getUpdateState: () => api.invoke("updates:get-state"),
+    installUpdate: () => api.invoke("updates:install"),
     getLifecycleStatus: async () => {
       return (await api.invoke("lifecycle:getStatus")) as LifecycleStatus;
     },

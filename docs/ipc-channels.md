@@ -44,6 +44,8 @@ These channels use `ipcMain.handle(...)` in main and `window.api.invoke(...)` in
 | `machine-token:clear` | renderer -> main | none | Clears machine token and restarts local server when running | `src/main/ipc/index.ts` |
 | `menu:exportPdf` | renderer -> main | `{ htmlContent, suggestedFileName }` | Generates a PDF and opens save dialog | `src/main/ipc/index.ts` |
 | `updates:check` | renderer -> main | none | Checks for app updates | `src/main/updates/service.ts` |
+| `updates:is-supported` | renderer -> main | none | Reports whether packaged desktop updates are available in the current runtime | `src/main/ipc/index.ts` |
+| `updates:get-state` | renderer -> main | none | Returns the latest updater state for late renderer subscribers | `src/main/updates/service.ts` |
 | `updates:install` | renderer -> main | none | Installs downloaded update and restarts app | `src/main/updates/service.ts` |
 
 ---
@@ -56,8 +58,8 @@ These channels use `webContents.send(...)` in main and `window.api.on(...)` in r
 |---|---|---|---|---|---|
 | `updates:available` | main -> renderer | `UpdateInfo` | Signals update availability | `src/main/updates/service.ts` | Subscribed |
 | `updates:not-available` | main -> renderer | none | Signals no update available | `src/main/updates/service.ts` | Subscribed |
-| `updates:progress` | main -> renderer | `ProgressInfo` | Emits download progress | `src/main/updates/service.ts` | Not subscribed by current platform adapter |
-| `updates:downloaded` | main -> renderer | `UpdateInfo` | Signals update is downloaded and ready | `src/main/updates/service.ts` | Subscribed by settings page flow |
+| `updates:progress` | main -> renderer | `ProgressInfo` | Emits automatic download progress | `src/main/updates/service.ts` | Subscribed by app update provider |
+| `updates:downloaded` | main -> renderer | `UpdateInfo` | Signals update is downloaded and ready for explicit installation | `src/main/updates/service.ts` | Subscribed by app update provider |
 | `updates:error` | main -> renderer | `string` | Emits update errors | `src/main/updates/service.ts` | Subscribed |
 
 ---

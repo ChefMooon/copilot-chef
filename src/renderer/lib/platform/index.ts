@@ -29,6 +29,9 @@ export type {
   ServerConfig,
   ServerStatus,
   UpdateEventHandlers,
+  UpdateInfo,
+  UpdateProgress,
+  UpdateState,
 } from "./types";
 
 export {
