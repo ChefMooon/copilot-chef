@@ -1,6 +1,9 @@
 import type {
   MenuPdfExportPayload,
   MenuPdfExportResult,
+  DataArchiveOpenResult,
+  DataArchiveSavePayload,
+  DataArchiveSaveResult,
   MachineTokenResult,
   LanStatus,
   LifecycleStatus,
@@ -22,6 +25,7 @@ export function createElectronPlatform(): RendererPlatform {
     runtime: "electron",
     capabilities: {
       pdfExport: true,
+      dataManagement: true,
       updates: true,
       lanManagement: true,
       lifecycle: true,
@@ -83,6 +87,12 @@ export function createElectronPlatform(): RendererPlatform {
         "menu:exportPdf",
         payload
       )) as MenuPdfExportResult;
+    },
+    openDataArchive: async () => {
+      return (await api.openDataArchive()) as DataArchiveOpenResult;
+    },
+    saveDataArchive: async (payload: DataArchiveSavePayload) => {
+      return (await api.saveDataArchive(payload)) as DataArchiveSaveResult;
     },
     getLanStatus: async () => {
       return (await api.invoke("lan:getStatus")) as LanStatus;

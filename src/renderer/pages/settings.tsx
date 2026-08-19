@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { MealTypesSection } from "@/components/settings/MealTypesSection";
 import { MealSubTypesSection } from "@/components/settings/MealSubTypesSection";
+import { DataManagementSection } from "@/components/settings/DataManagementSection";
 
 import { ChipList } from "@/components/settings/ChipList";
 import { CollapsibleSection } from "@/components/settings/CollapsibleSection";
@@ -140,7 +141,8 @@ type TabId =
   | "dietary-profile"
   | "meal-plans"
   | "app-settings"
-  | "connection";
+  | "connection"
+  | "data-management";
 
 type HomeUpcomingDetail = "standard" | "detailed";
 type MealBankPlacement = "left" | "right" | "bottom";
@@ -219,9 +221,26 @@ const TABS: Array<{ id: TabId; label: string; panelId: string }> = [
     label: "Network",
     panelId: "panel-connection"
   },
+  {
+    id: "data-management",
+    label: "Data Management",
+    panelId: "panel-data-management",
+  },
 ];
 
 const TAB_IDS = TABS.map((t) => t.id);
+
+export function getNextSettingsTabId(
+  index: number,
+  key: string
+): TabId | null {
+  let next: number | null = null;
+  if (key === "ArrowRight") next = (index + 1) % TABS.length;
+  else if (key === "ArrowLeft") next = (index - 1 + TABS.length) % TABS.length;
+  else if (key === "Home") next = 0;
+  else if (key === "End") next = TABS.length - 1;
+  return next === null ? null : TABS[next].id;
+}
 
 type ArrayPreferenceField =
   | "dietaryTags"
@@ -395,16 +414,12 @@ export default function SettingsPage() {
     e: React.KeyboardEvent<HTMLButtonElement>,
     index: number
   ) {
-    let next: number | null = null;
-    if (e.key === "ArrowRight") next = (index + 1) % TABS.length;
-    else if (e.key === "ArrowLeft")
-      next = (index - 1 + TABS.length) % TABS.length;
-    else if (e.key === "Home") next = 0;
-    else if (e.key === "End") next = TABS.length - 1;
-    if (next !== null) {
+    const nextTabId = getNextSettingsTabId(index, e.key);
+    if (nextTabId !== null) {
       e.preventDefault();
-      setActiveTab(TABS[next].id);
-      tabRefs.current[next]?.focus();
+      const nextIndex = TABS.findIndex((tab) => tab.id === nextTabId);
+      setActiveTab(nextTabId);
+      tabRefs.current[nextIndex]?.focus();
     }
   }
 
@@ -840,6 +855,16 @@ export default function SettingsPage() {
     }
   };
 
+  const handlePreferencesRestored = () => {
+    clearBrowserTimer(householdTimerRef);
+    clearBrowserTimer(notesTimerRef);
+    setHouseholdScheduled(false);
+    setNotesScheduled(false);
+    setHouseholdSizeDirty(false);
+    setPlanningNotesDirty(false);
+    setSaveError(false);
+  };
+
   const handleSaveConnection = async () => {
     setConnectionSaving(true);
     try {
@@ -1193,6 +1218,20 @@ export default function SettingsPage() {
             {tab.label}
           </button>
         ))}
+      </div>
+
+      <div
+        id="panel-data-management"
+        role="tabpanel"
+        aria-labelledby="data-management"
+        hidden={activeTab !== "data-management"}
+        className={styles.tabPanel}
+      >
+        <p className={styles.tabDescription}>
+          Export focused or complete user-data archives and restore them safely on
+          the desktop app.
+        </p>
+        <DataManagementSection onPreferencesRestored={handlePreferencesRestored} />
       </div>
 
       {/* ── Tab 2: Meal Plans ── */}
@@ -2132,8 +2171,9 @@ export default function SettingsPage() {
               <h2 className={styles.cardTitle}>Data & privacy</h2>
             </div>
             <p className={styles.fieldHint}>
-              Export your data or reset local preferences. Chat and AI history
-              is no longer stored by the app.
+              The export below is the existing preferences JSON compatibility
+              format. For versioned backups and restores, use Data Management.
+              Chat and AI history is no longer stored by the app.
             </p>
 
             <div className={styles.actionsRow}>
@@ -2142,7 +2182,7 @@ export default function SettingsPage() {
                 type="button"
                 variant="outline"
               >
-                Export my data
+                Export preferences JSON (compatibility)
               </Button>
 
               <AlertDialog>

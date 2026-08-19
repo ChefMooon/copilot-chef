@@ -1,5 +1,11 @@
 import { app, BrowserWindow, dialog, ipcMain, screen } from "electron";
-import { writeFile } from "node:fs/promises";
+import { basename } from "node:path";
+import { readFile, writeFile } from "node:fs/promises";
+import type {
+  DataArchiveOpenResult,
+  DataArchiveSavePayload,
+  DataArchiveSaveResult,
+} from "../../shared/ipc";
 import { getServerInfo, restartServer } from "../server/start";
 import { resolveLanRuntimeSettings, probeLanReachability } from "../server/lib/lan";
 import { getStaticWebInfo, restartStaticWebServer } from "../server/static-web";
@@ -26,6 +32,15 @@ type MenuPdfExportResult =
   | { status: "saved"; filePath: string }
   | { status: "canceled" }
   | { status: "error"; message: string };
+
+const dataArchiveDialogFilters = [
+  { name: "Local Recipe Book archives", extensions: ["lrb"] },
+];
+
+function normalizeArchiveFileName(value: string | undefined) {
+  const candidate = basename(value?.trim() || "local-recipe-book-backup.lrb");
+  return candidate.toLowerCase().endsWith(".lrb") ? candidate : `${candidate}.lrb`;
+}
 
 export function registerIpcHandlers(): void {
   // ── Server config ────────────────────────────────────────
@@ -259,6 +274,79 @@ export function registerIpcHandlers(): void {
         if (!exportWindow.isDestroyed()) {
           exportWindow.destroy();
         }
+      }
+    }
+  );
+
+  ipcMain.handle(
+    "data-management:openArchive",
+    async (): Promise<DataArchiveOpenResult> => {
+      try {
+        const result = await dialog.showOpenDialog(
+          {
+            title: "Open Local Recipe Book archive",
+            buttonLabel: "Open archive",
+            properties: ["openFile"],
+            filters: dataArchiveDialogFilters,
+          }
+        );
+
+        const filePath = result.filePaths[0];
+        if (result.canceled || !filePath) {
+          return { status: "canceled" };
+        }
+
+        return {
+          status: "selected",
+          filePath,
+          data: new Uint8Array(await readFile(filePath)),
+        };
+      } catch (error) {
+        return {
+          status: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Unable to open the data archive.",
+        };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    "data-management:saveArchive",
+    async (
+      _event,
+      payload: DataArchiveSavePayload
+    ): Promise<DataArchiveSaveResult> => {
+      if (!(payload?.data instanceof Uint8Array)) {
+        return { status: "error", message: "Archive data is missing." };
+      }
+
+      try {
+        const result = await dialog.showSaveDialog(
+          {
+            title: "Save Local Recipe Book archive",
+            buttonLabel: "Save archive",
+            defaultPath: normalizeArchiveFileName(payload.suggestedFileName),
+            filters: dataArchiveDialogFilters,
+          }
+        );
+
+        if (result.canceled || !result.filePath) {
+          return { status: "canceled" };
+        }
+
+        await writeFile(result.filePath, Buffer.from(payload.data));
+        return { status: "saved", filePath: result.filePath };
+      } catch (error) {
+        return {
+          status: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Unable to save the data archive.",
+        };
       }
     }
   );

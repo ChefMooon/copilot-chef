@@ -1142,6 +1142,408 @@
   box-shadow: 0 2px 12px rgba(44, 36, 22, 0.08);
 }
 
+.dataManagementStack {
+  display: grid;
+  gap: 1rem;
+}
+
+.dataManagementIntro {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgb(var(--green-rgb) / 0.2);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--green-pale) 58%, var(--card));
+}
+
+.dataManagementIntroIcon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 10px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.dataManagementIntro h2,
+.dataManagementUnsupported h2 {
+  margin: 0;
+  font-family: var(--font-lora), serif;
+  font-size: 1.05rem;
+}
+
+.dataManagementIntro p,
+.dataManagementUnsupported p {
+  margin: 0.25rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.dataManagementBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.55rem;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid rgb(var(--orange-rgb) / 0.35);
+  border-radius: 999px;
+  color: var(--orange);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dataManagementSafeIcon {
+  color: var(--green);
+}
+
+.dataManagementScopeGrid,
+.dataManagementModeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.dataManagementModeGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+
+.dataManagementScopeGrid legend,
+.dataManagementModeGrid legend {
+  grid-column: 1 / -1;
+  padding: 0;
+}
+
+.dataManagementScopeCard,
+.dataManagementModeOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  min-width: 0;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.dataManagementScopeCard:hover,
+.dataManagementModeOption:hover {
+  border-color: var(--green-light);
+}
+
+.dataManagementScopeCard[data-selected="true"] {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--green-pale) 55%, var(--card));
+  box-shadow: 0 0 0 2px rgb(var(--green-rgb) / 0.12);
+}
+
+.dataManagementScopeCard input,
+.dataManagementModeOption input,
+.dataManagementPreferenceToggle input {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin: 0.15rem 0 0;
+  accent-color: var(--primary);
+}
+
+.dataManagementScopeCard > span,
+.dataManagementModeOption > span,
+.dataManagementPreferenceToggle > span {
+  display: grid;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
+.dataManagementScopeCard strong,
+.dataManagementModeOption strong,
+.dataManagementPreferenceToggle strong {
+  font-size: 0.9rem;
+}
+
+.dataManagementScopeCard > span > span,
+.dataManagementModeOption > span > span,
+.dataManagementPreferenceToggle > span > span {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.dataManagementScopeSummary {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.8rem;
+  padding: 0.7rem 0.8rem;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, var(--card));
+}
+
+.dataManagementScopeSummary ul,
+.dataManagementValidationError ul {
+  display: grid;
+  gap: 0.18rem;
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.dataManagementSummaryLabel {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dataManagementActions,
+.dataManagementBulkActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.dataManagementBulkActions {
+  margin-top: 0;
+}
+
+.dataManagementFileName {
+  min-width: 0;
+  max-width: 100%;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.dataManagementNotice,
+.dataManagementSuccess,
+.dataManagementError,
+.dataManagementWarning,
+.dataManagementValidationSuccess,
+.dataManagementValidationError {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.dataManagementSuccess,
+.dataManagementValidationSuccess {
+  border-color: rgb(var(--green-rgb) / 0.35);
+  background: color-mix(in srgb, var(--green-pale) 62%, var(--card));
+  color: var(--green);
+}
+
+.dataManagementError,
+.dataManagementValidationError,
+.dataManagementWarning {
+  border-color: rgb(var(--orange-rgb) / 0.42);
+  background: color-mix(in srgb, var(--orange) 9%, var(--card));
+  color: var(--orange);
+}
+
+.dataManagementValidationSuccess p,
+.dataManagementValidationError ul,
+.dataManagementSuccess p {
+  margin: 0.3rem 0 0;
+}
+
+.dataManagementValidationSuccess > div,
+.dataManagementValidationError > div {
+  min-width: 0;
+}
+
+.dataManagementPreviewGrid,
+.dataManagementResultGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.dataManagementPreviewGrid > div,
+.dataManagementResultGrid > span {
+  min-width: 0;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--muted) 42%, var(--card));
+}
+
+.dataManagementCountList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.7rem;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  color: var(--text);
+  font-size: 0.82rem;
+  list-style: none;
+}
+
+.dataManagementMuted {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.dataManagementPreferenceToggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin-top: 1rem;
+  padding: 0.8rem;
+  border: 1px solid rgb(var(--green-rgb) / 0.25);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--green-pale) 45%, var(--card));
+  cursor: pointer;
+}
+
+.dataManagementSubsection {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.dataManagementSectionHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dataManagementSectionHeading h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.dataManagementSectionHeading .fieldHint {
+  margin-top: 0.2rem;
+}
+
+.dataManagementConflictCount {
+  flex: 0 0 auto;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: var(--muted);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.dataManagementConflictList {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.dataManagementConflict {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 210px);
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.dataManagementConflictCopy {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.dataManagementConflictCopy strong {
+  overflow-wrap: anywhere;
+  font-size: 0.88rem;
+}
+
+.dataManagementConflictCopy span {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.dataManagementDecisionLabel {
+  min-width: 0;
+}
+
+.dataManagementWarning {
+  align-items: flex-start;
+}
+
+.dataManagementStatusHeading {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.dataManagementResultGrid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: 100%;
+}
+
+.dataManagementResultGrid > span {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.dataManagementBackupNote {
+  overflow-wrap: anywhere;
+}
+
+.dataManagementUnsupported {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--text-muted);
+}
+
+.dataManagementUnsupported > svg {
+  flex: 0 0 auto;
+  color: var(--orange);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 @media (max-width: 600px) {
   .personaGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1157,6 +1559,17 @@
 
   .mealTypeProfileModalPanel {
     width: min(96vw, 640px);
+  }
+
+  .dataManagementScopeGrid,
+  .dataManagementModeGrid,
+  .dataManagementPreviewGrid,
+  .dataManagementResultGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dataManagementConflict {
+    grid-template-columns: 1fr;
   }
 }
 

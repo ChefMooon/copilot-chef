@@ -22,6 +22,9 @@ export function getPlatform(): RendererPlatform {
 export type {
   MenuPdfExportPayload,
   MenuPdfExportResult,
+  DataArchiveOpenResult,
+  DataArchiveSavePayload,
+  DataArchiveSaveResult,
   LanStatus,
   LifecycleStatus,
   MachineTokenResult,

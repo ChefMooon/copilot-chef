@@ -7,6 +7,10 @@ export const ApiPaths = {
   meal: (id: string) => `/api/meals/${id}`,
   mealsHeatmap: "/api/meals/heatmap",
   menuExport: "/api/menu-export",
+  dataManagementExport: "/api/data-management/export",
+  dataManagementValidate: "/api/data-management/import/validate",
+  dataManagementPreview: "/api/data-management/import/preview",
+  dataManagementApply: "/api/data-management/import/apply",
 
   // Grocery lists
   groceryLists: "/api/grocery-lists",

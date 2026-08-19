@@ -27,6 +27,16 @@ const api = {
   },
   resetWindowLayout: () => invokeWindowChannel("window:resetLayout"),
   closeWindow: () => invokeWindowChannel("window:close"),
+  openDataArchive: () =>
+    ipcRenderer.invoke("data-management:openArchive") as Promise<
+      Awaited<ReturnType<IpcInvokeMap["data-management:openArchive"]>>
+    >,
+  saveDataArchive: (
+    payload: Parameters<IpcInvokeMap["data-management:saveArchive"]>[0]
+  ) =>
+    ipcRenderer.invoke("data-management:saveArchive", payload) as Promise<
+      Awaited<ReturnType<IpcInvokeMap["data-management:saveArchive"]>>
+    >,
   off: <K extends IpcEventChannel>(
     channel: K,
     listener: IpcEventMap[K]

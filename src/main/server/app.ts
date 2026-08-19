@@ -3,10 +3,7 @@ import { logger } from "hono/logger";
 import { cors } from "hono/cors";
 import { z } from "zod";
 import type { ServerConfig } from "@shared/config/server-config";
-import {
-  createApiErrorEnvelope,
-  formatZodIssues,
-} from "@shared/api/errors";
+import { createApiErrorEnvelope, formatZodIssues } from "@shared/api/errors";
 
 import { createAuthMiddleware } from "./middleware/auth.js";
 import { createRateLimitMiddleware } from "./middleware/rate-limit.js";
@@ -20,9 +17,12 @@ import { prepListsRoutes } from "./routes/prep-lists.js";
 import { recipesRoutes } from "./routes/recipes.js";
 import { preferencesRoutes } from "./routes/preferences.js";
 import { statsRoutes } from "./routes/stats.js";
+import { dataManagementRoutes } from "./routes/data-management.js";
 
 function getRequestId(c: Context): string | undefined {
-  return c.req.header("x-request-id") ?? c.req.header("request-id") ?? undefined;
+  return (
+    c.req.header("x-request-id") ?? c.req.header("request-id") ?? undefined
+  );
 }
 
 function sendApiError(
@@ -63,9 +63,7 @@ export function createApp(config: ServerConfig) {
         "x-machine-caller-id",
         "x-machine-source",
       ],
-      exposeHeaders: [
-        "x-request-id",
-      ],
+      exposeHeaders: ["x-request-id"],
       maxAge: 86400,
     })
   );
@@ -91,7 +89,10 @@ export function createApp(config: ServerConfig) {
     }
 
     const status =
-      typeof err === "object" && err !== null && "status" in err && typeof err.status === "number"
+      typeof err === "object" &&
+      err !== null &&
+      "status" in err &&
+      typeof err.status === "number"
         ? err.status
         : 500;
 
@@ -128,6 +129,7 @@ export function createApp(config: ServerConfig) {
   app.route("/api", recipesRoutes);
   app.route("/api", preferencesRoutes);
   app.route("/api", statsRoutes);
+  app.route("/api", dataManagementRoutes);
 
   return app;
 }

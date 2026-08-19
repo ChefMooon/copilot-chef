@@ -50,6 +50,14 @@ Local Recipe Book is a local-first meal-planning Electron desktop application. T
 | Renderer | `src/renderer/` | React pages, components, routing, API client, connection handling |
 | Shared | `src/shared/` | Shared types, Zod schemas, API path constants, config helpers |
 
+### Data management archive boundary
+
+Data-management archives are owned by the embedded Hono server and Electron main process. `DataManagementService` assembles domain payloads from Prisma, validates and extracts `.lrb` archives, plans merge conflicts, and performs database/photo mutations. The renderer never imports the ZIP library or reads arbitrary paths.
+
+The renderer uses the server HTTP routes for archive export, validation, preview, and apply. The two desktop-only IPC channels, `data-management:openArchive` and `data-management:saveArchive`, exist only to connect those workflows to native file dialogs. The open handler returns selected bytes and path; the save handler writes bytes to a path chosen by the user. They do not expose a general filesystem API. Browser/LAN mode advertises `dataManagement: false` and renders the workflow as unsupported.
+
+The archive contract, limits, merge identities, replace recovery behavior, and test fixtures are maintained in [data-management.md](data-management.md).
+
 ### Main process layout and startup sequence
 
 ```
@@ -243,7 +251,9 @@ Key models: `Meal`, `GroceryList`, `GroceryItem`, `UserPreference`, `Recipe`, `R
 
 ### Backup
 
-There is no standalone database-backup command in the current package. For a file-level backup, stop the app first and copy the SQLite database from the Electron user-data directory. Include the matching `.db-wal` and `.db-shm` files when they exist, or use an SQLite-aware backup process while the app is stopped.
+The supported user backup is the versioned `.lrb` archive described in [data-management.md](data-management.md). Archive export runs through the server-owned data-management service and includes typed domain JSON plus meal-photo assets without SQLite files or secrets. Replace creates a fresh `all` archive recovery backup before mutation and uses a transaction plus compensating photo cleanup for failures.
+
+For a low-level file backup or incident recovery, stop the app first and copy the SQLite database from the Electron user-data directory. Include the matching `.db-wal` and `.db-shm` files when they exist, or use an SQLite-aware backup process while the app is stopped. A raw database copy is an operator fallback, not an importable `.lrb` archive.
 
 ---
 

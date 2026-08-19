@@ -23,7 +23,23 @@ export type UpdateEventHandlers = {
   onError?: (message: string) => void;
 };
 
-export type { UpdateInfo, UpdateProgress, UpdateState } from "../../../shared/ipc";
+import type {
+  DataArchiveOpenResult,
+  DataArchiveSavePayload,
+  DataArchiveSaveResult,
+  UpdateInfo,
+  UpdateProgress,
+  UpdateState,
+} from "../../../shared/ipc";
+
+export type {
+  DataArchiveOpenResult,
+  DataArchiveSavePayload,
+  DataArchiveSaveResult,
+  UpdateInfo,
+  UpdateProgress,
+  UpdateState,
+} from "../../../shared/ipc";
 
 export type MenuPdfExportPayload = {
   htmlContent: string;
@@ -37,6 +53,7 @@ export type MenuPdfExportResult =
 
 export type PlatformCapabilities = {
   pdfExport: boolean;
+  dataManagement: boolean;
   updates: boolean;
   lanManagement: boolean;
   lifecycle: boolean;
@@ -96,6 +113,10 @@ export type RendererPlatform = {
   getLifecycleStatus: () => Promise<LifecycleStatus>;
   setLaunchAtLogin: (enabled: boolean) => Promise<LifecycleStatus>;
   exportMenuPdf: (payload: MenuPdfExportPayload) => Promise<MenuPdfExportResult>;
+  openDataArchive: () => Promise<DataArchiveOpenResult>;
+  saveDataArchive: (
+    payload: DataArchiveSavePayload
+  ) => Promise<DataArchiveSaveResult>;
   getLanStatus: () => Promise<LanStatus | null>;
   restartLanServices: () => Promise<unknown>;
   revealMachineToken: () => Promise<string | null>;

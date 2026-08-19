@@ -7,6 +7,7 @@ import {
   PreferenceService,
   RecipeService,
 } from "./core-index";
+import { DataManagementService } from "./services/data-management-service";
 
 export type ApplicationServices = {
   preferenceService: PreferenceService;
@@ -16,20 +17,35 @@ export type ApplicationServices = {
   mealSubTypeService: MealSubTypeService;
   mealTypeService: MealTypeService;
   recipeService: RecipeService;
+  dataManagementService: DataManagementService;
 };
 
 export function createApplicationServices(): ApplicationServices {
   const mealService = new MealService();
   const prepListService = new PrepListService({ mealService });
+  const preferenceService = new PreferenceService();
+  const groceryService = new GroceryService();
+  const mealSubTypeService = new MealSubTypeService();
+  const mealTypeService = new MealTypeService();
+  const recipeService = new RecipeService();
 
   return {
-    preferenceService: new PreferenceService(),
-    groceryService: new GroceryService(),
+    preferenceService,
+    groceryService,
     prepListService,
     mealService,
-    mealSubTypeService: new MealSubTypeService(),
-    mealTypeService: new MealTypeService(),
-    recipeService: new RecipeService(),
+    mealSubTypeService,
+    mealTypeService,
+    recipeService,
+    dataManagementService: new DataManagementService({
+      preferenceService,
+      groceryService,
+      prepListService,
+      mealService,
+      mealSubTypeService,
+      mealTypeService,
+      recipeService,
+    }),
   };
 }
 
@@ -44,3 +60,4 @@ export const mealService = defaultServices.mealService;
 export const mealSubTypeService = defaultServices.mealSubTypeService;
 export const mealTypeService = defaultServices.mealTypeService;
 export const recipeService = defaultServices.recipeService;
+export const dataManagementService = defaultServices.dataManagementService;

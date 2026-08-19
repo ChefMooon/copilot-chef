@@ -30,6 +30,17 @@ import {
   type RecipeSortByValue,
   type RecipeSortOrderValue,
 } from "@shared/api/constants";
+import { ApiPaths } from "@shared/api/types";
+import type {
+  ArchiveIdMap,
+  ArchivePreviewResult,
+  ArchiveValidationResult,
+  ConflictBulkDecision,
+  ConflictDecision,
+  ExportScope,
+  ImportMode,
+  ImportSummary,
+} from "@shared/schemas/data-management-schemas";
 
 import {
   ConfigNotReadyError,
@@ -63,8 +74,11 @@ export type DetectedRegionPayload = {
 };
 
 type ApiErrorBody = {
+  ok?: false;
   error?: string;
   code?: string;
+  details?: unknown;
+  requestId?: string;
   reason?: string;
   existing?: unknown;
 };
@@ -170,6 +184,33 @@ export async function fetchJson<T>(
 }
 
 export async function fetchBlob(pathOrUrl: string): Promise<Blob> {
+  return (await fetchBinary(pathOrUrl)).blob;
+}
+
+type BinaryResponse = {
+  blob: Blob;
+  fileName: string | null;
+  contentType: string | null;
+  contentLength: number | null;
+};
+
+function getFileNameFromDisposition(value: string | null): string | null {
+  if (!value) return null;
+
+  const encodedMatch = value.match(/filename\*=UTF-8''([^;]+)/i);
+  if (encodedMatch?.[1]) {
+    try {
+      return decodeURIComponent(encodedMatch[1].trim());
+    } catch {
+      return encodedMatch[1].trim();
+    }
+  }
+
+  const match = value.match(/filename="?([^";]+)"?/i);
+  return match?.[1]?.trim() || null;
+}
+
+async function fetchBinary(pathOrUrl: string): Promise<BinaryResponse> {
   const url = /^https?:\/\//i.test(pathOrUrl)
     ? pathOrUrl
     : `${getApiBase()}${pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`}`;
@@ -197,11 +238,113 @@ export async function fetchBlob(pathOrUrl: string): Promise<Blob> {
     throw new ApiError(
       payload?.error ?? `Request failed with status ${response.status}`,
       response.status,
-      payload?.code
+      payload?.code,
+      payload
     );
   }
 
-  return response.blob();
+  const blob = await response.blob();
+  const contentLength = response.headers.get("content-length");
+  return {
+    blob,
+    fileName: getFileNameFromDisposition(
+      response.headers.get("content-disposition")
+    ),
+    contentType: response.headers.get("content-type"),
+    contentLength: contentLength ? Number(contentLength) || null : null,
+  };
+}
+
+export type DataArchiveBinary = Blob | ArrayBuffer | Uint8Array;
+
+export type DataArchiveDownload = {
+  blob: Blob;
+  fileName: string;
+  contentType: string;
+  contentLength: number | null;
+};
+
+export type DataArchiveApplyInput = {
+  mode: ImportMode;
+  idMap?: ArchiveIdMap;
+  restorePreferences?: boolean;
+  decisions?: ConflictDecision[];
+  bulkDecision?: ConflictBulkDecision;
+};
+
+export type DataArchiveApplyResult = {
+  summary: ImportSummary;
+  backupPath?: string;
+};
+
+async function archiveToBase64(archive: DataArchiveBinary): Promise<string> {
+  const bytes =
+    archive instanceof Blob
+      ? new Uint8Array(await archive.arrayBuffer())
+      : archive instanceof ArrayBuffer
+        ? new Uint8Array(archive)
+        : archive;
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length))
+    );
+  }
+  return btoa(binary);
+}
+
+export async function exportDataArchive(
+  scope: ExportScope
+): Promise<DataArchiveDownload> {
+  const response = await fetchBinary(
+    `${ApiPaths.dataManagementExport}?scope=${encodeURIComponent(scope)}`
+  );
+  return {
+    blob: response.blob,
+    fileName: response.fileName ?? `local-recipe-book-${scope}.lrb`,
+    contentType: response.contentType ?? "application/zip",
+    contentLength: response.contentLength ?? response.blob.size,
+  };
+}
+
+export async function validateDataArchive(archive: DataArchiveBinary) {
+  const response = await fetchJson<{ data: ArchiveValidationResult }>(
+    ApiPaths.dataManagementValidate,
+    {
+      method: "POST",
+      body: JSON.stringify({ archive: await archiveToBase64(archive) }),
+    }
+  );
+  return response.data;
+}
+
+export async function previewDataArchive(archive: DataArchiveBinary) {
+  const response = await fetchJson<{ data: ArchivePreviewResult }>(
+    ApiPaths.dataManagementPreview,
+    {
+      method: "POST",
+      body: JSON.stringify({ archive: await archiveToBase64(archive) }),
+    }
+  );
+  return response.data;
+}
+
+export async function applyDataArchive(
+  archive: DataArchiveBinary,
+  input: DataArchiveApplyInput
+) {
+  const response = await fetchJson<{ data: DataArchiveApplyResult }>(
+    ApiPaths.dataManagementApply,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        archive: await archiveToBase64(archive),
+        ...input,
+      }),
+    }
+  );
+  return response.data;
 }
 
 export type CreateMealInput = {

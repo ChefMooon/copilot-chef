@@ -24,7 +24,15 @@ export { ApiPaths } from "./api/types";
 export { createApiErrorEnvelope, formatZodIssues } from "./api/errors";
 export type { ApiErrorCode, ApiErrorDetails, ApiErrorEnvelope } from "./api/errors";
 export { IPC_CHANNELS, IPC_EVENT_CHANNELS } from "./ipc";
-export type { IpcChannel, IpcEventChannel, IpcEventMap, IpcInvokeMap } from "./ipc";
+export type {
+  DataArchiveOpenResult,
+  DataArchiveSavePayload,
+  DataArchiveSaveResult,
+  IpcChannel,
+  IpcEventChannel,
+  IpcEventMap,
+  IpcInvokeMap,
+} from "./ipc";
 // Constants
 export {
   MEAL_TYPES,
@@ -63,6 +71,7 @@ export {
   MenuExportRequestSchema,
   MenuLayoutSchema,
 } from "./schemas/menu-export-schemas";
+export * from "./schemas/data-management-schemas";
 export type {
   CreateRecipeInput,
   UpdateRecipeInput,

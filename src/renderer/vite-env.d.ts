@@ -14,6 +14,11 @@ type WindowApi = {
   isWindowMaximized: () => Promise<Awaited<ReturnType<IpcInvokeMap["window:isMaximized"]>>>;
   resetWindowLayout: () => Promise<Awaited<ReturnType<IpcInvokeMap["window:resetLayout"]>>>;
   closeWindow: () => Promise<Awaited<ReturnType<IpcInvokeMap["window:close"]>>>;
+  openDataArchive: () =>
+    Promise<Awaited<ReturnType<IpcInvokeMap["data-management:openArchive"]>>>;
+  saveDataArchive: (
+    payload: Parameters<IpcInvokeMap["data-management:saveArchive"]>[0]
+  ) => Promise<Awaited<ReturnType<IpcInvokeMap["data-management:saveArchive"]>>>;
 };
 
 interface Window {

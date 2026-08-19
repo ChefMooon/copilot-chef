@@ -28,7 +28,8 @@ local-recipe-book/
 ├── resources/     Icons and packaged app resources
 ├── docs/
 │   ├── architecture.md                 How the system works
-│   └── developer-guide.md              This file
+│   ├── developer-guide.md              This file
+│   └── data-management.md              Archive format, restore, limits, and fixtures
 └── .github/workflows/                  CI + release pipelines
 ```
 
@@ -78,6 +79,8 @@ npm run build
 npm run build:win
 ```
 
+The build runs the archive runtime check. `npm run build:unpack` is the faster packaged-artifact check when an installer is not required; both commands inspect `app.asar` for the built main entry and the production `fflate` dependency.
+
 ### Lint and format
 
 ```bash
@@ -100,6 +103,18 @@ npm run dev:web
 ```
 
 Starts a Vite dev server for the browser renderer only (no Electron). Useful for rapid browser UI iteration. Connect to a running local API via the connection page.
+
+### Data-management build checks
+
+```bash
+npm run check:data-management:runtime
+npm run check:data-management:build
+npm run check:data-management:package
+```
+
+The runtime check is used by `npm run dev` and confirms that the pure-JS archive dependency is installed as a production dependency. The build check confirms that electron-vite produced a main-process bundle containing or referencing the archive runtime. The package check requires a fresh `app.asar`, checks `out/main/index.js` and `node_modules/fflate/package.json`, and can inspect a specific artifact through `DATA_MANAGEMENT_PACKAGE_PATH`.
+
+See [data-management.md](data-management.md) for archive scopes, validation limits, secret exclusion, merge decisions, replace recovery, browser limitations, and focused fixtures.
 
 ---
 
@@ -207,6 +222,9 @@ npm run test
 
 # Single test file
 npx vitest run src/shared/config/__tests__/loader.test.ts
+
+# Archive, import, route, and schema suites
+npx vitest run src/main/server/lib/data-archive.test.ts src/main/server/services/data-management-service.test.ts src/main/server/services/data-management-import.test.ts src/main/server/routes/data-management.test.ts src/shared/schemas/data-management-schemas.test.ts
 ```
 
 Tests use [Vitest](https://vitest.dev). Tests are distributed across `src/main/`, `src/shared/`, and `src/renderer/`; see `docs/TEST.md` for the current snapshot and coverage gaps.
@@ -235,6 +253,8 @@ npm run build:win
 ```
 
 Packaged Windows artifacts are emitted by Electron Builder under the build output directory used during packaging.
+
+`npm run build` includes the electron-vite archive runtime check. `npm run build:win` includes the packaged `app.asar` check after Electron Builder completes. Do not treat an old `dist/` directory as evidence; the package check must run against the artifact produced by the current build.
 
 
 ## 10. Debugging

@@ -20,6 +20,8 @@ export const IPC_CHANNELS = [
   "machine-token:rotate",
   "machine-token:clear",
   "menu:exportPdf",
+  "data-management:openArchive",
+  "data-management:saveArchive",
   "updates:check",
   "updates:is-supported",
   "updates:get-state",
@@ -36,6 +38,21 @@ export const IPC_EVENT_CHANNELS = [
 
 export type IpcChannel = (typeof IPC_CHANNELS)[number];
 export type IpcEventChannel = (typeof IPC_EVENT_CHANNELS)[number];
+
+export type DataArchiveOpenResult =
+  | { status: "selected"; filePath: string; data: Uint8Array }
+  | { status: "canceled" }
+  | { status: "error"; message: string };
+
+export type DataArchiveSavePayload = {
+  data: Uint8Array;
+  suggestedFileName: string;
+};
+
+export type DataArchiveSaveResult =
+  | { status: "saved"; filePath: string }
+  | { status: "canceled" }
+  | { status: "error"; message: string };
 
 export type IpcInvokeMap = {
   "server:getConfig": () => Promise<{
@@ -87,6 +104,10 @@ export type IpcInvokeMap = {
     | { status: "canceled" }
     | { status: "error"; message: string }
   >;
+  "data-management:openArchive": () => Promise<DataArchiveOpenResult>;
+  "data-management:saveArchive": (
+    payload: DataArchiveSavePayload
+  ) => Promise<DataArchiveSaveResult>;
   "updates:check": () => Promise<unknown>;
   "updates:is-supported": () => Promise<boolean>;
   "updates:get-state": () => Promise<UpdateState>;

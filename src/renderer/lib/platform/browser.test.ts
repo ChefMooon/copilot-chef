@@ -191,4 +191,23 @@ describe("browser platform connection storage", () => {
     expect(await platform.getSetting("meal_bank_sidecar_placement")).toBe("bottom");
     expect(await platform.getSetting("meal_bank_collapsed")).toBe(true);
   });
+
+  it("marks archive backup and restore as unsupported in browser mode", async () => {
+    const platform = createBrowserPlatform();
+
+    expect(platform.capabilities.dataManagement).toBe(false);
+    await expect(platform.openDataArchive()).resolves.toEqual({
+      status: "error",
+      message: "Data backup and restore is available in the desktop app.",
+    });
+    await expect(
+      platform.saveDataArchive({
+        data: new Uint8Array([1]),
+        suggestedFileName: "backup.lrb",
+      })
+    ).resolves.toEqual({
+      status: "error",
+      message: "Data backup and restore is available in the desktop app.",
+    });
+  });
 });

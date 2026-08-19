@@ -7,6 +7,7 @@
 | Workspace instructions | `../.github/copilot-instructions.md` | High-signal routing guide with project overview and common pitfalls |
 | Developer workflows and commands | `developer-guide.md` | Setup, run, test, build, and feature implementation workflow |
 | System architecture and runtime model | `architecture.md` | Process boundaries, data flow, auth, and runtime modes |
+| Data management archives | `data-management.md` | Archive format, scopes, validation, restore, security limits, and fixtures |
 | App configuration and settings | `copilot-chef-config.md` | Environment variables, app settings, and preference contracts |
 | LAN and browser access | `lan-browser-access.md` | Trusted-device LAN/browser access, token lifecycle, and operations |
 | Electron IPC contracts | `ipc-channels.md` | Canonical request-response and push channel reference |

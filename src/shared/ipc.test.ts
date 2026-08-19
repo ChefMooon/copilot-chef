@@ -6,6 +6,8 @@ describe("shared IPC contract", () => {
   it("exposes the canonical channel list and typed channel map", () => {
     expect(IPC_CHANNELS).toContain("server:getConfig");
     expect(IPC_CHANNELS).toContain("menu:exportPdf");
+    expect(IPC_CHANNELS).toContain("data-management:openArchive");
+    expect(IPC_CHANNELS).toContain("data-management:saveArchive");
     expect(IPC_CHANNELS).toContain("updates:check");
 
     const channel: IpcChannel = "window:minimize";

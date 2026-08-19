@@ -43,6 +43,8 @@ These channels use `ipcMain.handle(...)` in main and `window.api.invoke(...)` in
 | `machine-token:rotate` | renderer -> main | none | Rotates machine token and restarts local server when running | `src/main/ipc/index.ts` |
 | `machine-token:clear` | renderer -> main | none | Clears machine token and restarts local server when running | `src/main/ipc/index.ts` |
 | `menu:exportPdf` | renderer -> main | `{ htmlContent, suggestedFileName }` | Generates a PDF and opens save dialog | `src/main/ipc/index.ts` |
+| `data-management:openArchive` | renderer -> main | none | Opens a native archive picker and returns selected archive bytes/path | `src/main/ipc/index.ts` |
+| `data-management:saveArchive` | renderer -> main | `{ data, suggestedFileName }` | Opens a native archive save dialog and writes selected archive bytes | `src/main/ipc/index.ts` |
 | `updates:check` | renderer -> main | none | Checks for app updates | `src/main/updates/service.ts` |
 | `updates:is-supported` | renderer -> main | none | Reports whether packaged desktop updates are available in the current runtime | `src/main/ipc/index.ts` |
 | `updates:get-state` | renderer -> main | none | Returns the latest updater state for late renderer subscribers | `src/main/updates/service.ts` |
@@ -71,3 +73,5 @@ These channels use `webContents.send(...)` in main and `window.api.on(...)` in r
 3. Keep `window.api` surface in `src/renderer/vite-env.d.ts` aligned with preload.
 4. If adding new push channels, add subscribe and unsubscribe paths in renderer.
 5. Document every new channel here in the same PR as code changes.
+
+Data-management IPC is desktop-only file handoff, not a general filesystem API. Browser mode must use the platform capability flag and never call these channels. Archive validation, preview, and mutation remain owned by the authenticated server routes; the IPC handlers only open/save the bytes needed by the native dialogs and return canceled or user-facing error results.

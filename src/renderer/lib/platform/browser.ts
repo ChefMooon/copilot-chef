@@ -1,6 +1,9 @@
 import type {
   MenuPdfExportPayload,
   MenuPdfExportResult,
+  DataArchiveSavePayload,
+  DataArchiveOpenResult,
+  DataArchiveSaveResult,
   RendererPlatform,
   ServerConfig,
 } from "./types";
@@ -271,6 +274,7 @@ export function createBrowserPlatform(): RendererPlatform {
     runtime: "browser",
     capabilities: {
       pdfExport: false,
+      dataManagement: false,
       updates: false,
       lanManagement: false,
       lifecycle: false,
@@ -349,6 +353,16 @@ export function createBrowserPlatform(): RendererPlatform {
         message: "PDF export is available in the desktop app.",
       };
     },
+    openDataArchive: async (): Promise<DataArchiveOpenResult> => ({
+      status: "error",
+      message: "Data backup and restore is available in the desktop app.",
+    }),
+    saveDataArchive: async (
+      _payload: DataArchiveSavePayload
+    ): Promise<DataArchiveSaveResult> => ({
+      status: "error",
+      message: "Data backup and restore is available in the desktop app.",
+    }),
     getLanStatus: async () => null,
     restartLanServices: async () => null,
     revealMachineToken: async () => null,
