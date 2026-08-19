@@ -3262,12 +3262,13 @@
 .dropIntentPopover {
   position: fixed;
   z-index: 520;
-  transform: translate(8px, 8px);
+  -webkit-app-region: no-drag;
   width: min(280px, calc(100vw - 1.25rem));
-  border: 1px solid rgba(199, 184, 154, 0.95);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  background: linear-gradient(180deg, #fffdf8 0%, #f7f1e4 100%);
-  box-shadow: 0 12px 32px rgba(44, 36, 22, 0.24);
+  background: var(--card-elevated);
+  box-shadow: var(--shadow-lg);
+  color: var(--card-foreground);
   padding: 0.7rem;
 }
 
@@ -3297,7 +3298,7 @@
 .dropIntentPrimaryBtn {
   border: 1px solid var(--green);
   background: var(--green);
-  color: #fffdf8;
+  color: var(--primary-foreground);
 }
 
 .dropIntentPrimaryBtn:hover:not(:disabled) {

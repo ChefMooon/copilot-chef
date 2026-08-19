@@ -61,7 +61,7 @@ export function DropIntentPopover({
       return;
     }
 
-    const onWindowPointerDown = (event: MouseEvent) => {
+    const onWindowPointerDown = (event: PointerEvent) => {
       const target = event.target;
       if (!(target instanceof Node)) {
         return;
@@ -71,6 +71,8 @@ export function DropIntentPopover({
         return;
       }
 
+      event.preventDefault();
+      event.stopPropagation();
       onCancel();
     };
 
@@ -80,11 +82,11 @@ export function DropIntentPopover({
       }
     };
 
-    window.addEventListener("mousedown", onWindowPointerDown);
+    window.addEventListener("pointerdown", onWindowPointerDown, true);
     window.addEventListener("keydown", onWindowKeyDown);
 
     return () => {
-      window.removeEventListener("mousedown", onWindowPointerDown);
+      window.removeEventListener("pointerdown", onWindowPointerDown, true);
       window.removeEventListener("keydown", onWindowKeyDown);
     };
   }, [isOpen, onCancel]);
