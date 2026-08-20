@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.2] - 2026-08-20
+
+### Added
+
+- Added backup and restore tools in Settings so users can protect and recover their local recipe book data.
+- Added configurable meal-type cutoff times so dashboard counts reflect only meal slots that are still active for the current day.
+
+### Changed
+
+- Refined meal-plan add and edit dialogs with a more compact layout and smoother meal-entry flow.
+- Desktop users are now prompted when an update is available so they can install it more easily.
+
+### Fixed
+
+- Recipe ingredient conversion now preserves cup measurements and applies flour density conversions more accurately.
+- Corrected meal-plan drop-intent popover styling in supported themes.
+
 ## [1.1.1] - 2025-08-14
 
 ### Added
