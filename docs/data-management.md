@@ -6,6 +6,8 @@ This guide is for contributors and operators who need to understand the Local Re
 
 The embedded Hono server owns archive assembly, validation, conflict planning, database writes, and photo-file writes. ZIP bytes are created and extracted in the Electron main/server process with the pure-JS `fflate` dependency. The renderer only calls typed API wrappers and the platform adapter.
 
+Database schema ownership remains separate from the archive boundary. `prisma/schema.prisma` is the declarative Prisma schema, while `src/main/server/lib/schema.ts` owns the runtime raw SQL needed to create missing tables and indexes, reconcile selected columns on older databases, and perform known compatibility repairs. `src/main/server/lib/bootstrap.ts` runs that compatibility layer during database initialization. The project does not maintain a Prisma migration directory, and archive import/export does not apply SQL schema migrations.
+
 Electron file dialogs are the only native file boundary:
 
 - `data-management:openArchive` returns selected archive bytes and the selected path, or a canceled/error result.
@@ -19,13 +21,13 @@ Browser and LAN clients do not have native file capabilities. The Settings tab s
 
 The new archive format is a ZIP file with the `.lrb` extension. The current supported format is:
 
-| Field | Value |
-|---|---|
-| Format | `local-recipe-book` |
-| Format version | `1` |
-| Schema version | `1` |
-| Domain payload version | `1` |
-| Default filename | `local-recipe-book-{scope}-{YYYY-MM-DD}.lrb` |
+| Field                  | Value                                        |
+| ---------------------- | -------------------------------------------- |
+| Format                 | `local-recipe-book`                          |
+| Format version         | `1`                                          |
+| Schema version         | `1`                                          |
+| Domain payload version | `1`                                          |
+| Default filename       | `local-recipe-book-{scope}-{YYYY-MM-DD}.lrb` |
 
 Every archive contains `manifest.json` and one JSON file per domain. Meal photos use the `assets/meal-photos/` namespace.
 
@@ -43,11 +45,11 @@ The manifest records the application version, export timestamp, selected scope, 
 
 ### Scope semantics
 
-| Scope | Included data | Excluded data |
-|---|---|---|
-| `meal-plan` | Scheduled and unscheduled meals, meal-type profiles/definitions, meal sub-type definitions, referenced recipes, recipe lineage/link closure, and available meal photos | Grocery lists, prep lists, preferences |
-| `recipes` | Recipes, ingredients, tags, source metadata, lineage, and linked recipe records | Meals, photos, grocery/prep lists, preferences |
-| `all` | Everything in `meal-plan`, plus the complete recipe library, grocery lists/items, prep lists/items, checked state, and allowlisted preferences | Secrets and runtime/device configuration |
+| Scope       | Included data                                                                                                                                                          | Excluded data                                  |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| `meal-plan` | Scheduled and unscheduled meals, meal-type profiles/definitions, meal sub-type definitions, referenced recipes, recipe lineage/link closure, and available meal photos | Grocery lists, prep lists, preferences         |
+| `recipes`   | Recipes, ingredients, tags, source metadata, lineage, and linked recipe records                                                                                        | Meals, photos, grocery/prep lists, preferences |
+| `all`       | Everything in `meal-plan`, plus the complete recipe library, grocery lists/items, prep lists/items, checked state, and allowlisted preferences                         | Secrets and runtime/device configuration       |
 
 Meal-plan exports include every meal returned by the meal service, including unscheduled meals. A recipe dependency is included when a meal references it, and the recipe exporter closes over source-recipe and linked-sub-recipe references. Recipe-only archives never contain photo assets.
 
@@ -59,28 +61,30 @@ Validation happens before database mutation or photo writes. The parser rejects 
 
 The extraction limits are deliberately finite:
 
-| Limit | Current maximum |
-|---|---:|
-| Compressed archive | 64 MiB |
-| Uncompressed contents | 128 MiB |
-| Archive entries | 512 |
-| Individual photo asset | 8 MiB |
-| Photo assets | 100 |
+| Limit                  | Current maximum |
+| ---------------------- | --------------: |
+| Compressed archive     |          64 MiB |
+| Uncompressed contents  |         128 MiB |
+| Archive entries        |             512 |
+| Individual photo asset |           8 MiB |
+| Photo assets           |             100 |
 
 Only `image/avif`, `image/gif`, `image/jpeg`, `image/png`, and `image/webp` are accepted. ZIP64 and encrypted entries are rejected. Entry names must use the canonical layout, UTF-8, forward slashes, and safe path components; absolute paths, drive-qualified paths, backslashes, NUL bytes, and `..` traversal are rejected. Photo entries are verified against the manifest SHA-256 checksum, byte size, meal ID, MIME type, and original filename.
 
 Archives never contain the SQLite database, WAL/SHM files, raw settings, API keys, machine tokens, remote connection credentials, runtime settings, or device identity. The preferences payload is an explicit allowlist of household and planning preferences only. Replace restores those preferences only when the user enables the separate restore-preferences option.
 
+The archive `schemaVersion` is a version for the `.lrb` payload contract, not the SQLite schema. A database schema change must be handled through the Prisma schema and runtime compatibility layer before archive workflows are tested against it. Export an `all` archive before testing an upgrade or a destructive change; keep the resulting recovery archive outside temporary storage.
+
 ## Export and Import Flow
 
 Authenticated archive endpoints are registered under `/api/data-management`:
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET` | `/api/data-management/export?scope=meal-plan\|recipes\|all` | Creates an archive and returns `application/zip` with a stable download filename |
-| `POST` | `/api/data-management/import/validate` | Extracts and validates a base64 archive without mutation |
-| `POST` | `/api/data-management/import/preview` | Validates the archive, reads local identities, and produces a non-mutating conflict preview |
-| `POST` | `/api/data-management/import/apply` | Applies an explicit `merge` or `replace` request after validation and decisions |
+| Method | Path                                                        | Purpose                                                                                     |
+| ------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/data-management/export?scope=meal-plan\|recipes\|all` | Creates an archive and returns `application/zip` with a stable download filename            |
+| `POST` | `/api/data-management/import/validate`                      | Extracts and validates a base64 archive without mutation                                    |
+| `POST` | `/api/data-management/import/preview`                       | Validates the archive, reads local identities, and produces a non-mutating conflict preview |
+| `POST` | `/api/data-management/import/apply`                         | Applies an explicit `merge` or `replace` request after validation and decisions             |
 
 The current transport uses a JSON body containing a base64 `archive` string. Apply requests additionally contain `mode`, an optional ID map, conflict decisions or a bulk decision, and `restorePreferences` (false by default). Structured errors distinguish invalid requests, invalid/unsupported archives, required conflict decisions, disabled replace, and apply failures.
 

@@ -43,12 +43,12 @@ Local Recipe Book is a local-first meal-planning Electron desktop application. T
 
 ## 2. Package Responsibilities
 
-| Package | Path | Responsibilities |
-|---|---|---|
-| Main process | `src/main/` | Electron lifecycle, tray, IPC, embedded Hono server, settings storage, updater integration |
-| Preload | `src/preload/` | Safe contextBridge API exposed to the renderer |
-| Renderer | `src/renderer/` | React pages, components, routing, API client, connection handling |
-| Shared | `src/shared/` | Shared types, Zod schemas, API path constants, config helpers |
+| Package      | Path            | Responsibilities                                                                           |
+| ------------ | --------------- | ------------------------------------------------------------------------------------------ |
+| Main process | `src/main/`     | Electron lifecycle, tray, IPC, embedded Hono server, settings storage, updater integration |
+| Preload      | `src/preload/`  | Safe contextBridge API exposed to the renderer                                             |
+| Renderer     | `src/renderer/` | React pages, components, routing, API client, connection handling                          |
+| Shared       | `src/shared/`   | Shared types, Zod schemas, API path constants, config helpers                              |
 
 ### Data management archive boundary
 
@@ -75,6 +75,7 @@ updates/service.ts electron-updater wiring
 ```
 
 Desktop-local startup flow:
+
 1. `app.whenReady()` resolves runtime mode from `server_mode`
 2. In `local` mode, `startServer()` builds runtime token/config and starts Hono with port fallback
 3. Renderer requests runtime connection details through `server:getConfig`
@@ -96,6 +97,7 @@ The Electron renderer connects to a configured remote API URL and token from set
 A browser client (e.g., iPad Safari) opens the URL served by the static web process (default port 4173). The browser adapter (`src/renderer/lib/platform/browser.ts`) reads connection config from `localStorage` or a QR fragment (`#/connect?api=...&token=...`). The browser uses a machine token — not the per-session desktop token.
 
 When LAN is enabled:
+
 - API binds to `0.0.0.0` and advertises the selected LAN IPv4 address.
 - Static web process starts on port 4173.
 - CORS is extended to include the static web origin.
@@ -113,13 +115,13 @@ The renderer uses a `RendererPlatform` interface (`src/renderer/lib/platform/typ
 
 Platform capabilities:
 
-| Capability | Electron | Browser |
-|---|---|---|
-| `pdfExport` | ✓ | — |
-| `updates` | ✓ | — |
-| `lanManagement` | ✓ | — |
-| `getServerConfig` | ✓ | ✓ (from localStorage) |
-| `getSetting` / `setSetting` | ✓ | ✓ (localStorage prefix) |
+| Capability                  | Electron | Browser                 |
+| --------------------------- | -------- | ----------------------- |
+| `pdfExport`                 | ✓        | —                       |
+| `updates`                   | ✓        | —                       |
+| `lanManagement`             | ✓        | —                       |
+| `getServerConfig`           | ✓        | ✓ (from localStorage)   |
+| `getSetting` / `setSetting` | ✓        | ✓ (localStorage prefix) |
 
 Renderer runtime layout:
 
@@ -201,6 +203,7 @@ In remote mode, the renderer uses the configured remote URL and API key from set
 Browser and LAN clients authenticate using a persistent machine token stored in `machine_api_key` settings. Unlike the per-session desktop token, the machine token survives restarts and is shown to users for manual entry or QR onboarding.
 
 Token lifecycle is managed by `src/main/server/lib/machine-token.ts`:
+
 - `generateMachineToken()` — creates and persists a new token
 - `revealMachineToken()` — returns the stored token for display
 - `clearMachineToken()` — removes the token from settings
@@ -213,8 +216,8 @@ Operational details, onboarding flow, and troubleshooting are documented in `doc
 
 The desktop app release currently uses a single `v{semver}` tag in the same GitHub repository.
 
-| Component | Tag format | Example |
-|---|---|---|
+| Component   | Tag format  | Example  |
+| ----------- | ----------- | -------- |
 | Desktop app | `v{semver}` | `v1.2.0` |
 
 ### Client updates
@@ -236,18 +239,30 @@ The database is a single SQLite file (`{userData}/data/copilot-chef.db`). All da
 
 WAL mode is configured at startup via raw PRAGMAs applied by `prisma.ts` after the Prisma client is initialized:
 
-| PRAGMA | Value | Purpose |
-|---|---|---|
-| `journal_mode` | `WAL` | Concurrent reads during writes |
-| `busy_timeout` | `5000` (ms) | Wait up to 5s on lock before failing |
-| `synchronous` | `NORMAL` | Faster writes; survives process crash |
-| `foreign_keys` | `ON` | Enforce FK constraints (SQLite default: off) |
+| PRAGMA         | Value       | Purpose                                      |
+| -------------- | ----------- | -------------------------------------------- |
+| `journal_mode` | `WAL`       | Concurrent reads during writes               |
+| `busy_timeout` | `5000` (ms) | Wait up to 5s on lock before failing         |
+| `synchronous`  | `NORMAL`    | Faster writes; survives process crash        |
+| `foreign_keys` | `ON`        | Enforce FK constraints (SQLite default: off) |
 
 ### Prisma schema overview
 
 Key models: `Meal`, `GroceryList`, `GroceryItem`, `UserPreference`, `Recipe`, `RecipeTag`, `MealLog`, `PrepList`, `PrepItem`.
 
 `ingredientsJson` fields are stored as raw JSON strings (SQLite has no native JSON column). Always `JSON.parse`/`JSON.stringify` explicitly — Prisma does not do this automatically.
+
+### Schema ownership and compatibility
+
+The database schema has two cooperating layers:
+
+- `prisma/schema.prisma` is the declarative Prisma schema and the source used by `prisma db push` and `prisma generate` during development.
+- `src/main/server/lib/schema.ts` contains the raw SQL schema statements used at runtime. It creates missing tables and indexes, reconciles selected columns on older databases, and performs narrowly scoped repairs and data normalization.
+- `src/main/server/lib/bootstrap.ts` owns the initialization sequence. `bootstrapDatabase()` connects Prisma, runs `ensureDatabaseSchema()`, applies defaults and seed policy, and finalizes runtime data repairs once per successful runtime initialization.
+
+This project does not use a `prisma/migrations/` history. The packaged app does not run `prisma db push`; it relies on the runtime compatibility layer when it starts. Therefore, a schema change is complete only when both `schema.prisma` and the corresponding fresh-database or compatibility behavior in `src/main/server/lib/schema.ts` are accounted for.
+
+For development, apply a schema change with `npm run db:push` and then regenerate the client with `npm run db:generate`. Before release, test both an empty database and a realistic database created by an earlier build. Additive changes are the safest; renames, type changes, new required fields, constraint changes, and data transformations require explicit raw SQL or backfill logic and a recovery backup.
 
 ### Backup
 
@@ -267,6 +282,7 @@ The renderer requires an active server connection. In local mode that server run
 2. Returns `{ status: "connecting" | "connected" | "disconnected", retry() }`
 
 When disconnected:
+
 - A banner is shown: "Server connection lost. Retrying..."
 - Mutation buttons are disabled; cached UI data remains visible
 - React Query caches are invalidated on reconnection
