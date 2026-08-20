@@ -65,6 +65,7 @@ const defaultMealTypeProfile = {
       color: "#8FB7D4",
       enabled: true,
       sortOrder: 0,
+      cutoffTime: "23:59",
       createdAt: "2026-04-17T00:00:00.000Z",
       updatedAt: "2026-04-17T00:00:00.000Z",
     },
@@ -105,6 +106,7 @@ describe("MealTypesSection", () => {
       color: "#8FB7D4",
       enabled: false,
       sortOrder: 0,
+      cutoffTime: "23:59",
       createdAt: "2026-04-17T00:00:00.000Z",
       updatedAt: "2026-04-17T00:00:00.000Z",
     });
@@ -217,6 +219,7 @@ describe("MealTypesSection", () => {
         name: "Supper",
         color: "#8FB7D4",
         enabled: true,
+        cutoffTime: "23:59",
       }
     );
   });
@@ -295,6 +298,7 @@ describe("MealTypesSection", () => {
           name: "Dinner",
           color: "#E8885A",
           enabled: true,
+          cutoffTime: "23:59",
         }
       );
       expect(apiMocks.createMealTypeDefinition).toHaveBeenCalledWith(
@@ -303,6 +307,7 @@ describe("MealTypesSection", () => {
           name: "Iftar",
           color: "#E8885A",
           enabled: true,
+          cutoffTime: "23:59",
         }
       );
       expect(apiMocks.reorderMealTypeDefinitions).toHaveBeenCalledWith(

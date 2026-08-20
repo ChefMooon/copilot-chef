@@ -8,6 +8,7 @@ import {
   saveMealPhotoDataUrl,
 } from "../lib/meal-photo-storage";
 import { prisma } from "../lib/prisma";
+import { MealTypeService } from "./meal-type-service";
 import { getCuisineLabel } from "@shared/api/constants";
 import type {
   MealIngredient,
@@ -167,6 +168,21 @@ function normalizeMealType(value: string) {
   return normalized;
 }
 
+const DEFAULT_MEAL_TYPE_CUTOFF = "23:59";
+const CUTOFF_TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+
+function getLocalDayKey(date: Date) {
+  return `${date.getFullYear().toString().padStart(4, "0")}-${(date.getMonth() + 1)
+    .toString()
+    .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
+}
+
+function getCutoffMinutes(value: string | null | undefined) {
+  const cutoff = value && CUTOFF_TIME_PATTERN.test(value) ? value : DEFAULT_MEAL_TYPE_CUTOFF;
+  const [hours, minutes] = cutoff.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
 function serializeMealTypeDefinition(definition: {
   id: string;
   profileId: string;
@@ -175,6 +191,7 @@ function serializeMealTypeDefinition(definition: {
   color: string;
   enabled: boolean;
   sortOrder: number;
+  cutoffTime?: string | null;
   createdAt: Date;
   updatedAt: Date;
 } | null | undefined): MealTypeDefinitionPayload | null {
@@ -190,6 +207,7 @@ function serializeMealTypeDefinition(definition: {
     color: definition.color,
     enabled: definition.enabled,
     sortOrder: definition.sortOrder,
+    cutoffTime: definition.cutoffTime ?? "23:59",
     createdAt: definition.createdAt.toISOString(),
     updatedAt: definition.updatedAt.toISOString(),
   };
@@ -395,6 +413,8 @@ function normalizeMealDateInput(input: string | null | undefined) {
 }
 
 export class MealService {
+  private mealTypeService = new MealTypeService();
+
   private mealInclude = {
     mealTypeDefinition: true,
     mealSubTypeDefinition: true,
@@ -1153,6 +1173,68 @@ export class MealService {
     });
 
     return slotGroups.length;
+  }
+
+  async getLiveMealCountInRange(from: string, to: string) {
+    await bootstrapDatabase();
+
+    const now = new Date();
+    const todayKey = getLocalDayKey(now);
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const meals = await prisma.meal.findMany({
+      where: {
+        date: {
+          not: null,
+          gte: new Date(from),
+          lte: new Date(to),
+        },
+      },
+      select: {
+        date: true,
+        mealType: true,
+        mealTypeDefinition: true,
+      },
+    });
+
+    const profileByDate = new Map<string, Awaited<ReturnType<MealTypeService["getActiveProfile"]>>>();
+    const slots = new Set<string>();
+
+    for (const meal of meals) {
+      if (!meal.date) {
+        continue;
+      }
+
+      const dateKey = `${meal.date.getUTCFullYear().toString().padStart(4, "0")}-${(meal.date.getUTCMonth() + 1)
+        .toString()
+        .padStart(2, "0")}-${meal.date.getUTCDate().toString().padStart(2, "0")}`;
+      if (dateKey < todayKey) {
+        continue;
+      }
+
+      let cutoffTime = meal.mealTypeDefinition?.cutoffTime;
+      if (!meal.mealTypeDefinition) {
+        let profile = profileByDate.get(dateKey);
+        if (profile === undefined) {
+          profile = await this.mealTypeService.getActiveProfile(dateKey);
+          profileByDate.set(dateKey, profile);
+        }
+
+        const normalizedMealType = normalizeMealType(meal.mealType);
+        cutoffTime = profile?.mealTypes.find(
+          (definition) =>
+            definition.slug === normalizedMealType ||
+            definition.name.trim().toUpperCase() === normalizedMealType
+        )?.cutoffTime;
+      }
+
+      if (dateKey === todayKey && currentMinutes > getCutoffMinutes(cutoffTime)) {
+        continue;
+      }
+
+      slots.add(`${dateKey}:${normalizeMealType(meal.mealType)}`);
+    }
+
+    return slots.size;
   }
 
   async listAllMeals() {

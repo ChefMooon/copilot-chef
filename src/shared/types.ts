@@ -39,6 +39,7 @@ export type MealTypeDefinitionPayload = {
   color: string;
   enabled: boolean;
   sortOrder: number;
+  cutoffTime?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -83,6 +84,7 @@ export type CreateMealTypeDefinitionInput = {
   name: string;
   color: string;
   enabled?: boolean;
+  cutoffTime?: string;
 };
 
 export type UpdateMealTypeDefinitionInput = Partial<CreateMealTypeDefinitionInput>;

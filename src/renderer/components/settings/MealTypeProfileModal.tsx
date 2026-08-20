@@ -38,6 +38,7 @@ type EditableMealTypeDraft = {
   name: string;
   color: string;
   enabled: boolean;
+  cutoffTime: string;
 };
 
 function ColorSwatches(props: {
@@ -93,7 +94,7 @@ type MealTypeProfileModalProps = {
   onUpdateForm: (patch: Partial<ProfileFormState>) => void;
   onUpdateMealType: (
     draftId: string,
-    patch: Partial<Pick<EditableMealTypeDraft, "name" | "color" | "enabled">>
+    patch: Partial<Pick<EditableMealTypeDraft, "name" | "color" | "enabled" | "cutoffTime">>
   ) => void;
 };
 
@@ -377,6 +378,9 @@ export function MealTypeProfileModal({
                   ? "Add, edit, reorder, or remove default meal types before saving."
                   : "Add, edit, reorder, or remove meal types before saving this custom profile."}
               </p>
+              <p className={styles.cardDescription}>
+                Today's dashboard count includes a meal type through its cutoff time. The cutoff is a local wall-clock time for the scheduled date.
+              </p>
             </div>
 
             <div className={styles.mealTypeProfileModalList}>
@@ -405,6 +409,21 @@ export function MealTypeProfileModal({
                     }
                     value={draft.color}
                   />
+
+                  <label className={styles.fieldLabel}>
+                    Dashboard cutoff
+                    <input
+                      aria-label="Meal type cutoff time"
+                      className={styles.select}
+                      onChange={(event) =>
+                        onUpdateMealType(draft.id, {
+                          cutoffTime: event.target.value,
+                        })
+                      }
+                      type="time"
+                      value={draft.cutoffTime}
+                    />
+                  </label>
 
                   <label className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)]">
                     <input

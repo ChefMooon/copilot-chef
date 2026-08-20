@@ -83,6 +83,7 @@ model MealTypeDefinition {
   color      String
   enabled    Boolean         @default(true)
   sortOrder  Int             @default(0)
+  cutoffTime String?         @default("23:59")
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
   profile    MealTypeProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)

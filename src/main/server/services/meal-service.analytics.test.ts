@@ -42,6 +42,7 @@ describe("MealService analytics", () => {
     vi.setSystemTime(new Date(2026, 3, 10, 12, 0, 0, 0));
     bootstrapDatabaseMock.mockClear();
     prismaMock.meal.groupBy.mockReset();
+    prismaMock.meal.findMany.mockReset();
   });
 
   afterEach(() => {
@@ -99,5 +100,47 @@ describe("MealService analytics", () => {
     expect(result.totalDishes).toBe(3);
     expect(result.activeDays).toBe(2);
     expect(result.streak).toBe(2);
+  });
+
+  it("counts live week slots through the exact cutoff and deduplicates dishes", async () => {
+    const service = new MealService();
+    prismaMock.meal.findMany.mockResolvedValue([
+      { date: new Date(Date.UTC(2026, 3, 9, 12)), mealType: "DINNER", mealTypeDefinition: null },
+      {
+        date: new Date(Date.UTC(2026, 3, 10, 12)),
+        mealType: "DINNER",
+        mealTypeDefinition: { cutoffTime: "14:00" },
+      },
+      {
+        date: new Date(Date.UTC(2026, 3, 10, 12)),
+        mealType: "DINNER",
+        mealTypeDefinition: { cutoffTime: "14:00" },
+      },
+      { date: new Date(Date.UTC(2026, 3, 11, 12)), mealType: "DINNER", mealTypeDefinition: { cutoffTime: null } },
+      { date: null, mealType: "LUNCH", mealTypeDefinition: null },
+    ]);
+
+    await expect(
+      service.getLiveMealCountInRange(
+        "2026-04-06T00:00:00.000Z",
+        "2026-04-12T23:59:59.999Z"
+      )
+    ).resolves.toBe(2);
+
+    vi.setSystemTime(new Date(2026, 3, 10, 14, 0, 0, 0));
+    await expect(
+      service.getLiveMealCountInRange(
+        "2026-04-06T00:00:00.000Z",
+        "2026-04-12T23:59:59.999Z"
+      )
+    ).resolves.toBe(2);
+
+    vi.setSystemTime(new Date(2026, 3, 10, 14, 1, 0, 0));
+    await expect(
+      service.getLiveMealCountInRange(
+        "2026-04-06T00:00:00.000Z",
+        "2026-04-12T23:59:59.999Z"
+      )
+    ).resolves.toBe(1);
   });
 });

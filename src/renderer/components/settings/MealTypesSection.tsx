@@ -57,7 +57,10 @@ type EditableMealTypeDraft = {
   name: string;
   color: string;
   enabled: boolean;
+  cutoffTime: string;
 };
+
+const DEFAULT_CUTOFF_TIME = "23:59";
 
 function toDateInputValue(value: string | null) {
   return value ? value.slice(0, 10) : "";
@@ -91,6 +94,7 @@ function buildEditableMealTypeDraft(
     name: definition?.name ?? "",
     color: definition?.color ?? PRESET_COLORS[0],
     enabled: definition?.enabled ?? true,
+    cutoffTime: definition?.cutoffTime ?? DEFAULT_CUTOFF_TIME,
   };
 }
 
@@ -168,6 +172,7 @@ export function MealTypesSection() {
         definitionId: isCreating ? null : draft.definitionId,
         name: draft.name.trim(),
         color: draft.color.trim().toUpperCase(),
+        cutoffTime: draft.cutoffTime.trim(),
       }));
 
       if (normalizedDrafts.length === 0) {
@@ -182,12 +187,16 @@ export function MealTypesSection() {
         );
       }
 
+      if (normalizedDrafts.some((draft) => !/^\d{2}:\d{2}$/.test(draft.cutoffTime))) {
+        throw new Error("Each meal type needs a valid cutoff time in HH:mm format.");
+      }
+
       let createdProfileId: string | null = null;
 
       try {
         const savedProfile = form.id
           ? await updateMealTypeProfile(form.id, payload)
-          : await createMealTypeProfile(payload);
+          : await createMealTypeProfile(payload as CreateMealTypeProfileInput);
 
         if (isCreating) {
           createdProfileId = savedProfile.id;
@@ -220,6 +229,7 @@ export function MealTypesSection() {
                 name: draft.name,
                 color: draft.color,
                 enabled: draft.enabled,
+                cutoffTime: draft.cutoffTime,
               }
             );
             orderedIds.push(draft.definitionId);
@@ -232,6 +242,7 @@ export function MealTypesSection() {
               name: draft.name,
               color: draft.color,
               enabled: draft.enabled,
+              cutoffTime: draft.cutoffTime,
             }
           );
           orderedIds.push(createdDefinition.id);
@@ -320,7 +331,7 @@ export function MealTypesSection() {
 
   const updateProfileMealTypeDraft = (
     draftId: string,
-    patch: Partial<Pick<EditableMealTypeDraft, "name" | "color" | "enabled">>
+    patch: Partial<Pick<EditableMealTypeDraft, "name" | "color" | "enabled" | "cutoffTime">>
   ) => {
     setProfileMealTypeDrafts((current) =>
       current.map((draft) =>
@@ -497,12 +508,12 @@ export function MealTypesSection() {
         onClose={closeProfileForm}
         onMoveMealType={moveProfileMealTypeDraft}
         onRemoveMealType={removeProfileMealTypeDraft}
-        onSave={() =>
-          saveProfileMutation.mutateAsync({
+        onSave={async () => {
+          await saveProfileMutation.mutateAsync({
             form: profileForm,
             mealTypeDrafts: profileMealTypeDrafts,
-          })
-        }
+          });
+        }}
         onUpdateForm={(patch) =>
           setProfileForm((current) => ({ ...current, ...patch }))
         }

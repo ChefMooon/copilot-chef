@@ -104,3 +104,11 @@ All user preferences are managed by `src/main/server/services/preference-service
 - `defaultRecipeView`: options `basic`, `detailed`, `cooking`
 - `defaultUnitMode`: options `cup`, `grams`
 - `reasoningEffort`: currently retained but not used by the local-first workflows
+
+### Meal-Type Cutoffs
+
+Each meal-type definition stores a `cutoffTime` in local 24-hour `HH:mm` format. It is a wall-clock boundary for the scheduled date, not a timestamp stored on an individual meal. The live home-dashboard weekly slot count includes today's slot through the cutoff minute and excludes it after that minute; future slots remain counted, prior dates and unscheduled meals do not count, and multiple dishes sharing a date and meal type count once.
+
+Built-in defaults are Breakfast `10:00`, Morning Snack `11:30`, Lunch `14:00`, Afternoon Snack `17:00`, Dinner `21:00`, and Snack `23:59`. New custom definitions default to `23:59`. Missing or unknown legacy values also use `23:59`, while invalid non-empty values are rejected. Cutoffs remain part of date-ranged meal-type profile configuration so profile resolution stays self-contained.
+
+This iteration intentionally adds cutoff editing to meal-type profiles only. It does not add a dashboard layout builder, widget ordering, arbitrary dashboard visibility configuration, or a separate dashboard settings page. Future presentation preferences can use the existing platform settings path; meal timing remains owned by meal-type profiles.

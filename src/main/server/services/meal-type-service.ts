@@ -30,6 +30,7 @@ type MealTypeProfileRecord = {
     color: string;
     enabled: boolean;
     sortOrder: number;
+    cutoffTime: string | null;
     createdAt: Date;
     updatedAt: Date;
   }>;
@@ -149,6 +150,18 @@ const LEGACY_BASE_TEMPLATE_COLORS: Record<string, string> = {
   DINNER: "#3B5E45",
 };
 
+const DEFAULT_CUTOFF_TIME = "23:59";
+const CUTOFF_TIME_PATTERN = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+
+function normalizeCutoffTime(value: string | null | undefined) {
+  const normalized = value?.trim() || DEFAULT_CUTOFF_TIME;
+  if (!CUTOFF_TIME_PATTERN.test(normalized)) {
+    throw new Error("Cutoff time must use 24-hour HH:mm format.");
+  }
+
+  return normalized;
+}
+
 function serializeDefinition(
   definition: MealTypeProfileRecord["mealTypes"][number]
 ): MealTypeDefinitionPayload {
@@ -160,6 +173,7 @@ function serializeDefinition(
     color: definition.color,
     enabled: definition.enabled,
     sortOrder: definition.sortOrder,
+    cutoffTime: normalizeCutoffTime(definition.cutoffTime),
     createdAt: definition.createdAt.toISOString(),
     updatedAt: definition.updatedAt.toISOString(),
   };
@@ -314,6 +328,7 @@ export class MealTypeService {
             color: template.color,
             enabled: template.enabled,
             sortOrder: template.sortOrder,
+            cutoffTime: template.cutoffTime,
           })),
         },
       },
@@ -632,6 +647,7 @@ export class MealTypeService {
             color: definition.color,
             enabled: definition.enabled,
             sortOrder: definition.sortOrder,
+            cutoffTime: normalizeCutoffTime(definition.cutoffTime),
           })),
         },
       },
@@ -674,6 +690,7 @@ export class MealTypeService {
         color: normalizeHexColor(input.color),
         enabled: input.enabled ?? true,
         sortOrder: nextSortOrder,
+        cutoffTime: normalizeCutoffTime(input.cutoffTime),
       },
     });
 
@@ -715,6 +732,9 @@ export class MealTypeService {
             ? { color: normalizeHexColor(input.color) }
             : {}),
           ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
+          ...(input.cutoffTime !== undefined
+            ? { cutoffTime: normalizeCutoffTime(input.cutoffTime) }
+            : {}),
         },
       });
 

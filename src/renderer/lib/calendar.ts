@@ -275,6 +275,7 @@ export function getDefaultMealTypeDefinitions(): MealTypeDefinitionPayload[] {
     color: template.color,
     enabled: template.enabled,
     sortOrder: template.sortOrder,
+    cutoffTime: template.cutoffTime,
     createdAt: new Date(0).toISOString(),
     updatedAt: new Date(0).toISOString(),
   }));

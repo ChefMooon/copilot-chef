@@ -772,6 +772,7 @@ export class DataManagementService {
         color: definition.color,
         enabled: definition.enabled,
         sortOrder: definition.sortOrder,
+        cutoffTime: definition.cutoffTime ?? "23:59",
         createdAt: normalizeDate(definition.createdAt) ?? definition.createdAt,
         updatedAt: normalizeDate(definition.updatedAt) ?? definition.updatedAt,
       }));
@@ -2189,6 +2190,7 @@ export class DataManagementService {
           color: definition.color,
           enabled: definition.enabled,
           sortOrder: definition.sortOrder,
+          cutoffTime: definition.cutoffTime ?? "23:59",
         };
         if (recordAction === "replace") {
           await tx.mealTypeDefinition.update({ where: { id }, data });

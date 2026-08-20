@@ -66,6 +66,7 @@ const SCHEMA_STATEMENTS = [
       "color" TEXT NOT NULL,
       "enabled" INTEGER NOT NULL DEFAULT 1,
       "sortOrder" INTEGER NOT NULL DEFAULT 0,
+      "cutoffTime" TEXT DEFAULT '23:59',
       "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
@@ -644,6 +645,10 @@ export async function ensureDatabaseSchema(): Promise<void> {
     color: `ALTER TABLE "MealTypeProfile" ADD COLUMN "color" TEXT NOT NULL DEFAULT '#3B5E45'`,
   } as const;
 
+  const safeMealTypeDefinitionAlterStatements = {
+    cutoffTime: `ALTER TABLE "MealTypeDefinition" ADD COLUMN "cutoffTime" TEXT`,
+  } as const;
+
   const safeRecipeAlterStatements = {
     normalizedTitle: `ALTER TABLE "Recipe" ADD COLUMN "normalizedTitle" TEXT`,
     normalizedSourceUrl: `ALTER TABLE "Recipe" ADD COLUMN "normalizedSourceUrl" TEXT`,
@@ -666,6 +671,19 @@ export async function ensureDatabaseSchema(): Promise<void> {
 
   await ensureMissingColumns("Meal", safeMealAlterStatements);
   await ensureMissingColumns("MealTypeProfile", safeMealTypeProfileAlterStatements);
+  await ensureMissingColumns("MealTypeDefinition", safeMealTypeDefinitionAlterStatements);
+  await prisma.$executeRawUnsafe(`
+    UPDATE "MealTypeDefinition"
+    SET "cutoffTime" = CASE "slug"
+      WHEN 'BREAKFAST' THEN '10:00'
+      WHEN 'MORNING_SNACK' THEN '11:30'
+      WHEN 'LUNCH' THEN '14:00'
+      WHEN 'AFTERNOON_SNACK' THEN '17:00'
+      WHEN 'DINNER' THEN '21:00'
+      ELSE '23:59'
+    END
+    WHERE "cutoffTime" IS NULL
+  `);
   await ensureMissingColumns("Recipe", safeRecipeAlterStatements);
   await ensureMissingColumns("RecipeIngredient", safeRecipeIngredientAlterStatements);
   await ensureMissingColumns("PrepList", safePrepListAlterStatements);

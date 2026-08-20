@@ -127,6 +127,7 @@ mealTypesRoutes.post("/meal-types/profiles/:id/definitions", async (c) => {
       name: asString(body?.name) ?? "",
       color: asString(body?.color) ?? "",
       enabled: asBoolean(body?.enabled),
+      cutoffTime: asString(body?.cutoffTime),
     });
     return c.json({ data }, 201);
   } catch (error) {
@@ -147,6 +148,9 @@ mealTypesRoutes.patch("/meal-types/profiles/:profileId/definitions/:definitionId
         ...(body?.name !== undefined ? { name: asString(body.name) ?? "" } : {}),
         ...(body?.color !== undefined ? { color: asString(body.color) ?? "" } : {}),
         ...(body?.enabled !== undefined ? { enabled: asBoolean(body.enabled) ?? false } : {}),
+        ...(body?.cutoffTime !== undefined
+          ? { cutoffTime: asString(body.cutoffTime) ?? "" }
+          : {}),
       }
     );
     return c.json({ data });

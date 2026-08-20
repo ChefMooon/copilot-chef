@@ -248,6 +248,7 @@ export function HomeDashboard() {
   const mealSummaryQuery = useQuery({
     queryKey: ["stats", "meal-summary"],
     enabled: apiReady,
+    refetchInterval: 60_000,
     retry: (failureCount, error) =>
       isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
     queryFn: () =>

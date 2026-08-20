@@ -14,6 +14,7 @@ export const DEFAULT_MEAL_TYPE_TEMPLATES = [
     color: "#E8885A",
     enabled: true,
     sortOrder: 0,
+    cutoffTime: "10:00",
     aliases: ["breakfast"],
   },
   {
@@ -22,6 +23,7 @@ export const DEFAULT_MEAL_TYPE_TEMPLATES = [
     color: "#C5A84B",
     enabled: true,
     sortOrder: 1,
+    cutoffTime: "11:30",
     aliases: ["morning snack"],
   },
   {
@@ -30,6 +32,7 @@ export const DEFAULT_MEAL_TYPE_TEMPLATES = [
     color: "#5A7D63",
     enabled: true,
     sortOrder: 2,
+    cutoffTime: "14:00",
     aliases: ["lunch"],
   },
   {
@@ -38,6 +41,7 @@ export const DEFAULT_MEAL_TYPE_TEMPLATES = [
     color: "#8A7DB8",
     enabled: true,
     sortOrder: 3,
+    cutoffTime: "17:00",
     aliases: ["afternoon snack"],
   },
   {
@@ -46,6 +50,7 @@ export const DEFAULT_MEAL_TYPE_TEMPLATES = [
     color: "#8FB7D4",
     enabled: true,
     sortOrder: 4,
+    cutoffTime: "21:00",
     aliases: ["dinner"],
   },
   {
@@ -54,6 +59,7 @@ export const DEFAULT_MEAL_TYPE_TEMPLATES = [
     color: "#6A7C91",
     enabled: false,
     sortOrder: 5,
+    cutoffTime: "23:59",
     aliases: ["snack"],
   },
 ] as const;

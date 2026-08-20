@@ -392,6 +392,11 @@ export const MealTypeDefinitionArchiveSchema = z
     color: z.string().trim().min(1).max(32),
     enabled: z.boolean(),
     sortOrder: z.number().int(),
+    cutoffTime: z
+      .string()
+      .regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/)
+      .optional()
+      .default("23:59"),
     createdAt: archiveDateSchema,
     updatedAt: archiveDateSchema,
   })

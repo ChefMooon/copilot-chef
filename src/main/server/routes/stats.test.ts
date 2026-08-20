@@ -14,7 +14,7 @@ vi.mock("../services.js", () => ({
     getPlanningWindowStats: vi.fn(),
     getTopMeals: vi.fn(),
     getTopIngredients: vi.fn(),
-    getMealCountInRange: vi.fn(),
+    getLiveMealCountInRange: vi.fn(),
   },
 }));
 
@@ -50,7 +50,7 @@ describe("statsRoutes", () => {
     } as never);
     vi.mocked(mealService.getTopMeals).mockResolvedValue([] as never);
     vi.mocked(mealService.getTopIngredients).mockResolvedValue([] as never);
-    vi.mocked(mealService.getMealCountInRange).mockResolvedValue(5);
+    vi.mocked(mealService.getLiveMealCountInRange).mockResolvedValue(5);
   });
 
   it("returns slot-based analytics fields for the stats dashboard", async () => {
@@ -79,6 +79,6 @@ describe("statsRoutes", () => {
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.data.totalSlots).toBe(5);
-    expect(mealService.getMealCountInRange).toHaveBeenCalledTimes(1);
+    expect(mealService.getLiveMealCountInRange).toHaveBeenCalledTimes(1);
   });
 });
