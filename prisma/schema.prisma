@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("COPILOT_CHEF_DATABASE_URL")
+  url      = env("LOCAL_RECIPE_BOOK_DATABASE_URL")
 }
 
 model Meal {

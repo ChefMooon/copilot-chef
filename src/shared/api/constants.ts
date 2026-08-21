@@ -218,4 +218,4 @@ export const GROCERY_UNITS = [
   "boxes",
 ] as const;
 
-export const SENTINEL_PREFIX = "\x00COPILOT_CHEF_EVENT\x00";
+export const SENTINEL_PREFIX = "\x00LOCAL_RECIPE_BOOK_EVENT\x00";

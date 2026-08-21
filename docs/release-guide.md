@@ -60,7 +60,7 @@ The workflow uses the repository `GITHUB_TOKEN` to publish the release assets de
 
 After the workflow creates the GitHub Release draft, update its body with the validated `CHANGELOG.md` entry for the matching version. This keeps the release draft useful even when electron-builder adds generated commit information automatically. Verify the changelog text and installer artifacts are present before publishing or treating the release as complete.
 
-The package still contains internal `copilot-chef` identifiers for compatibility. Verify the Electron Builder publish target in `package.json` before a public release; changing those identifiers is outside this documentation update.
+The breaking Local Recipe Book identity uses package slug `local-recipe-book` and Electron app ID `com.local-recipe-book.app`. Existing installs do not retain update continuity after the app ID change. Before upgrading, export an `all` `.lrb` archive, install the new build as a new application identity, and re-import the archive into its fresh database. The archive restores supported content and allowlisted preferences, not raw settings, tokens, secrets, or device configuration.
 
 ---
 
@@ -72,6 +72,8 @@ The package still contains internal `copilot-chef` identifiers for compatibility
 4. Launch the app and confirm startup, local server boot, and settings persistence.
 5. Confirm the browser web bundle is included — open the static URL on a LAN device or check that browser assets are present in the packaged output.
 6. If auto-update is part of the release you are testing, confirm the updater can see the GitHub-hosted release feed.
+
+For this naming-break release, also verify that the package creates `{userData}/data/local-recipe-book.db` and does not read old `copilot-chef` database, photo, browser, environment, configuration-file, or protocol identifiers.
 
 ---
 

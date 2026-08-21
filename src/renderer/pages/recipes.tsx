@@ -356,8 +356,8 @@ export default function RecipesPage() {
       const date = new Date().toISOString().slice(0, 10);
       const fileName =
         scope === "selected"
-          ? `copilot-chef-recipes-selected-${selectedCount}-${date}.json`
-          : `copilot-chef-recipes-all-${date}.json`;
+          ? `local-recipe-book-recipes-selected-${selectedCount}-${date}.json`
+          : `local-recipe-book-recipes-all-${date}.json`;
 
       downloadJson(payload, fileName);
       toast({

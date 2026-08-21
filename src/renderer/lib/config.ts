@@ -4,7 +4,7 @@ export type { ServerConfig } from "./platform";
 
 let cachedConfig: ServerConfig | null = null;
 
-const CONFIG_UPDATED_EVENT = "copilot-chef:config-updated";
+const CONFIG_UPDATED_EVENT = "local-recipe-book:config-updated";
 
 export class ConfigNotReadyError extends Error {
   constructor(message = "Server configuration is not ready") {

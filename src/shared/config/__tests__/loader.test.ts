@@ -21,7 +21,7 @@ function writeTempFile(filename: string, content: string): string {
 
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(
-    path.join(os.tmpdir(), "copilot-chef-config-test-")
+    path.join(os.tmpdir(), "local-recipe-book-config-test-")
   );
 });
 
@@ -29,7 +29,7 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
   // Clean up env vars
   for (const key of Object.keys(process.env)) {
-    if (key.startsWith("COPILOT_CHEF_")) {
+    if (key.startsWith("LOCAL_RECIPE_BOOK_")) {
       delete process.env[key];
     }
   }
@@ -56,7 +56,7 @@ check_on_startup = false
 [cors]
 origins = ["http://localhost:3000"]
 `;
-    const filePath = writeTempFile("copilot-chef-server.toml", toml);
+    const filePath = writeTempFile("local-recipe-book-server.toml", toml);
     const config = loadServerConfig(filePath);
 
     expect(config.server.port).toBe(4000);
@@ -75,7 +75,7 @@ origins = ["http://localhost:3000"]
     expect(config.server.port).toBe(3001);
     expect(config.server.host).toBe("127.0.0.1");
     expect(config.server.logLevel).toBe("info");
-    expect(config.database.url).toBe("file:./data/copilot-chef.db");
+    expect(config.database.url).toBe("file:./data/local-recipe-book.db");
     expect(config.auth.tokens).toEqual([]);
     expect(config.updates.checkOnStartup).toBe(true);
   });
@@ -88,17 +88,17 @@ port = 4000
 [database]
 url = "file:./toml.db"
 `;
-    const filePath = writeTempFile("copilot-chef-server.toml", toml);
-    process.env.COPILOT_CHEF_SERVER_PORT = "5000";
-    process.env.COPILOT_CHEF_DATABASE_URL = "file:./override.db";
+    const filePath = writeTempFile("local-recipe-book-server.toml", toml);
+    process.env.LOCAL_RECIPE_BOOK_SERVER_PORT = "5000";
+    process.env.LOCAL_RECIPE_BOOK_DATABASE_URL = "file:./override.db";
     const config = loadServerConfig(filePath);
 
     expect(config.server.port).toBe(5000);
     expect(config.database.url).toBe("file:./override.db");
   });
 
-  it("uses COPILOT_CHEF_DATABASE_URL override", () => {
-    process.env.COPILOT_CHEF_DATABASE_URL = "file:./prefixed.db";
+  it("uses LOCAL_RECIPE_BOOK_DATABASE_URL override", () => {
+    process.env.LOCAL_RECIPE_BOOK_DATABASE_URL = "file:./prefixed.db";
     const config = loadServerConfig(path.join(tmpDir, "nonexistent.toml"));
 
     expect(config.database.url).toBe("file:./prefixed.db");
@@ -108,18 +108,18 @@ url = "file:./toml.db"
     process.env.CHEF_DATABASE_URL = "file:./compat.db";
     const config = loadServerConfig(path.join(tmpDir, "nonexistent.toml"));
 
-    expect(config.database.url).toBe("file:./data/copilot-chef.db");
+    expect(config.database.url).toBe("file:./data/local-recipe-book.db");
   });
 
   it("defaults database.url when config and env are missing", () => {
     const config = loadServerConfig(path.join(tmpDir, "nonexistent.toml"));
 
-    expect(config.database.url).toBe("file:./data/copilot-chef.db");
+    expect(config.database.url).toBe("file:./data/local-recipe-book.db");
   });
 
   it("coerces comma-separated env tokens to array", () => {
-    process.env.COPILOT_CHEF_DATABASE_URL = "file:./db.db";
-    process.env.COPILOT_CHEF_AUTH_TOKENS = "token-a,token-b,token-c";
+    process.env.LOCAL_RECIPE_BOOK_DATABASE_URL = "file:./db.db";
+    process.env.LOCAL_RECIPE_BOOK_AUTH_TOKENS = "token-a,token-b,token-c";
     const config = loadServerConfig(path.join(tmpDir, "nonexistent.toml"));
 
     expect(config.auth.tokens).toEqual(["token-a", "token-b", "token-c"]);
@@ -133,7 +133,7 @@ describe("loadClientConfig", () => {
 server_url = "http://192.168.1.100:3001"
 api_key = "my-key"
 auto_launch_server = false
-server_binary_path = "/usr/local/bin/copilot-chef-server"
+server_binary_path = "/usr/local/bin/local-recipe-book-server"
 
 [updates]
 check_on_startup = false
@@ -141,14 +141,14 @@ check_on_startup = false
 [ui]
 theme = "dark"
 `;
-    const filePath = writeTempFile("copilot-chef-client.toml", toml);
+    const filePath = writeTempFile("local-recipe-book-client.toml", toml);
     const config = loadClientConfig(filePath);
 
     expect(config.connection.serverUrl).toBe("http://192.168.1.100:3001");
     expect(config.connection.apiKey).toBe("my-key");
     expect(config.connection.autoLaunchServer).toBe(false);
     expect(config.connection.serverBinaryPath).toBe(
-      "/usr/local/bin/copilot-chef-server"
+      "/usr/local/bin/local-recipe-book-server"
     );
     expect(config.updates.checkOnStartup).toBe(false);
     expect(config.ui.theme).toBe("dark");
@@ -166,8 +166,8 @@ theme = "dark"
   });
 
   it("applies env var overrides", () => {
-    process.env.COPILOT_CHEF_CLIENT_SERVER_URL = "http://remote:9000";
-    process.env.COPILOT_CHEF_CLIENT_API_KEY = "env-key";
+    process.env.LOCAL_RECIPE_BOOK_CLIENT_SERVER_URL = "http://remote:9000";
+    process.env.LOCAL_RECIPE_BOOK_CLIENT_API_KEY = "env-key";
     const config = loadClientConfig(path.join(tmpDir, "nonexistent.toml"));
 
     expect(config.connection.serverUrl).toBe("http://remote:9000");

@@ -107,7 +107,7 @@ export function DayView({
 
     const dragTypes = Array.from(event.dataTransfer.types ?? []);
     return (
-      dragTypes.includes("application/x-copilot-chef-meal-plan-drag") ||
+      dragTypes.includes("application/x-local-recipe-book-meal-plan-drag") ||
       dragTypes.includes("text/plain")
     );
   };

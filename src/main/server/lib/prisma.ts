@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 
-const DEFAULT_DATABASE_URL = "file:./data/copilot-chef.db";
+const DEFAULT_DATABASE_URL = "file:./data/local-recipe-book.db";
 
 const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClient;
@@ -48,7 +48,7 @@ function getClient(): PrismaClient {
   if (_client) return _client;
 
   const rawDatabaseUrl =
-    process.env.COPILOT_CHEF_DATABASE_URL ?? DEFAULT_DATABASE_URL;
+    process.env.LOCAL_RECIPE_BOOK_DATABASE_URL ?? DEFAULT_DATABASE_URL;
   const databaseUrl = resolveDatabaseUrl(rawDatabaseUrl);
   ensureSqliteDirectory(databaseUrl);
 
@@ -80,7 +80,7 @@ function getClient(): PrismaClient {
 }
 
 // Lazy proxy — the PrismaClient is created on first access.
-// If COPILOT_CHEF_DATABASE_URL is not set, it falls back to file:./data/copilot-chef.db.
+// If the database environment variable is not set, it falls back to file:./data/local-recipe-book.db.
 export const prisma = new Proxy({} as PrismaClient, {
   get(_target, prop, _receiver) {
     const client = getClient();

@@ -184,9 +184,9 @@ The app uses two configuration paths:
 1. Electron settings stored under the user data directory through `src/main/settings/store.ts`.
 2. Environment variable overrides consumed by the embedded server and shared config loader.
 
-Important compatibility environment variables include `COPILOT_CHEF_DATABASE_URL` and `COPILOT_CHEF_SERVER_PORT`. The names are retained for existing installations; they do not indicate an active Copilot runtime.
+The embedded server accepts `LOCAL_RECIPE_BOOK_DATABASE_URL`, `LOCAL_RECIPE_BOOK_SERVER_PORT`, and the other `LOCAL_RECIPE_BOOK_*` configuration variables documented in the configuration reference. These names are the live contract for new installations.
 
-For LAN and browser access behavior, see `docs/lan-browser-access.md` and `docs/copilot-chef-config.md`.
+For LAN and browser access behavior, see `docs/lan-browser-access.md` and `docs/local-recipe-book-config.md`.
 
 ---
 
@@ -235,7 +235,7 @@ The desktop app release currently uses a single `v{semver}` tag in the same GitH
 
 ### SQLite in WAL mode
 
-The database is a single SQLite file (`{userData}/data/copilot-chef.db`). All database access is mediated by the Hono server process — clients never connect to SQLite directly.
+The database is a single SQLite file (`{userData}/data/local-recipe-book.db`). All database access is mediated by the Hono server process — clients never connect to SQLite directly.
 
 WAL mode is configured at startup via raw PRAGMAs applied by `prisma.ts` after the Prisma client is initialized:
 
@@ -302,7 +302,7 @@ Browser Client ──HTTP──┼──→ Hono Server (single Node.js process)
                  │    └────┬────┘  ← concurrent reads via WAL
                  │         │
                  │    ┌────┴────┐
-                 │    │ SQLite  │  ← {userData}/data/copilot-chef.db
+                 │    │ SQLite  │  ← {userData}/data/local-recipe-book.db
                  │    │  (WAL)  │  ← + .db-wal  + .db-shm
                  │    └─────────┘
 ```

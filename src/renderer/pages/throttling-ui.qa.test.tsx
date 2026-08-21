@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 type QueryState = {
   data?: unknown;
@@ -22,6 +22,10 @@ const queryClientMock = {
 const listRecipesMock = vi.fn();
 const toastMock = vi.fn();
 const getSettingMock = vi.fn().mockResolvedValue(null);
+
+let StatsPage: (typeof import("./stats"))["default"];
+let RecipesPage: (typeof import("./recipes"))["default"];
+let HomeDashboard: (typeof import("@/components/home/home-dashboard"))["HomeDashboard"];
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: useQueryMock,
@@ -85,6 +89,12 @@ function queryState(overrides: Partial<QueryState> = {}): QueryState {
 }
 
 describe("throttling UI regression coverage", () => {
+  beforeAll(async () => {
+    StatsPage = (await import("./stats")).default;
+    RecipesPage = (await import("./recipes")).default;
+    HomeDashboard = (await import("@/components/home/home-dashboard")).HomeDashboard;
+  });
+
   beforeEach(() => {
     useQueryMock.mockReset();
     useMutationMock.mockReset();
@@ -110,8 +120,6 @@ describe("throttling UI regression coverage", () => {
       queryState({ isError: true, error: { status: 429 }, refetch })
     );
 
-    const module = await import("./stats");
-    const StatsPage = module.default;
     render(<StatsPage />);
 
     expect(
@@ -164,9 +172,6 @@ describe("throttling UI regression coverage", () => {
         })
       );
 
-    const module = await import("@/components/home/home-dashboard");
-    const HomeDashboard = module.HomeDashboard;
-
     render(
       <MemoryRouter>
         <HomeDashboard />
@@ -204,9 +209,6 @@ describe("throttling UI regression coverage", () => {
           refetch: allRecipesRefetch,
         })
       );
-
-    const module = await import("./recipes");
-    const RecipesPage = module.default;
 
     render(
       <MemoryRouter>

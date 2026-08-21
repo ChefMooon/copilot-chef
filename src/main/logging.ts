@@ -45,5 +45,5 @@ export function sanitizeLogValue<T>(value: T): T {
 
 export function logLifecycle(event: string, details?: Record<string, unknown>): void {
   const payload = details ? sanitizeLogValue(details) : undefined;
-  console.info(`[copilot-chef] ${event}`, payload ?? {});
+  console.info(`[local-recipe-book] ${event}`, payload ?? {});
 }

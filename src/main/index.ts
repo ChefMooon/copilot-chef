@@ -37,7 +37,7 @@ const shutdownGate = createShutdownGate({
   requestRuntimeQuit: () => runtime.requestQuit(),
   quit: () => app.quit(),
   onError: (error) => {
-    console.error("[copilot-chef] application shutdown failed:", error);
+    console.error("[local-recipe-book] application shutdown failed:", error);
   },
 });
 
@@ -202,7 +202,7 @@ app.whenReady().then(async () => {
   Menu.setApplicationMenu(null);
 
   // Set app user model id (Windows)
-  electronApp.setAppUserModelId("com.copilot-chef.app");
+  electronApp.setAppUserModelId("com.local-recipe-book.app");
 
   // Dev: install devtools, optimize
   app.on("browser-window-created", (_, window) => {
@@ -240,15 +240,15 @@ app.whenReady().then(async () => {
     try {
       const result = await runtime.start();
       console.info(
-        `[copilot-chef] server started on ${result.apiUrl ?? "unknown"}`
+        `[local-recipe-book] server started on ${result.apiUrl ?? "unknown"}`
       );
       if (result.webUrl) {
         console.info(
-          `[copilot-chef] browser UI started on ${result.webUrl}`
+          `[local-recipe-book] browser UI started on ${result.webUrl}`
         );
       }
     } catch (err) {
-      console.error("[copilot-chef] server startup failed:", err);
+      console.error("[local-recipe-book] server startup failed:", err);
     }
   }
 

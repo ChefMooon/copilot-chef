@@ -13,7 +13,7 @@ function getPhotoRootDir() {
   try {
     return join(app.getPath("userData"), DATA_DIR_NAME, PHOTO_DIR_NAME);
   } catch {
-    return join(process.cwd(), ".copilot-chef", PHOTO_DIR_NAME);
+    return join(process.cwd(), ".local-recipe-book", PHOTO_DIR_NAME);
   }
 }
 

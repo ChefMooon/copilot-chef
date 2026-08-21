@@ -176,6 +176,6 @@ In remote mode:
 ## 9. Related Documentation
 
 - `docs/architecture.md`
-- `docs/copilot-chef-config.md`
+- `docs/local-recipe-book-config.md`
 - `docs/client-server-install-and-usage.md`
 - `docs/ipc-channels.md`

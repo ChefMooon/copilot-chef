@@ -25,7 +25,7 @@ import { createApp } from "./app";
 
 const baseConfig = {
   server: { port: 3001, host: "127.0.0.1", logLevel: "info" },
-  database: { url: "file:./data/copilot-chef.db" },
+  database: { url: "file:./data/local-recipe-book.db" },
   auth: { tokens: [] },
   updates: { feedUrl: "", checkOnStartup: true },
   cors: { origins: ["http://localhost:5173"] },

@@ -58,12 +58,12 @@ function parseBooleanEnv(value: string): boolean | undefined {
 }
 
 export function shouldSeedDatabase(): boolean {
-  const seedEnv = process.env["COPILOT_CHEF_SEED_DATABASE"];
+  const seedEnv = process.env["LOCAL_RECIPE_BOOK_SEED_DATABASE"];
   if (seedEnv !== undefined) {
     const parsed = parseBooleanEnv(seedEnv);
     if (parsed === undefined) {
       console.warn(
-        `[copilot-chef] invalid COPILOT_CHEF_SEED_DATABASE value "${seedEnv}"; expected true/false or 1/0. Defaulting to no seeding.`
+        `[local-recipe-book] invalid LOCAL_RECIPE_BOOK_SEED_DATABASE value "${seedEnv}"; expected true/false or 1/0. Defaulting to no seeding.`
       );
       return false;
     }

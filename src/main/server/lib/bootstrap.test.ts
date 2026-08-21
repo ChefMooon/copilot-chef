@@ -56,7 +56,7 @@ import { bootstrapDatabase, initializeDatabaseRuntime, shouldSeedDatabase } from
 describe("database bootstrap ownership", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.COPILOT_CHEF_SEED_DATABASE;
+    delete process.env.LOCAL_RECIPE_BOOK_SEED_DATABASE;
   });
 
   it("initializes the database once across concurrent callers", async () => {
@@ -70,7 +70,7 @@ describe("database bootstrap ownership", () => {
   });
 
   it("respects seed defaults and allows an explicit runtime override", async () => {
-    process.env.COPILOT_CHEF_SEED_DATABASE = "false";
+    process.env.LOCAL_RECIPE_BOOK_SEED_DATABASE = "false";
     expect(shouldSeedDatabase()).toBe(false);
 
     await initializeDatabaseRuntime({ seedEnabled: true });

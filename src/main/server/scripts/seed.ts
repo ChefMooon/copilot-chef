@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const DB_URL_KEY = "COPILOT_CHEF_DATABASE_URL";
+const DB_URL_KEY = "LOCAL_RECIPE_BOOK_DATABASE_URL";
 
 function loadDbUrlFromEnvFile(): void {
   if (process.env[DB_URL_KEY]) return;
@@ -46,13 +46,13 @@ async function main(): Promise<void> {
   try {
     await ensureDatabaseSchema();
     await seedDatabase();
-    console.info("[copilot-chef] seed complete");
+    console.info("[local-recipe-book] seed complete");
   } finally {
     await prisma.$disconnect();
   }
 }
 
 main().catch((error: unknown) => {
-  console.error("[copilot-chef] seed failed:", error);
+  console.error("[local-recipe-book] seed failed:", error);
   process.exitCode = 1;
 });

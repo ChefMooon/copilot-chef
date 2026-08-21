@@ -23,11 +23,11 @@ Before making changes, review the focused documentation file for that domain.
 | System architecture and runtime model | `docs/architecture.md` | Process boundaries, runtime modes, data flow, and auth |
 | LAN and browser access | `docs/lan-browser-access.md` | Trusted-device LAN/browser access, token lifecycle, and troubleshooting |
 | Electron IPC contracts | `docs/ipc-channels.md` | Canonical request-response and push channel reference |
-| App settings and environment configuration | `docs/copilot-chef-config.md` | Settings keys/defaults, env vars, and preference contracts |
-| Frontend standards | `docs/copilot-chef-style-guide.md` | Visual/UX implementation standards for frontend work |
+| App settings and environment configuration | `docs/local-recipe-book-config.md` | Settings keys/defaults, env vars, and preference contracts |
+| Frontend standards | `docs/STYLE-GUIDE.md` | Visual/UX implementation standards for frontend work |
 | Documentation navigation | `docs/STRUCTURE.md` | Single-page index for documentation ownership and maintenance |
 
-For frontend or UI changes, align with `docs/copilot-chef-style-guide.md` before implementation.
+For frontend or UI changes, align with `docs/STYLE-GUIDE.md` before implementation.
 
 
 ## Working Agreement
@@ -37,13 +37,13 @@ Use focused docs as source of truth and avoid duplicating long-form details in t
 - Runtime architecture and lifecycle: `docs/architecture.md`
 - LAN/browser access and token operations: `docs/lan-browser-access.md`
 - IPC channel contracts: `docs/ipc-channels.md`
-- Settings and configuration keys: `docs/copilot-chef-config.md`
+- Settings and configuration keys: `docs/local-recipe-book-config.md`
 
 ## Common Pitfalls
 
 - **Prisma generated client**: After any schema change, always run `db:push` then `db:generate`. Stale clients cause runtime type errors.
 - **`ingredientsJson`**: Stored as a JSON string in SQLite — always parse/stringify when reading/writing the `Meal.ingredientsJson` field.
-- **Compatibility identifiers**: `copilot-chef` remains in package names, log prefixes, database filenames, and some environment variables. These identifiers do not make Copilot a current runtime prerequisite.
+- **Naming break**: new builds use the Local Recipe Book package, app, storage, configuration, browser, and protocol identifiers. Old identifiers are intentionally unsupported; recover supported content through an `all` `.lrb` export and re-import.
 - **IPC `app:settings:set`**: The renderer passes `{ key, value }` as a single payload object — the IPC handler destructures it.
 - **Remote mode**: In remote mode, `startServer()` is skipped entirely. Switching modes requires restarting the app.
 - **Tray lifecycle**: Closing the window hides it. The app only fully quits via "Quit" in the tray menu, which calls `stopServer()` via `before-quit`.

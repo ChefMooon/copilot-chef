@@ -12,7 +12,7 @@ export const ServerConfigSchema = z.object({
     .default({}),
   database: z
     .object({
-      url: z.string().default("file:./data/copilot-chef.db"),
+      url: z.string().default("file:./data/local-recipe-book.db"),
     })
     .default({}),
   auth: z

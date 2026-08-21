@@ -89,7 +89,7 @@ To use a remote server, go to **Settings → Connection**, enable remote mode, a
 
 ## Database
 
-The SQLite database is created at `{userData}/data/copilot-chef.db` on first launch after `npm run db:push`.
+The SQLite database is created at `{userData}/data/local-recipe-book.db` on first launch after `npm run db:push`.
 
 Seed data includes sample meals, preferences, grocery lists, and recipes.
 

@@ -14,8 +14,8 @@
 
 | Name | Description |
 | --- | --- |
-| `COPILOT_CHEF_DATABASE_URL` | SQLite database file path override |
-| `COPILOT_CHEF_SERVER_PORT` | Embedded server port override |
+| `LOCAL_RECIPE_BOOK_DATABASE_URL` | SQLite database file path override |
+| `LOCAL_RECIPE_BOOK_SERVER_PORT` | Embedded server port override |
 
 ### App Settings
 
@@ -71,13 +71,13 @@ Preferences are stored in the `UserPreference` Prisma model and served through `
 
 ### Environment Variables
 
-#### `COPILOT_CHEF_DATABASE_URL`
+#### `LOCAL_RECIPE_BOOK_DATABASE_URL`
 
-- Compatibility fallback: `file:./data/copilot-chef.db` when the shared loader is used outside the Electron startup path.
-- Electron default: `{userData}/data/copilot-chef.db`, resolved by `src/main/server/start.ts` before database bootstrap.
+- Shared-loader default: `file:./data/local-recipe-book.db` when the shared loader is used outside the Electron startup path.
+- Electron default: `{userData}/data/local-recipe-book.db`, resolved by `src/main/server/start.ts` before database bootstrap.
 - Affects: SQLite database path used by Prisma. Explicit environment overrides are respected.
 
-#### `COPILOT_CHEF_SERVER_PORT`
+#### `LOCAL_RECIPE_BOOK_SERVER_PORT`
 
 - Default: `3001`
 - Affects: Embedded Hono server port when running outside the Electron settings flow.

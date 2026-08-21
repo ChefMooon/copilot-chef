@@ -89,7 +89,7 @@ If the version, release notes policy, target remote, or permission to push a tag
 - Never push a tag before local lint, test, and build checks pass.
 - Never push a tag whose version differs from `package.json`.
 - Never assume the tag push succeeded; verify the remote tag and workflow result.
-- Do not change compatibility identifiers such as `copilot-chef` merely as part of a release.
+- Do not change unrelated compatibility identifiers or dependency names merely as part of a release. The Local Recipe Book naming-break plan is an explicit exception for the settled package, app, storage, configuration, browser, and protocol identifiers.
 - If Prisma generation fails on Windows because a running Electron process locks the engine DLL, stop the dev process and retry using the documented repository workaround before continuing.
 - Do not force-push, delete, or retarget an existing release tag without explicit authorization.
 

@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { ensureDatabaseSchema } from "../lib/schema";
 import { prisma } from "../lib/prisma";
 
-const DB_URL_KEY = "COPILOT_CHEF_DATABASE_URL";
+const DB_URL_KEY = "LOCAL_RECIPE_BOOK_DATABASE_URL";
 
 function loadDbUrlFromEnvFile(): void {
   if (process.env[DB_URL_KEY]) return;
@@ -103,12 +103,12 @@ async function main() {
     updated += 1;
   }
 
-  console.info(`[copilot-chef] fraction backfill complete: ${updated}/${ingredients.length} updated`);
+  console.info(`[local-recipe-book] fraction backfill complete: ${updated}/${ingredients.length} updated`);
   await prisma.$disconnect();
 }
 
 main().catch(async (error: unknown) => {
-  console.error("[copilot-chef] fraction backfill failed:", error);
+  console.error("[local-recipe-book] fraction backfill failed:", error);
   await prisma.$disconnect();
   process.exitCode = 1;
 });

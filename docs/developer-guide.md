@@ -120,7 +120,7 @@ See [data-management.md](data-management.md) for archive scopes, validation limi
 
 ## 5. Configuration
 
-The canonical settings and environment reference is maintained in `docs/copilot-chef-config.md`.
+The canonical settings and environment reference is maintained in `docs/local-recipe-book-config.md`.
 
 Use this guide for development workflow and command usage, and use the config reference for:
 - App settings keys/defaults and semantics
@@ -210,7 +210,7 @@ export default function MyPage() {
 
 ### Frontend implementation note
 
-For any frontend or UI behavior changes, align with `docs/copilot-chef-style-guide.md` before implementation.
+For any frontend or UI behavior changes, align with `docs/STYLE-GUIDE.md` before implementation.
 
 ---
 
@@ -241,7 +241,7 @@ npm run db:generate   # regenerate Prisma client
 
 > **Never skip `db:generate` after `db:push` during normal development.** Stale Prisma clients produce runtime type errors that look like import errors. On Windows, an active Electron process can lock the Prisma engine; stop it first, or use `npm run db:push -- --skip-generate` followed by `npx prisma generate --no-engine` when only client/types need updating.
 
-If you need to reset a local dev database, remove the SQLite file from the app data directory or point the compatibility variable `COPILOT_CHEF_DATABASE_URL` at a fresh file and rerun setup.
+If you need to reset a local dev database, remove the SQLite file from the app data directory or point `LOCAL_RECIPE_BOOK_DATABASE_URL` at a fresh file and rerun setup.
 
 ---
 
@@ -264,12 +264,12 @@ Packaged Windows artifacts are emitted by Electron Builder under the build outpu
 The embedded Hono server runs inside the Electron main process. Start with `npm run dev` and watch the Electron terminal output.
 
 ```
-[copilot-chef] server started on http://localhost:3001
+[local-recipe-book] server started on http://localhost:3001
 GET /api/health  200  4ms
 POST /api/meals  200  24ms
 ```
 
-The `[copilot-chef]` log prefix is an internal compatibility identifier; the application product name is Local Recipe Book.
+The `[local-recipe-book]` log prefix identifies the Local Recipe Book runtime.
 
 ### Electron DevTools
 
@@ -279,7 +279,7 @@ Press `F12` in the Electron window during development to open Chromium DevTools.
 
 If the server fails to start with `SQLITE_BUSY` or lock errors:
 - Ensure no other process is holding the app database file open.
-- Check any custom `COPILOT_CHEF_DATABASE_URL` override you are using. The variable name is retained for compatibility.
+- Check any custom `LOCAL_RECIPE_BOOK_DATABASE_URL` override you are using.
 - Let the Electron app own the SQLite connection; the renderer should never touch the database directly.
 
 

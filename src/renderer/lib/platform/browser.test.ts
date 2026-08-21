@@ -44,6 +44,16 @@ describe("browser platform connection storage", () => {
     });
   });
 
+  it("does not read legacy browser storage keys", () => {
+    window.localStorage.setItem(
+      "copilot-chef.browser.api-url",
+      "http://192.168.1.25:3001"
+    );
+    window.localStorage.setItem("copilot-chef.browser.api-token", "old-token");
+
+    expect(getBrowserConnection()).toBeNull();
+  });
+
   it("marks a saved browser connection stale without removing it", () => {
     saveBrowserConnection({
       apiUrl: "http://192.168.1.25:3001",

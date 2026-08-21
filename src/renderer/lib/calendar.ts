@@ -88,7 +88,7 @@ export type MealPlanDropAnchor = {
   y: number;
 };
 
-const MEAL_PLAN_DRAG_MIME_TYPE = "application/x-copilot-chef-meal-plan-drag";
+const MEAL_PLAN_DRAG_MIME_TYPE = "application/x-local-recipe-book-meal-plan-drag";
 
 export function setMealPlanDragPayload(
   dataTransfer: DataTransfer,

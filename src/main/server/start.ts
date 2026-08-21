@@ -65,8 +65,8 @@ function readEnvOverrideFromFile(key: string): string | undefined {
 // ── Helpers ──────────────────────────────────────────────────
 function resolveDbPath(): string {
   const dbOverride =
-    process.env["COPILOT_CHEF_DATABASE_URL"] ??
-    readEnvOverrideFromFile("COPILOT_CHEF_DATABASE_URL");
+    process.env["LOCAL_RECIPE_BOOK_DATABASE_URL"] ??
+    readEnvOverrideFromFile("LOCAL_RECIPE_BOOK_DATABASE_URL");
   if (dbOverride) {
     return resolveDatabaseUrl(dbOverride);
   }
@@ -76,7 +76,7 @@ function resolveDbPath(): string {
   if (!existsSync(dataDir)) {
     mkdirSync(dataDir, { recursive: true });
   }
-  return resolveDatabaseUrl(`file:${join(dataDir, "copilot-chef.db")}`);
+  return resolveDatabaseUrl(`file:${join(dataDir, "local-recipe-book.db")}`);
 }
 
 function tryPort(config: ServerConfig, port: number): Promise<ServerInfo> {
@@ -141,18 +141,18 @@ export async function startServer(): Promise<ServerInfo> {
 
   // Allow dev-only .env override for seed toggle.
   const seedOverride =
-    process.env["COPILOT_CHEF_SEED_DATABASE"] ??
-    readEnvOverrideFromFile("COPILOT_CHEF_SEED_DATABASE");
+    process.env["LOCAL_RECIPE_BOOK_SEED_DATABASE"] ??
+    readEnvOverrideFromFile("LOCAL_RECIPE_BOOK_SEED_DATABASE");
   if (seedOverride !== undefined) {
-    process.env["COPILOT_CHEF_SEED_DATABASE"] = seedOverride;
+    process.env["LOCAL_RECIPE_BOOK_SEED_DATABASE"] = seedOverride;
   } else if (app.isPackaged) {
     // Production default: never seed sample data unless explicitly requested.
-    process.env["COPILOT_CHEF_SEED_DATABASE"] = "false";
+    process.env["LOCAL_RECIPE_BOOK_SEED_DATABASE"] = "false";
   }
 
   // Compute DB path and set env
   const dbUrl = resolveDbPath();
-  process.env["COPILOT_CHEF_DATABASE_URL"] = dbUrl;
+  process.env["LOCAL_RECIPE_BOOK_DATABASE_URL"] = dbUrl;
 
   // Bootstrap database
   await bootstrapDatabase();
@@ -189,7 +189,7 @@ export async function startServer(): Promise<ServerInfo> {
       return await tryPort(config, p);
     } catch {
       if (p === 0) throw new Error("Could not bind to any port");
-      console.warn(`[copilot-chef] port ${p} unavailable, trying next…`);
+      console.warn(`[local-recipe-book] port ${p} unavailable, trying next…`);
     }
   }
 

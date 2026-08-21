@@ -1,5 +1,5 @@
 {
-  "name": "copilot-chef",
+  "name": "local-recipe-book",
   "version": "1.1.2",
   "private": true,
   "packageManager": "npm@10.9.3",
@@ -7,13 +7,13 @@
   "main": "./out/main/index.js",
   "productName": "Local Recipe Book",
   "build": {
-    "appId": "com.copilot-chef.app",
+    "appId": "com.local-recipe-book.app",
     "icon": "resources/icon.png",
     "publish": [
       {
         "provider": "github",
         "owner": "ChefMooon",
-        "repo": "copilot-chef"
+        "repo": "local-recipe-book"
       }
     ],
     "extraResources": [

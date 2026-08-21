@@ -490,7 +490,7 @@ export async function exportUserData() {
 
   return {
     blob,
-    fileName: fileNameMatch?.[1] ?? "copilot-chef-export.json",
+    fileName: fileNameMatch?.[1] ?? "local-recipe-book-export.json",
   };
 }
 

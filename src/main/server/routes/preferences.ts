@@ -134,7 +134,7 @@ preferencesRoutes.get("/preferences/export", async () => {
     2
   );
 
-  const fileName = `copilot-chef-export-${new Date().toISOString().slice(0, 10)}.json`;
+  const fileName = `local-recipe-book-export-${new Date().toISOString().slice(0, 10)}.json`;
 
   return new Response(payload, {
     headers: {

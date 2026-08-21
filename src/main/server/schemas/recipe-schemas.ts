@@ -1,4 +1,4 @@
-// Re-export from @copilot-chef/shared — schemas live there now
+// Re-export from the shared schema module.
 export {
   CreateRecipeInputSchema,
   UpdateRecipeInputSchema,

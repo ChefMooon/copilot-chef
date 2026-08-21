@@ -9,24 +9,24 @@ import { ClientConfigSchema } from "./client-config";
 
 /** Map of env var names → config paths for server config. */
 const SERVER_ENV_MAP: Record<string, string[]> = {
-  COPILOT_CHEF_SERVER_PORT: ["server", "port"],
-  COPILOT_CHEF_SERVER_HOST: ["server", "host"],
-  COPILOT_CHEF_SERVER_LOG_LEVEL: ["server", "logLevel"],
-  COPILOT_CHEF_DATABASE_URL: ["database", "url"],
-  COPILOT_CHEF_AUTH_TOKENS: ["auth", "tokens"],
-  COPILOT_CHEF_UPDATES_FEED_URL: ["updates", "feedUrl"],
-  COPILOT_CHEF_UPDATES_CHECK_ON_STARTUP: ["updates", "checkOnStartup"],
-  COPILOT_CHEF_CORS_ORIGINS: ["cors", "origins"],
+  LOCAL_RECIPE_BOOK_SERVER_PORT: ["server", "port"],
+  LOCAL_RECIPE_BOOK_SERVER_HOST: ["server", "host"],
+  LOCAL_RECIPE_BOOK_SERVER_LOG_LEVEL: ["server", "logLevel"],
+  LOCAL_RECIPE_BOOK_DATABASE_URL: ["database", "url"],
+  LOCAL_RECIPE_BOOK_AUTH_TOKENS: ["auth", "tokens"],
+  LOCAL_RECIPE_BOOK_UPDATES_FEED_URL: ["updates", "feedUrl"],
+  LOCAL_RECIPE_BOOK_UPDATES_CHECK_ON_STARTUP: ["updates", "checkOnStartup"],
+  LOCAL_RECIPE_BOOK_CORS_ORIGINS: ["cors", "origins"],
 };
 
 /** Map of env var names → config paths for client config. */
 const CLIENT_ENV_MAP: Record<string, string[]> = {
-  COPILOT_CHEF_CLIENT_SERVER_URL: ["connection", "serverUrl"],
-  COPILOT_CHEF_CLIENT_API_KEY: ["connection", "apiKey"],
-  COPILOT_CHEF_CLIENT_AUTO_LAUNCH_SERVER: ["connection", "autoLaunchServer"],
-  COPILOT_CHEF_CLIENT_SERVER_BINARY_PATH: ["connection", "serverBinaryPath"],
-  COPILOT_CHEF_CLIENT_UPDATES_CHECK_ON_STARTUP: ["updates", "checkOnStartup"],
-  COPILOT_CHEF_CLIENT_UI_THEME: ["ui", "theme"],
+  LOCAL_RECIPE_BOOK_CLIENT_SERVER_URL: ["connection", "serverUrl"],
+  LOCAL_RECIPE_BOOK_CLIENT_API_KEY: ["connection", "apiKey"],
+  LOCAL_RECIPE_BOOK_CLIENT_AUTO_LAUNCH_SERVER: ["connection", "autoLaunchServer"],
+  LOCAL_RECIPE_BOOK_CLIENT_SERVER_BINARY_PATH: ["connection", "serverBinaryPath"],
+  LOCAL_RECIPE_BOOK_CLIENT_UPDATES_CHECK_ON_STARTUP: ["updates", "checkOnStartup"],
+  LOCAL_RECIPE_BOOK_CLIENT_UI_THEME: ["ui", "theme"],
 };
 
 function snakeToCamel(str: string): string {
@@ -57,7 +57,7 @@ function findConfigFile(
   }
   const candidates = [
     path.join(process.cwd(), filename),
-    path.join(os.homedir(), ".config", "copilot-chef", filename),
+    path.join(os.homedir(), ".config", "local-recipe-book", filename),
     path.join(os.homedir(), filename),
   ];
   return candidates.find((candidate) => fs.existsSync(candidate));
@@ -121,7 +121,7 @@ function applyEnvOverrides(
 }
 
 export function loadServerConfig(configPath?: string) {
-  const filePath = findConfigFile("copilot-chef-server.toml", configPath);
+  const filePath = findConfigFile("local-recipe-book-server.toml", configPath);
   let raw: Record<string, unknown> = {};
   if (filePath) {
     raw = readTomlFile(filePath);
@@ -131,7 +131,7 @@ export function loadServerConfig(configPath?: string) {
 }
 
 export function loadClientConfig(configPath?: string) {
-  const filePath = findConfigFile("copilot-chef-client.toml", configPath);
+  const filePath = findConfigFile("local-recipe-book-client.toml", configPath);
   let raw: Record<string, unknown> = {};
   if (filePath) {
     raw = readTomlFile(filePath);

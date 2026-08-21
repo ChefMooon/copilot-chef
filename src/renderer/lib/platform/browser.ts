@@ -8,10 +8,10 @@ import type {
   ServerConfig,
 } from "./types";
 
-const API_URL_KEY = "copilot-chef.browser.api-url";
-const API_TOKEN_KEY = "copilot-chef.browser.api-token";
-const CONNECTION_METADATA_KEY = "copilot-chef.browser.connection-metadata";
-const SETTING_PREFIX = "copilot-chef.browser.setting.";
+const API_URL_KEY = "local-recipe-book.browser.api-url";
+const API_TOKEN_KEY = "local-recipe-book.browser.api-token";
+const CONNECTION_METADATA_KEY = "local-recipe-book.browser.connection-metadata";
+const SETTING_PREFIX = "local-recipe-book.browser.setting.";
 
 export type BrowserConnection = {
   apiUrl: string;
