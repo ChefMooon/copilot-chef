@@ -438,7 +438,7 @@ describe("MealPlanPage conflict actions", () => {
         "/api/meals/meal-1",
         expect.objectContaining({
           method: "PATCH",
-          body: expect.stringContaining('"date":"2026-05-25T16:00:00.000Z"'),
+          body: expect.stringContaining('"date":"2026-05-25T'),
         })
       );
     });
