@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useRef, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -30,11 +29,10 @@ import { CUISINE_OPTIONS, getCuisineLabel } from "@shared/api/constants";
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 import { RecipeSearchModal } from "./RecipeSearchModal";
 import { AuthenticatedImage } from "@/components/ui/AuthenticatedImage";
+import { ModalShell } from "@/components/ui/ModalShell";
+import { Button } from "@/components/ui/button";
 
 import styles from "./meal-plan.module.css";
-
-const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 type EditModalProps = {
   meal: EditableMeal;
@@ -70,118 +68,12 @@ export function EditModal({
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [showRecipeSearchModal, setShowRecipeSearchModal] = useState(false);
   const [isPhotoSectionOpen, setIsPhotoSectionOpen] = useState(false);
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
   const photoInputRef = useRef<HTMLInputElement | null>(null);
 
   const isLinked = form.recipeId !== null && form.linkedRecipe !== null;
   const isNewMeal = !form.id;
   const isCalendarSlotAdd = isNewMeal && addContext === "calendar-slot";
   const linkedRecipe = form.linkedRecipe;
-
-  useEffect(() => {
-    setPortalRoot(document.body);
-  }, []);
-
-  useEffect(() => {
-    if (!portalRoot) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [portalRoot]);
-
-  useEffect(() => {
-    const keyHandler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        if (showRecipeSearchModal) {
-          setShowRecipeSearchModal(false);
-          return;
-        }
-
-        if (showDeleteConfirmation) {
-          setShowDeleteConfirmation(false);
-          return;
-        }
-
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", keyHandler);
-
-    return () => {
-      window.removeEventListener("keydown", keyHandler);
-    };
-  }, [onClose, showDeleteConfirmation, showRecipeSearchModal]);
-
-  useEffect(() => {
-    if (!portalRoot || showDeleteConfirmation || showRecipeSearchModal) {
-      return;
-    }
-
-    const panel = panelRef.current;
-    if (!panel) {
-      return;
-    }
-
-    const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-
-    const getFocusable = () =>
-      Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-
-    const initialTarget =
-      panel.querySelector<HTMLElement>(
-        "[data-autofocus='true'], [autofocus]"
-      ) ?? getFocusable()[0] ?? panel;
-    initialTarget.focus();
-
-    const tabHandler = (event: KeyboardEvent) => {
-      if (event.key !== "Tab") {
-        return;
-      }
-
-      const focusable = getFocusable();
-      if (focusable.length === 0) {
-        event.preventDefault();
-        panel.focus();
-        return;
-      }
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-
-      if (event.shiftKey) {
-        if (active === first || active === panel) {
-          event.preventDefault();
-          last.focus();
-        }
-        return;
-      }
-
-      if (active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener("keydown", tabHandler);
-
-    return () => {
-      window.removeEventListener("keydown", tabHandler);
-      previousFocus?.focus();
-    };
-  }, [portalRoot, showDeleteConfirmation, showRecipeSearchModal]);
 
   const setField = <K extends keyof EditableMeal>(
     key: K,
@@ -563,75 +455,120 @@ export function EditModal({
     setField("photoFileName", file.name);
   };
 
-  if (!portalRoot) {
-    return null;
-  }
-
   return (
     <>
-      {createPortal(
-        <div
-          className={styles.modalOverlay}
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
-              onClose();
-            }
-          }}
-          ref={overlayRef}
-        >
-          <div
-            className={styles.modalPanel}
-            onClick={(event) => event.stopPropagation()}
-            ref={panelRef}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Edit meal"
-            tabIndex={-1}
+      <ModalShell
+        ariaLabel="Edit meal"
+        bodyClassName="flex-1 min-h-0"
+        className={styles.modalPanel}
+        closeLabel="Close dialog"
+        open={!showDeleteConfirmation && !showRecipeSearchModal}
+        onClose={() => {
+          if (showRecipeSearchModal) {
+            setShowRecipeSearchModal(false);
+            return;
+          }
+          if (showDeleteConfirmation) {
+            setShowDeleteConfirmation(false);
+            return;
+          }
+          onClose();
+        }}
+        eyebrow={
+          <span
+            className={`${styles.modalTypeBadge} ${styles.modalShellTypeBadge}`}
+            style={{ "--meal-type-color": typeConfig.dot } as React.CSSProperties}
           >
-            <div
-              className={styles.modalHeader}
-              style={{ borderColor: typeConfig.dot }}
-            >
-              <div className={styles.modalHeaderLeft}>
-                <span
-                  className={styles.modalTypeBadge}
-                  style={
-                    {
-                      "--meal-type-color": typeConfig.dot,
-                    } as React.CSSProperties
-                  }
-                >
-                  {typeConfig.label}
-                </span>
-                {form.mealSubTypeDefinition ? (
-                  <span
-                    className={styles.modalTypeBadge}
-                    style={{
-                      background: `${form.mealSubTypeDefinition.color}22`,
-                      color: form.mealSubTypeDefinition.color,
-                    }}
-                  >
-                    {form.mealSubTypeDefinition.name}
-                  </span>
-                ) : null}
-                <span className={styles.modalDateLabel}>
-                  {form.date.toLocaleDateString("default", {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </span>
-              </div>
+            {typeConfig.label}
+          </span>
+        }
+        subtitle={form.date.toLocaleDateString("default", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        })}
+        title={isLinked ? "Edit linked meal" : "Edit meal"}
+        footerLeft={
+          <div className={styles.modalFooterSecondary}>
+            {form.id && onSaveAsRecipe && !isLinked ? (
               <button
-                aria-label="Close dialog"
-                className={styles.modalClose}
-                onClick={onClose}
+                aria-label="Save as Recipe"
+                className={`${styles.btnSaveAsRecipe} ${styles.footerActionButton}`}
+                disabled={isSaving || !form.name.trim()}
+                onClick={() => onSaveAsRecipe({ ...form, name: form.name.trim() })}
+                title="Save as Recipe"
                 type="button"
               >
-                <X aria-hidden="true" size={18} weight="regular" />
+                <FilePlus aria-hidden="true" size={18} weight="regular" />
               </button>
-            </div>
-            <div className={styles.modalBody}>
+            ) : null}
+            {form.id ? (
+              <button
+                aria-label="Delete"
+                className={`${styles.btnDelete} ${styles.footerActionButton}`}
+                disabled={isSaving || isDeleting}
+                onClick={() => {
+                  setDeleteError(undefined);
+                  setShowDeleteConfirmation(true);
+                }}
+                title="Delete"
+                type="button"
+              >
+                <Trash aria-hidden="true" size={18} weight="regular" />
+              </button>
+            ) : null}
+            {!isLinked ? (
+              <button
+                aria-label="Link Recipe"
+                className={`${styles.btnLinkRecipe} ${styles.footerActionButton}`}
+                disabled={isSaving || isDeleting}
+                onClick={() => {
+                  setRecipeLinkError(null);
+                  setShowRecipeSearchModal(true);
+                }}
+                title="Link Recipe"
+                type="button"
+              >
+                <LinkSimple aria-hidden="true" size={18} weight="regular" />
+              </button>
+            ) : null}
+          </div>
+        }
+        footerRight={
+          <div className={styles.modalFooterPrimary}>
+            {recipeLinkError ? (
+              <span className={styles.confirmationError} role="alert">
+                {recipeLinkError}
+              </span>
+            ) : null}
+            <Button
+              className={styles.footerActionButton}
+              onClick={onClose}
+              type="button"
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <button
+              className={`${styles.btnSave} ${styles.footerActionButton}`}
+              disabled={isSaving || (!isLinked && !hasRequiredMealFields)}
+              onClick={async () => {
+                setIsSaving(true);
+                try {
+                  await onSave({ ...form, name: isLinked ? (form.linkedRecipe?.title ?? form.name) : form.name.trim() });
+                  onClose();
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+              type="button"
+            >
+              {isSaving ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        }
+      >
+        <div className={styles.modalBody}>
 
               {/* ── Mode B: Recipe-linked header ─────────────────────── */}
               {isLinked && linkedRecipe ? (
@@ -1245,89 +1182,7 @@ export function EditModal({
               )}
             </div>
 
-            <div className={styles.modalFooter}>
-              <div className={styles.modalFooterSecondary}>
-                  {form.id && onSaveAsRecipe && !isLinked ? (
-                    <button
-                      aria-label="Save as Recipe"
-                      className={`${styles.btnSaveAsRecipe} ${styles.footerActionButton}`}
-                      disabled={isSaving || !form.name.trim()}
-                      onClick={() => onSaveAsRecipe({ ...form, name: form.name.trim() })}
-                      title="Save as Recipe"
-                      type="button"
-                    >
-                      <FilePlus aria-hidden="true" size={18} weight="regular" />
-                    </button>
-                  ) : null}
-                  {form.id ? (
-                    <button
-                      aria-label="Delete"
-                      className={`${styles.btnDelete} ${styles.footerActionButton}`}
-                      disabled={isSaving || isDeleting}
-                      onClick={() => {
-                        setDeleteError(undefined);
-                        setShowDeleteConfirmation(true);
-                      }}
-                      title="Delete"
-                      type="button"
-                    >
-                      <Trash aria-hidden="true" size={18} weight="regular" />
-                    </button>
-                  ) : null}
-                  {!isLinked ? (
-                    <button
-                      aria-label="Link Recipe"
-                      className={`${styles.btnLinkRecipe} ${styles.footerActionButton}`}
-                      disabled={isSaving || isDeleting}
-                      onClick={() => {
-                        setRecipeLinkError(null);
-                        setShowRecipeSearchModal(true);
-                      }}
-                      title="Link Recipe"
-                      type="button"
-                    >
-                      <LinkSimple aria-hidden="true" size={18} weight="regular" />
-                    </button>
-                  ) : null}
-              </div>
-              <div className={styles.modalFooterPrimary}>
-                  {recipeLinkError ? (
-                    <span className={styles.confirmationError} role="alert">
-                      {recipeLinkError}
-                    </span>
-                  ) : null}
-                  <button
-                    className={`${styles.btnGhost} ${styles.footerActionButton}`}
-                    onClick={onClose}
-                    type="button"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className={`${styles.btnSave} ${styles.footerActionButton}`}
-                    disabled={
-                      isSaving ||
-                      (!isLinked && !hasRequiredMealFields)
-                    }
-                    onClick={async () => {
-                      setIsSaving(true);
-                      try {
-                        await onSave({ ...form, name: isLinked ? (form.linkedRecipe?.title ?? form.name) : form.name.trim() });
-                        onClose();
-                      } finally {
-                        setIsSaving(false);
-                      }
-                    }}
-                    type="button"
-                  >
-                    {isSaving ? "Saving..." : "Save Changes"}
-                  </button>
-              </div>
-            </div>
-          </div>
-        </div>,
-        portalRoot
-      )}
+      </ModalShell>
 
       <DeleteConfirmationModal
         error={deleteError}

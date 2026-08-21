@@ -67,7 +67,9 @@ export function ModalShell({
     const getFocusable = () =>
       Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
     const initialTarget =
-      panel.querySelector<HTMLElement>("[autofocus]") ?? getFocusable()[0] ?? panel;
+      panel.querySelector<HTMLElement>("[data-autofocus='true'], [autofocus]") ??
+      getFocusable()[0] ??
+      panel;
     initialTarget.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
