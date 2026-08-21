@@ -18,8 +18,8 @@ import { useServerConfig } from "@/lib/use-server-config";
 import { recipeKeys } from "@/lib/query-keys";
 
 import { RecipeDeleteDialog } from "@/components/recipes/RecipeDeleteDialog";
-import { RecipeFilterSidebar } from "@/components/recipes/RecipeFilterSidebar";
 import { RecipeGrid } from "@/components/recipes/RecipeGrid";
+import { RecipeSearchFilterCard } from "@/components/recipes/RecipeSearchFilterCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,6 @@ import { RouteErrorState } from "@/components/ui/route-error-state";
 import { getPlatform } from "@/lib/platform";
 import {
   RECIPE_SEARCH_SORT_MODE_VALUES,
-  RECIPE_SORT_BY_OPTIONS,
   RECIPE_SORT_BY_VALUES,
   RECIPE_SORT_ORDER_VALUES,
   type RecipeSearchSortModeValue,
@@ -437,7 +436,7 @@ export default function RecipesPage() {
       <PageHeader
         actions={
           <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:items-end">
-          <div className="flex flex-wrap gap-2 sm:justify-end">
+            <div className="flex flex-wrap gap-2 sm:justify-end">
             <Button
               className="rounded-[10px] border-[1.5px] border-cream-dark bg-white text-[0.82rem] font-bold text-text-muted shadow-sm hover:border-green hover:bg-white hover:text-green"
               onClick={() => setShowIngest(true)}
@@ -482,81 +481,33 @@ export default function RecipesPage() {
             >
               Export
             </Button>
-          </div>
-
-          <div className="inline-flex flex-wrap items-center gap-1.5 rounded-[10px] border border-cream-dark bg-white px-2 py-1.5">
-            <span className="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-text-muted">
-              Sort
-            </span>
-            <select
-              className="h-8 min-w-[150px] rounded-btn border border-cream-dark bg-cream px-2 py-1 font-sans text-xs text-text outline-none transition focus:border-green-light focus:ring-2 focus:ring-green/10"
-              onChange={(event) => handleSortByChange(event.target.value)}
-              value={sortBy}
-            >
-              {RECIPE_SORT_BY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <Button
-              className="h-8 w-[64px] px-0 text-xs"
-              onClick={toggleSortOrder}
-              size="sm"
-              type="button"
-              variant="outline"
-            >
-              {sortOrder === "asc" ? "Asc" : "Desc"}
-            </Button>
-            {search.trim().length > 0 ? (
-              <>
-                <span className="ml-1 text-[0.68rem] font-bold uppercase tracking-[0.08em] text-text-muted">
-                  Search
-                </span>
-                <select
-                  className="h-8 min-w-[128px] rounded-btn border border-cream-dark bg-cream px-2 py-1 font-sans text-xs text-text outline-none transition focus:border-green-light focus:ring-2 focus:ring-green/10"
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    if (
-                      (RECIPE_SEARCH_SORT_MODE_VALUES as readonly string[]).includes(
-                        value
-                      )
-                    ) {
-                      setSearchSortMode(value as RecipeSearchSortModeValue);
-                    }
-                  }}
-                  value={searchSortMode}
-                >
-                  <option value="relevance">Relevance</option>
-                  <option value="selected">Selected sort</option>
-                </select>
-              </>
-            ) : null}
-          </div>
+            </div>
           </div>
         }
-        className="mb-[-1rem]"
         eyebrow="Recipe Library"
         subtitle="Browse, add, and curate recipes for your household plans."
         title="Your Recipes"
       />
 
-      <div className="grid gap-6 lg:grid-cols-[260px_1fr] lg:items-start">
-        <div className="space-y-4">
-          <RecipeFilterSidebar
-            cuisine={cuisine}
-            favouritesOnly={favouritesOnly}
-            onClearFilters={handleClearFilters}
-            onCuisineChange={setCuisine}
-            onFavouritesOnlyChange={setFavouritesOnly}
-            onOriginChange={setOrigin}
-            onSearchChange={setSearch}
-            origin={origin}
-            search={search}
-          />
-        </div>
+      <RecipeSearchFilterCard
+        cuisine={cuisine}
+        favouritesOnly={favouritesOnly}
+        onClearFilters={handleClearFilters}
+        onCuisineChange={setCuisine}
+        onFavouritesOnlyChange={setFavouritesOnly}
+        onOriginChange={setOrigin}
+        onSearchChange={setSearch}
+        onSearchSortModeChange={setSearchSortMode}
+        onSortByChange={handleSortByChange}
+        onSortOrderToggle={toggleSortOrder}
+        origin={origin}
+        search={search}
+        searchSortMode={searchSortMode}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+      />
 
-        <div className="space-y-3">
+      <div className="space-y-3">
           {hasRecipesLoadError ? (
             <RouteErrorState
               onRetry={retryRecipeQueries}
@@ -587,7 +538,6 @@ export default function RecipesPage() {
               selectedIds={selectedIds}
             />
           )}
-        </div>
       </div>
 
       {showAddModal ? (

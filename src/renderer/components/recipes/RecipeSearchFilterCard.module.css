@@ -1,0 +1,195 @@
+.card {
+  border: 1px solid var(--cream-dark);
+  border-radius: 16px;
+  background: var(--white);
+  box-shadow: var(--shadow);
+  padding: 1rem;
+}
+
+.primaryRow {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.searchField {
+  min-width: 0;
+}
+
+.label {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.sortControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.sortLabel {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.select {
+  height: 2.5rem;
+  min-width: 9rem;
+  border: 1px solid var(--cream-dark);
+  border-radius: 10px;
+  background: var(--cream);
+  padding: 0.5rem 0.7rem;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  outline: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.select:focus {
+  border-color: var(--green-light);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 10%, transparent);
+}
+
+.advancedToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  justify-content: center;
+  margin-top: 0;
+  border: 1px solid var(--cream-dark);
+  border-radius: 10px;
+  background: var(--white);
+  padding: 0;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.advancedToggle:focus-visible {
+  outline: 2px solid var(--green-light);
+  outline-offset: 3px;
+}
+
+.advancedToggle:hover,
+.advancedToggleActive {
+  border-color: var(--green-light);
+  color: var(--green);
+}
+
+.advancedToggleOpen {
+  border-color: var(--green);
+  background: var(--green-pale);
+  color: var(--green);
+}
+
+.advancedToggle svg {
+  transition: transform 0.2s ease;
+}
+
+.advancedPanel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.22s ease, opacity 0.18s ease, margin-top 0.22s ease;
+}
+
+.advancedPanelOpen {
+  grid-template-rows: 1fr;
+  margin-top: 0.85rem;
+  opacity: 1;
+}
+
+.advancedPanelInner {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  overflow: hidden;
+}
+
+.field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.field .select {
+  width: 100%;
+}
+
+.checkboxField {
+  display: flex;
+  height: 2.5rem;
+  align-self: end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border: 1px solid var(--cream-dark);
+  border-radius: 10px;
+  background: var(--cream);
+  padding: 0.5rem 0.7rem;
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.checkboxField input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--green);
+}
+
+.footerRow {
+  display: flex;
+  min-height: 1.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.activeHint {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 760px) {
+  .primaryRow {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .sortControls {
+    justify-content: flex-start;
+  }
+
+  .advancedPanelInner {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .select,
+  .advancedToggle svg,
+  .advancedPanel {
+    transition: none;
+  }
+}
