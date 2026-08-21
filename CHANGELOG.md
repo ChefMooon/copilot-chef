@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-08-20
+
+### Changed
+
+- Completed the Local Recipe Book naming update across the app and its configuration, storage, and connection surfaces. Existing content can be recovered through an `all` `.lrb` export and re-import.
+
 ## [1.1.2] - 2026-08-20
 
 ### Added
