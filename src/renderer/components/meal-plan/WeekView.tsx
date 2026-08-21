@@ -363,13 +363,6 @@ export function WeekView({
   }, [date, rowMealTypes.length]);
 
   useEffect(() => {
-    clearEdgeTimers();
-    edgeNavigationLockedRef.current = false;
-    edgeHoverDirectionRef.current = null;
-    setEdgeHoverDirection(null);
-  }, [date]);
-
-  useEffect(() => {
     return () => {
       clearEdgeTimers();
     };
@@ -803,6 +796,7 @@ export function WeekView({
                                   >
                                     <button
                                       className={`${styles.weekSlotMealCard} ${hasSubType ? styles.weekSlotMealCardHasSubType : ""} ${hasNotes ? styles.weekSlotMealCardHasNotes : ""} ${isTitleOnly ? styles.weekSlotMealCardTitleOnly : ""} ${draggedMealId === meal.id ? styles.mealCardDragging : ""} ${draggedSlotMealIds?.has(meal.id ?? "") ? styles.slotMealInDraggedGroup : ""} ${dropTargetKey === mealTargetKey ? styles.slotDropTarget : ""}`}
+                                      data-meal-id={meal.id}
                                       data-meal-plan-drag-source="calendar-meal"
                                       draggable={!isApplyingDrop && !dragDisabled}
                                       onClick={() => onEdit(meal)}

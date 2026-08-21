@@ -6,7 +6,12 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { EditableMeal } from "@/lib/calendar";
+import type {
+  EditableMeal,
+  MealPlanDropAnchor,
+  MealPlanDropTarget,
+  MealPlanDragPayload,
+} from "@/lib/calendar";
 import MealPlanPage from "./meal-plan";
 
 const mocks = vi.hoisted(() => ({
@@ -136,13 +141,54 @@ vi.mock("@/components/meal-plan/SlotManagerModal", () => ({ SlotManagerModal: ()
 vi.mock("@/components/meal-plan/MenuPrintExportModal", () => ({ MenuPrintExportModal: () => null }));
 
 vi.mock("@/components/meal-plan/WeekView", () => ({
-  WeekView: ({ onEdit }: { onEdit: (meal: EditableMeal) => void }) => (
-    <button
-      onClick={() => onEdit(mealFixture)}
-      type="button"
-    >
-      Open Edit
-    </button>
+  WeekView: ({
+    onDropPayload,
+    onEdit,
+    setDate,
+  }: {
+    onDropPayload: (
+      payload: MealPlanDragPayload,
+      target: MealPlanDropTarget,
+      anchor: MealPlanDropAnchor
+    ) => Promise<void>;
+    onEdit: (meal: EditableMeal) => void;
+    setDate: (date: Date) => void;
+  }) => (
+    <div>
+      <button onClick={() => onEdit(mealFixture)} type="button">
+        Open Edit
+      </button>
+      <button
+        data-meal-id={mealFixture.id}
+        data-meal-plan-drag-source="calendar-meal"
+        draggable
+        type="button"
+      >
+        Drag Source
+      </button>
+      <button
+        onClick={() => setDate(new Date("2026-05-25T12:00:00.000Z"))}
+        type="button"
+      >
+        Navigate Week
+      </button>
+      <button
+        onClick={() =>
+          void onDropPayload(
+            { kind: "meal", mealId: mealFixture.id },
+            {
+              kind: "slot",
+              slotDate: "2026-05-25T12:00:00.000Z",
+              slotType: "breakfast",
+            },
+            { x: 0, y: 0 }
+          )
+        }
+        type="button"
+      >
+        Drop Source
+      </button>
+    </div>
   ),
 }));
 
@@ -294,10 +340,13 @@ function renderMealPlanPage() {
 
 describe("MealPlanPage conflict actions", () => {
   beforeEach(() => {
+    let mealQueryCount = 0;
     mocks.fetchJson.mockImplementation(async (url: string, init?: RequestInit) => {
       if (url.startsWith("/api/meals?")) {
+        mealQueryCount += 1;
         return {
-          data: [
+          data: mealQueryCount === 1
+            ? [
             {
               id: "meal-1",
               name: "Weeknight Pasta",
@@ -318,7 +367,8 @@ describe("MealPlanPage conflict actions", () => {
               recipeId: null,
               linkedRecipe: null,
             },
-          ],
+          ]
+            : [],
         };
       }
 
@@ -372,6 +422,25 @@ describe("MealPlanPage conflict actions", () => {
 
     await waitFor(() => {
       expect(screen.queryByText("Recipe already exists")).not.toBeInTheDocument();
+    });
+  });
+
+  it("persists a meal after navigating to a week where the source is no longer queried", async () => {
+    renderMealPlanPage();
+
+    const source = await screen.findByRole("button", { name: "Drag Source" });
+    fireEvent.dragStart(source);
+    fireEvent.click(screen.getByRole("button", { name: "Navigate Week" }));
+    fireEvent.click(screen.getByRole("button", { name: "Drop Source" }));
+
+    await waitFor(() => {
+      expect(mocks.fetchJson).toHaveBeenCalledWith(
+        "/api/meals/meal-1",
+        expect.objectContaining({
+          method: "PATCH",
+          body: expect.stringContaining('"date":"2026-05-25T16:00:00.000Z"'),
+        })
+      );
     });
   });
 

@@ -782,16 +782,16 @@ describe("meal plan drag prompt paths", () => {
     act(() => {
       vi.advanceTimersByTime(800);
     });
-    expect(setDate).toHaveBeenCalledTimes(2);
+    expect(setDate).toHaveBeenCalledTimes(1);
 
     fireEvent.dragLeave(nextZone as HTMLElement);
-  expect(nextZone).not.toHaveClass(styles.weekEdgeZoneActive);
-  expect(nextZone?.querySelector("[data-week-edge-arrow='next']")).toBeNull();
-  dispatchEdgeDragOver(board as HTMLElement, dataTransfer, 1000, 100);
+    expect(nextZone).not.toHaveClass(styles.weekEdgeZoneActive);
+    expect(nextZone?.querySelector("[data-week-edge-arrow='next']")).toBeNull();
+    dispatchEdgeDragOver(board as HTMLElement, dataTransfer, 1000, 100);
     act(() => {
       vi.advanceTimersByTime(800);
     });
-    expect(setDate).toHaveBeenCalledTimes(3);
+    expect(setDate).toHaveBeenCalledTimes(2);
 
     unmount();
   });

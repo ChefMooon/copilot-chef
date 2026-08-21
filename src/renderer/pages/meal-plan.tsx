@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useNavigate } from "react-router";
 import { Plus } from "@phosphor-icons/react";
 
@@ -86,6 +91,7 @@ type PendingDropIntent = {
   payload: MealPlanDragPayload;
   target: MealPlanDropTarget;
   anchor: MealPlanDropAnchor;
+  draggedMeal?: EditableMeal;
 };
 
 const MEAL_BANK_TYPE = "bank";
@@ -166,6 +172,7 @@ export default function MealPlanPage() {
     useState<PendingDropIntent | null>(null);
   const [isApplyingPendingDrop, setIsApplyingPendingDrop] = useState(false);
   const [isDraggingMeal, setIsDraggingMeal] = useState(false);
+  const draggedMealRef = useRef<EditableMeal | null>(null);
   const [trashPendingMeal, setTrashPendingMeal] = useState<EditableMeal | null>(
     null
   );
@@ -225,6 +232,7 @@ export default function MealPlanPage() {
 
   const mealsQuery = useQuery({
     queryKey: mealsQueryKey,
+    placeholderData: keepPreviousData,
     enabled: apiReady,
     queryFn: () =>
       fetchJson<{ data: CalendarMeal[] }>(
@@ -424,11 +432,18 @@ export default function MealPlanPage() {
         return;
       }
 
+      const source = (event.target as HTMLElement).closest<HTMLElement>(
+        '[data-meal-plan-drag-source="calendar-meal"]'
+      );
+      const mealId = source?.dataset.mealId;
+      draggedMealRef.current =
+        meals.find((meal) => meal.id === mealId) ?? null;
       setIsDraggingMeal(true);
       setDragging(true);
     };
 
     const handleDragFinish = () => {
+      draggedMealRef.current = null;
       setIsDraggingMeal(false);
       setDragging(false);
     };
@@ -442,7 +457,7 @@ export default function MealPlanPage() {
       window.removeEventListener("dragend", handleDragFinish);
       window.removeEventListener("drop", handleDragFinish);
     };
-  }, [setDragging]);
+  }, [meals, setDragging]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1326,7 +1341,8 @@ export default function MealPlanPage() {
   const applyDropIntentAction = async (
     payload: MealPlanDragPayload,
     target: MealPlanDropTarget,
-    action: DropIntentAction
+    action: DropIntentAction,
+    retainedDraggedMeal?: EditableMeal
   ) => {
     if (payload.kind === "bank-meal") {
       const draggedMeal = bankMeals.find((meal) => meal.id === payload.mealId);
@@ -1344,7 +1360,10 @@ export default function MealPlanPage() {
     }
 
     if (payload.kind === "meal") {
-      const draggedMeal = meals.find((meal) => meal.id === payload.mealId);
+      const draggedMeal =
+        retainedDraggedMeal ??
+        draggedMealRef.current ??
+        meals.find((meal) => meal.id === payload.mealId);
       if (!draggedMeal) {
         return;
       }
@@ -1403,7 +1422,8 @@ export default function MealPlanPage() {
     }
 
     if (payload.kind === "meal") {
-      const draggedMeal = meals.find((meal) => meal.id === payload.mealId);
+      const draggedMeal =
+        draggedMealRef.current ?? meals.find((meal) => meal.id === payload.mealId);
       if (!draggedMeal) {
         return;
       }
@@ -1436,7 +1456,7 @@ export default function MealPlanPage() {
         return;
       }
 
-      setPendingDropIntent({ payload, target, anchor });
+      setPendingDropIntent({ payload, target, anchor, draggedMeal });
       return;
     }
 
@@ -1481,7 +1501,12 @@ export default function MealPlanPage() {
     setIsApplyingPendingDrop(true);
 
     try {
-      await applyDropIntentAction(nextIntent.payload, nextIntent.target, action);
+      await applyDropIntentAction(
+        nextIntent.payload,
+        nextIntent.target,
+        action,
+        nextIntent.draggedMeal
+      );
       setPendingDropIntent(null);
     } finally {
       setIsApplyingPendingDrop(false);
@@ -2088,7 +2113,7 @@ export default function MealPlanPage() {
               setDate={setDate}
             />
           ) : null}
-          {!mealsQuery.isLoading && view === "week" ? (
+          {view === "week" ? (
             <WeekView
               date={date}
               dragDisabled={false}
