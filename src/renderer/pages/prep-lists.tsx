@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { VisualIcon } from "@/components/ui/icon";
 import { useToast } from "@/components/providers/toast-provider";
 import {
@@ -783,22 +784,20 @@ export default function PrepListsPage() {
 
   return (
     <>
-      <div className={styles.pageHeader}>
-        <div>
-          <div className={styles.eyebrow}>Prep Lists</div>
-          <h1 className={styles.pageTitle}>Prep Workflows</h1>
-          <p className={styles.pageSub}>
-            {listsQuery.isLoading && !listsQuery.data
-              ? "Loading prep lists..."
-              : `${lists.length} list${lists.length === 1 ? "" : "s"} · ingredients and prep tasks in one place`}
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        actions={
           <button className={styles.btnNewList} onClick={() => setShowModal(true)} type="button">
             + New Prep List
           </button>
-        </div>
-      </div>
+        }
+        eyebrow="Prep Lists"
+        subtitle={
+          listsQuery.isLoading && !listsQuery.data
+            ? "Loading prep lists..."
+            : `${lists.length} list${lists.length === 1 ? "" : "s"} · ingredients and prep tasks in one place`
+        }
+        title="Prep Workflows"
+      />
 
       <div className={styles.sectionLabel}>Quick Reference</div>
       <div className={styles.filterTabs}>
@@ -1425,7 +1424,7 @@ export default function PrepListsPage() {
               <button className={styles.btnGhost} onClick={() => setShowModal(false)} type="button">
                 Cancel
               </button>
-              <button className={styles.btnShop} onClick={() => void submitNewList()} type="button">
+              <button className={styles.btnCreate} onClick={() => void submitNewList()} type="button">
                 {draftMode === "manual" ? "Create List" : "Generate List"}
               </button>
             </div>

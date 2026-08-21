@@ -20,6 +20,7 @@ import { recipeKeys } from "@/lib/query-keys";
 import { RecipeDeleteDialog } from "@/components/recipes/RecipeDeleteDialog";
 import { RecipeFilterSidebar } from "@/components/recipes/RecipeFilterSidebar";
 import { RecipeGrid } from "@/components/recipes/RecipeGrid";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { RouteErrorState } from "@/components/ui/route-error-state";
@@ -432,20 +433,10 @@ export default function RecipesPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="mb-1 text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-orange">
-            Recipe Library
-          </p>
-          <h1 className="font-serif text-4xl font-bold leading-[1.12] text-text sm:text-[2.75rem]">
-            Your Recipes
-          </h1>
-          <p className="mt-2 max-w-2xl text-sm text-text-muted sm:text-[0.95rem]">
-            Browse, add, and curate recipes for your household plans.
-          </p>
-        </div>
-        <div className="mt-1 flex w-full flex-col items-start gap-2 sm:w-auto sm:items-end">
+    <div className="space-y-6">
+      <PageHeader
+        actions={
+          <div className="flex w-full flex-col items-start gap-2 sm:w-auto sm:items-end">
           <div className="flex flex-wrap gap-2 sm:justify-end">
             <Button
               className="rounded-[10px] border-[1.5px] border-cream-dark bg-white text-[0.82rem] font-bold text-text-muted shadow-sm hover:border-green hover:bg-white hover:text-green"
@@ -542,8 +533,13 @@ export default function RecipesPage() {
               </>
             ) : null}
           </div>
-        </div>
-      </header>
+          </div>
+        }
+        className="mb-[-1rem]"
+        eyebrow="Recipe Library"
+        subtitle="Browse, add, and curate recipes for your household plans."
+        title="Your Recipes"
+      />
 
       <div className="grid gap-6 lg:grid-cols-[260px_1fr] lg:items-start">
         <div className="space-y-4">

@@ -1035,14 +1035,32 @@
 }
 
 .btnGhost {
+  min-height: 2.5rem;
   font-size: 0.82rem;
   font-weight: 700;
-  background: none;
+  background: var(--card);
   border: 1.5px solid var(--cream-dark);
   border-radius: 8px;
-  padding: 0.42rem 0.85rem;
-  color: var(--text-muted);
+  padding: 0.5rem 1rem;
+  color: var(--text);
   cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.btnGhost:hover:not(:disabled) {
+  border-color: var(--green-light);
+  background: var(--green-pale);
+  color: var(--green);
+}
+
+.btnGhost:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.btnGhost:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .btnCreate {

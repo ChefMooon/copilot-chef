@@ -1,11 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { X } from "@phosphor-icons/react";
+import { useMemo, useState } from "react";
 
+import { ModalShell } from "@/components/ui/ModalShell";
 import styles from "./grocery-list.module.css";
-
-const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 type Props = {
   onClose: () => void;
@@ -23,138 +19,42 @@ export function NewListModal({ onClose, onCreate }: Props) {
   const [name, setName] = useState("");
   const [date, setDate] = useState(defaultDate);
   const [isOngoing, setIsOngoing] = useState(false);
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const canCreate = name.trim().length > 0;
 
-  useEffect(() => {
-    setPortalRoot(document.body);
-  }, []);
-
-  useEffect(() => {
-    if (!portalRoot) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [portalRoot]);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
+  return (
+    <ModalShell
+      open
+      ariaLabel="Create grocery list"
+      bodyClassName={`${styles.newListBody} flex-1 overflow-y-auto`}
+      closeLabel="Close create grocery list dialog"
+      closeDisabled={isCreating}
+      onClose={onClose}
+      title="New Grocery List"
+      footerLeft={
+        <button className={styles.btnGhost} disabled={isCreating} onClick={onClose} type="button">
+          Cancel
+        </button>
       }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!portalRoot) {
-      return;
-    }
-
-    const panel = panelRef.current;
-    if (!panel) {
-      return;
-    }
-
-    const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-
-    const getFocusable = () =>
-      Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-
-    const initialTarget =
-      panel.querySelector<HTMLElement>("[autofocus]") ?? getFocusable()[0] ?? panel;
-    initialTarget.focus();
-
-    const tabHandler = (event: KeyboardEvent) => {
-      if (event.key !== "Tab") {
-        return;
+      footerRight={
+        <button
+          className={styles.btnCreate}
+          disabled={!canCreate || isCreating}
+          onClick={async () => {
+            if (!canCreate || isCreating) return;
+            setIsCreating(true);
+            try {
+              await onCreate({ name: name.trim(), date: isOngoing ? null : date });
+            } finally {
+              setIsCreating(false);
+            }
+          }}
+          type="button"
+        >
+          {isCreating ? "Creating..." : "Create List"}
+        </button>
       }
-
-      const focusable = getFocusable();
-      if (focusable.length === 0) {
-        event.preventDefault();
-        panel.focus();
-        return;
-      }
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-
-      if (event.shiftKey) {
-        if (active === first || active === panel) {
-          event.preventDefault();
-          last.focus();
-        }
-        return;
-      }
-
-      if (active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener("keydown", tabHandler);
-
-    return () => {
-      window.removeEventListener("keydown", tabHandler);
-      previousFocus?.focus();
-    };
-  }, [portalRoot]);
-
-  if (!portalRoot) {
-    return null;
-  }
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[500] flex items-center justify-center bg-black/45 p-2.5 backdrop-blur-[3px] sm:p-4"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
-      ref={overlayRef}
-      role="presentation"
     >
-      <div
-        className="flex max-h-[90vh] w-full max-w-[420px] flex-col overflow-hidden rounded-2xl border border-cream-dark bg-white shadow-xl"
-        onClick={(event) => event.stopPropagation()}
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Create grocery list"
-        tabIndex={-1}
-      >
-        <div className={styles.newListHeader}>
-          <h3 className={styles.newListTitle}>New Grocery List</h3>
-          <button
-            aria-label="Close create grocery list dialog"
-            className={styles.modalCloseBtn}
-            onClick={onClose}
-            type="button"
-          >
-            <X aria-hidden="true" size={18} />
-          </button>
-        </div>
-        <div className={`${styles.newListBody} flex-1 overflow-y-auto`}>
           <div className={styles.formGroup}>
             <label className={styles.formLabel}>List Name</label>
             <input
@@ -184,27 +84,6 @@ export function NewListModal({ onClose, onCreate }: Props) {
               value={date}
             />
           </div>
-        </div>
-        <div className={styles.newListFooter}>
-          <button className={styles.btnGhost} onClick={onClose} type="button">
-            Cancel
-          </button>
-          <button
-            className={styles.btnCreate}
-            disabled={!canCreate}
-            onClick={() => {
-              if (!canCreate) {
-                return;
-              }
-              void onCreate({ name: name.trim(), date: isOngoing ? null : date });
-            }}
-            type="button"
-          >
-            Create List
-          </button>
-        </div>
-      </div>
-    </div>,
-    portalRoot
+    </ModalShell>
   );
 }

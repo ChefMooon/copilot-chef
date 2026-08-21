@@ -25,6 +25,7 @@ import { ListEditor } from "@/components/grocery-list/ListEditor";
 import { ListsSidebar } from "@/components/grocery-list/ListsSidebar";
 import { NewListModal } from "@/components/grocery-list/NewListModal";
 import { QuickReference } from "@/components/grocery-list/QuickReference";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function GroceryListPage() {
   const config = useServerConfig();
@@ -210,24 +211,24 @@ export default function GroceryListPage() {
 
   return (
     <>
-      <div className={styles.pageHeader}>
-        <div>
-          <div className={styles.eyebrow}>Grocery List</div>
-          <h1 className={styles.pageTitle}>Your Lists</h1>
-          <p className={styles.pageSub}>
-            {isInitialListLoad
-              ? "Loading grocery lists..."
-              : `${lists.length} list${lists.length === 1 ? "" : "s"} · select one to edit`}
-          </p>
-        </div>
-        <button
-          className={styles.btnNewList}
-          onClick={() => setShowNewModal(true)}
-          type="button"
-        >
-          + New List
-        </button>
-      </div>
+      <PageHeader
+        actions={
+          <button
+            className={styles.btnNewList}
+            onClick={() => setShowNewModal(true)}
+            type="button"
+          >
+            + New List
+          </button>
+        }
+        eyebrow="Grocery List"
+        subtitle={
+          isInitialListLoad
+            ? "Loading grocery lists..."
+            : `${lists.length} list${lists.length === 1 ? "" : "s"} · select one to edit`
+        }
+        title="Your Lists"
+      />
 
       {isInitialListLoad ? (
         <div className={styles.mainCols}>
