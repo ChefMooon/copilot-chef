@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { ModalShell } from "@/components/ui/ModalShell";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { VisualIcon } from "@/components/ui/icon";
 import { useToast } from "@/components/providers/toast-provider";
@@ -229,6 +230,7 @@ export default function PrepListsPage() {
   const [activeFilter, setActiveFilter] = useState<PrepQuickFilter>("today");
   const [upcomingDays, setUpcomingDays] = useState(7);
   const [showModal, setShowModal] = useState(false);
+  const [isSubmittingList, setIsSubmittingList] = useState(false);
   const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(null);
   const [isDeletingList, setIsDeletingList] = useState(false);
   const [draftMode, setDraftMode] = useState<DraftMode>("generated");
@@ -667,6 +669,11 @@ export default function PrepListsPage() {
   };
 
   const submitNewList = async () => {
+    if (isSubmittingList) {
+      return;
+    }
+
+    setIsSubmittingList(true);
     try {
       if (draftMode === "generated" && duplicateSourceLists.length > 0) {
         const confirmed = window.confirm(
@@ -690,6 +697,8 @@ export default function PrepListsPage() {
     } catch (error) {
       const description = isApiError(error) ? error.message : "Unable to save prep list";
       toast({ title: "Prep list failed", description, variant: "destructive" });
+    } finally {
+      setIsSubmittingList(false);
     }
   };
 
@@ -1255,15 +1264,39 @@ export default function PrepListsPage() {
       </AlertDialog>
 
       {showModal ? (
-        <div className={styles.modalOverlay} role="presentation">
-          <div className={styles.newListModal}>
-            <div className={styles.newListHeader}>
-              <h3 className={styles.newListTitle}>Create Prep List</h3>
-              <button className={styles.modalCloseBtn} onClick={() => setShowModal(false)} type="button">
-                <X aria-hidden="true" size={18} />
-              </button>
-            </div>
-            <div className={styles.newListBody}>
+        <ModalShell
+          open
+          bodyClassName={styles.newListBody}
+          closeDisabled={isSubmittingList}
+          onClose={() => setShowModal(false)}
+          title="Create Prep List"
+          footerLeft={
+            <button
+              className={styles.btnGhost}
+              disabled={isSubmittingList}
+              onClick={() => setShowModal(false)}
+              type="button"
+            >
+              Cancel
+            </button>
+          }
+          footerRight={
+            <button
+              className={styles.btnCreate}
+              disabled={isSubmittingList}
+              onClick={() => void submitNewList()}
+              type="button"
+            >
+              {isSubmittingList
+                ? draftMode === "manual"
+                  ? "Creating..."
+                  : "Generating..."
+                : draftMode === "manual"
+                  ? "Create List"
+                  : "Generate List"}
+            </button>
+          }
+        >
               <div className={styles.formGroup}>
                 <label className={styles.formLabel}>Mode</label>
                 <div className={styles.inlineActionRow}>
@@ -1419,29 +1452,22 @@ export default function PrepListsPage() {
                   </div>
                 </>
               )}
-            </div>
-            <div className={styles.newListFooter}>
-              <button className={styles.btnGhost} onClick={() => setShowModal(false)} type="button">
-                Cancel
-              </button>
-              <button className={styles.btnCreate} onClick={() => void submitNewList()} type="button">
-                {draftMode === "manual" ? "Create List" : "Generate List"}
-              </button>
-            </div>
-          </div>
-        </div>
+        </ModalShell>
       ) : null}
 
       {showNotesModal && selectedList ? (
-        <div className={styles.modalOverlay} role="presentation">
-          <div className={styles.notesModal}>
-            <div className={styles.newListHeader}>
-              <h3 className={styles.newListTitle}>Prep List Notes</h3>
-              <button className={styles.modalCloseBtn} onClick={closeNotesModal} type="button">
-                <X aria-hidden="true" size={18} />
-              </button>
-            </div>
-            <div className={styles.notesModalBody}>
+        <ModalShell
+          open
+          bodyClassName={styles.notesModalBody}
+          className={styles.notesModal}
+          onClose={closeNotesModal}
+          title="Prep List Notes"
+          footerRight={
+            <button className={styles.btnCreate} onClick={closeNotesModal} type="button">
+              Done
+            </button>
+          }
+        >
               <div className={styles.notesModalMeta}>{selectedList.name}</div>
               <textarea
                 aria-label="Prep list detailed notes"
@@ -1455,14 +1481,7 @@ export default function PrepListsPage() {
                 rows={12}
                 value={notesDraft}
               />
-            </div>
-            <div className={styles.newListFooter}>
-              <button className={styles.btnCreate} onClick={closeNotesModal} type="button">
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
+        </ModalShell>
       ) : null}
     </>
   );
