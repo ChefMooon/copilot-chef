@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { ArrowRight, CalendarDots, Fire, ShoppingCart } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { RouteErrorState } from "@/components/ui/route-error-state";
 import { AccessibleHeatmapCell } from "@/components/ui/accessible-heatmap-cell";
 import { fetchJson, isRateLimitedApiError } from "@/lib/api";
@@ -407,19 +408,18 @@ export function HomeDashboard() {
 
   return (
     <>
-      <div className={cn(styles.pageGreeting, styles.fadeIn)}>
-        {settings.showGreetingSubtitle ? (
-          <div className={styles.greetingEyebrow}>{greetingDate}</div>
-        ) : null}
-        <h1 className={styles.greetingTitle}>{getGreeting()}, Chef!</h1>
-        {settings.showGreetingSubtitle ? (
-          <p className={styles.greetingSub}>
-            {totalMeals > 0
+      <PageHeader
+        className={cn(styles.pageGreeting, styles.fadeIn)}
+        eyebrow={settings.showGreetingSubtitle ? greetingDate : undefined}
+        subtitle={
+          settings.showGreetingSubtitle
+            ? totalMeals > 0
               ? `You have ${totalMeals} meals planned this week. Let's get cooking.`
-              : "Your first weekly plan is ready to take shape."}
-          </p>
-        ) : null}
-      </div>
+              : "Your first weekly plan is ready to take shape."
+            : undefined
+        }
+        title={`${getGreeting()}, Chef!`}
+      />
 
       {hasHomeQueryError ? (
         <RouteErrorState

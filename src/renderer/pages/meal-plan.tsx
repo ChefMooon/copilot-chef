@@ -27,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/ui/PageHeader";
 import styles from "@/components/meal-plan/meal-plan.module.css";
 
 import {
@@ -1914,13 +1915,9 @@ export default function MealPlanPage() {
 
   return (
     <div className={styles.calendarPage}>
-      <div className={styles.pageHeader}>
-        <div>
-          <div className={styles.eyebrow}>Meal Plan</div>
-          <h1 className={styles.pageTitle}>{pageTitle}</h1>
-          <p className={styles.pageSub}>{pageDateLabel}</p>
-        </div>
-        <div className={styles.pageHeaderRight}>
+      <PageHeader
+        actions={
+          <div className={styles.pageHeaderRight}>
           <button
             className={styles.btnAddMeal}
             onClick={() => openEditMeal(createEmptyMeal(new Date(date), ""))}
@@ -1983,8 +1980,13 @@ export default function MealPlanPage() {
               </button>
             </div>
           </div>
-        </div>
-      </div>
+          </div>
+        }
+        className={styles.calendarHeader}
+        eyebrow="Meal Plan"
+        subtitle={pageDateLabel}
+        title={pageTitle}
+      />
 
       {highlightedProfile ? (
         <div className={styles.cardFocusBar}>

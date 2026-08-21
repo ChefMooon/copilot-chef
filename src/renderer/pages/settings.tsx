@@ -33,6 +33,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/PageHeader";
 import {
   exportUserData,
   getPreferences,
@@ -1156,15 +1157,11 @@ export default function SettingsPage() {
   if (!preferences) {
     return (
       <div className={styles.page}>
-        <div className={styles.pageHeader}>
-          <div>
-            <div className={styles.eyebrow}>Settings</div>
-            <h1 className={styles.pageTitle}>Household preferences</h1>
-            <p className={styles.pageSubtitle}>
-              Loading your cooking profile and app defaults.
-            </p>
-          </div>
-        </div>
+        <PageHeader
+          eyebrow="Settings"
+          subtitle="Loading your cooking profile and app defaults."
+          title="Household preferences"
+        />
         <div className={cn(styles.card, styles.loadingCard)}>
           {preferencesQuery.isError
             ? "Unable to load settings right now."
@@ -1176,19 +1173,16 @@ export default function SettingsPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.pageHeader}>
-        <div>
-          <div className={styles.eyebrow}>Settings</div>
-          <h1 className={styles.pageTitle}>Household preferences</h1>
-          <p className={styles.pageSubtitle}>
-            Tune dietary direction, planning behavior, and the defaults Local
-            Recipe Book uses across your kitchen workflow.
-          </p>
-        </div>
-        <div className={cn(styles.autosavePill, saveState.className)}>
-          {saveState.label}
-        </div>
-      </header>
+      <PageHeader
+        actions={
+          <div className={cn(styles.autosavePill, saveState.className)}>
+            {saveState.label}
+          </div>
+        }
+        eyebrow="Settings"
+        subtitle="Tune dietary direction, planning behavior, and the defaults Local Recipe Book uses across your kitchen workflow."
+        title="Household preferences"
+      />
 
       {/* ── Tab strip ── */}
       <div

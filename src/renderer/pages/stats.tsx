@@ -59,12 +59,10 @@ export default function StatsPage() {
   }
 
   return (
-    <div className="p-4 md:p-6">
-      <Suspense
-        fallback={<p className="text-sm text-text-muted">Loading charts...</p>}
-      >
-        <StatsDashboard stats={statsQuery.data} />
-      </Suspense>
-    </div>
+    <Suspense
+      fallback={<p className="text-sm text-text-muted">Loading charts...</p>}
+    >
+      <StatsDashboard stats={statsQuery.data} />
+    </Suspense>
   );
 }

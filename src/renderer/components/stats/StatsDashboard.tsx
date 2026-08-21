@@ -9,6 +9,7 @@ import { StatKpiRow } from "./StatKpiRow";
 import { TopIngredientsList } from "./TopIngredientsList";
 import { TopMealsList } from "./TopMealsList";
 import { WeeklyTrendChart } from "./WeeklyTrendChart";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 type HeatmapCell = { date: string; meals: number; isFuture: boolean };
 
@@ -80,17 +81,11 @@ export function StatsDashboard({ stats }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <p className="mb-1 text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-orange-500">
-          Stats
-        </p>
-        <h1 className="font-serif text-3xl font-bold text-text">
-          Meal Activity
-        </h1>
-        <p className="mt-1 text-sm font-medium text-text-muted">
-          A full year of meal tracking, patterns, and planning insights.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Stats"
+        subtitle="A full year of meal tracking, patterns, and planning insights."
+        title="Meal Activity"
+      />
 
       <StatKpiRow cards={kpiCards} />
 
