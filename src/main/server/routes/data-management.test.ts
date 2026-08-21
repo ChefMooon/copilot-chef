@@ -1,6 +1,25 @@
 import { Hono } from "hono";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const electronMock = vi.hoisted(() => {
+  const userDataPath = process.env.TEMP ?? process.cwd();
+
+  return {
+    app: {
+      isPackaged: false,
+      getPath: (name: string) => {
+        if (name !== "userData") {
+          throw new Error(`Unsupported Electron path: ${name}`);
+        }
+
+        return userDataPath;
+      },
+    },
+  };
+});
+
+vi.mock("electron", () => electronMock);
+
 import { createDataArchive } from "../lib/data-archive";
 import { DATA_ARCHIVE_LAYOUT } from "@shared/schemas/data-management-schemas";
 
