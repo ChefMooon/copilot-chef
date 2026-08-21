@@ -2,7 +2,36 @@
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
+import StatsPage from "./stats";
+import RecipesPage from "./recipes";
+import { HomeDashboard } from "@/components/home/home-dashboard";
+
+const {
+  useQueryMock,
+  useMutationMock,
+  queryClientMock,
+  listRecipesMock,
+  toastMock,
+  getSettingMock,
+} = vi.hoisted(() => ({
+  useQueryMock: vi.fn(),
+  useMutationMock: vi.fn(),
+  queryClientMock: {
+    invalidateQueries: vi.fn(),
+    setQueryData: vi.fn(),
+  },
+  listRecipesMock: vi.fn(),
+  toastMock: vi.fn(),
+  getSettingMock: vi.fn().mockResolvedValue(null),
+}));
 
 type QueryState = {
   data?: unknown;
@@ -11,21 +40,6 @@ type QueryState = {
   error?: unknown;
   refetch: ReturnType<typeof vi.fn>;
 };
-
-const useQueryMock = vi.fn();
-const useMutationMock = vi.fn();
-const queryClientMock = {
-  invalidateQueries: vi.fn(),
-  setQueryData: vi.fn(),
-};
-
-const listRecipesMock = vi.fn();
-const toastMock = vi.fn();
-const getSettingMock = vi.fn().mockResolvedValue(null);
-
-let StatsPage: (typeof import("./stats"))["default"];
-let RecipesPage: (typeof import("./recipes"))["default"];
-let HomeDashboard: (typeof import("@/components/home/home-dashboard"))["HomeDashboard"];
 
 vi.mock("@tanstack/react-query", () => ({
   useQuery: useQueryMock,
@@ -89,12 +103,6 @@ function queryState(overrides: Partial<QueryState> = {}): QueryState {
 }
 
 describe("throttling UI regression coverage", () => {
-  beforeAll(async () => {
-    StatsPage = (await import("./stats")).default;
-    RecipesPage = (await import("./recipes")).default;
-    HomeDashboard = (await import("@/components/home/home-dashboard")).HomeDashboard;
-  });
-
   beforeEach(() => {
     useQueryMock.mockReset();
     useMutationMock.mockReset();
