@@ -229,6 +229,7 @@ const makeRect = ({
 describe("profile-aware meal plan views", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
     cleanup();
   });
 
@@ -273,8 +274,6 @@ describe("profile-aware meal plan views", () => {
 
     expect(screen.getByRole("button", { name: "Go to previous week" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Go to next week" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Go to previous week" }));
-    expect(weekPrevious).toHaveBeenCalledWith(new Date("2026-04-11T12:00:00"));
     fireEvent.click(screen.getByRole("button", { name: "Go to next week" }));
     expect(weekPrevious).toHaveBeenLastCalledWith(new Date("2026-04-25T12:00:00"));
     cleanup();
@@ -849,5 +848,59 @@ describe("profile-aware meal plan views", () => {
 
     expect(screen.getByText("Lunch")).toBeTruthy();
     expect(screen.getByText("Leftover Lunch")).toBeTruthy();
+  });
+
+  it("supports moving WeekView one week in either direction", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-22T12:00:00"));
+    const setDate = vi.fn();
+
+    render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[defaultProfile]}
+        setDate={setDate}
+        onEdit={vi.fn()}
+        onDuplicateMeal={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Go to previous week" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Go to next week" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Go to previous week" }));
+    expect(setDate).toHaveBeenCalledWith(new Date("2026-04-15T12:00:00"));
+
+    fireEvent.click(screen.getByRole("button", { name: "Go to next week" }));
+
+    expect(setDate).toHaveBeenCalledWith(new Date("2026-04-29T12:00:00"));
+  });
+
+  it("keeps the standard previous and next controls in a future WeekView", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-22T12:00:00"));
+    const setDate = vi.fn();
+
+    render(
+      <WeekView
+        date={new Date("2026-05-06T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[defaultProfile]}
+        setDate={setDate}
+        onEdit={vi.fn()}
+        onDuplicateMeal={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    const previousButton = screen.getByRole("button", { name: "Go to previous week" });
+    expect(previousButton).not.toBeDisabled();
+    fireEvent.click(previousButton);
+
+    expect(setDate).toHaveBeenCalledWith(new Date("2026-04-29T12:00:00"));
   });
 });

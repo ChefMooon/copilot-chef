@@ -691,12 +691,12 @@
   transition: all 0.15s;
 }
 
-.periodNavButton:first-child {
+.periodNav > .periodNavButton:first-child {
   border-right: 1px solid var(--border);
   border-radius: 17px 0 0;
 }
 
-.periodNavButton:last-child {
+.periodNavActions > .periodNavButton:last-child {
   border-left: 1px solid var(--border);
   border-radius: 0 17px 0 0;
 }
@@ -733,6 +733,43 @@
   transform: translateX(-50%);
   pointer-events: none;
   text-align: center;
+}
+
+.periodNavActions {
+  display: flex;
+  align-items: stretch;
+  align-self: stretch;
+  height: auto;
+  margin-left: auto;
+}
+
+.periodNavCurrentButton {
+  min-width: 6.9rem;
+  padding: 0 0.7rem;
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 800;
+  transition: background 0.15s, color 0.15s;
+}
+
+.periodNavCurrentButton:hover:not(:disabled) {
+  background: var(--green-pale);
+  color: var(--green);
+}
+
+.periodNavCurrentButton:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: -3px;
+}
+
+.periodNavCurrentButton:disabled {
+  color: var(--text-muted);
+  cursor: default;
+  opacity: 0.55;
 }
 
 .dayNavTitle {
@@ -1081,13 +1118,42 @@
 
 .weekBoardScroller {
   overflow-x: auto;
+  max-width: 100%;
+  overscroll-behavior-x: contain;
 }
 
 .weekBoard {
   --week-grid-border: color-mix(in srgb, var(--text-muted) 28%, var(--card));
+  position: relative;
   display: grid;
   grid-template-columns: 128px repeat(7, minmax(128px, 1fr));
   min-width: 1040px;
+}
+
+.weekEdgeZone {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  color: color-mix(in srgb, var(--primary) 72%, var(--card));
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: background 0.16s, border-color 0.16s, color 0.16s, opacity 0.16s, visibility 0.16s;
+}
+
+.weekEdgeZoneActive {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  opacity: 1;
+  visibility: visible;
+}
+
+.weekEdgeZoneArrow {
+  filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--card) 60%, transparent));
 }
 
 .weekBoardCorner {
@@ -1104,6 +1170,8 @@
 
 .weekDayHeader {
   position: relative;
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: 0.75rem 0.6rem 0.6rem;
   border-right: 1px solid var(--week-grid-border);
   border-bottom: 1px solid var(--week-grid-border);
@@ -1130,6 +1198,7 @@
 }
 
 .weekTypeCell {
+  min-width: 0;
   padding: 0.9rem 0.85rem;
   border-right: 1px solid var(--week-grid-border);
   border-bottom: 1px solid var(--week-grid-border);
@@ -1158,6 +1227,7 @@
 }
 
 .weekSlotCell {
+  min-width: 0;
   min-height: 90px;
   padding: 0.7rem;
   border-right: 1px solid var(--week-grid-border);
@@ -1229,6 +1299,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-width: 0;
   width: 100%;
 }
 
@@ -1266,6 +1337,7 @@
   border: none;
   cursor: pointer;
   width: 100%;
+  min-width: 0;
   min-height: 2.05rem;
   text-align: left;
   background: var(--card);
@@ -1304,6 +1376,7 @@
 
 .weekMealCardShell {
   position: relative;
+  min-width: 0;
   width: 100%;
 }
 
@@ -1357,6 +1430,8 @@
 }
 
 .weekMealNotes {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 0.68rem;
   color: var(--text-muted);
   line-height: 1.35;
@@ -1429,9 +1504,8 @@
   letter-spacing: 0.05em;
   line-height: 1.2;
   text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  white-space: normal;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--profile-accent, var(--border)) 16%, transparent);
 }
 
@@ -1501,6 +1575,8 @@
 }
 
 .weekChipName {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--text);
@@ -1578,7 +1654,32 @@
   }
 
   .weekBoard {
-    min-width: 900px;
+    grid-template-columns: 108px repeat(7, minmax(112px, 1fr));
+    min-width: 892px;
+  }
+
+  .weekBoardCorner,
+  .weekTypeCell {
+    padding-right: 0.6rem;
+    padding-left: 0.6rem;
+  }
+
+  .weekDayHeader {
+    padding: 0.6rem 0.42rem 0.5rem;
+  }
+
+  .weekSlotCell {
+    padding: 0.55rem;
+  }
+
+  .weekSlotEmpty,
+  .weekSlotStack.weekSlotStackSingle .slotAddMoreBtn {
+    padding: 0.6rem;
+  }
+
+  .weekSlotMealCard {
+    padding-right: 1.9rem;
+    padding-left: 0.5rem;
   }
 
   .duplicatePanel {
@@ -1599,6 +1700,89 @@
   .trashZone {
     bottom: 0.8rem;
     left: 0.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .weekBoard {
+    grid-template-columns: 96px repeat(7, minmax(104px, 1fr));
+    min-width: 824px;
+  }
+
+  .weekBoardCorner,
+  .weekTypeCell {
+    padding: 0.62rem 0.48rem;
+  }
+
+  .weekTypeCell {
+    gap: 0.4rem;
+  }
+
+  .weekDayHeader {
+    padding: 0.52rem 0.35rem 0.45rem;
+  }
+
+  .weekSlotCell {
+    min-height: 82px;
+    padding: 0.45rem;
+  }
+
+  .weekSlotMealCard {
+    padding-right: 1.75rem;
+    padding-left: 0.45rem;
+  }
+
+  .weekMealNotes {
+    font-size: 0.64rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .weekBoard {
+    grid-template-columns: 88px repeat(7, minmax(96px, 1fr));
+    min-width: 760px;
+  }
+
+  .weekBoardCorner,
+  .weekTypeCell {
+    padding: 0.52rem 0.4rem;
+  }
+
+  .weekTypeLabel {
+    font-size: 0.64rem;
+  }
+
+  .weekDayHeader {
+    padding: 0.46rem 0.28rem 0.4rem;
+  }
+
+  .weekColWeekday {
+    font-size: 0.62rem;
+  }
+
+  .weekColNum {
+    font-size: 0.98rem;
+  }
+
+  .weekSlotCell {
+    padding: 0.38rem;
+  }
+
+  .weekSlotMealCard {
+    padding-right: 1.58rem;
+    padding-left: 0.4rem;
+  }
+
+  .weekMealActionBtn {
+    right: 0.28rem;
+    width: 1.42rem;
+    height: 1.42rem;
+  }
+
+  .periodNavCurrentButton {
+    min-width: 5.9rem;
+    padding-inline: 0.45rem;
+    font-size: 0.66rem;
   }
 }
 
@@ -1899,6 +2083,8 @@
   justify-self: start;
   width: fit-content;
   max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
   border: 1px solid currentColor;
   border-radius: 999px;
   padding: 0.03rem 0.36rem;
@@ -2694,6 +2880,15 @@
   padding: 0.42rem 0.55rem;
 }
 
+.duplicateWeekNav {
+  min-height: 44px;
+  border-top: 1px solid var(--border);
+}
+
+.duplicateWeekNav .periodNavLabel {
+  min-width: min(20rem, calc(100% - 5.5rem));
+}
+
 .duplicateGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2771,10 +2966,11 @@
 }
 
 .duplicateDayType {
-  margin-top: auto;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.35rem;
+  width: 100%;
   border: 1px solid currentColor;
   border-radius: 999px;
   padding: 0.22rem 0.5rem;
@@ -2783,6 +2979,26 @@
   letter-spacing: 0.08em;
   line-height: 1.2;
   text-transform: uppercase;
+}
+
+.duplicateTypeOptions {
+  display: grid;
+  gap: 0.35rem;
+  width: 100%;
+  margin-top: auto;
+}
+
+.duplicateDayTypeDisabled {
+  border-color: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.duplicateDayTypeStatus {
+  flex-shrink: 0;
+  font-size: 0.5rem;
+  letter-spacing: 0.04em;
 }
 
 .duplicateActions {

@@ -1,5 +1,21 @@
-import { Fragment, useMemo, useState, type CSSProperties, type DragEvent } from "react";
-import { Copy, DotsSixVertical, PencilSimple, Plus } from "@phosphor-icons/react";
+import {
+  Fragment,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type DragEvent,
+} from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Copy,
+  DotsSixVertical,
+  PencilSimple,
+  Plus,
+} from "@phosphor-icons/react";
 
 import {
   createEmptyMeal,
@@ -45,6 +61,18 @@ type WeekViewProps = {
   ) => Promise<void>;
 };
 
+type EdgeDirection = "previous" | "next";
+type EdgeZone = {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+};
+
+type EdgeZones = Record<EdgeDirection, EdgeZone>;
+
+const EDGE_NAVIGATION_DELAY = 800;
+
 export function WeekView({
   date,
   meals,
@@ -64,6 +92,16 @@ export function WeekView({
   );
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
   const [isApplyingDrop, setIsApplyingDrop] = useState(false);
+  const [edgeZones, setEdgeZones] = useState<EdgeZones | null>(null);
+  const [edgeHoverDirection, setEdgeHoverDirection] =
+    useState<EdgeDirection | null>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const edgeNavigationTimersRef = useRef<Record<EdgeDirection, number | null>>({
+    previous: null,
+    next: null,
+  });
+  const edgeHoverDirectionRef = useRef<EdgeDirection | null>(null);
+  const edgeNavigationLockedRef = useRef(false);
 
   const days = Array.from({ length: 7 }, (_, index) => {
     const day = new Date(weekStart);
@@ -91,18 +129,6 @@ export function WeekView({
     [dayProfileContexts, days, meals]
   );
 
-  const prevWeek = () => {
-    const nextDate = new Date(date);
-    nextDate.setDate(nextDate.getDate() - 7);
-    setDate(nextDate);
-  };
-
-  const nextWeek = () => {
-    const nextDate = new Date(date);
-    nextDate.setDate(nextDate.getDate() + 7);
-    setDate(nextDate);
-  };
-
   const startLabel =
     days[0]?.toLocaleDateString("default", {
       month: "short",
@@ -115,6 +141,19 @@ export function WeekView({
       year: "numeric",
     }) ?? "";
   const today = new Date();
+
+  const changeWeek = (offset: number) => {
+    const nextDate = new Date(date);
+    nextDate.setDate(nextDate.getDate() + offset);
+
+    setDate(nextDate);
+    return true;
+  };
+
+  const nextWeek = () => {
+    changeWeek(7);
+  };
+
   const mergedMealTypes = useMemo(
     () => mergeMealTypeDefinitions(slotsByDay.map(({ mealTypes }) => mealTypes)),
     [slotsByDay]
@@ -190,7 +229,154 @@ export function WeekView({
   const draggedSlotMealIds =
     draggedPayload?.kind === "slot" ? new Set(draggedPayload.mealIds) : null;
 
+  const clearEdgeTimers = () => {
+    for (const direction of ["previous", "next"] as const) {
+      const timer = edgeNavigationTimersRef.current[direction];
+      if (timer !== null) {
+        window.clearTimeout(timer);
+        edgeNavigationTimersRef.current[direction] = null;
+      }
+    }
+  };
+
+  const clearEdgeNavigationState = () => {
+    clearEdgeTimers();
+    edgeHoverDirectionRef.current = null;
+    edgeNavigationLockedRef.current = false;
+    setEdgeHoverDirection(null);
+  };
+
+  const getEdgeDirection = (
+    event: DragEvent<HTMLElement>
+  ): EdgeDirection | null => {
+    const boardRect = boardRef.current?.getBoundingClientRect();
+    if (!edgeZones || !boardRect) {
+      return null;
+    }
+
+    const pointerX = event.clientX - boardRect.left;
+    const pointerY = event.clientY - boardRect.top;
+    if (
+      pointerY < edgeZones.previous.top ||
+      pointerY >= edgeZones.previous.bottom
+    ) {
+      return null;
+    }
+
+    if (
+      pointerX >= edgeZones.previous.left &&
+      pointerX < edgeZones.previous.right
+    ) {
+      return "previous";
+    }
+
+    if (pointerX >= edgeZones.next.left && pointerX < edgeZones.next.right) {
+      return "next";
+    }
+
+    return null;
+  };
+
+  const scheduleEdgeNavigation = (direction: EdgeDirection) => {
+    if (edgeNavigationLockedRef.current) {
+      return;
+    }
+
+    if (edgeHoverDirectionRef.current !== direction) {
+      clearEdgeTimers();
+      edgeHoverDirectionRef.current = direction;
+      setEdgeHoverDirection(direction);
+    }
+
+    if (edgeNavigationTimersRef.current[direction] !== null) {
+      return;
+    }
+
+    edgeNavigationTimersRef.current[direction] = window.setTimeout(() => {
+      edgeNavigationTimersRef.current[direction] = null;
+
+      if (edgeNavigationLockedRef.current) {
+        return;
+      }
+
+      const offset = direction === "previous" ? -7 : 7;
+      const nextDate = new Date(date);
+      nextDate.setDate(nextDate.getDate() + offset);
+
+      edgeNavigationLockedRef.current = true;
+      setEdgeHoverDirection(direction);
+      setDate(nextDate);
+    }, EDGE_NAVIGATION_DELAY);
+  };
+
+  useLayoutEffect(() => {
+    const board = boardRef.current;
+    if (!board) {
+      return;
+    }
+
+    const measureEdgeZones = () => {
+      const mondayHeader = board.querySelector<HTMLElement>(
+        "[data-week-day-index='0']"
+      );
+      const sundayHeader = board.querySelector<HTMLElement>(
+        "[data-week-day-index='6']"
+      );
+      if (!mondayHeader || !sundayHeader) {
+        return;
+      }
+
+      const boardRect = board.getBoundingClientRect();
+      const mondayRect = mondayHeader.getBoundingClientRect();
+      const sundayRect = sundayHeader.getBoundingClientRect();
+      const mealTop = Math.max(mondayRect.bottom - boardRect.top, 0);
+      const mealBottom = Math.max(boardRect.bottom - boardRect.top, mealTop);
+
+      setEdgeZones({
+        previous: {
+          left: mondayRect.left - boardRect.left,
+          right: mondayRect.left - boardRect.left + mondayRect.width * 0.25,
+          top: mealTop,
+          bottom: mealBottom,
+        },
+        next: {
+          left: sundayRect.right - boardRect.left - sundayRect.width * 0.25,
+          right: sundayRect.right - boardRect.left,
+          top: mealTop,
+          bottom: mealBottom,
+        },
+      });
+    };
+
+    measureEdgeZones();
+    window.addEventListener("resize", measureEdgeZones);
+    const resizeObserver =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(measureEdgeZones);
+    resizeObserver?.observe(board);
+
+    return () => {
+      window.removeEventListener("resize", measureEdgeZones);
+      resizeObserver?.disconnect();
+    };
+  }, [date, rowMealTypes.length]);
+
+  useEffect(() => {
+    clearEdgeTimers();
+    edgeNavigationLockedRef.current = false;
+    edgeHoverDirectionRef.current = null;
+    setEdgeHoverDirection(null);
+  }, [date]);
+
+  useEffect(() => {
+    return () => {
+      clearEdgeTimers();
+    };
+  }, []);
+
   const clearDragState = () => {
+    clearEdgeNavigationState();
     setDraggedPayload(null);
     setDropTargetKey(null);
     setIsApplyingDrop(false);
@@ -222,6 +408,9 @@ export function WeekView({
       dragTypes.includes("text/plain")
     );
   };
+
+  const getActiveDropPayload = (event: DragEvent<HTMLElement>) =>
+    getMealPlanDragPayload(event.dataTransfer) ?? draggedPayload;
 
   const onDragStartMeal = (
     event: DragEvent<HTMLButtonElement>,
@@ -324,6 +513,42 @@ export function WeekView({
     }
   };
 
+  const onBoardDragOverCapture = (event: DragEvent<HTMLDivElement>) => {
+    const transferPayload = getMealPlanDragPayload(event.dataTransfer);
+    const dragTypes = Array.from(event.dataTransfer.types ?? []);
+    const hasRecognizedDragType =
+      dragTypes.includes("application/x-local-recipe-book-meal-plan-drag") ||
+      dragTypes.includes("text/plain");
+    const activePayload =
+      transferPayload ?? (hasRecognizedDragType ? draggedPayload : null);
+
+    if (!canHandleDragOver(event, activePayload) || !activePayload) {
+      return;
+    }
+
+    const direction = getEdgeDirection(event);
+    if (!direction) {
+      clearEdgeNavigationState();
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    if (draggedPayload === null) {
+      setDraggedPayload(activePayload);
+    }
+    scheduleEdgeNavigation(direction);
+  };
+
+  const onBoardDragLeaveCapture = (event: DragEvent<HTMLDivElement>) => {
+    const relatedTarget = event.relatedTarget;
+    if (relatedTarget instanceof Node && boardRef.current?.contains(relatedTarget)) {
+      return;
+    }
+
+    clearEdgeNavigationState();
+  };
+
   return (
     <div className={styles.weekView}>
       <PeriodNavigation
@@ -331,7 +556,7 @@ export function WeekView({
         className={styles.weekNav}
         nextLabel="Go to next week"
         onNext={nextWeek}
-        onPrevious={prevWeek}
+        onPrevious={() => changeWeek(-7)}
         previousLabel="Go to previous week"
       >
         <span className={styles.weekNavLabel}>
@@ -339,7 +564,14 @@ export function WeekView({
         </span>
       </PeriodNavigation>
       <div className={styles.weekBoardScroller}>
-        <div className={styles.weekBoard}>
+        <div
+          className={styles.weekBoard}
+          onDragLeaveCapture={onBoardDragLeaveCapture}
+          onDragOverCapture={onBoardDragOverCapture}
+          onDragEndCapture={clearEdgeNavigationState}
+          onDropCapture={clearEdgeNavigationState}
+          ref={boardRef}
+        >
           <div className={styles.weekBoardCorner}>Meal</div>
           {days.map((day, index) => {
             const todayMatch = isSameDay(day, today);
@@ -351,6 +583,7 @@ export function WeekView({
             return (
               <div
                 className={`${styles.weekDayHeader} ${todayMatch ? styles.weekDayHeaderToday : ""} ${profileContext.isProfileStart ? styles.weekDayHeaderProfileStart : ""} ${isMuted ? styles.weekProfileMuted : ""}`}
+                data-week-day-index={index}
                 key={`header-${day.toISOString()}`}
               >
                 <span className={styles.weekColWeekday}>{DAYS[day.getDay()]}</span>
@@ -446,7 +679,7 @@ export function WeekView({
                                 }}
                                 onDrop={async (event) => {
                                   event.preventDefault();
-                                  const payload = getMealPlanDragPayload(event.dataTransfer);
+                                  const payload = getActiveDropPayload(event);
                                   if (!payload) {
                                     return;
                                   }
@@ -491,7 +724,7 @@ export function WeekView({
                                   }
                                 }}
                                 onDrop={async (event) => {
-                                  const payload = getMealPlanDragPayload(event.dataTransfer);
+                                  const payload = getActiveDropPayload(event);
                                   if (!payload) {
                                     scheduleClearDragState();
                                     return;
@@ -538,7 +771,7 @@ export function WeekView({
                               }}
                               onDrop={async (event) => {
                                 event.preventDefault();
-                                const payload = getMealPlanDragPayload(event.dataTransfer);
+                                const payload = getActiveDropPayload(event);
                                 if (!payload) {
                                   return;
                                 }
@@ -609,7 +842,7 @@ export function WeekView({
                                         const rect = event.currentTarget.getBoundingClientRect();
                                         const insertAfter =
                                           event.clientY > rect.top + rect.height / 2;
-                                        const payload = getMealPlanDragPayload(event.dataTransfer);
+                                        const payload = getActiveDropPayload(event);
                                         if (!payload) {
                                           scheduleClearDragState();
                                           return;
@@ -746,6 +979,49 @@ export function WeekView({
                 );
               })
             : null}
+          {edgeZones ? (
+            <>
+              {(["previous", "next"] as const)
+                .map((direction) => {
+                const zone = edgeZones[direction];
+                const isActive =
+                  draggedPayload !== null && edgeHoverDirection === direction;
+
+                return (
+                  <div
+                    aria-hidden="true"
+                    className={`${styles.weekEdgeZone} ${isActive ? styles.weekEdgeZoneActive : ""}`}
+                    data-week-edge-zone={direction}
+                    key={direction}
+                    style={{
+                      left: zone.left,
+                      top: zone.top,
+                      width: Math.max(zone.right - zone.left, 0),
+                      height: Math.max(zone.bottom - zone.top, 0),
+                    }}
+                  >
+                    {isActive ? (
+                      direction === "previous" ? (
+                        <ArrowLeft
+                          aria-hidden="true"
+                          className={styles.weekEdgeZoneArrow}
+                          data-week-edge-arrow={direction}
+                          size={24}
+                        />
+                      ) : (
+                        <ArrowRight
+                          aria-hidden="true"
+                          className={styles.weekEdgeZoneArrow}
+                          data-week-edge-arrow={direction}
+                          size={24}
+                        />
+                      )
+                    ) : null}
+                  </div>
+                );
+              })}
+            </>
+          ) : null}
         </div>
       </div>
     </div>

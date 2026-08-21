@@ -71,6 +71,46 @@ const meal: EditableMeal = {
   linkedRecipe: null,
 };
 
+const rangedProfile: MealTypeProfilePayload = {
+  ...mealTypeProfiles[0],
+  id: "profile-ranged",
+  name: "Ranged",
+  isDefault: false,
+  priority: 10,
+  startDate: "2026-05-19T00:00:00",
+  endDate: "2026-05-20T00:00:00",
+  mealTypes: [
+    {
+      ...mealTypeProfiles[0].mealTypes[0],
+      id: "brunch",
+      slug: "BRUNCH",
+      name: "Brunch",
+    },
+    {
+      ...mealTypeProfiles[0].mealTypes[1],
+      id: "supper",
+      slug: "SUPPER",
+      name: "Supper",
+    },
+    {
+      ...mealTypeProfiles[0].mealTypes[0],
+      id: "locked",
+      slug: "LOCKED",
+      name: "Locked",
+      enabled: false,
+    },
+  ],
+};
+
+const unavailableProfile: MealTypeProfilePayload = {
+  ...rangedProfile,
+  id: "profile-unavailable",
+  name: "Unavailable",
+  startDate: "2026-05-21T00:00:00",
+  endDate: "2026-05-21T00:00:00",
+  mealTypes: [],
+};
+
 afterEach(() => {
   cleanup();
 });
@@ -125,5 +165,146 @@ describe("DuplicateMealModal", () => {
       mealType: "BREAKFAST",
       mealTypeDefinitionId: "breakfast",
     });
+  });
+
+  it("renders every enabled definition from a date-ranged profile", () => {
+    const onDuplicate = vi.fn();
+
+    render(
+      <DuplicateMealModal
+        isOpen
+        meal={meal}
+        mealTypeProfiles={[mealTypeProfiles[0], rangedProfile]}
+        onClose={vi.fn()}
+        onDuplicate={onDuplicate}
+        referenceDate={monday}
+      />
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "Tue, May 19, Duplicate as Brunch",
+      })
+    ).toBeTruthy();
+    const supperButton = screen.getByRole("button", {
+      name: "Tue, May 19, Duplicate as Supper",
+    });
+
+    expect(supperButton).toHaveAttribute(
+      "data-meal-type-definition-id",
+      "supper"
+    );
+    fireEvent.click(supperButton);
+
+    expect(onDuplicate).toHaveBeenCalledWith({
+      date: new Date(2026, 4, 19),
+      mealType: "SUPPER",
+      mealTypeDefinitionId: "supper",
+    });
+  });
+
+  it("omits disabled definitions and disables dates with no available definitions", () => {
+    render(
+      <DuplicateMealModal
+        isOpen
+        meal={meal}
+        mealTypeProfiles={[mealTypeProfiles[0], rangedProfile, unavailableProfile]}
+        onClose={vi.fn()}
+        onDuplicate={vi.fn()}
+        referenceDate={monday}
+      />
+    );
+
+    expect(
+      screen.queryByRole("button", {
+      name: "Tue, May 19, Duplicate as Locked",
+      })
+    ).not.toBeInTheDocument();
+    const unavailableDay = screen.getByRole("button", {
+      name: "Thu, May 21, No meal types available",
+    });
+
+    expect(unavailableDay).toBeDisabled();
+  });
+
+  it("moves between future and current weeks without entering a past week", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 13, 12));
+
+    render(
+      <DuplicateMealModal
+        isOpen
+        meal={meal}
+        mealTypeProfiles={mealTypeProfiles}
+        onClose={vi.fn()}
+        onDuplicate={vi.fn()}
+        referenceDate={new Date(2026, 4, 25)}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Previous week" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous week" }));
+    expect(screen.getByRole("button", { name: "Previous week" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous week" }));
+    expect(screen.queryByRole("button", { name: "Previous week" })).not.toBeInTheDocument();
+    expect(
+      Array.from(document.querySelectorAll<HTMLElement>("[data-target-date]")).some(
+        (element) => element.dataset.targetDate?.startsWith("2026-05-11")
+      )
+    ).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Next week" }));
+    expect(screen.getByRole("button", { name: "Previous week" })).toBeInTheDocument();
+    expect(
+      Array.from(document.querySelectorAll<HTMLElement>("[data-target-date]")).some(
+        (element) => element.dataset.targetDate?.startsWith("2026-05-18")
+      )
+    ).toBe(true);
+  });
+
+  it("updates the source-day indication when the displayed week changes", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 13, 12));
+
+    render(
+      <DuplicateMealModal
+        isOpen
+        meal={meal}
+        mealTypeProfiles={mealTypeProfiles}
+        onClose={vi.fn()}
+        onDuplicate={vi.fn()}
+        referenceDate={monday}
+      />
+    );
+
+    expect(screen.getByText("Source day")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Previous week" }));
+    expect(screen.queryByText("Source day")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next week" }));
+    expect(screen.getByText("Source day")).toBeInTheDocument();
+  });
+
+  it("disables every definition option and close control while duplicating", () => {
+    render(
+      <DuplicateMealModal
+        isDuplicating
+        isOpen
+        meal={meal}
+        mealTypeProfiles={[mealTypeProfiles[0], rangedProfile]}
+        onClose={vi.fn()}
+        onDuplicate={vi.fn()}
+        referenceDate={monday}
+      />
+    );
+
+    expect(
+      Array.from(document.querySelectorAll<HTMLButtonElement>("button[data-target-date]")).every(
+        (button) => button.disabled
+      )
+    ).toBe(true);
+    expect(screen.getByRole("button", { name: "Close duplicate meal dialog" })).toBeDisabled();
   });
 });

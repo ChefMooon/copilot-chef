@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 
 import { DayView } from "./DayView";
 import { WeekView } from "./WeekView";
@@ -132,8 +132,79 @@ function createDataTransfer() {
   } as DataTransfer & { setDragRestriction: (value: boolean) => void };
 }
 
+function makeRect({
+  left,
+  top,
+  width,
+  height,
+}: {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}): DOMRect {
+  return {
+    x: left,
+    y: top,
+    left,
+    top,
+    right: left + width,
+    bottom: top + height,
+    width,
+    height,
+    toJSON: () => ({}),
+  } as DOMRect;
+}
+
+function mockWeekBoardGeometry() {
+  return vi
+    .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+    .mockImplementation(function (this: HTMLElement) {
+      if (this.classList.contains(styles.weekBoard)) {
+        return makeRect({ left: 0, top: 0, width: 1024, height: 600 });
+      }
+
+      const dayIndex = this.getAttribute("data-week-day-index");
+      if (dayIndex !== null) {
+        return makeRect({
+          left: 128 + Number(dayIndex) * 128,
+          top: 0,
+          width: 128,
+          height: 48,
+        });
+      }
+
+      return makeRect({ left: 0, top: 0, width: 0, height: 0 });
+    });
+}
+
+function dispatchEdgeDragOver(
+  element: HTMLElement,
+  dataTransfer: DataTransfer,
+  clientX: number,
+  clientY: number
+) {
+  const event = new MouseEvent("dragover", {
+    bubbles: true,
+    cancelable: true,
+    clientX,
+    clientY,
+  }) as unknown as Event & {
+    clientX: number;
+    clientY: number;
+    dataTransfer: DataTransfer;
+  };
+
+  Object.defineProperty(event, "dataTransfer", { value: dataTransfer });
+  act(() => {
+    element.dispatchEvent(event);
+  });
+}
+
 describe("meal plan drag prompt paths", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
     cleanup();
   });
 
@@ -400,6 +471,60 @@ describe("meal plan drag prompt paths", () => {
     });
   });
 
+  it("WeekView uses the captured drag payload when drop data is unavailable", async () => {
+    const onDropPayload = vi.fn().mockResolvedValue(undefined);
+    const dataTransfer = createDataTransfer();
+
+    const { container } = render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={dayMeals}
+        mealTypeProfiles={[profile]}
+        onDropPayload={onDropPayload}
+        onEdit={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        setDate={vi.fn()}
+      />
+    );
+
+    const mealCards = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        '[data-meal-plan-drag-source="calendar-meal"]'
+      )
+    );
+    const sourceMeal = mealCards.find((card) =>
+      card.textContent?.includes("Morning Toast")
+    );
+    const targetMeal = mealCards.find((card) =>
+      card.textContent?.includes("Evening Soup")
+    );
+    expect(sourceMeal).toBeTruthy();
+    expect(targetMeal).toBeTruthy();
+
+    vi.spyOn(targetMeal as HTMLButtonElement, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 120,
+      bottom: 40,
+      width: 120,
+      height: 40,
+      toJSON: () => ({}),
+    });
+
+    fireEvent.dragStart(sourceMeal as HTMLButtonElement, { dataTransfer });
+    fireEvent.dragOver(targetMeal as HTMLButtonElement, { dataTransfer });
+    dataTransfer.setDragRestriction(true);
+    fireEvent.drop(targetMeal as HTMLButtonElement, { dataTransfer });
+
+    expect(onDropPayload).toHaveBeenCalledTimes(1);
+    expect(onDropPayload.mock.calls[0]?.[0]).toEqual({
+      kind: "meal",
+      mealId: "meal-a",
+    });
+  });
+
   it("WeekView accepts slot dragover when drag data is unavailable until drop", async () => {
     const dataTransfer = createDataTransfer();
 
@@ -528,5 +653,238 @@ describe("meal plan drag prompt paths", () => {
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Add breakfast meal/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Manage breakfast meals/i })).toBeDisabled();
+  });
+
+  it("cancels edge navigation below the threshold and ignores invalid payloads", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-22T12:00:00"));
+    mockWeekBoardGeometry();
+    const setDate = vi.fn();
+    const dataTransfer = createDataTransfer();
+    setMealPlanDragPayload(dataTransfer, { kind: "bank-meal", mealId: "bank-edge" });
+
+    render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[profile]}
+        setDate={setDate}
+        onEdit={vi.fn()}
+        onDuplicateMeal={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    const nextZone = document.querySelector<HTMLElement>(
+      `[data-week-edge-zone="next"]`
+    );
+    const previousZone = document.querySelector<HTMLElement>(
+      `[data-week-edge-zone="previous"]`
+    );
+    const board = nextZone?.closest(`.${styles.weekBoard}`);
+    expect(nextZone).toBeTruthy();
+    expect(previousZone).toBeTruthy();
+    expect(board).toBeTruthy();
+    expect((nextZone as HTMLElement).style.left).toBe("992px");
+    expect((nextZone as HTMLElement).style.top).toBe("48px");
+    expect(nextZone).not.toHaveClass(styles.weekEdgeZoneActive);
+    expect(nextZone?.querySelector("[data-week-edge-arrow='next']")).toBeNull();
+
+    dispatchEdgeDragOver(board as HTMLElement, dataTransfer, 1000, 100);
+    expect(nextZone).toHaveClass(styles.weekEdgeZoneActive);
+    expect(nextZone?.querySelector("[data-week-edge-arrow='next']")).toBeTruthy();
+    act(() => {
+      vi.advanceTimersByTime(799);
+    });
+    expect(setDate).not.toHaveBeenCalled();
+
+    fireEvent.dragLeave(board as HTMLElement);
+    expect(nextZone).not.toHaveClass(styles.weekEdgeZoneActive);
+    expect(nextZone?.querySelector("[data-week-edge-arrow='next']")).toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(setDate).not.toHaveBeenCalled();
+
+    const invalidDataTransfer = createDataTransfer();
+    dispatchEdgeDragOver(board as HTMLElement, invalidDataTransfer, 1000, 100);
+    act(() => {
+      vi.advanceTimersByTime(801);
+    });
+    expect(setDate).not.toHaveBeenCalled();
+
+    expect(previousZone).toBeTruthy();
+  });
+
+  it("navigates once per edge entry and cancels a changed direction", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-22T12:00:00"));
+    mockWeekBoardGeometry();
+    const setDate = vi.fn();
+    const dataTransfer = createDataTransfer();
+    setMealPlanDragPayload(dataTransfer, { kind: "bank-meal", mealId: "bank-edge" });
+
+    const { unmount, rerender } = render(
+      <WeekView
+        date={new Date("2026-04-29T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[profile]}
+        setDate={setDate}
+        onEdit={vi.fn()}
+        onDuplicateMeal={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    const nextZone = document.querySelector<HTMLElement>(
+      `[data-week-edge-zone="next"]`
+    );
+    const previousZone = document.querySelector<HTMLElement>(
+      `[data-week-edge-zone="previous"]`
+    );
+    const board = nextZone?.closest(`.${styles.weekBoard}`);
+    expect(nextZone).toBeTruthy();
+    expect(previousZone).toBeTruthy();
+    expect(board).toBeTruthy();
+    expect(nextZone).not.toHaveClass(styles.weekEdgeZoneActive);
+    expect(nextZone?.querySelector("[data-week-edge-arrow='next']")).toBeNull();
+
+    dispatchEdgeDragOver(board as HTMLElement, dataTransfer, 140, 100);
+    expect(previousZone).toHaveClass(styles.weekEdgeZoneActive);
+    expect(previousZone?.querySelector("[data-week-edge-arrow='previous']")).toBeTruthy();
+    dispatchEdgeDragOver(board as HTMLElement, dataTransfer, 1000, 100);
+    expect(nextZone).toHaveClass(styles.weekEdgeZoneActive);
+    expect(nextZone?.querySelector("[data-week-edge-arrow='next']")).toBeTruthy();
+    expect(previousZone).not.toHaveClass(styles.weekEdgeZoneActive);
+    act(() => {
+      vi.advanceTimersByTime(800);
+    });
+
+    expect(setDate).toHaveBeenCalledTimes(1);
+    expect(setDate).toHaveBeenCalledWith(new Date("2026-05-06T12:00:00"));
+
+    rerender(
+      <WeekView
+        date={new Date("2026-05-06T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[profile]}
+        setDate={setDate}
+        onEdit={vi.fn()}
+        onDuplicateMeal={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+
+    dispatchEdgeDragOver(board as HTMLElement, dataTransfer, 1000, 100);
+    act(() => {
+      vi.advanceTimersByTime(800);
+    });
+    expect(setDate).toHaveBeenCalledTimes(2);
+
+    fireEvent.dragLeave(nextZone as HTMLElement);
+  expect(nextZone).not.toHaveClass(styles.weekEdgeZoneActive);
+  expect(nextZone?.querySelector("[data-week-edge-arrow='next']")).toBeNull();
+  dispatchEdgeDragOver(board as HTMLElement, dataTransfer, 1000, 100);
+    act(() => {
+      vi.advanceTimersByTime(800);
+    });
+    expect(setDate).toHaveBeenCalledTimes(3);
+
+    unmount();
+  });
+
+  it("cleans edge timers on dragend, drop, and unmount", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-22T12:00:00"));
+    mockWeekBoardGeometry();
+    const dataTransfer = createDataTransfer();
+    setMealPlanDragPayload(dataTransfer, { kind: "bank-meal", mealId: "bank-edge" });
+
+    const firstSetDate = vi.fn();
+    const firstRender = render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={dayMeals}
+        mealTypeProfiles={[profile]}
+        setDate={firstSetDate}
+        onEdit={vi.fn()}
+        onDuplicateMeal={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+    const firstNextZone = document.querySelector<HTMLElement>(
+      `[data-week-edge-zone="next"]`
+    );
+    const sourceMeal = screen.getByRole("button", { name: /^Morning Toast$/i });
+    fireEvent.dragOver(firstNextZone as HTMLElement, {
+      clientX: 1000,
+      clientY: 100,
+      dataTransfer,
+    });
+    fireEvent.dragEnd(sourceMeal, { dataTransfer });
+    act(() => {
+      vi.advanceTimersByTime(801);
+    });
+    expect(firstSetDate).not.toHaveBeenCalled();
+    firstRender.unmount();
+
+    const secondSetDate = vi.fn();
+    const secondRender = render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[profile]}
+        setDate={secondSetDate}
+        onEdit={vi.fn()}
+        onDuplicateMeal={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+    const secondNextZone = document.querySelector<HTMLElement>(
+      `[data-week-edge-zone="next"]`
+    );
+    fireEvent.dragOver(secondNextZone as HTMLElement, {
+      clientX: 1000,
+      clientY: 100,
+      dataTransfer,
+    });
+    fireEvent.drop(secondNextZone as HTMLElement, { dataTransfer });
+    act(() => {
+      vi.advanceTimersByTime(801);
+    });
+    expect(secondSetDate).not.toHaveBeenCalled();
+
+    secondRender.unmount();
+    const thirdSetDate = vi.fn();
+    const thirdRender = render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={[]}
+        mealTypeProfiles={[profile]}
+        setDate={thirdSetDate}
+        onEdit={vi.fn()}
+        onDuplicateMeal={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+    const thirdNextZone = document.querySelector<HTMLElement>(
+      `[data-week-edge-zone="next"]`
+    );
+    fireEvent.dragOver(thirdNextZone as HTMLElement, {
+      clientX: 1000,
+      clientY: 100,
+      dataTransfer,
+    });
+    thirdRender.unmount();
+    act(() => {
+      vi.advanceTimersByTime(801);
+    });
+    expect(thirdSetDate).not.toHaveBeenCalled();
   });
 });
