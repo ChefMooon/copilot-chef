@@ -106,7 +106,7 @@ export function ModalShell({
 
   if (!open || typeof document === "undefined") return null;
 
-  const labelledBy = title ? titleId : undefined;
+  const labelledBy = ariaLabel ? undefined : title ? titleId : undefined;
   const describedBy = subtitle ? descriptionId : undefined;
 
   return createPortal(

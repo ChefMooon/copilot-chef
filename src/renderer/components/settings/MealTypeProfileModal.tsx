@@ -1,11 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { X } from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
 
 import styles from "./settings.module.css";
-
-const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+import { ModalShell } from "@/components/ui/ModalShell";
+import { Button } from "@/components/ui/button";
 
 const PRESET_COLORS = [
   "#E8885A",
@@ -112,13 +109,7 @@ export function MealTypeProfileModal({
   onUpdateForm,
   onUpdateMealType,
 }: MealTypeProfileModalProps) {
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [error, setError] = useState<string | undefined>();
-  const panelRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    setPortalRoot(document.body);
-  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -126,100 +117,7 @@ export function MealTypeProfileModal({
     }
   }, [isOpen, form.id]);
 
-  useEffect(() => {
-    if (!portalRoot || !isOpen) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [portalRoot, isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleKey);
-
-    return () => {
-      window.removeEventListener("keydown", handleKey);
-    };
-  }, [isOpen, onClose]);
-
-  useEffect(() => {
-    if (!portalRoot || !isOpen) {
-      return;
-    }
-
-    const panel = panelRef.current;
-    if (!panel) {
-      return;
-    }
-
-    const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-
-    const getFocusable = () =>
-      Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-
-    const initialTarget =
-      panel.querySelector<HTMLElement>("[autofocus]") ??
-      getFocusable()[0] ??
-      panel;
-    initialTarget.focus();
-
-    const tabHandler = (event: KeyboardEvent) => {
-      if (event.key !== "Tab") {
-        return;
-      }
-
-      const focusable = getFocusable();
-      if (focusable.length === 0) {
-        event.preventDefault();
-        panel.focus();
-        return;
-      }
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-
-      if (event.shiftKey) {
-        if (active === first || active === panel) {
-          event.preventDefault();
-          last.focus();
-        }
-        return;
-      }
-
-      if (active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener("keydown", tabHandler);
-
-    return () => {
-      window.removeEventListener("keydown", tabHandler);
-      previousFocus?.focus();
-    };
-  }, [portalRoot, isOpen]);
-
-  if (!isOpen || !portalRoot) {
+  if (!isOpen) {
     return null;
   }
 
@@ -243,49 +141,50 @@ export function MealTypeProfileModal({
     }
   };
 
-  return createPortal(
-    <div
-      className={styles.personaModalOverlay}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
-    >
-      <div
-        aria-label={dialogLabel}
-        aria-modal="true"
-        className={`${styles.personaModalPanel} ${styles.mealTypeProfileModalPanel} flex max-h-[90vh] min-h-0 w-full flex-col overflow-hidden`}
-        ref={panelRef}
-        role="dialog"
-        tabIndex={-1}
-      >
-        <div className={`${styles.personaModalHeader} flex-shrink-0`}>
-          <div className={styles.personaModalHeading}>
-            <span className={styles.personaModalEyebrow}>
-              {isDefaultProfile ? "Default Profile" : "Custom Profiles"}
-            </span>
-            <span className={styles.personaModalTitle}>
-              {isDefaultProfile
-                ? "Update Default Profile"
-                : isEditing
-                  ? "Update Custom Profile"
-                  : "Add Custom Profile"}
-            </span>
-          </div>
-          <button
-            aria-label="Close"
-            className={styles.personaModalClose}
-            onClick={onClose}
-            type="button"
-          >
-            <X aria-hidden="true" size={18} weight="regular" />
-          </button>
-        </div>
-
-        <div
-          className={`${styles.personaModalBody} ${styles.mealTypeProfileModalBody} flex-1 min-h-0 overflow-y-auto`}
+  return (
+    <ModalShell
+      ariaLabel={dialogLabel}
+      bodyClassName={`${styles.personaModalBody} ${styles.mealTypeProfileModalBody} flex-1 min-h-0 overflow-y-auto`}
+      className={`${styles.personaModalPanel} ${styles.mealTypeProfileModalPanel} max-h-[90vh] min-h-0 w-full`}
+      closeLabel="Close meal type profile dialog"
+      closeDisabled={isSaving}
+      onClose={onClose}
+      open={isOpen}
+      eyebrow={isDefaultProfile ? "Default Profile" : "Custom Profiles"}
+      title={
+        isDefaultProfile
+          ? "Update Default Profile"
+          : isEditing
+            ? "Update Custom Profile"
+            : "Add Custom Profile"
+      }
+      footerLeft={
+        <Button
+          disabled={isSaving}
+          onClick={onClose}
+          type="button"
+          variant="outline"
         >
+          Cancel
+        </Button>
+      }
+      footerRight={
+        <button
+          className="rounded-xl bg-[var(--green)] px-4 py-2 font-semibold text-white transition hover:bg-[var(--green-light)] disabled:cursor-not-allowed disabled:opacity-45"
+          disabled={isSaving}
+          onClick={() => void handleSave()}
+          type="button"
+        >
+          {isSaving
+            ? isEditing
+              ? "Saving..."
+              : "Creating..."
+            : isEditing
+              ? "Update profile"
+              : "Create profile"}
+        </button>
+      }
+    >
           <p className={styles.cardDescription}>
             {isDefaultProfile
               ? "Tailor the everyday meal types used whenever no dated custom profile matches."
@@ -477,35 +376,6 @@ export function MealTypeProfileModal({
           </div>
 
           {error ? <p className={styles.personaModalError}>{error}</p> : null}
-        </div>
-
-        <div className={`${styles.personaModalFooter} flex-shrink-0`}>
-          <button
-            className={styles.personaModalBtnCancel}
-            onClick={onClose}
-            type="button"
-          >
-            Cancel
-          </button>
-          <div className={styles.personaModalFooterRight}>
-            <button
-              className="rounded-xl bg-[var(--green)] px-4 py-2 font-semibold text-white transition hover:bg-[var(--green-light)] disabled:cursor-not-allowed disabled:opacity-45"
-              disabled={isSaving}
-              onClick={() => void handleSave()}
-              type="button"
-            >
-              {isSaving
-                ? isEditing
-                  ? "Saving..."
-                  : "Creating..."
-                : isEditing
-                  ? "Update profile"
-                  : "Create profile"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>,
-    portalRoot
+    </ModalShell>
   );
 }

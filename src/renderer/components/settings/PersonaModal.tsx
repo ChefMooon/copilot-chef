@@ -1,15 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { X } from "@phosphor-icons/react";
+import { useState } from "react";
 
 import { type CustomPersonaPayload } from "@/lib/api";
+import { ModalShell } from "@/components/ui/ModalShell";
 
 import styles from "./settings.module.css";
-
-const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 type PersonaModalMode =
   | { mode: "create" }
@@ -42,100 +38,6 @@ export function PersonaModal({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-
-  const overlayRef = useRef<HTMLDivElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    setPortalRoot(document.body);
-  }, []);
-
-  useEffect(() => {
-    if (!portalRoot) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [portalRoot]);
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", handleKey);
-
-    return () => {
-      window.removeEventListener("keydown", handleKey);
-    };
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!portalRoot) {
-      return;
-    }
-
-    const panel = panelRef.current;
-    if (!panel) {
-      return;
-    }
-
-    const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-
-    const getFocusable = () =>
-      Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-
-    const initialTarget =
-      panel.querySelector<HTMLElement>("[autofocus]") ?? getFocusable()[0] ?? panel;
-    initialTarget.focus();
-
-    const tabHandler = (event: KeyboardEvent) => {
-      if (event.key !== "Tab") {
-        return;
-      }
-
-      const focusable = getFocusable();
-      if (focusable.length === 0) {
-        event.preventDefault();
-        panel.focus();
-        return;
-      }
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-
-      if (event.shiftKey) {
-        if (active === first || active === panel) {
-          event.preventDefault();
-          last.focus();
-        }
-        return;
-      }
-
-      if (active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener("keydown", tabHandler);
-
-    return () => {
-      window.removeEventListener("keydown", tabHandler);
-      previousFocus?.focus();
-    };
-  }, [portalRoot]);
-
   const isValid =
     emoji.trim() && title.trim() && description.trim() && prompt.trim();
 
@@ -173,46 +75,50 @@ export function PersonaModal({
 
   const isEditing = modalMode.mode === "edit";
 
-  if (!portalRoot) {
-    return null;
-  }
-
-  return createPortal(
-    <div
-      className={styles.personaModalOverlay}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
-      ref={overlayRef}
-    >
-      <div
-        className={`${styles.personaModalPanel} flex max-h-[90vh] min-h-0 w-full max-w-[min(520px,94vw)] flex-col overflow-hidden`}
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={isEditing ? "Edit persona" : "Create custom persona"}
-        tabIndex={-1}
-      >
-        <div className={`${styles.personaModalHeader} flex-shrink-0`}>
-          <div className={styles.personaModalHeading}>
-            <span className={styles.personaModalEyebrow}>Chef Persona</span>
-            <span className={styles.personaModalTitle}>
-              {isEditing ? "Edit Persona" : "Create Custom Persona"}
-            </span>
-          </div>
+  return (
+    <ModalShell
+      ariaLabel={isEditing ? "Edit persona" : "Create custom persona"}
+      bodyClassName={`${styles.personaModalBody} flex-1 min-h-0 overflow-y-auto`}
+      className={`${styles.personaModalPanel} max-h-[90vh] min-h-0 w-full max-w-[min(520px,94vw)]`}
+      closeLabel="Close persona dialog"
+      closeDisabled={isSaving || isDeleting}
+      onClose={onClose}
+      open
+      eyebrow="Chef Persona"
+      title={isEditing ? "Edit Persona" : "Create Custom Persona"}
+      footerLeft={
+        <button
+          className={styles.personaModalBtnCancel}
+          disabled={isSaving || isDeleting}
+          onClick={onClose}
+          type="button"
+        >
+          Cancel
+        </button>
+      }
+      footerRight={
+        <>
+          {isEditing && onDelete ? (
+            <button
+              className={styles.personaModalBtnDelete}
+              disabled={isDeleting || isSaving}
+              onClick={() => void handleDelete()}
+              type="button"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </button>
+          ) : null}
           <button
-            aria-label="Close"
-            className={styles.personaModalClose}
-            onClick={onClose}
+            className={styles.personaModalBtnSave}
+            disabled={!isValid || isSaving || isDeleting}
+            onClick={() => void handleSave()}
             type="button"
           >
-            <X aria-hidden="true" size={18} weight="regular" />
+            {isSaving ? "Saving..." : "Save"}
           </button>
-        </div>
-
-        <div className={`${styles.personaModalBody} flex-1 min-h-0 overflow-y-auto`}>
+        </>
+      }
+    >
           <div className={styles.personaFormGroup}>
             <label className={styles.personaFormLabel}>Emoji</label>
             <input
@@ -266,39 +172,6 @@ export function PersonaModal({
           </div>
 
           {error && <p className={styles.personaModalError}>{error}</p>}
-        </div>
-
-        <div className={`${styles.personaModalFooter} flex-shrink-0`}>
-          <button
-            className={styles.personaModalBtnCancel}
-            onClick={onClose}
-            type="button"
-          >
-            Cancel
-          </button>
-          <div className={styles.personaModalFooterRight}>
-            {isEditing && onDelete && (
-              <button
-                className={styles.personaModalBtnDelete}
-                disabled={isDeleting || isSaving}
-                onClick={() => void handleDelete()}
-                type="button"
-              >
-                {isDeleting ? "Deleting..." : "Delete"}
-              </button>
-            )}
-            <button
-              className={styles.personaModalBtnSave}
-              disabled={!isValid || isSaving || isDeleting}
-              onClick={() => void handleSave()}
-              type="button"
-            >
-              {isSaving ? "Saving..." : "Save"}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>,
-    portalRoot
+    </ModalShell>
   );
 }
