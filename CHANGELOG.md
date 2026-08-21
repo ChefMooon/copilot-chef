@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.2] - 2026-08-21
+
+### Added
+
+- Meal plan duplication can now target specific enabled meal types, including custom and date-ranged meal slots.
+- Added forward-only week navigation with a direct return to the current week.
+- Added drag-hover week switching for moving meals across week boundaries.
+- Recipe search and sorting now use a consolidated filter card with expandable advanced filters.
+
+### Changed
+
+- Improved compact week-board layouts so long meal names and custom labels wrap cleanly while preserving horizontal scrolling.
+
+### Fixed
+
+- Stabilized cross-week meal dragging and prevented accidental or historical week navigation.
+- Dashboard upcoming meals now apply meal-type cutoff rules consistently.
+- Improved chart and heatmap tooltip contrast across light and dark themes.
+
 ## [1.2.1] - 2026-08-20
 
 ### Fixed
