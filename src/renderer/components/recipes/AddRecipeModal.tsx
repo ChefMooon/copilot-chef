@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
 import { CaretDown, CaretUp, DotsSixVertical, Plus } from "@phosphor-icons/react";
 
 import { type CreateRecipeInput, type RecipeConflict } from "@shared/types";
 import { CUISINE_OPTIONS, CUISINE_VALUES, type CuisineValue } from "@shared/api/constants";
 
 import { Button } from "@/components/ui/button";
+import { ModalShell } from "@/components/ui/ModalShell";
 import { VisualIcon } from "@/components/ui/icon";
 import { useToast } from "@/components/providers/toast-provider";
 import { Input } from "@/components/ui/input";
@@ -200,11 +200,9 @@ export function AddRecipeModal({
   onDraftContextChange,
 }: AddRecipeModalProps) {
   const { toast } = useToast();
-  const overlayRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
   const lastFocusRequestKeyRef = useRef<number | undefined>(focusTitleRequestKey);
   const previousOpenRef = useRef(false);
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>({
     title: "",
@@ -222,10 +220,6 @@ export function AddRecipeModal({
     tagsText: "",
     ingredientGroups: [createEmptyIngredientGroup()],
   });
-
-  useEffect(() => {
-    setPortalRoot(document.body);
-  }, []);
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -276,36 +270,6 @@ export function AddRecipeModal({
       window.cancelAnimationFrame(frame);
     };
   }, [focusTitleRequestKey, open]);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    const keyHandler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    const clickHandler = (event: MouseEvent) => {
-      if (event.target === overlayRef.current) {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", keyHandler);
-    overlayRef.current?.addEventListener("mousedown", clickHandler);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", keyHandler);
-      overlayRef.current?.removeEventListener("mousedown", clickHandler);
-    };
-  }, [open, onClose]);
 
   const instructionList = useMemo(
     () => instructionDraftsToPayload(form.instructions),
@@ -448,38 +412,34 @@ export function AddRecipeModal({
     }
   }
 
-  if (!open || !portalRoot) {
-    return null;
-  }
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[500] flex items-center justify-center bg-black/45 p-2.5 backdrop-blur-[3px] sm:p-4"
-      ref={overlayRef}
-      role="presentation"
-    >
-      <div
-        className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-card border border-cream-dark bg-white shadow-xl"
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={initialRecipe ? "Edit recipe" : "Add recipe"}
-      >
-        <div className="flex items-start justify-between gap-3 border-b border-cream-dark px-3.5 py-3 sm:px-5 sm:py-4">
-          <div>
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-orange sm:text-xs">
-              Recipe Editor
-            </p>
-            <h2 className="font-serif text-xl font-semibold text-text sm:text-2xl">
-              {initialRecipe ? "Edit Recipe" : "Add Recipe"}
-            </h2>
-          </div>
-          <Button className="h-8 px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm" onClick={onClose} size="sm" type="button" variant="ghost">
-            Close
+  return (
+    <ModalShell
+      open={open}
+      ariaLabel={initialRecipe ? "Edit recipe" : "Add recipe"}
+      bodyClassName="flex-1 overflow-y-auto px-3.5 py-3 sm:px-5 sm:py-4"
+      className="max-w-3xl"
+      closeDisabled={Boolean(isSaving)}
+      closeLabel="Close"
+      onClose={onClose}
+      eyebrow="Recipe Editor"
+      title={initialRecipe ? "Edit Recipe" : "Add Recipe"}
+      footerRight={
+        <>
+          <Button className="h-9 px-3 text-sm" disabled={Boolean(isSaving)} onClick={onClose} type="button" variant="outline">
+            Cancel
           </Button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-3.5 py-3 sm:px-5 sm:py-4">
+          <Button
+            className="h-9 px-3 text-sm"
+            disabled={Boolean(isSaving)}
+            onClick={() => void handleSave()}
+            type="button"
+            variant="accent"
+          >
+            {isSaving ? "Saving..." : initialRecipe ? "Save Changes" : "Save Recipe"}
+          </Button>
+        </>
+      }
+    >
           {flaggedIngredients.length > 0 ? (
             <div className="mb-4 rounded-card border border-orange/30 bg-orange/5 p-3" role="status">
               <p className="font-semibold text-text">Review imported ingredients</p>
@@ -1049,25 +1009,6 @@ export function AddRecipeModal({
               </Button>
             </div>
           </div>
-
-        </div>
-
-        <div className="flex flex-wrap justify-end gap-2 border-t border-cream-dark px-3.5 py-3 sm:px-5 sm:py-4">
-          <Button className="h-9 px-3 text-sm" onClick={onClose} type="button" variant="outline">
-            Cancel
-          </Button>
-          <Button
-            className="h-9 px-3 text-sm"
-            disabled={Boolean(isSaving)}
-            onClick={() => void handleSave()}
-            type="button"
-            variant="default"
-          >
-            {isSaving ? "Saving..." : initialRecipe ? "Save Changes" : "Save Recipe"}
-          </Button>
-        </div>
-      </div>
-    </div>,
-    portalRoot
+    </ModalShell>
   );
 }
