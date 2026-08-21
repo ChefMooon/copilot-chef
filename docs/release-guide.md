@@ -33,7 +33,7 @@ The release workflow reruns build, lint, and test on GitHub before packaging, so
 
 ## Create a Release
 
-The publish-release skill creates and pushes the requested tag after local validation and release metadata preparation. It then updates the resulting GitHub Release draft with the validated changelog entry and presents the draft URL for review. Leave the release as a draft until it has been reviewed.
+The publish-release skill creates and pushes the requested tag after local validation and release metadata preparation. It watches the matching `Release Client` workflow by release commit SHA and tag until it completes successfully, then updates the resulting GitHub Release draft with the validated changelog entry and presents the draft URL for review. Before editing notes, it verifies that the release `tagName` and title are exactly the requested tag; leave the release as a draft until it has been reviewed.
 
 Manual tag creation from the repository root:
 
@@ -58,7 +58,7 @@ git push origin v1.0.0
 
 The workflow uses the repository `GITHUB_TOKEN` to publish the release assets defined by the Electron Builder config in `package.json`.
 
-After the workflow creates the GitHub Release draft, update its body with the validated `CHANGELOG.md` entry for the matching version. This keeps the release draft useful even when electron-builder adds generated commit information automatically. Verify the changelog text and installer artifacts are present before publishing or treating the release as complete.
+After the workflow creates the GitHub Release draft, update its body with the validated `CHANGELOG.md` entry for the matching version. Preserve any generated release text and avoid duplicating the changelog block. Verify the workflow's matching SHA/ref, successful completion, exact draft tag/title, changelog text, and installer artifacts before publishing or treating the release as complete.
 
 The breaking Local Recipe Book identity uses package slug `local-recipe-book` and Electron app ID `com.local-recipe-book.app`. Existing installs do not retain update continuity after the app ID change. Before upgrading, export an `all` `.lrb` archive, install the new build as a new application identity, and re-import the archive into its fresh database. The archive restores supported content and allowlisted preferences, not raw settings, tokens, secrets, or device configuration.
 
