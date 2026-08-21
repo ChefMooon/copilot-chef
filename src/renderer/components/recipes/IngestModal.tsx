@@ -1,16 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
 import { type IngestResult } from "@shared/types";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ModalShell } from "@/components/ui/ModalShell";
 import { ingestRecipe } from "@/lib/api";
-
-const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 type IngestModalProps = {
   onClose: () => void;
@@ -26,27 +23,7 @@ export function IngestModal({ onClose, onDraft, onViewRecipe }: IngestModalProps
   const [duplicateRecipe, setDuplicateRecipe] = useState<
     Extract<IngestResult, { duplicate: true }>["existing"] | null
   >(null);
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
-  const overlayRef = useRef<HTMLDivElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    setPortalRoot(document.body);
-  }, []);
-
-  useEffect(() => {
-    if (!portalRoot) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [portalRoot]);
 
   useEffect(() => {
     return () => {
@@ -59,80 +36,6 @@ export function IngestModal({ onClose, onDraft, onViewRecipe }: IngestModalProps
     abortControllerRef.current = null;
     onClose();
   }
-
-  useEffect(() => {
-    const keyHandler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        handleClose();
-      }
-    };
-
-    window.addEventListener("keydown", keyHandler);
-
-    return () => {
-      window.removeEventListener("keydown", keyHandler);
-    };
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!portalRoot) {
-      return;
-    }
-
-    const panel = panelRef.current;
-    if (!panel) {
-      return;
-    }
-
-    const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-
-    const getFocusable = () =>
-      Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-
-    const initialTarget =
-      panel.querySelector<HTMLElement>("[autofocus]") ?? getFocusable()[0] ?? panel;
-    initialTarget.focus();
-
-    const tabHandler = (event: KeyboardEvent) => {
-      if (event.key !== "Tab") {
-        return;
-      }
-
-      const focusable = getFocusable();
-      if (focusable.length === 0) {
-        event.preventDefault();
-        panel.focus();
-        return;
-      }
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-
-      if (event.shiftKey) {
-        if (active === first || active === panel) {
-          event.preventDefault();
-          last.focus();
-        }
-        return;
-      }
-
-      if (active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener("keydown", tabHandler);
-
-    return () => {
-      window.removeEventListener("keydown", tabHandler);
-      previousFocus?.focus();
-    };
-  }, [portalRoot]);
 
   async function handleImport() {
     if (loading || !url.trim()) {
@@ -171,38 +74,39 @@ export function IngestModal({ onClose, onDraft, onViewRecipe }: IngestModalProps
     setUrl("");
   }
 
-  if (!portalRoot) {
-    return null;
-  }
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[500] flex items-center justify-center bg-black/45 p-2.5 backdrop-blur-[3px] sm:p-4"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          handleClose();
-        }
-      }}
-      ref={overlayRef}
-      role="presentation"
+  return (
+    <ModalShell
+      open
+      bodyClassName="flex-1 overflow-y-auto px-4 py-3 sm:px-5 sm:py-4"
+      className="max-w-lg"
+      closeDisabled={loading}
+      closeLabel="Close"
+      onClose={handleClose}
+      title="Import from URL"
+      footerRight={
+        <>
+          {duplicateRecipe ? (
+            <Button onClick={handleRetry} type="button" variant="outline">
+              Try another URL
+            </Button>
+          ) : null}
+          {duplicateRecipe?.id && onViewRecipe ? (
+            <Button onClick={() => onViewRecipe(duplicateRecipe.id)} type="button" variant="default">
+              View recipe
+            </Button>
+          ) : null}
+          <Button disabled={loading} onClick={handleClose} type="button" variant="outline">
+            Close
+          </Button>
+          {!duplicateRecipe ? (
+            <Button disabled={loading || !url.trim()} form="ingest-recipe-form" type="submit" variant="accent">
+              {loading ? "Importing..." : "Import"}
+            </Button>
+          ) : null}
+        </>
+      }
     >
-        <div
-        className="flex w-full max-w-lg flex-col overflow-hidden rounded-card border border-cream-dark bg-white shadow-xl"
-        onClick={(event) => event.stopPropagation()}
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-          aria-labelledby="ingest-modal-title"
-          aria-busy={loading}
-        tabIndex={-1}
-      >
-        <div className="border-b border-cream-dark px-4 py-3 sm:px-5">
-          <h2 className="font-serif text-2xl font-semibold text-text" id="ingest-modal-title">
-            Import from URL
-          </h2>
-        </div>
-          <form onSubmit={(event) => { event.preventDefault(); void handleImport(); }}>
-            <div className="flex-1 px-4 py-3 sm:px-5 sm:py-4">
+          <form id="ingest-recipe-form" onSubmit={(event) => { event.preventDefault(); void handleImport(); }}>
               <label className="text-sm font-semibold text-text" htmlFor="ingest-recipe-url">
                 Recipe URL
               </label>
@@ -249,38 +153,7 @@ export function IngestModal({ onClose, onDraft, onViewRecipe }: IngestModalProps
                   ) : null}
                 </div>
               ) : null}
-            </div>
-            <div className="flex justify-end gap-2 border-t border-cream-dark px-4 py-3 sm:px-5">
-              {duplicateRecipe ? (
-                <Button onClick={handleRetry} type="button" variant="outline">
-                  Try another URL
-                </Button>
-              ) : null}
-              {duplicateRecipe?.id && onViewRecipe ? (
-                <Button
-                  onClick={() => {
-                    if (duplicateRecipe.id) {
-                      onViewRecipe(duplicateRecipe.id);
-                    }
-                  }}
-                  type="button"
-                  variant="default"
-                >
-                  View recipe
-                </Button>
-              ) : null}
-              <Button disabled={loading} onClick={handleClose} type="button" variant="outline">
-                Close
-              </Button>
-              {!duplicateRecipe ? (
-                <Button disabled={loading || !url.trim()} type="submit" variant="default">
-                  {loading ? "Importing..." : "Import"}
-                </Button>
-              ) : null}
-            </div>
           </form>
-      </div>
-    </div>,
-    portalRoot
+    </ModalShell>
   );
 }
