@@ -250,6 +250,10 @@ Page-specific use:
 - Meal Plan primary action uses green add button.
 - Grocery primary page action uses orange new-list button.
 - Settings destructive actions use red-tinted outline treatment.
+- Modal primary submit, create, save, import, and generate actions use the
+  orange accent token (`--accent`) via `variant="accent"`.
+- Destructive modal actions retain destructive-token styling, and cancel or
+  other neutral actions use outline or ghost variants.
 
 ### Inputs and controls
 
@@ -273,8 +277,18 @@ Page-specific use:
 
 ### Modal and popover surfaces
 
-- Overlay dimming from translucent dark layer.
-- Panel surface stays warm white/cream with large radius.
+- Overlay dimming uses the semantic `--overlay` token.
+- Panel surfaces use `--card`, `--foreground`, `--border`, and elevation tokens
+  rather than literal light-theme colors, so they remain legible in dark and
+  custom themes.
+- Dialogs must expose an accessible name through a visible title or explicit
+  label, and descriptions should be associated when supporting text is
+  present.
+- Modal focus moves into the panel when it opens, remains contained while the
+  modal is active, and returns to the trigger when it closes. Escape and
+  overlay dismissal are supported unless the modal is intentionally
+  non-dismissible or an operation is in flight.
+- Close controls are disabled while an in-flight operation prevents dismissal.
 - Entry animation: subtle fade and upward motion.
 
 ## Iconography

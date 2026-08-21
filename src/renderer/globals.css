@@ -40,6 +40,7 @@
   --border: #ede6d6;
   --input: #ede6d6;
   --ring: #3b5e45;
+  --overlay: rgb(44 36 22 / 0.45);
   --radius: 10px;
   --green-rgb: 59 94 69;
   --green-light-rgb: 90 125 99;
@@ -103,6 +104,7 @@
   --border: #607568;
   --input: #607568;
   --ring: #b4e4c0;
+  --overlay: rgb(0 0 0 / 0.62);
   --green-rgb: 125 177 141;
   --green-light-rgb: 147 200 166;
   --green-pale-rgb: 34 51 39;
@@ -147,6 +149,7 @@
   --border: #ede6d6;
   --input: #ede6d6;
   --ring: #3b5e45;
+  --overlay: rgb(44 36 22 / 0.45);
   --green-rgb: 59 94 69;
   --green-light-rgb: 90 125 99;
   --green-pale-rgb: 212 228 216;
