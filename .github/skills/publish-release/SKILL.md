@@ -52,7 +52,7 @@ If the version, release notes policy, target remote, or permission to push a tag
    git push origin main
    ```
 
-   Substitute the confirmed remote and current release branch. This push is part of the requested release-preparation workflow; never force-push.
+   Substitute the confirmed remote and current release branch. Check the native command exit code immediately, then verify that the remote `refs/heads/main` resolves to the intended release commit. This push is part of the requested release-preparation workflow; never force-push.
 10. Create and push the release tag from the verified release commit. The requested release workflow authorizes this push without an additional confirmation:
 
    ```bash
@@ -60,10 +60,18 @@ If the version, release notes policy, target remote, or permission to push a tag
    git push origin v1.1.1
    ```
 
-   Substitute the requested tag and configured remote. Do not use force-push or overwrite an existing tag.
-11. Monitor the `Release Client` GitHub Actions workflow. It runs on `windows-latest` and performs `npm ci`, `npm run db:generate`, `npm run build`, `npm run lint`, `npm run test`, and `npx electron-builder --win --publish always` with the repository `GITHUB_TOKEN`.
-12. Once the workflow has created the GitHub Release, extract the validated changelog entry for the requested version into a temporary notes file. Preserve the meaningful release notes and omit the `## [VERSION] - YYYY-MM-DD` heading if the release title already contains the version. Do not infer or rewrite the notes. Read the existing draft body and prepend the changelog notes to it so generated commit information is retained; avoid duplicating the changelog if it is already present.
-13. Before final verification, confirm that the matching release is still a draft:
+   Before creating it, verify that the requested tag does not already exist locally or on the remote. Run `git tag` and `git push` as separate commands, check the native exit code after each command, and do not continue after a failure. After pushing, verify that the remote tag resolves to the intended release commit. Do not use force-push or overwrite an existing tag.
+11. Monitor the matching `Release Client` GitHub Actions workflow using a deterministic, non-interactive process:
+   - Capture the verified release commit SHA and normalized tag/ref before or immediately after pushing the tag.
+   - Find the workflow run whose `headSha` equals that release commit and whose ref is the requested tag. Do not select a run solely because it is the newest result from a limited list.
+   - Prefer `gh api` REST polling over `gh run watch` or `gh run view`, which may open an interactive pager or alternate terminal buffer in the Windows VS Code environment. Set `GH_PAGER=cat` when needed and run each polling request as a standalone command.
+   - Poll every 15-30 seconds for at most 30 minutes. Continue only when the matching run reports `status=completed` and `conclusion=success`.
+   - If the run reports `failure`, `cancelled`, `timed_out`, another non-success conclusion, a mismatched SHA/ref, or remains incomplete at the timeout, stop before release lookup or notes editing. Report the run ID, URL, status, conclusion, and relevant failure context.
+   The workflow runs on `windows-latest` and performs `npm ci`, `npm run db:generate`, `npm run build`, `npm run lint`, `npm run test`, and `npx electron-builder --win --publish always` with the repository `GITHUB_TOKEN`.
+12. Once the matching workflow run has completed successfully, locate the GitHub Release for the requested tag and retrieve its `name`, `body`, `isDraft`, `tagName`, and assets. If the release is missing, the workflow failed, or the release tag does not match, stop and report the exact failure before editing anything.
+13. Extract the exact validated changelog entry for the requested version from `CHANGELOG.md` into a temporary UTF-8 notes file. Preserve the original note text and order; do not manually retype, summarize, or infer notes. Remove only the `## [VERSION] - YYYY-MM-DD` heading when the release `name` already contains the requested version. If the title does not contain the version, retain the heading. Normalize line endings consistently before comparison.
+14. Compose the new release body from the extracted changelog block followed by the existing draft body. If the existing body already begins with or contains that exact changelog block, do not add a duplicate; preserve the existing body unchanged in that case. Never pass a changelog-only file to `gh release edit --notes-file` when the existing body is non-empty, because that replaces generated release text.
+15. Immediately before editing, confirm that the matching release is still a draft:
 
    ```bash
    gh release view v1.1.1 --repo OWNER/REPOSITORY --json isDraft --jq .isDraft
@@ -75,9 +83,16 @@ If the version, release notes policy, target remote, or permission to push a tag
    gh release edit v1.1.1 --repo OWNER/REPOSITORY --notes-file PATH_TO_TEMP_NOTES
    ```
 
-   Substitute the requested tag, repository derived from the configured remote, and temporary notes path. Require the draft-state command to return `true` before editing. If the release is not found, the workflow failed, the release is already published, or the edit fails, report the exact failure and do not claim the release notes were updated. Remove the temporary notes file after the edit without modifying the repository.
-14. Verify the GitHub Release exists for the pushed tag, contains the changelog notes, and has the Windows installer artifacts uploaded. Retrieve its browser URL and present that GitHub Release draft link to the user for review. Leave the release as a draft; do not publish it or change its draft state.
-15. For a successful release, recommend downloading and installing the Windows build, launching the app, checking startup and settings persistence, confirming browser bundle availability, and checking the updater feed when auto-update is in scope.
+   Substitute the requested tag, repository derived from the configured remote, and temporary combined-notes path. Require the draft-state command to return exactly `true` before editing. Check the native command exit code immediately after the edit. If the release is not found, is already published, or the edit fails, report the exact failure and do not claim the release notes were updated. Remove the temporary notes file after the edit without modifying the repository.
+16. Fetch the release body again after editing and prove that the exact changelog block is present exactly once and that the complete original body remains after it. If the original body was empty, verify the final body equals the changelog block. If either assertion fails, report the mismatch and do not report a successful release.
+17. Verify the GitHub Release exists for the pushed tag, remains a draft, contains the validated changelog block, and has the Windows installer artifacts uploaded with successful upload state and nonzero size. Retrieve its browser URL and present that GitHub Release draft link to the user for review. Leave the release as a draft; do not publish it or change its draft state.
+18. For a successful release, recommend downloading and installing the Windows build, launching the app, checking startup and settings persistence, confirming browser bundle availability, and checking the updater feed when auto-update is in scope.
+
+### Resume and Command Safety
+
+If the session is interrupted after the metadata commit, main push, tag push, workflow start, release lookup, draft-body update, or final verification, resume from the first incomplete phase. Inspect existing local and remote state before acting; do not recreate an existing commit or tag, select a workflow run from a different SHA, or edit a release that has already been published. Preserve these checkpoint values in the continuation summary or session checkpoint: repository, normalized tag, release commit SHA, workflow run ID and URL, release ID or URL, completed phase, and next phase.
+
+On Windows PowerShell, execute every mutating GitHub, Git, and release command separately. Check `$LASTEXITCODE` immediately after each native command before running the next command. Do not chain tag creation, pushes, release edits, or verification with semicolons. A failed command is a hard stop until its state is inspected.
 
 ## Safety Rules
 
@@ -86,12 +101,14 @@ If the version, release notes policy, target remote, or permission to push a tag
 - Always push the release preparation commit before creating the tag, and verify that the remote branch contains it.
 - The requested release workflow authorizes creating and pushing the requested tag without an additional confirmation prompt.
 - Always copy the validated changelog entry into the matching GitHub Release draft after the packaging workflow creates it, and verify the draft body before reporting success.
+- Final verification must prove the package version, release tag, workflow success and matching SHA/ref, `draft=true`, exact changelog-block occurrence, preservation of the pre-existing release body, and each expected asset's successful upload state and nonzero size.
 - Never push a tag before local lint, test, and build checks pass.
 - Never push a tag whose version differs from `package.json`.
 - Never assume the tag push succeeded; verify the remote tag and workflow result.
 - Do not change unrelated compatibility identifiers or dependency names merely as part of a release. The Local Recipe Book naming-break plan is an explicit exception for the settled package, app, storage, configuration, browser, and protocol identifiers.
 - If Prisma generation fails on Windows because a running Electron process locks the engine DLL, stop the dev process and retry using the documented repository workaround before continuing.
 - Do not force-push, delete, or retarget an existing release tag without explicit authorization.
+- Describe the result as a release draft that was created or prepared and remains unpublished; do not call a draft release published.
 
 ## Repository References
 
