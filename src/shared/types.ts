@@ -143,6 +143,7 @@ export type MealPayload = {
     cookNotes: string | null;
     ingredients: MealIngredient[];
   } | null;
+  passedCutoff?: boolean;
 };
 
 export type PrepListSourceMode =

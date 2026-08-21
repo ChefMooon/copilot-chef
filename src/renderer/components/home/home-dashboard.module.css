@@ -617,13 +617,18 @@
   z-index: 9999;
   padding: 4px 10px;
   border-radius: 6px;
-  background: var(--text);
-  color: #fffdf8;
+  background: var(--card-elevated);
+  color: var(--foreground);
+  border: 1px solid var(--border);
   font-size: 0.72rem;
   font-weight: 600;
   pointer-events: none;
   transform: translate(-50%, calc(-100% - 8px));
   white-space: nowrap;
+}
+
+.upcomingMealRowPassed {
+  opacity: 0.58;
 }
 
 .fadeIn {

@@ -51,7 +51,7 @@ mealsRoutes.get("/meals/upcoming", async (c) => {
   to.setDate(to.getDate() + days - 1);
   to.setHours(23, 59, 59, 999);
 
-  const meals = await mealService.listMealsInRange(
+  const meals = await mealService.listUpcomingMeals(
     from.toISOString(),
     to.toISOString()
   );

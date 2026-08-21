@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { HomeDashboard } from "@/components/home/home-dashboard";
+import styles from "@/components/home/home-dashboard.module.css";
 
 const { getSettingMock, useMealTypeProfilesMock, useQueryMock } = vi.hoisted(() => ({
   getSettingMock: vi.fn(),
@@ -137,6 +138,7 @@ describe("HomeDashboard upcoming meals", () => {
           },
           cuisine: null,
           linkedRecipe: null,
+          passedCutoff: true,
         },
         {
           id: "lunch-main",
@@ -187,6 +189,10 @@ describe("HomeDashboard upcoming meals", () => {
       within(dinnerGroup as HTMLElement).getByText("Roasted vegetables")
     ).toBeTruthy();
     expect(within(dinnerGroup as HTMLElement).getByText("Herbed rice")).toBeTruthy();
+    expect(screen.queryByText("Cutoff passed")).toBeNull();
+    expect(screen.getByText("Herbed rice").parentElement?.parentElement).toHaveClass(
+      styles.upcomingMealRowPassed
+    );
     expect(screen.getByText("Lunch")).toBeTruthy();
     expect(screen.getByText("Fri")).toBeTruthy();
     expect(screen.getByText("Aug 14")).toBeTruthy();

@@ -53,6 +53,7 @@ type UpcomingMealPayload = {
   } | null;
   cuisine: string | null;
   linkedRecipe: { title: string } | null;
+  passedCutoff?: boolean;
 };
 
 type UpcomingMealsPayload = {
@@ -512,7 +513,10 @@ export function HomeDashboard() {
                                   <div className={styles.upcomingGroupMeals}>
                                     {meals.map((meal) => (
                                       <div
-                                        className={styles.upcomingMealRow}
+                                        className={cn(
+                                          styles.upcomingMealRow,
+                                          meal.passedCutoff && styles.upcomingMealRowPassed
+                                        )}
                                         key={meal.id}
                                       >
                                         <div>

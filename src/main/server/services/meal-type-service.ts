@@ -205,11 +205,11 @@ function inDateRange(date: Date, startDate: Date | null, endDate: Date | null) {
   const start = toCalendarDayValue(startDate);
   const end = toCalendarDayValue(endDate);
 
-  if (start !== undefined && value < start) {
+  if (start !== null && value < start) {
     return false;
   }
 
-  if (end !== undefined && value > end) {
+  if (end !== null && value > end) {
     return false;
   }
 

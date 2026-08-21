@@ -62,7 +62,10 @@ export function MealTypeChart({ data }: Props) {
               border: "1px solid var(--chart-grid)",
               fontSize: 12,
               background: "var(--chart-tooltip)",
+              color: "var(--foreground)",
             }}
+            itemStyle={{ color: "var(--foreground)" }}
+            labelStyle={{ color: "var(--text-muted)" }}
           />
           <Bar dataKey="slotCount" name="Meals" radius={[0, 3, 3, 0]}>
             {data.map((_, index) => (

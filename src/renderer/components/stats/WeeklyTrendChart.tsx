@@ -55,8 +55,10 @@ export function WeeklyTrendChart({ data }: Props) {
               border: "1px solid var(--chart-grid)",
               fontSize: 12,
               background: "var(--chart-tooltip)",
+              color: "var(--foreground)",
             }}
-            labelStyle={{ fontWeight: 700, color: "var(--foreground)" }}
+            itemStyle={{ color: "var(--foreground)" }}
+            labelStyle={{ color: "var(--text-muted)", fontWeight: 700 }}
           />
           <Area
             dataKey="meals"

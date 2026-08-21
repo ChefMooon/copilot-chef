@@ -932,6 +932,74 @@ export class MealService {
     return meals.map(serializeMeal);
   }
 
+  async listUpcomingMeals(from: string, to: string) {
+    await bootstrapDatabase();
+
+    const start = new Date(from);
+    const end = new Date(to);
+    const now = new Date();
+    const todayKey = getLocalDayKey(now);
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const profileByDate = new Map<
+      string,
+      Awaited<ReturnType<MealTypeService["getActiveProfile"]>>
+    >();
+
+    const meals = await prisma.meal.findMany({
+      where: {
+        date: {
+          gte: start,
+          lte: end,
+        },
+      },
+      orderBy: [{ date: "asc" }, { mealType: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
+      include: this.mealInclude,
+    });
+
+    const upcomingMeals = [];
+    for (const meal of meals) {
+      const serialized = serializeMeal(meal);
+      if (!meal.date) {
+        upcomingMeals.push(serialized);
+        continue;
+      }
+
+      const dateKey = `${meal.date.getUTCFullYear().toString().padStart(4, "0")}-${(meal.date.getUTCMonth() + 1)
+        .toString()
+        .padStart(2, "0")}-${meal.date.getUTCDate().toString().padStart(2, "0")}`;
+      let cutoffTime = meal.mealTypeDefinition?.cutoffTime;
+
+      if (!meal.mealTypeDefinition) {
+        let profile = profileByDate.get(dateKey);
+        if (profile === undefined) {
+          profile = await this.mealTypeService.getActiveProfile(dateKey);
+          profileByDate.set(dateKey, profile);
+        }
+
+        const normalizedMealType = normalizeMealType(meal.mealType);
+        cutoffTime = profile?.mealTypes.find(
+          (definition) =>
+            normalizeMealType(definition.slug) === normalizedMealType ||
+            normalizeMealType(definition.name) === normalizedMealType
+        )?.cutoffTime;
+      }
+
+      upcomingMeals.push({
+        ...serialized,
+        passedCutoff:
+          dateKey === todayKey && currentMinutes > getCutoffMinutes(cutoffTime),
+      });
+    }
+
+    const hasCurrentDayMealRemaining = upcomingMeals.some(
+      (meal) => meal.date?.slice(0, 10) === todayKey && !meal.passedCutoff
+    );
+
+    return hasCurrentDayMealRemaining
+      ? upcomingMeals
+      : upcomingMeals.filter((meal) => meal.date?.slice(0, 10) !== todayKey);
+  }
+
   async createMeal(input: {
     id?: string;
     name: string;
@@ -1222,8 +1290,8 @@ export class MealService {
         const normalizedMealType = normalizeMealType(meal.mealType);
         cutoffTime = profile?.mealTypes.find(
           (definition) =>
-            definition.slug === normalizedMealType ||
-            definition.name.trim().toUpperCase() === normalizedMealType
+            normalizeMealType(definition.slug) === normalizedMealType ||
+            normalizeMealType(definition.name) === normalizedMealType
         )?.cutoffTime;
       }
 

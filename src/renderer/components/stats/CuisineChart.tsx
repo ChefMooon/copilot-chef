@@ -61,7 +61,10 @@ export function CuisineChart({ data }: Props) {
               border: "1px solid var(--chart-grid)",
               fontSize: 12,
               background: "var(--chart-tooltip)",
+              color: "var(--foreground)",
             }}
+            itemStyle={{ color: "var(--foreground)" }}
+            labelStyle={{ color: "var(--text-muted)" }}
           />
           <Bar dataKey="count" name="Meals" radius={[3, 3, 0, 0]}>
             {data.map((_, index) => (
