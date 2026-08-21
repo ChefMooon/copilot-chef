@@ -74,4 +74,23 @@ describe("ModalShell", () => {
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Close dialog" })).toBeDisabled();
   });
+
+  it("supports hidden footers and explicit panel widths", () => {
+    render(
+      <ModalShell
+        open
+        onClose={vi.fn()}
+        title="Wide dialog"
+        width="min(1100px, calc(100vw - 2rem))"
+        hideFooter
+        footerRight={<button type="button">Hidden action</button>}
+      >
+        Content
+      </ModalShell>
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Wide dialog" });
+    expect(dialog).toHaveStyle({ width: "min(1100px, calc(100vw - 2rem))" });
+    expect(screen.queryByRole("button", { name: "Hidden action" })).not.toBeInTheDocument();
+  });
 });

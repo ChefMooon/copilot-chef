@@ -16,6 +16,7 @@ export type ModalShellProps = {
   subtitle?: ReactNode;
   footerLeft?: ReactNode;
   footerRight?: ReactNode;
+  hideFooter?: boolean;
   ariaLabel?: string;
   closeLabel?: string;
   closeDisabled?: boolean;
@@ -23,6 +24,7 @@ export type ModalShellProps = {
   className?: string;
   overlayClassName?: string;
   bodyClassName?: string;
+  width?: string;
 };
 
 export function ModalShell({
@@ -34,6 +36,7 @@ export function ModalShell({
   subtitle,
   footerLeft,
   footerRight,
+  hideFooter = false,
   ariaLabel,
   closeLabel = "Close dialog",
   closeDisabled = false,
@@ -41,6 +44,7 @@ export function ModalShell({
   className,
   overlayClassName,
   bodyClassName,
+  width,
 }: ModalShellProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -130,6 +134,7 @@ export function ModalShell({
         className={[styles.panel, className].filter(Boolean).join(" ")}
         ref={panelRef}
         role="dialog"
+        style={width ? { width } : undefined}
         tabIndex={-1}
       >
         <header className={styles.header}>
@@ -149,7 +154,7 @@ export function ModalShell({
           </button>
         </header>
         <div className={[styles.body, bodyClassName].filter(Boolean).join(" ")}>{children}</div>
-        {footerLeft || footerRight ? (
+        {!hideFooter && (footerLeft || footerRight) ? (
           <footer className={styles.footer}>
             <div className={styles.footerLeft}>{footerLeft}</div>
             <div className={styles.footerRight}>{footerRight}</div>
