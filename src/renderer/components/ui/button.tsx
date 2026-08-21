@@ -13,6 +13,8 @@ const buttonVariants = cva(
           "border-green bg-green text-white hover:border-green-light hover:bg-green-light",
         accent:
           "border-orange bg-orange text-white hover:border-orange-light hover:bg-orange-light",
+        danger:
+          "border-orange/40 bg-white text-orange hover:border-orange hover:bg-orange/10",
         outline:
           "border-cream-dark bg-white text-text-muted hover:border-green hover:bg-green-pale hover:text-green",
         ghost:
