@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, DotsSixVertical, X, Plus } from "@phosphor-icons/react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowDown, ArrowUp, DotsSixVertical, Plus } from "@phosphor-icons/react";
 
 import {
   getTypeConfig,
@@ -8,13 +7,12 @@ import {
   type EditableMeal,
 } from "@/lib/calendar";
 import type { MealTypeDefinitionPayload } from "@shared/types";
+import { ModalShell } from "@/components/ui/ModalShell";
+import { Button } from "@/components/ui/button";
 
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 
 import styles from "./meal-plan.module.css";
-
-const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 type SlotManagerModalProps = {
   slotMeals: EditableMeal[];
@@ -46,7 +44,6 @@ export function SlotManagerModal({
   onAddMeal,
   onReorder,
 }: SlotManagerModalProps) {
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [localMeals, setLocalMeals] = useState(slotMeals);
   const [draggedMealId, setDraggedMealId] = useState<string | null>(null);
   const [dropTargetMealId, setDropTargetMealId] = useState<string | null>(null);
@@ -57,111 +54,10 @@ export function SlotManagerModal({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | undefined>();
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
-  const overlayRef = useRef<HTMLDivElement | null>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    setPortalRoot(document.body);
-  }, []);
 
   useEffect(() => {
     setLocalMeals(slotMeals);
   }, [slotMeals]);
-
-  useEffect(() => {
-    if (!portalRoot) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [portalRoot]);
-
-  useEffect(() => {
-    const keyHandler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        if (draggedMealId) {
-          setDraggedMealId(null);
-          setDropTargetMealId(null);
-          setLocalMeals(slotMeals);
-          return;
-        }
-
-        if (mealPendingDelete) {
-          setMealPendingDelete(null);
-          return;
-        }
-
-        onClose(didMutate);
-      }
-    };
-
-    window.addEventListener("keydown", keyHandler);
-    return () => window.removeEventListener("keydown", keyHandler);
-  }, [didMutate, draggedMealId, mealPendingDelete, onClose, slotMeals]);
-
-  useEffect(() => {
-    if (!portalRoot || mealPendingDelete) {
-      return;
-    }
-
-    const panel = panelRef.current;
-    if (!panel) {
-      return;
-    }
-
-    const previousFocus =
-      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-
-    const getFocusable = () =>
-      Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-
-    const initialTarget =
-      panel.querySelector<HTMLElement>("[data-autofocus='true']") ??
-      getFocusable()[0] ??
-      panel;
-    initialTarget.focus();
-
-    const tabHandler = (event: KeyboardEvent) => {
-      if (event.key !== "Tab") {
-        return;
-      }
-
-      const focusable = getFocusable();
-      if (focusable.length === 0) {
-        event.preventDefault();
-        panel.focus();
-        return;
-      }
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-
-      if (event.shiftKey) {
-        if (active === first || active === panel) {
-          event.preventDefault();
-          last.focus();
-        }
-        return;
-      }
-
-      if (active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener("keydown", tabHandler);
-    return () => {
-      window.removeEventListener("keydown", tabHandler);
-      previousFocus?.focus();
-    };
-  }, [mealPendingDelete, portalRoot]);
 
   const typeConfig = useMemo(
     () => getTypeConfig(slotType, mealTypeDefinition ? [mealTypeDefinition] : []),
@@ -275,57 +171,42 @@ export function SlotManagerModal({
     }
   };
 
-  if (!portalRoot) {
-    return null;
-  }
-
-  return createPortal(
+  return (
     <>
-      <div
-        className={styles.slotManagerOverlay}
-        onMouseDown={(event) => {
-          if (event.target === event.currentTarget) {
-            onClose(didMutate);
+      <ModalShell
+        ariaLabel="Manage slot meals"
+        bodyClassName={styles.slotManagerBody}
+        className={styles.slotManagerPanel}
+        closeLabel="Close slot manager"
+        onClose={() => {
+          if (draggedMealId) {
+            setDraggedMealId(null);
+            setDropTargetMealId(null);
+            setLocalMeals(slotMeals);
+            return;
           }
+          onClose(didMutate);
         }}
-        ref={overlayRef}
+        open={!mealPendingDelete}
+        eyebrow={typeConfig.label}
+        title={slotDate.toLocaleDateString("default", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        })}
+        footerRight={
+          <Button onClick={onAddMeal} type="button" variant="accent">
+            <Plus aria-hidden="true" size={18} weight="regular" />
+            Add Meal
+          </Button>
+        }
       >
-        <div
-          className={styles.slotManagerPanel}
-          ref={panelRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="slot-manager-title"
-          tabIndex={-1}
-        >
-          <div className={styles.slotManagerHeader}>
-            <div className={styles.modalHeaderLeft}>
-              <span className={styles.eyebrow}>{typeConfig.label}</span>
-              <h2 className={styles.slotManagerTitle} id="slot-manager-title" tabIndex={-1}>
-                {slotDate.toLocaleDateString("default", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </h2>
-            </div>
-            <button
-              aria-label="Close slot manager"
-              className={styles.modalClose}
-              data-autofocus="true"
-              onClick={() => onClose(didMutate)}
-              type="button"
-            >
-              <X aria-hidden="true" size={18} weight="regular" />
-            </button>
-          </div>
 
           <div aria-live="polite" className={styles.slotManagerLiveRegion}>
             {liveAnnouncement}
           </div>
 
-          <div className={styles.slotManagerBody}>
-            {localMeals.length === 0 ? (
+          {localMeals.length === 0 ? (
               <p className={styles.slotManagerEmpty}>No meals in this slot yet.</p>
             ) : (
               <div className={styles.slotManagerList} role="list">
@@ -440,18 +321,9 @@ export function SlotManagerModal({
                 })}
               </div>
             )}
-          </div>
 
           {error ? <div className={styles.slotManagerError}>{error}</div> : null}
-
-          <div className={styles.slotManagerFooter}>
-            <button className={styles.btnAddMeal} onClick={onAddMeal} type="button">
-              <Plus aria-hidden="true" size={18} weight="regular" />
-              <span>Add Meal</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      </ModalShell>
 
       {mealPendingDelete ? (
         <DeleteConfirmationModal
@@ -472,7 +344,6 @@ export function SlotManagerModal({
           }}
         />
       ) : null}
-    </>,
-    portalRoot
+    </>
   );
 }

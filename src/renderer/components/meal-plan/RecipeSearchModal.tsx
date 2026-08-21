@@ -1,15 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { X } from "@phosphor-icons/react";
 
 import { listRecipes } from "@/lib/api";
 import { getCuisineLabel } from "@shared/api/constants";
 import { type RecipePayload } from "@shared/types";
+import { ModalShell } from "@/components/ui/ModalShell";
+import { Button } from "@/components/ui/button";
 
 import styles from "./meal-plan.module.css";
-
-const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 type RecipeSearchModalProps = {
   open: boolean;
@@ -30,7 +27,6 @@ export function RecipeSearchModal({
   onClose,
   onSelectRecipe,
 }: RecipeSearchModalProps) {
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [query, setQuery] = useState("");
   const [originFilter, setOriginFilter] = useState("all");
   const [favouritesOnly, setFavouritesOnly] = useState(false);
@@ -42,12 +38,7 @@ export function RecipeSearchModal({
   const [previewNote, setPreviewNote] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
 
-  const panelRef = useRef<HTMLDivElement | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    setPortalRoot(document.body);
-  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -62,19 +53,6 @@ export function RecipeSearchModal({
     setPreviewNote("");
     setLoadError(null);
   }, [open]);
-
-  useEffect(() => {
-    if (!open || !portalRoot) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [open, portalRoot]);
 
   useEffect(() => {
     if (!open) {
@@ -106,76 +84,6 @@ export function RecipeSearchModal({
     };
   }, [open, query]);
 
-  useEffect(() => {
-    if (!open || !portalRoot) {
-      return;
-    }
-
-    const panel = panelRef.current;
-    if (!panel) {
-      return;
-    }
-
-    const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-
-    const getFocusable = () =>
-      Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-
-    const initialTarget =
-      panel.querySelector<HTMLElement>("[autofocus]") ?? getFocusable()[0] ?? panel;
-    initialTarget.focus();
-
-    const keyHandler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        if (selectedRecipe) {
-          setSelectedRecipe(null);
-          return;
-        }
-
-        onClose();
-        return;
-      }
-
-      if (event.key !== "Tab") {
-        return;
-      }
-
-      const focusable = getFocusable();
-      if (focusable.length === 0) {
-        event.preventDefault();
-        panel.focus();
-        return;
-      }
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-
-      if (event.shiftKey) {
-        if (active === first || active === panel) {
-          event.preventDefault();
-          last.focus();
-        }
-        return;
-      }
-
-      if (active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener("keydown", keyHandler);
-
-    return () => {
-      window.removeEventListener("keydown", keyHandler);
-      previousFocus?.focus();
-    };
-  }, [open, onClose, portalRoot, selectedRecipe]);
-
   const normalizedMealName = currentMealName.trim().toLowerCase();
 
   const originOptions = useMemo(() => {
@@ -203,47 +111,48 @@ export function RecipeSearchModal({
     });
   }, [favouritesOnly, originFilter, results]);
 
-  if (!open || !portalRoot) {
-    return null;
-  }
-
-  return createPortal(
-    <div
-      className={styles.recipeSearchModalOverlay}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
+  return (
+    <ModalShell
+      ariaLabel="Find and link recipe"
+      bodyClassName={`${styles.recipeSearchModalBody} ${selectedRecipe ? "" : styles.recipeSearchModalBodyBrowse}`}
+      className={`${styles.recipeSearchModalPanel} ${selectedRecipe ? "" : styles.recipeSearchModalPanelBrowse}`}
+      closeLabel="Close recipe search dialog"
+      onClose={() => {
+        if (selectedRecipe) {
+          setSelectedRecipe(null);
+          return;
         }
+        onClose();
       }}
+      open={open}
+      title="Link a recipe"
+      footerLeft={selectedRecipe ? <Button onClick={() => setSelectedRecipe(null)} type="button" variant="outline">Back to results</Button> : undefined}
+      footerRight={
+        selectedRecipe ? (
+          <>
+            <Button onClick={onClose} type="button" variant="outline">Cancel</Button>
+            <Button
+              disabled={isConfirming}
+              onClick={async () => {
+                if (!selectedRecipe) return;
+                setIsConfirming(true);
+                try {
+                  await onSelectRecipe(selectedRecipe, previewServings, previewNote.trim());
+                } finally {
+                  setIsConfirming(false);
+                }
+              }}
+              type="button"
+              variant="accent"
+            >
+              {isConfirming ? "Linking..." : "Confirm Link"}
+            </Button>
+          </>
+        ) : (
+          <Button onClick={onClose} type="button" variant="outline">Close</Button>
+        )
+      }
     >
-      <div
-        className={`${styles.recipeSearchModalPanel} ${
-          selectedRecipe ? "" : styles.recipeSearchModalPanelBrowse
-        }`}
-        onClick={(event) => event.stopPropagation()}
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Find and link recipe"
-        tabIndex={-1}
-      >
-        <div className={styles.recipeSearchModalHeader}>
-          <h3 className={styles.recipeSearchModalTitle}>Link A Recipe</h3>
-          <button
-            aria-label="Close recipe search dialog"
-            className={styles.modalClose}
-            onClick={onClose}
-            type="button"
-          >
-            <X aria-hidden="true" size={18} weight="regular" />
-          </button>
-        </div>
-
-        <div
-          className={`${styles.recipeSearchModalBody} ${
-            selectedRecipe ? "" : styles.recipeSearchModalBodyBrowse
-          }`}
-        >
           {selectedRecipe ? (
             <>
               <div className={styles.recipePreviewPanel}>
@@ -430,53 +339,6 @@ export function RecipeSearchModal({
               </div>
             </div>
           )}
-        </div>
-
-        <div className={styles.recipeSearchModalFooter}>
-          {selectedRecipe ? (
-            <>
-              <button
-                className={styles.btnGhost}
-                onClick={() => setSelectedRecipe(null)}
-                type="button"
-              >
-                Back To Results
-              </button>
-              <div className={styles.recipePreviewActions}>
-                <button className={styles.btnGhost} onClick={onClose} type="button">
-                  Cancel
-                </button>
-                <button
-                  className={styles.btnConfirmLink}
-                  disabled={isConfirming}
-                  onClick={async () => {
-                    if (!selectedRecipe) {
-                      return;
-                    }
-
-                    setIsConfirming(true);
-                    try {
-                      await onSelectRecipe(selectedRecipe, previewServings, previewNote.trim());
-                    } finally {
-                      setIsConfirming(false);
-                    }
-                  }}
-                  type="button"
-                >
-                  {isConfirming ? "Linking..." : "Confirm Link"}
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className={styles.recipePreviewActions}>
-              <button className={styles.btnGhost} onClick={onClose} type="button">
-                Close
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>,
-    portalRoot
+    </ModalShell>
   );
 }

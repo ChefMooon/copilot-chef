@@ -1,13 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useState } from "react";
 import { toString as toQrSvg } from "qrcode";
 
 import { Button } from "@/components/ui/button";
+import { ModalShell } from "@/components/ui/ModalShell";
 
 import styles from "./settings.module.css";
-
-const FOCUSABLE_SELECTOR =
-  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 type LanQrCodeModalProps = {
   connectionUrl: string;
@@ -36,29 +33,9 @@ export function LanQrCodeModal({
   onClose,
   onCopied,
 }: LanQrCodeModalProps) {
-  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [svgMarkup, setSvgMarkup] = useState("");
   const [isCopying, setIsCopying] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
-
-  const panelRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    setPortalRoot(document.body);
-  }, []);
-
-  useEffect(() => {
-    if (!portalRoot) {
-      return;
-    }
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [portalRoot]);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,80 +62,6 @@ export function LanQrCodeModal({
     };
   }, [connectionUrl]);
 
-  useEffect(() => {
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", handleKey);
-
-    return () => {
-      window.removeEventListener("keydown", handleKey);
-    };
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!portalRoot) {
-      return;
-    }
-
-    const panel = panelRef.current;
-    if (!panel) {
-      return;
-    }
-
-    const previousFocus =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-
-    const getFocusable = () =>
-      Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-
-    const initialTarget =
-      panel.querySelector<HTMLElement>("[autofocus]") ?? getFocusable()[0] ?? panel;
-    initialTarget.focus();
-
-    const handleTab = (event: KeyboardEvent) => {
-      if (event.key !== "Tab") {
-        return;
-      }
-
-      const focusable = getFocusable();
-      if (focusable.length === 0) {
-        event.preventDefault();
-        panel.focus();
-        return;
-      }
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-
-      if (event.shiftKey) {
-        if (active === first || active === panel) {
-          event.preventDefault();
-          last.focus();
-        }
-        return;
-      }
-
-      if (active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    window.addEventListener("keydown", handleTab);
-
-    return () => {
-      window.removeEventListener("keydown", handleTab);
-      previousFocus?.focus();
-    };
-  }, [portalRoot]);
-
   async function handleCopy() {
     setIsCopying(true);
     setCopyError(null);
@@ -177,44 +80,26 @@ export function LanQrCodeModal({
     }
   }
 
-  if (!portalRoot) {
-    return null;
-  }
-
-  return createPortal(
-    <div
-      className={styles.personaModalOverlay}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
-        }
-      }}
+  return (
+    <ModalShell
+      ariaLabel="LAN QR code"
+      bodyClassName={styles.personaModalBody}
+      className={`${styles.personaModalPanel} ${styles.lanQrModalPanel}`}
+      closeLabel="Close LAN pairing dialog"
+      onClose={onClose}
+      open
+      eyebrow="LAN Access"
+      title="Pair a trusted device"
+      footerLeft={<span className={styles.lanQrFooterNote}>The token is saved in the browser and stripped from the address bar after pairing.</span>}
+      footerRight={
+        <>
+          <Button onClick={onClose} type="button" variant="outline">Close</Button>
+          <Button autoFocus disabled={isCopying} onClick={() => void handleCopy()} type="button">
+            {isCopying ? "Copying..." : "Copy connection link"}
+          </Button>
+        </>
+      }
     >
-      <div
-        aria-label="LAN QR code"
-        aria-modal="true"
-        className={`${styles.personaModalPanel} ${styles.lanQrModalPanel}`}
-        ref={panelRef}
-        role="dialog"
-        tabIndex={-1}
-      >
-        <div className={styles.personaModalHeader}>
-          <div className={styles.personaModalHeading}>
-            <span className={styles.personaModalEyebrow}>LAN Access</span>
-            <span className={styles.personaModalTitle}>
-              Pair a trusted device
-            </span>
-          </div>
-          <button
-            className={styles.personaModalClose}
-            onClick={onClose}
-            type="button"
-          >
-            X
-          </button>
-        </div>
-
-        <div className={styles.personaModalBody}>
           <div className={styles.lanQrModalGrid}>
             <div className={styles.lanQrCodeCard}>
               {svgMarkup ? (
@@ -262,29 +147,6 @@ export function LanQrCodeModal({
               ) : null}
             </div>
           </div>
-        </div>
-
-        <div className={styles.personaModalFooter}>
-          <span className={styles.lanQrFooterNote}>
-            The token is saved in the browser and stripped from the address bar
-            after pairing.
-          </span>
-          <div className={styles.personaModalFooterRight}>
-            <Button onClick={onClose} type="button" variant="outline">
-              Close
-            </Button>
-            <Button
-              autoFocus
-              disabled={isCopying}
-              onClick={() => void handleCopy()}
-              type="button"
-            >
-              {isCopying ? "Copying..." : "Copy connection link"}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>,
-    portalRoot
+    </ModalShell>
   );
 }
