@@ -156,6 +156,17 @@ Likely causes:
 Fix:
 - Re-open current QR/link and reconnect.
 
+### Installed PWA shows an older interface
+
+The browser renderer uses a service worker to detect updated web assets. The worker script and the document entry point are revalidated, while hashed JavaScript and CSS assets remain immutable because each build gives them new filenames.
+
+After rebuilding the browser UI:
+1. Restart the LAN web server if it was already running.
+2. Reopen the installed PWA or wait for it to reload after the service-worker update is activated.
+3. If the old interface remains, use the browser's reload or installed-app update action, then reopen the PWA.
+
+The PWA may briefly reload when a new service worker takes control. This prevents an already-open installed app from continuing to run an older renderer bundle.
+
 ### Remote mode confusion
 
 In remote mode:

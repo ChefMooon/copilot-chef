@@ -5,6 +5,7 @@ import { RouterProvider } from "react-router";
 import { router } from "./router";
 import { getPlatform } from "./lib/platform";
 import { PreferenceProvider } from "./lib/preferences";
+import { registerServiceWorker } from "./lib/service-worker";
 
 import "./globals.css";
 
@@ -21,6 +22,6 @@ createRoot(container).render(
 
 if (getPlatform().runtime === "browser" && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    void navigator.serviceWorker.register("/sw.js");
+    registerServiceWorker(navigator.serviceWorker, () => window.location.reload());
   });
 }

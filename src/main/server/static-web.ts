@@ -108,7 +108,9 @@ export async function startStaticWebServer(
 
     response.writeHead(200, {
       "Content-Type": getContentType(filePath),
-      "Cache-Control": filePath.endsWith("index.html") ? "no-store" : "public, max-age=31536000, immutable",
+      "Cache-Control": filePath.endsWith("index.html") || filePath.endsWith("sw.js")
+        ? "no-store"
+        : "public, max-age=31536000, immutable",
     });
     createReadStream(filePath).pipe(response);
   });
