@@ -174,7 +174,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 8px;
-  background: rgba(255, 253, 248, 0.12);
+  background: var(--header-control-background);
   color: var(--header-foreground);
   text-decoration: none;
   transition: background 0.18s ease;
@@ -182,7 +182,7 @@
 
 .settingsButton:hover,
 .settingsButtonActive {
-  background: rgba(255, 253, 248, 0.22);
+  background: var(--header-active);
 }
 
 .hamburger {
@@ -195,7 +195,7 @@
   height: 38px;
   border: none;
   border-radius: 8px;
-  background: rgba(255, 253, 248, 0.12);
+  background: var(--header-control-background);
   cursor: pointer;
 }
 
@@ -209,9 +209,9 @@
   flex-direction: column;
   gap: 0.25rem;
   padding: 1rem;
-  background: var(--green);
-  border-bottom: 3px solid var(--orange);
-  box-shadow: 0 6px 28px rgba(44, 36, 22, 0.14);
+  background: var(--header-background);
+  border-bottom: 3px solid var(--accent);
+  box-shadow: var(--shadow-lg);
 }
 
 .mobileMenuOpen {
@@ -223,7 +223,7 @@
   border-radius: 8px;
   background: transparent;
   padding: 0.75rem 1rem;
-  color: rgba(255, 253, 248, 0.85);
+  color: var(--header-muted);
   font-size: 1rem;
   font-weight: 600;
   text-align: left;
@@ -233,8 +233,13 @@
 
 .mobileNavLink:hover,
 .mobileNavLinkActive {
-  background: rgba(255, 253, 248, 0.12);
-  color: #fffdf8;
+  background: var(--header-active);
+  color: var(--header-foreground);
+}
+
+.mobileNavLink:focus-visible {
+  outline: 2px solid var(--header-active-border);
+  outline-offset: 2px;
 }
 
 .contentScroller {

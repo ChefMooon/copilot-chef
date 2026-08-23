@@ -37,6 +37,17 @@ describe("dark theme contrast tokens", () => {
   });
 });
 
+describe("mobile drawer navigation contrast tokens", () => {
+  it("keeps drawer links legible in light mode", () => {
+    expect(contrastRatio("#fffdf8", "#3b5e45")).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it("keeps drawer links and active state legible in dark mode", () => {
+    expect(contrastRatio("#f4faf4", "#173025")).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio("#527f60", "#173025")).toBeGreaterThanOrEqual(3);
+  });
+});
+
 describe("settings tab selected-state contrast tokens", () => {
   it("keeps the selected tab legible in light mode", () => {
     expect(contrastRatio("#3b5e45", "#d4e4d8")).toBeGreaterThanOrEqual(4.5);
