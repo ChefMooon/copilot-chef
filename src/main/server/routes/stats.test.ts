@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { statsRoutes } from "./stats";
 import { mealService } from "../services.js";
@@ -53,6 +53,10 @@ describe("statsRoutes", () => {
     vi.mocked(mealService.getLiveMealCountInRange).mockResolvedValue(5);
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("returns slot-based analytics fields for the stats dashboard", async () => {
     const app = createTestApp();
     const response = await app.request("/api/stats");
@@ -80,5 +84,25 @@ describe("statsRoutes", () => {
     const body = await response.json();
     expect(body.data.totalSlots).toBe(5);
     expect(mealService.getLiveMealCountInRange).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses the requested upcoming range for the meal summary", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-08-23T15:30:00.000Z"));
+    vi.mocked(mealService.getLiveMealCountInRange).mockClear();
+    const app = createTestApp();
+    const expectedFrom = new Date();
+    expectedFrom.setHours(0, 0, 0, 0);
+    const expectedTo = new Date(expectedFrom);
+    expectedTo.setDate(expectedTo.getDate() + 13);
+    expectedTo.setHours(23, 59, 59, 999);
+
+    const response = await app.request("/api/stats/meal-summary?days=14");
+
+    expect(response.status).toBe(200);
+    expect(mealService.getLiveMealCountInRange).toHaveBeenCalledWith(
+      expectedFrom.toISOString(),
+      expectedTo.toISOString()
+    );
   });
 });

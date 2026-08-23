@@ -7,7 +7,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HomeDashboard } from "@/components/home/home-dashboard";
 import styles from "@/components/home/home-dashboard.module.css";
 
-const { getSettingMock, useMealTypeProfilesMock, useQueryMock } = vi.hoisted(() => ({
+const {
+  fetchJsonMock,
+  getSettingMock,
+  useMealTypeProfilesMock,
+  useQueryMock,
+} = vi.hoisted(() => ({
+  fetchJsonMock: vi.fn(),
   getSettingMock: vi.fn(),
   useMealTypeProfilesMock: vi.fn(),
   useQueryMock: vi.fn(),
@@ -37,7 +43,7 @@ vi.mock("@/lib/config", () => ({
 }));
 
 vi.mock("@/lib/api", () => ({
-  fetchJson: vi.fn(),
+  fetchJson: fetchJsonMock,
   isRateLimitedApiError: () => false,
 }));
 
@@ -54,6 +60,7 @@ function queryState(data: unknown) {
 describe("HomeDashboard upcoming meals", () => {
   beforeEach(() => {
     useQueryMock.mockReset();
+    fetchJsonMock.mockReset();
     getSettingMock.mockReset();
     useMealTypeProfilesMock.mockReset();
     getSettingMock.mockResolvedValue(null);
@@ -153,14 +160,6 @@ describe("HomeDashboard upcoming meals", () => {
     };
 
     useQueryMock.mockImplementation(({ queryKey }: { queryKey: string[] }) => {
-      if (queryKey[1] === "meal-summary") {
-        return queryState({
-          from: "2026-08-10",
-          to: "2026-08-16",
-          totalSlots: 3,
-        });
-      }
-
       if (queryKey[1] === "grocery-list") {
         return queryState(null);
       }
@@ -171,9 +170,13 @@ describe("HomeDashboard upcoming meals", () => {
 
       return queryState(upcomingData);
     });
-    getSettingMock.mockImplementation((key: string) =>
-      Promise.resolve(key === "home_upcoming_detail" ? "detailed" : null)
-    );
+    getSettingMock.mockImplementation((key: string) => {
+      if (key === "home_upcoming_days") {
+        return Promise.resolve(14);
+      }
+
+      return Promise.resolve(key === "home_upcoming_detail" ? "detailed" : null);
+    });
 
     render(
       <MemoryRouter>
@@ -198,6 +201,22 @@ describe("HomeDashboard upcoming meals", () => {
     expect(screen.getByText("Aug 14")).toBeTruthy();
     expect(screen.getByText(/Mediterranean/)).toBeTruthy();
     expect(screen.getByText(/Weeknight vegetables/)).toBeTruthy();
+    expect(
+      screen.getByText(
+        "You have 3 meals planned in the next 14 days. Let's get cooking."
+      )
+    ).toBeTruthy();
+
+    const upcomingQuery = useQueryMock.mock.calls
+      .map(([options]) => options as { queryKey: string[]; queryFn: () => Promise<unknown> })
+      .find(({ queryKey }) => queryKey[1] === "upcoming" && queryKey[2] === 14);
+
+    expect(upcomingQuery).toBeDefined();
+    fetchJsonMock.mockResolvedValue({ data: upcomingData });
+    await upcomingQuery?.queryFn();
+    expect(fetchJsonMock).toHaveBeenCalledWith(
+      "/api/meals/upcoming?days=14"
+    );
 
     const mealTypeGroups = screen.getByText("Lunch").parentElement?.parentElement;
     expect(mealTypeGroups?.textContent?.indexOf("Lunch")).toBeLessThan(

@@ -20,12 +20,6 @@ import {
 
 import styles from "./home-dashboard.module.css";
 
-type MealSummaryPayload = {
-  from: string;
-  to: string;
-  totalSlots: number;
-};
-
 type GroceryListPayload = {
   id: string;
   name: string;
@@ -247,18 +241,6 @@ export function HomeDashboard() {
     };
   }, []);
 
-  const mealSummaryQuery = useQuery({
-    queryKey: ["stats", "meal-summary"],
-    enabled: apiReady,
-    refetchInterval: 60_000,
-    retry: (failureCount, error) =>
-      isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
-    queryFn: () =>
-      fetchJson<{ data: MealSummaryPayload }>("/api/stats/meal-summary").then(
-        (response) => response.data
-      ),
-  });
-
   const groceryListQuery = useQuery({
     queryKey: ["grocery-list", "current"],
     enabled: apiReady && settings.showGroceryList,
@@ -283,7 +265,7 @@ export function HomeDashboard() {
 
   const upcomingMealsQuery = useQuery({
     queryKey: ["meals", "upcoming", settings.upcomingDays],
-    enabled: apiReady && settings.showUpcomingMeals,
+    enabled: apiReady,
     retry: (failureCount, error) =>
       isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
     queryFn: () =>
@@ -313,10 +295,10 @@ export function HomeDashboard() {
     );
   }, [heatmapQuery.data?.monthStarts]);
 
-  const totalMeals = mealSummaryQuery.data?.totalSlots ?? 0;
   const groceryList = groceryListQuery.data;
   const heatmap = heatmapQuery.data?.weeks ?? [];
   const upcomingMeals = upcomingMealsQuery.data?.meals ?? [];
+  const totalMeals = upcomingMeals.length;
   const mealTypeProfiles = mealTypeProfilesQuery.data?.length
     ? mealTypeProfilesQuery.data
     : [getDefaultMealTypeProfile()];
@@ -388,7 +370,6 @@ export function HomeDashboard() {
   const hasOverviewContent =
     settings.showUpcomingMeals || visibleOverviewCount > 0;
   const homeQueries = [
-    mealSummaryQuery,
     groceryListQuery,
     heatmapQuery,
     upcomingMealsQuery,
@@ -400,7 +381,6 @@ export function HomeDashboard() {
 
   function retryHomeQueries() {
     void Promise.all([
-      mealSummaryQuery.refetch(),
       groceryListQuery.refetch(),
       heatmapQuery.refetch(),
       upcomingMealsQuery.refetch(),
@@ -415,7 +395,7 @@ export function HomeDashboard() {
         subtitle={
           settings.showGreetingSubtitle
             ? totalMeals > 0
-              ? `You have ${totalMeals} meals planned this week. Let's get cooking.`
+              ? `You have ${totalMeals} ${totalMeals === 1 ? "meal" : "meals"} planned in the next ${settings.upcomingDays} days. Let's get cooking.`
               : "Your first weekly plan is ready to take shape."
             : undefined
         }

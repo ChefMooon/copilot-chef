@@ -22,6 +22,26 @@ export function startOfWeek(input: Date): Date {
   return addDays(date, -offset);
 }
 
+export function clampDays(days: number): number {
+  if (!Number.isFinite(days)) {
+    return 7;
+  }
+
+  return Math.min(30, Math.max(1, Math.floor(days)));
+}
+
+export function getUpcomingDateRange(days: number, now = new Date()) {
+  const normalizedDays = clampDays(days);
+  const from = startOfDay(now);
+  const to = endOfDay(addDays(from, normalizedDays - 1));
+
+  return {
+    days: normalizedDays,
+    from: from.toISOString(),
+    to: to.toISOString(),
+  };
+}
+
 export function formatDayKey(input: Date): string {
   const date = startOfDay(input);
   return date.toISOString().slice(0, 10);

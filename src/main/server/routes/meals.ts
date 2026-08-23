@@ -1,15 +1,8 @@
 import { Hono } from "hono";
 import { mealService } from "../services.js";
+import { getUpcomingDateRange } from "../lib/date.js";
 
 export const mealsRoutes = new Hono();
-
-function clampDays(days: number) {
-  if (!Number.isFinite(days)) {
-    return 7;
-  }
-
-  return Math.min(30, Math.max(1, Math.floor(days)));
-}
 
 function normalizeIngredients(input: unknown) {
   if (!Array.isArray(input)) {
@@ -42,25 +35,18 @@ mealsRoutes.get("/meals", async (c) => {
 
 mealsRoutes.get("/meals/upcoming", async (c) => {
   const requestedDays = Number(c.req.query("days") ?? "7");
-  const days = clampDays(requestedDays);
-
-  const from = new Date();
-  from.setHours(0, 0, 0, 0);
-
-  const to = new Date(from);
-  to.setDate(to.getDate() + days - 1);
-  to.setHours(23, 59, 59, 999);
+  const { days, from, to } = getUpcomingDateRange(requestedDays);
 
   const meals = await mealService.listUpcomingMeals(
-    from.toISOString(),
-    to.toISOString()
+    from,
+    to
   );
 
   return c.json({
     data: {
       days,
-      from: from.toISOString(),
-      to: to.toISOString(),
+      from,
+      to,
       meals,
     },
   });

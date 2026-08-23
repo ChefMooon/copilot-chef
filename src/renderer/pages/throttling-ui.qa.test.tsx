@@ -138,23 +138,12 @@ describe("throttling UI regression coverage", () => {
   });
 
   it("shows home dashboard rate-limit banner and retries all home queries", async () => {
-    const mealSummaryRefetch = vi.fn();
     const groceryRefetch = vi.fn();
     const heatmapRefetch = vi.fn();
     const upcomingRefetch = vi.fn();
 
     useQueryMock
       .mockReturnValueOnce(queryState({ data: [] }))
-      .mockReturnValueOnce(
-        queryState({
-          data: {
-            from: "2026-05-25",
-            to: "2026-05-31",
-            totalSlots: 5,
-          },
-          refetch: mealSummaryRefetch,
-        })
-      )
       .mockReturnValueOnce(
         queryState({
           isError: true,
@@ -192,7 +181,6 @@ describe("throttling UI regression coverage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Retry now" }));
 
-    expect(mealSummaryRefetch).toHaveBeenCalledOnce();
     expect(groceryRefetch).toHaveBeenCalledOnce();
     expect(heatmapRefetch).toHaveBeenCalledOnce();
     expect(upcomingRefetch).toHaveBeenCalledOnce();
