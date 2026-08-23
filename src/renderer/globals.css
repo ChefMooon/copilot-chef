@@ -105,6 +105,8 @@
   --input: #607568;
   --ring: #b4e4c0;
   --overlay: rgb(0 0 0 / 0.62);
+  --shadow: 0 2px 12px rgb(0 0 0 / 0.34);
+  --shadow-lg: 0 6px 28px rgb(0 0 0 / 0.48);
   --green-rgb: 125 177 141;
   --green-light-rgb: 147 200 166;
   --green-pale-rgb: 34 51 39;

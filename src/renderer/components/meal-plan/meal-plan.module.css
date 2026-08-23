@@ -3704,10 +3704,10 @@
 .slotManagerPanel {
   width: min(720px, 100%);
   max-height: min(88vh, 760px);
-  background: linear-gradient(180deg, #fffdf8 0%, #f7f1e4 100%);
-  border: 1px solid rgba(202, 187, 160, 0.95);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 20px;
-  box-shadow: 0 22px 60px rgba(44, 36, 22, 0.24);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
 }
@@ -3767,15 +3767,15 @@
   align-items: center;
   padding: 0.85rem 0.95rem;
   background: var(--card);
-  border: 1px solid rgba(201, 188, 163, 0.92);
+  border: 1px solid var(--border);
   border-left: 4px solid var(--green);
   border-radius: 16px;
-  box-shadow: 0 12px 28px rgba(44, 36, 22, 0.08);
+  box-shadow: var(--shadow);
   transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
 }
 
 .slotManagerRow:focus-visible {
-  outline: 2px solid rgba(91, 121, 85, 0.34);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 
@@ -3785,14 +3785,14 @@
 }
 
 .slotManagerRowDropTarget {
-  border-color: color-mix(in srgb, var(--green) 52%, #c7b89a);
-  box-shadow: 0 0 0 3px rgba(91, 121, 85, 0.12);
+  border-color: color-mix(in srgb, var(--green) 52%, var(--border));
+  box-shadow: 0 0 0 3px rgb(var(--green-rgb) / 0.12);
 }
 
 .slotManagerDragHandle,
 .slotManagerArrowBtn {
-  border: 1px solid rgba(199, 184, 154, 0.95);
-  background: var(--white);
+  border: 1px solid var(--border);
+  background: var(--card-elevated);
   color: var(--text-muted);
   border-radius: 10px;
   cursor: pointer;
@@ -3801,8 +3801,8 @@
 
 .slotManagerDragHandle:hover,
 .slotManagerArrowBtn:hover {
-  border-color: #baa983;
-  background: var(--cream);
+  border-color: var(--green-light);
+  background: var(--muted);
   color: var(--text);
 }
 
