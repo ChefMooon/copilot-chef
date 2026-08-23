@@ -33,7 +33,9 @@ The release workflow reruns build, lint, and test on GitHub before packaging, so
 
 ## Create a Release
 
-The publish-release skill creates and pushes the requested tag after local validation and release metadata preparation. It watches the matching `Release Client` workflow by release commit SHA and tag until it completes successfully, then updates the resulting GitHub Release draft with the validated changelog entry and presents the draft URL for review. Before editing notes, it verifies that the release `tagName` and title are exactly the requested tag; leave the release as a draft until it has been reviewed.
+The publish-release skill creates and pushes the requested tag after local validation and release metadata preparation. It watches the matching `Release Client` workflow by release commit SHA and tag until it completes successfully, then updates the resulting GitHub Release draft with the validated changelog entry. Before editing notes, it verifies that the release `tagName` and title are exactly the requested tag; leave the release as a draft until it has been reviewed.
+
+For the final handoff, use the authenticated draft editor URL `https://github.com/OWNER/REPOSITORY/releases/edit/TAG`, replacing `OWNER/REPOSITORY` with the verified GitHub remote slug and `TAG` with the exact release tag. The GitHub API can return a temporary `html_url` containing an `untagged-*` slug for an unpublished draft; that URL is not canonical and can return 404. The releases page, `https://github.com/OWNER/REPOSITORY/releases`, is the secondary navigation fallback.
 
 Manual tag creation from the repository root:
 
