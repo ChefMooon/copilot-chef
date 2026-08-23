@@ -173,7 +173,7 @@
 }
 
 .mealBank {
-  --meal-bank-top: calc(var(--app-titlebar-height, 64px) + 0.8rem);
+  --meal-bank-top: calc(var(--app-header-height) + 0.8rem);
   --meal-bank-side-top: calc(var(--meal-bank-top) + 2.7rem);
   --meal-bank-chat-clearance: 6rem;
   --meal-bank-side-offset: -0.42rem;
@@ -1123,8 +1123,8 @@
 .weekBoardScroller {
   overflow: auto;
   max-width: 100%;
-  max-height: calc(100vh - var(--app-titlebar-height, 64px) - 13rem);
-  max-height: calc(100dvh - var(--app-titlebar-height, 64px) - 13rem);
+  max-height: calc(100vh - var(--app-header-height) - 13rem);
+  max-height: calc(100dvh - var(--app-header-height) - 13rem);
   overscroll-behavior: contain;
 }
 
@@ -1759,7 +1759,7 @@
   .mealBankLeft,
   .mealBankRight {
     width: min(240px, calc(100vw - 1rem));
-    top: calc(var(--app-titlebar-height, 64px) + 0.55rem);
+    top: calc(var(--app-header-height) + 0.55rem);
   }
 
   .mealBankBottom {

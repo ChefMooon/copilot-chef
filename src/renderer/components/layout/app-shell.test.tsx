@@ -40,6 +40,19 @@ describe("AppShell", () => {
     cleanup();
   });
 
+  it("renders the global header and browser navigation link", () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <AppShell>
+          <div>content</div>
+        </AppShell>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByRole("banner")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Local Recipe Book" })).toBeTruthy();
+  });
+
   it("shows header settings button on wide layouts", () => {
     render(
       <MemoryRouter initialEntries={["/"]}>

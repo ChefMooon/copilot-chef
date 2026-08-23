@@ -4,6 +4,8 @@
 
 :root {
   --app-titlebar-height: 64px;
+  --app-safe-area-top: env(safe-area-inset-top, 0px);
+  --app-header-height: calc(var(--app-titlebar-height) + var(--app-safe-area-top));
   --green: #3b5e45;
   --green-light: #5a7d63;
   --green-pale: #d4e4d8;

@@ -1,6 +1,6 @@
 .banner {
   position: fixed;
-  top: var(--app-titlebar-height, 64px);
+  top: var(--app-header-height);
   left: 0;
   right: 0;
   z-index: 200;

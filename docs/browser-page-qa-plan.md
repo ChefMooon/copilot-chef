@@ -97,3 +97,26 @@ Current automation baseline for this phase:
 - Shared QA helper utilities for reusable assertions
 
 Future iterations can expand the same helpers to all routes.
+
+### iOS Safe-Area Regression Matrix
+
+For browser shell changes that affect the top inset, test `/meal-plan` and at
+least one additional authenticated route in both normal Safari and the
+installed standalone PWA:
+
+- Portrait orientation on a notched iPhone, with Safari's toolbar expanded and collapsed
+- Header logo, navigation controls, and first visible content fully below the device's unsafe top region
+- Mobile navigation opens immediately below the full header without covering header content
+- Connection banners and Meal Bank surfaces do not overlap the header
+- Meal Plan week-board scrolling remains usable as browser chrome changes height
+- Wide browser and Electron layouts retain the existing 64px header behavior
+
+When available, use Safari Web Inspector to compare the header bounds and
+viewport values while changing toolbar state:
+
+```js
+document.querySelector("header")?.getBoundingClientRect()
+window.innerHeight
+window.visualViewport?.height
+getComputedStyle(document.querySelector("header")).paddingTop
+```

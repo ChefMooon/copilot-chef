@@ -11,10 +11,10 @@
 
 | Metric | Count |
 |---|---|
-| Total findings | 4 |
+| Total findings | 5 |
 | P0 | 0 |
 | P1 | 2 |
-| P2 | 2 |
+| P2 | 3 |
 | P3 | 0 |
 
 ## Findings Log
@@ -25,6 +25,7 @@
 | QA-A11Y-002 | `/` and `/stats` | Accessibility | P1 | Heatmap day cells expose many unnamed interactive buttons | 1) Open `/` or `/stats` 2) Inspect accessibility snapshot 3) Review heatmap grid controls | Interactive controls should have accessible names/announcements | Large sets of `button` controls appear without accessible names in snapshots | Accessibility snapshot from browser tooling | Resolved |
 | QA-A11Y-003 | Global app header | Accessibility | P2 | Settings shortcut uses symbol-only link text (`⚙`) | 1) Open any authenticated route 2) Inspect header controls | Settings navigation should have a descriptive accessible name | Header link appears as symbol text instead of explicit label | Header snapshot across routes | Resolved |
 | QA-A11Y-004 | `/recipes`, `/grocery-list`, `/prep-lists`, `/settings` | Accessibility | P2 | Automated DOM scan found potentially unlabeled form controls requiring manual confirmation | 1) Run baseline DOM scanner on route sequence 2) Compare input/select labels against a11y names | Form controls should be explicitly labeled | Scanner reports unlabeled controls (counts vary by route) | Playwright DOM-scan output | Resolved |
+| QA-MOBILE-001 | Global app shell, most visible on `/meal-plan` | Responsive layout | P2 | Browser header can be clipped by an iPhone's top safe area | 1) Open the browser UI on a notched iPhone 2) Test Safari and installed standalone PWA 3) Toggle Safari toolbar visibility | Header controls and first page content should remain below the device's unsafe top region | Header starts at the viewport edge because the shell has no safe-area offset contract | Physical iPhone verification matrix; `viewport-fit=cover` and shared safe-area offsets implemented | Implementation complete; physical verification pending |
 
 ## Route Completion
 
@@ -45,6 +46,7 @@
 ## Root-Cause Clusters
 
 - Error/retry handling under rapid route transitions and request throttling (mitigated; deterministic regression coverage added)
+- Browser/PWA top safe-area handling for notched iPhones (implemented; physical verification pending)
 
 ## Release Risk
 
