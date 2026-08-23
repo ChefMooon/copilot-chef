@@ -6,17 +6,14 @@ import type {
   DataArchiveSaveResult,
   RendererPlatform,
   ServerConfig,
+  BrowserConnection,
+  PairingCodeResult,
 } from "./types";
 
 const API_URL_KEY = "local-recipe-book.browser.api-url";
 const API_TOKEN_KEY = "local-recipe-book.browser.api-token";
 const CONNECTION_METADATA_KEY = "local-recipe-book.browser.connection-metadata";
 const SETTING_PREFIX = "local-recipe-book.browser.setting.";
-
-export type BrowserConnection = {
-  apiUrl: string;
-  token: string;
-};
 
 export type BrowserConnectionMetadata = {
   connectedAt: string | null;
@@ -226,6 +223,39 @@ async function getBrowserRuntimeConfig(): Promise<BrowserRuntimeConfig | null> {
   }
 }
 
+async function createBrowserPairingCode(): Promise<PairingCodeResult | null> {
+  const connection = getBrowserConnection();
+  if (!connection) return null;
+
+  const response = await fetch(`${connection.apiUrl}/api/pairing/code`, {
+    method: "POST",
+    cache: "no-store",
+    headers: { Authorization: `Bearer ${connection.token}` },
+  });
+  if (!response.ok) throw new Error("Could not create a pairing code.");
+  return (await response.json()) as PairingCodeResult;
+}
+
+async function redeemBrowserPairingCode(
+  apiUrl: string,
+  code: string
+): Promise<BrowserConnection> {
+  const normalizedApiUrl = normalizeApiUrl(apiUrl);
+  const response = await fetch(`${normalizedApiUrl}/api/pairing/redeem`, {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: code.trim() }),
+  });
+  if (!response.ok) throw new Error("Invalid or expired pairing code.");
+
+  const payload = (await response.json()) as { token?: unknown };
+  if (typeof payload.token !== "string" || !payload.token.trim()) {
+    throw new Error("The pairing response was invalid.");
+  }
+  return { apiUrl: normalizedApiUrl, token: payload.token };
+}
+
 async function resolveBrowserServerConfig(): Promise<ServerConfig> {
   const imported = importBrowserConnectionFromLocation();
   if (imported) {
@@ -365,6 +395,9 @@ export function createBrowserPlatform(): RendererPlatform {
     }),
     getLanStatus: async () => null,
     restartLanServices: async () => null,
+    createLanPairingCode: async () => null,
+    createBrowserPairingCode,
+    redeemBrowserPairingCode,
     revealMachineToken: async () => null,
     generateMachineToken: async () => {
       throw new Error("Machine token management is available in the desktop app.");

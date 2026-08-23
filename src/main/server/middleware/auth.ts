@@ -136,7 +136,7 @@ function getRequestId(c: Context): string | undefined {
 export function createAuthMiddleware(config: ServerConfig) {
   return async (c: Context, next: Next) => {
     const path = c.req.path;
-    if (path === "/api/health") {
+    if (path === "/api/health" || path === "/api/pairing/redeem") {
       return next();
     }
 

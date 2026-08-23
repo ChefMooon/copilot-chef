@@ -49,7 +49,7 @@ import {
   resetConfigCache,
 } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
-import { getPlatform, type LanStatus } from "@/lib/platform";
+import { getPlatform, type LanStatus, type PairingCodeResult } from "@/lib/platform";
 import { usePreferences } from "@/lib/preferences";
 import type { AppSettingTheme } from "@shared/config/settings";
 import {
@@ -357,6 +357,8 @@ export default function SettingsPage() {
   const [lanAdvertisedHostDraft, setLanAdvertisedHostDraft] = useState("");
   const [lanSaving, setLanSaving] = useState(false);
   const [lanQrModalOpen, setLanQrModalOpen] = useState(false);
+  const [lanPairingCode, setLanPairingCode] = useState<PairingCodeResult | null>(null);
+  const [lanPairingLoading, setLanPairingLoading] = useState(false);
   const [mealBankPlacement, setMealBankPlacement] =
     useState<MealBankPlacement>("right");
   const [recipeDefaultSort, setRecipeDefaultSort] =
@@ -980,6 +982,31 @@ export default function SettingsPage() {
       toast({ title: "Browser access token rotated." });
     } catch {
       toast({ title: "Could not rotate token.", variant: "error" });
+    }
+  };
+
+  const handleCreateLanPairingCode = async () => {
+    setLanPairingLoading(true);
+    try {
+      const result = await platform.createLanPairingCode();
+      setLanPairingCode(result);
+      if (!result) {
+        toast({ title: "Generate a machine token first.", variant: "error" });
+      }
+    } catch {
+      toast({ title: "Could not create pairing code.", variant: "error" });
+    } finally {
+      setLanPairingLoading(false);
+    }
+  };
+
+  const handleCopyLanPairingCode = async () => {
+    if (!lanPairingCode) return;
+    try {
+      await navigator.clipboard.writeText(lanPairingCode.code);
+      toast({ title: "Pairing code copied." });
+    } catch {
+      toast({ title: "Could not copy pairing code.", variant: "error" });
     }
   };
 
@@ -1906,7 +1933,37 @@ export default function SettingsPage() {
                   >
                     Show QR code
                   </Button>
+                  <Button
+                    disabled={lanPairingLoading || !machineApiKeyDraft}
+                    onClick={() => void handleCreateLanPairingCode()}
+                    type="button"
+                    variant="outline"
+                  >
+                    {lanPairingLoading ? "Creating..." : "Create PWA pairing code"}
+                  </Button>
                 </div>
+                {lanPairingCode ? (
+                  <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
+                    <label className={styles.fieldLabel}>PWA pairing code</label>
+                    <div className={styles.actionsRow}>
+                      <input
+                        aria-label="PWA pairing code"
+                        className={styles.select}
+                        inputMode="numeric"
+                        maxLength={4}
+                        readOnly
+                        type="text"
+                        value={lanPairingCode.code}
+                      />
+                      <Button onClick={() => void handleCopyLanPairingCode()} type="button" variant="outline">
+                        Copy code
+                      </Button>
+                    </div>
+                    <p className={styles.fieldHint}>
+                      Enter this code in the installed app before {new Date(lanPairingCode.expiresAt).toLocaleTimeString()}.
+                    </p>
+                  </div>
+                ) : null}
                 {lanQrModalOpen &&
                 browserConnectionUrl &&
                 lanStatus?.api.url &&

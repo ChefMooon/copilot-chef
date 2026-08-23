@@ -3,6 +3,7 @@ export const IPC_CHANNELS = [
   "server:getStatus",
   "lan:getStatus",
   "lan:restart",
+  "lan:pairing-code",
   "app:getVersion",
   "lifecycle:getStatus",
   "lifecycle:setLaunchAtLogin",
@@ -70,6 +71,7 @@ export type IpcInvokeMap = {
   }>;
   "lan:getStatus": () => Promise<unknown>;
   "lan:restart": () => Promise<{ api: unknown; web: unknown }>;
+  "lan:pairing-code": () => Promise<{ code: string; expiresAt: string; apiUrl: string | null } | null>;
   "app:getVersion": () => Promise<string>;
   "lifecycle:getStatus": () => Promise<{
     supported: boolean;

@@ -10,6 +10,7 @@ import {
   importBrowserConnectionFromLocation,
   markBrowserConnectionStale,
   saveBrowserConnection,
+  getPlatform,
 } from "@/lib/platform";
 import {
   getCachedConfig,
@@ -57,6 +58,7 @@ async function verifyConnection(apiUrl: string, token: string): Promise<void> {
 export default function ConnectPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const platform = getPlatform();
   const imported = useMemo(() => importBrowserConnectionFromLocation(), []);
   const saved = imported ?? getBrowserConnection();
   const metadata = getBrowserConnectionMetadata();
@@ -65,6 +67,9 @@ export default function ConnectPage() {
     saved?.apiUrl ?? cachedConfig?.url ?? ""
   );
   const [token, setToken] = useState(saved?.token ?? cachedConfig?.token ?? "");
+  const [pairingCode, setPairingCode] = useState("");
+  const [issuedPairingCode, setIssuedPairingCode] = useState<string | null>(null);
+  const [issuedPairingExpiry, setIssuedPairingExpiry] = useState<string | null>(null);
   const [hasSavedConnection, setHasSavedConnection] = useState(Boolean(saved));
   const [state, setState] = useState<ConnectionState>("idle");
   const [error, setError] = useState<string | null>(metadata.staleReason);
@@ -102,6 +107,68 @@ export default function ConnectPage() {
           ? connectionError.message
           : "Could not connect to Local Recipe Book."
       );
+    }
+  }
+
+  async function handlePair() {
+    const nextApiUrl = normalizeApiUrl(apiUrl);
+    const nextPairingCode = pairingCode;
+    if (!nextApiUrl || !nextPairingCode) {
+      setState("error");
+      setError("Enter the API URL and pairing code.");
+      return;
+    }
+
+    setState("checking");
+    setError(null);
+    try {
+      const connection = await platform.redeemBrowserPairingCode(
+        nextApiUrl,
+        nextPairingCode
+      );
+      await verifyConnection(connection.apiUrl, connection.token);
+      saveBrowserConnection(connection);
+      setHasSavedConnection(true);
+      resetConfigCache();
+      await loadServerConfig();
+      queryClient.clear();
+      setState("connected");
+      navigate("/");
+    } catch (connectionError) {
+      setState("error");
+      setError(
+        connectionError instanceof Error
+          ? connectionError.message
+          : "Could not pair this app."
+      );
+    }
+  }
+
+  async function handleCreatePairingCode() {
+    setState("checking");
+    setError(null);
+    try {
+      const result = await platform.createBrowserPairingCode();
+      if (!result) throw new Error("Connect this browser before creating a pairing code.");
+      setIssuedPairingCode(result.code);
+      setIssuedPairingExpiry(result.expiresAt);
+      setState("idle");
+    } catch (connectionError) {
+      setState("error");
+      setError(
+        connectionError instanceof Error
+          ? connectionError.message
+          : "Could not create a pairing code."
+      );
+    }
+  }
+
+  async function handleCopyIssuedPairingCode() {
+    if (!issuedPairingCode) return;
+    try {
+      await navigator.clipboard.writeText(issuedPairingCode);
+    } catch {
+      setError("Could not copy pairing code.");
     }
   }
 
@@ -152,6 +219,38 @@ export default function ConnectPage() {
             />
           </label>
 
+          <div className="border-t border-cream-dark pt-4">
+            <label className="block">
+              <span className="text-sm font-semibold text-text">
+                Pair installed app
+              </span>
+              <input
+                className="mt-1 w-full rounded-md border border-cream-dark px-3 py-2 text-sm uppercase tracking-widest outline-none focus:border-green"
+                inputMode="numeric"
+                maxLength={4}
+                onChange={(event) =>
+                  setPairingCode(event.target.value.replace(/\D/g, "").slice(0, 4))
+                }
+                pattern="[0-9]{4}"
+                placeholder="0000"
+                type="text"
+                value={pairingCode}
+              />
+            </label>
+            <p className="mt-2 text-xs text-text-muted">
+              Open the current pairing code on the desktop app or in your connected browser.
+            </p>
+            <Button
+              className="mt-3"
+              disabled={state === "checking"}
+              onClick={() => void handlePair()}
+              type="button"
+              variant="outline"
+            >
+              Pair with code
+            </Button>
+          </div>
+
           <label className="block">
             <span className="text-sm font-semibold text-text">Token</span>
             <input
@@ -165,6 +264,34 @@ export default function ConnectPage() {
           {error && (
             <div className="text-sm font-medium text-red-700">{error}</div>
           )}
+
+          {hasSavedConnection ? (
+            <div className="border-t border-cream-dark pt-4">
+              <p className="text-sm font-semibold text-text">Pair an installed app</p>
+              <Button
+                className="mt-2"
+                disabled={state === "checking"}
+                onClick={() => void handleCreatePairingCode()}
+                type="button"
+                variant="outline"
+              >
+                Create one-time pairing code
+              </Button>
+              {issuedPairingCode ? (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <code className="rounded-md bg-cream px-3 py-2 text-sm tracking-widest">
+                    {issuedPairingCode}
+                  </code>
+                  <Button onClick={() => void handleCopyIssuedPairingCode()} type="button" variant="outline">
+                    Copy code
+                  </Button>
+                  <span className="text-xs text-text-muted">
+                    Expires {new Date(issuedPairingExpiry ?? "").toLocaleTimeString()}
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="flex flex-wrap gap-2">
             <Button

@@ -96,6 +96,12 @@ export type MachineTokenResult = {
   metadata: LanStatus["machineToken"];
 };
 
+export type PairingCodeResult = {
+  code: string;
+  expiresAt: string;
+  apiUrl: string | null;
+};
+
 export type RendererPlatform = {
   runtime: RuntimeMode;
   capabilities: PlatformCapabilities;
@@ -119,6 +125,12 @@ export type RendererPlatform = {
   ) => Promise<DataArchiveSaveResult>;
   getLanStatus: () => Promise<LanStatus | null>;
   restartLanServices: () => Promise<unknown>;
+  createLanPairingCode: () => Promise<PairingCodeResult | null>;
+  createBrowserPairingCode: () => Promise<PairingCodeResult | null>;
+  redeemBrowserPairingCode: (
+    apiUrl: string,
+    code: string
+  ) => Promise<BrowserConnection>;
   revealMachineToken: () => Promise<string | null>;
   generateMachineToken: () => Promise<MachineTokenResult>;
   rotateMachineToken: () => Promise<MachineTokenResult>;
@@ -128,4 +140,9 @@ export type RendererPlatform = {
   isWindowMaximized?: () => Promise<boolean>;
   resetWindowLayout?: () => Promise<void>;
   closeWindow?: () => Promise<void>;
+};
+
+export type BrowserConnection = {
+  apiUrl: string;
+  token: string;
 };

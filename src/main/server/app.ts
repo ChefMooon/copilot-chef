@@ -18,6 +18,7 @@ import { recipesRoutes } from "./routes/recipes.js";
 import { preferencesRoutes } from "./routes/preferences.js";
 import { statsRoutes } from "./routes/stats.js";
 import { dataManagementRoutes } from "./routes/data-management.js";
+import { pairingRoutes } from "./routes/pairing.js";
 
 function getRequestId(c: Context): string | undefined {
   return (
@@ -43,12 +44,17 @@ function sendApiError(
   );
 }
 
+function logRequest(message: string, ...details: string[]): void {
+  if (message.includes("/api/health")) return;
+  console.log(message, ...details);
+}
+
 export function createApp(config: ServerConfig) {
   const app = new Hono();
 
   // Request logger
   // Default Hono logger emits method/path/status/duration only — no Authorization headers logged.
-  app.use("*", logger());
+  app.use("*", logger(logRequest));
 
   // CORS
   app.use(
@@ -130,6 +136,7 @@ export function createApp(config: ServerConfig) {
   app.route("/api", preferencesRoutes);
   app.route("/api", statsRoutes);
   app.route("/api", dataManagementRoutes);
+  app.route("/api", pairingRoutes);
 
   return app;
 }

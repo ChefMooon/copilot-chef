@@ -13,6 +13,8 @@ import type {
   UpdateEventHandlers,
   UpdateInfo,
   UpdateProgress,
+  PairingCodeResult,
+  BrowserConnection,
 } from "./types";
 
 export function createElectronPlatform(): RendererPlatform {
@@ -98,6 +100,24 @@ export function createElectronPlatform(): RendererPlatform {
       return (await api.invoke("lan:getStatus")) as LanStatus;
     },
     restartLanServices: () => api.invoke("lan:restart"),
+    createLanPairingCode: async () => {
+      return (await api.invoke("lan:pairing-code")) as PairingCodeResult | null;
+    },
+    createBrowserPairingCode: async () => null,
+    redeemBrowserPairingCode: async (apiUrl: string, code: string): Promise<BrowserConnection> => {
+      const response = await fetch(`${apiUrl.replace(/\/+$/, "")}/api/pairing/redeem`, {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+      if (!response.ok) throw new Error("Invalid or expired pairing code.");
+      const payload = (await response.json()) as { token?: unknown };
+      if (typeof payload.token !== "string" || !payload.token.trim()) {
+        throw new Error("The pairing response was invalid.");
+      }
+      return { apiUrl: apiUrl.replace(/\/+$/, ""), token: payload.token };
+    },
     revealMachineToken: async () => {
       return (await api.invoke("machine-token:reveal")) as string | null;
     },

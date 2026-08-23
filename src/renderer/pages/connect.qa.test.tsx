@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   navigateCalls: [] as string[],
   queryClearCalls: 0,
   resetCalls: 0,
+  pairingCalls: 0,
 }));
 
 vi.mock("@tanstack/react-query", () => ({
@@ -51,6 +52,12 @@ vi.mock("@/lib/platform", () => ({
   saveBrowserConnection: () => {
     mocks.savedCalls += 1;
   },
+  getPlatform: () => ({
+    redeemBrowserPairingCode: async (apiUrl: string) => {
+      mocks.pairingCalls += 1;
+      return { apiUrl, token: "paired-token" };
+    },
+  }),
 }));
 
 vi.mock("@/lib/config", () => ({
@@ -71,6 +78,7 @@ describe("ConnectPage QA baseline", () => {
     mocks.navigateCalls = [];
     mocks.queryClearCalls = 0;
     mocks.resetCalls = 0;
+    mocks.pairingCalls = 0;
 
     vi.stubGlobal("fetch", vi.fn(async (url: string) => {
       if (url.endsWith("/api/health")) {

@@ -19,6 +19,7 @@ export function useServerConnection(serverUrl: string) {
   const abortRef = useRef<AbortController | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const statusRef = useRef<ConnectionStatus>("connecting");
+  const mountedRef = useRef(false);
 
   const checkHealth = useCallback(async () => {
     const controller = new AbortController();
@@ -37,8 +38,10 @@ export function useServerConnection(serverUrl: string) {
         return;
       }
     } catch {
-      // Network error or abort — fall through
+      if (controller.signal.aborted || !mountedRef.current) return;
     }
+
+    if (controller.signal.aborted || !mountedRef.current) return;
 
     setStatus("disconnected");
     statusRef.current = "disconnected";
@@ -46,6 +49,7 @@ export function useServerConnection(serverUrl: string) {
     attemptRef.current++;
 
     timerRef.current = setTimeout(() => {
+      timerRef.current = null;
       setStatus("connecting");
       statusRef.current = "connecting";
       void checkHealth();
@@ -64,12 +68,15 @@ export function useServerConnection(serverUrl: string) {
   }, [checkHealth]);
 
   useEffect(() => {
+    mountedRef.current = true;
     void checkHealth();
 
     return () => {
+      mountedRef.current = false;
       abortRef.current?.abort();
       if (timerRef.current) {
         clearTimeout(timerRef.current);
+        timerRef.current = null;
       }
     };
   }, [checkHealth]);

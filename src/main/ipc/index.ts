@@ -16,6 +16,7 @@ import {
   revealMachineToken,
 } from "../server/lib/machine-token";
 import { getSetting, setSetting, getAllSettings } from "../settings/store";
+import { createPairingCode } from "../server/lib/pairing";
 import { getLifecycleStatus, setLaunchAtLogin } from "../lifecycle";
 import {
   DEFAULT_WINDOW_STATE_OPTIONS,
@@ -215,6 +216,15 @@ export function registerIpcHandlers(): void {
       await restartServer();
     }
     return result;
+  });
+
+  ipcMain.handle("lan:pairing-code", () => {
+    const token = revealMachineToken();
+    if (!token) return null;
+    return {
+      ...createPairingCode(token),
+      apiUrl: getServerInfo()?.url ?? null,
+    };
   });
 
   // ── Menu export ──────────────────────────────────────────

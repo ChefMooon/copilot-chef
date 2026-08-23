@@ -28,6 +28,7 @@ export type {
   LanStatus,
   LifecycleStatus,
   MachineTokenResult,
+  PairingCodeResult,
   RendererPlatform,
   ServerConfig,
   ServerStatus,

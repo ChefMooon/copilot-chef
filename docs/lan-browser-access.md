@@ -74,6 +74,28 @@ Notes:
 - Browser imports credentials from fragment and then strips it from address bar/history.
 - Credentials are persisted in browser local storage for reconnects.
 
+### Installed PWA pairing
+
+Safari tabs and installed iPadOS PWAs can use separate browser storage. A
+connection saved in Safari therefore cannot silently authenticate an installed
+PWA. To pair the installed app:
+
+1. Connect Safari using the current connection link or saved credentials.
+2. Open the Connect page and create a one-time pairing code. Desktop Settings
+  can also create a code as a recovery path.
+3. Open the installed PWA and enter the API URL and pairing code on its Connect
+  page.
+4. The PWA redeems the code, verifies the API, and stores the existing browser
+  access token in its own storage context.
+
+Pairing codes contain exactly four numeric digits, including leading zeroes
+such as `0042`. They expire after five minutes, are single-use, and are
+invalidated when the server restarts. These short codes are intended for
+convenience rather than high security, so use them only on a trusted LAN. A
+rotated or cleared machine token invalidates all previously paired browser and
+PWA clients. The pairing code itself does not contain the machine token and is
+not placed in a URL.
+
 ---
 
 ## 5. Settings and Keys
@@ -155,6 +177,18 @@ Likely causes:
 
 Fix:
 - Re-open current QR/link and reconnect.
+
+### Installed PWA asks to reconnect after Safari was paired
+
+This can be expected when Safari and the installed PWA have separate storage,
+or when the PWA's storage was cleared or evicted. Open the current pairing code
+from Safari or desktop Settings, then redeem it from the PWA Connect page.
+
+The pairing handoff remains plain HTTP in LAN mode. The successful redemption
+response necessarily carries the existing browser access token to the PWA, so
+pair only on a trusted local network and rotate browser access if the network
+or device is no longer trusted. HTTPS and certificate provisioning are outside
+the current LAN pairing implementation.
 
 ### Installed PWA shows an older interface
 

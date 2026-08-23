@@ -10,6 +10,7 @@ import { createApp } from "./app";
 import { LOOPBACK_HOST, resolveLanRuntimeSettings, type LanRuntimeSettings } from "./lib/lan";
 import { resolveDatabaseUrl } from "./lib/prisma";
 import { getSetting } from "../settings/store";
+import { clearPairingCodes } from "./lib/pairing";
 import type { ServerConfig } from "@shared/config/server-config";
 
 // ── State ────────────────────────────────────────────────────
@@ -136,6 +137,7 @@ export function closeHttpServer(server: Pick<ServerType, "close">): Promise<void
 
 // ── Public API ───────────────────────────────────────────────
 export async function startServer(): Promise<ServerInfo> {
+  clearPairingCodes();
   // Generate random auth token for this session
   serverToken = randomBytes(32).toString("hex");
 
@@ -197,6 +199,7 @@ export async function startServer(): Promise<ServerInfo> {
 }
 
 export async function stopServer(): Promise<void> {
+  clearPairingCodes();
   if (httpServer) {
     await closeHttpServer(httpServer);
     httpServer = null;
