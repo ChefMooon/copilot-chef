@@ -1,7 +1,5 @@
 import {
-  Fragment,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -9,8 +7,10 @@ import {
   type DragEvent,
 } from "react";
 import {
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   Copy,
   DotsSixVertical,
   PencilSimple,
@@ -41,6 +41,7 @@ import type {
 } from "@shared/types";
 
 import { PeriodNavigation } from "./PeriodNavigation";
+import { isInsertAfterPointer, showMealDragPreview, showSlotDragPreview } from "./dragPreview";
 import styles from "./meal-plan.module.css";
 
 type WeekViewProps = {
@@ -62,16 +63,72 @@ type WeekViewProps = {
 };
 
 type EdgeDirection = "previous" | "next";
-type EdgeZone = {
-  left: number;
-  right: number;
-  top: number;
-  bottom: number;
+
+type AutoScrollBand = "left" | "right" | "top" | "bottom";
+type BandActivity = Record<AutoScrollBand, boolean>;
+
+type WeekScrollState = {
+  canScrollLeft: boolean;
+  canScrollRight: boolean;
+  canScrollTop: boolean;
+  canScrollBottom: boolean;
+  isOverflowingX: boolean;
+  isOverflowingY: boolean;
 };
 
-type EdgeZones = Record<EdgeDirection, EdgeZone>;
+const initialWeekScrollState: WeekScrollState = {
+  canScrollLeft: false,
+  canScrollRight: false,
+  canScrollTop: false,
+  canScrollBottom: false,
+  isOverflowingX: false,
+  isOverflowingY: false,
+};
 
-const EDGE_NAVIGATION_DELAY = 800;
+const noActiveBands: BandActivity = {
+  left: false,
+  right: false,
+  top: false,
+  bottom: false,
+};
+
+const AUTO_SCROLL_BANDS: AutoScrollBand[] = ["left", "right", "top", "bottom"];
+
+const MEAL_PLAN_DRAG_MIME = "application/x-local-recipe-book-meal-plan-drag";
+
+const WALL_PUSH_FLIP_DELAY_MS = 500;
+const EDGE_SCROLL_BAND_PX = 72;
+const EDGE_SCROLL_BAND_Y_PX = 64;
+const EDGE_SCROLL_MIN_SPEED = 3;
+const EDGE_SCROLL_MAX_SPEED = 14;
+
+const WEEK_SCROLL_BAND_CLASS: Record<AutoScrollBand, string> = {
+  left: styles.weekScrollBandLeft,
+  right: styles.weekScrollBandRight,
+  top: styles.weekScrollBandTop,
+  bottom: styles.weekScrollBandBottom,
+};
+
+const WEEK_SCROLL_BAND_ICON: Record<AutoScrollBand, typeof ArrowLeft> = {
+  left: ArrowLeft,
+  right: ArrowRight,
+  top: ArrowUp,
+  bottom: ArrowDown,
+};
+
+const WEEK_SCROLL_FADE_CLASS: Record<AutoScrollBand, string> = {
+  left: styles.weekScrollFadeLeft,
+  right: styles.weekScrollFadeRight,
+  top: styles.weekScrollFadeTop,
+  bottom: styles.weekScrollFadeBottom,
+};
+
+const WEEK_SCROLL_CLIP_KEY: Record<AutoScrollBand, keyof WeekScrollState> = {
+  left: "canScrollLeft",
+  right: "canScrollRight",
+  top: "canScrollTop",
+  bottom: "canScrollBottom",
+};
 
 export function WeekView({
   date,
@@ -91,11 +148,22 @@ export function WeekView({
     null
   );
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
+  const [dropInsertAfter, setDropInsertAfter] = useState<boolean | null>(null);
   const [isApplyingDrop, setIsApplyingDrop] = useState(false);
-  const [edgeZones, setEdgeZones] = useState<EdgeZones | null>(null);
   const [edgeHoverDirection, setEdgeHoverDirection] =
     useState<EdgeDirection | null>(null);
+  const [scrollState, setScrollState] =
+    useState<WeekScrollState>(initialWeekScrollState);
+  const [autoScrollBands, setAutoScrollBands] =
+    useState<BandActivity>(noActiveBands);
   const boardRef = useRef<HTMLDivElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const scrollStateRef = useRef<WeekScrollState>(initialWeekScrollState);
+  const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const autoScrollRafIdRef = useRef<number | null>(null);
+  const isAutoScrollLoopActiveRef = useRef(false);
+  const autoScrollFrameRef = useRef<() => void>(() => {});
+  const bandActiveRef = useRef<BandActivity>(noActiveBands);
   const edgeNavigationTimersRef = useRef<Record<EdgeDirection, number | null>>({
     previous: null,
     next: null,
@@ -246,46 +314,134 @@ export function WeekView({
     setEdgeHoverDirection(null);
   };
 
-  const getEdgeDirection = (
-    event: DragEvent<HTMLElement>
-  ): EdgeDirection | null => {
-    const boardRect = boardRef.current?.getBoundingClientRect();
-    if (!edgeZones || !boardRect) {
-      return null;
-    }
-
-    const pointerX = event.clientX - boardRect.left;
-    const pointerY = event.clientY - boardRect.top;
+  const setBandActivity = (next: BandActivity) => {
+    const previous = bandActiveRef.current;
     if (
-      pointerY < edgeZones.previous.top ||
-      pointerY >= edgeZones.previous.bottom
+      previous.left === next.left &&
+      previous.right === next.right &&
+      previous.top === next.top &&
+      previous.bottom === next.bottom
     ) {
-      return null;
-    }
-
-    if (
-      pointerX >= edgeZones.previous.left &&
-      pointerX < edgeZones.previous.right
-    ) {
-      return "previous";
-    }
-
-    if (pointerX >= edgeZones.next.left && pointerX < edgeZones.next.right) {
-      return "next";
-    }
-
-    return null;
-  };
-
-  const scheduleEdgeNavigation = (direction: EdgeDirection) => {
-    if (edgeNavigationLockedRef.current) {
       return;
     }
 
+    bandActiveRef.current = next;
+    setAutoScrollBands(next);
+  };
+
+  const stopAutoScrollLoop = () => {
+    if (autoScrollRafIdRef.current !== null) {
+      window.cancelAnimationFrame(autoScrollRafIdRef.current);
+      autoScrollRafIdRef.current = null;
+    }
+    isAutoScrollLoopActiveRef.current = false;
+    setBandActivity(noActiveBands);
+  };
+
+  const computeEdgeSpeed = (
+    distanceToEdge: number,
+    bandPx: number,
+    sign: 1 | -1
+  ) => {
+    const ratio = Math.min(Math.max(1 - distanceToEdge / bandPx, 0), 1);
+    return (
+      sign *
+      (EDGE_SCROLL_MIN_SPEED +
+        (EDGE_SCROLL_MAX_SPEED - EDGE_SCROLL_MIN_SPEED) * ratio)
+    );
+  };
+
+  const evaluateBandActivity = (): BandActivity => {
+    const scroller = scrollerRef.current;
+    const pointer = lastPointerRef.current;
+    if (!scroller || !pointer) {
+      return noActiveBands;
+    }
+
+    const rect = scroller.getBoundingClientRect();
+    return {
+      left:
+        pointer.x >= rect.left && pointer.x < rect.left + EDGE_SCROLL_BAND_PX,
+      right:
+        pointer.x <= rect.right && pointer.x > rect.right - EDGE_SCROLL_BAND_PX,
+      top: pointer.y >= rect.top && pointer.y < rect.top + EDGE_SCROLL_BAND_Y_PX,
+      bottom:
+        pointer.y <= rect.bottom && pointer.y > rect.bottom - EDGE_SCROLL_BAND_Y_PX,
+    };
+  };
+
+  const runAutoScrollFrame = () => {
+    autoScrollRafIdRef.current = null;
+    const scroller = scrollerRef.current;
+    const pointer = lastPointerRef.current;
+    if (!scroller || !pointer || !isAutoScrollLoopActiveRef.current) {
+      return;
+    }
+
+    const rect = scroller.getBoundingClientRect();
+    let vx = 0;
+    let vy = 0;
+    if (pointer.x < rect.left + EDGE_SCROLL_BAND_PX) {
+      vx = computeEdgeSpeed(pointer.x - rect.left, EDGE_SCROLL_BAND_PX, -1);
+    } else if (pointer.x > rect.right - EDGE_SCROLL_BAND_PX) {
+      vx = computeEdgeSpeed(rect.right - pointer.x, EDGE_SCROLL_BAND_PX, 1);
+    }
+    if (pointer.y < rect.top + EDGE_SCROLL_BAND_Y_PX) {
+      vy = computeEdgeSpeed(pointer.y - rect.top, EDGE_SCROLL_BAND_Y_PX, -1);
+    } else if (pointer.y > rect.bottom - EDGE_SCROLL_BAND_Y_PX) {
+      vy = computeEdgeSpeed(rect.bottom - pointer.y, EDGE_SCROLL_BAND_Y_PX, 1);
+    }
+
+    const maxScrollLeft = Math.max(
+      scroller.scrollWidth - scroller.clientWidth,
+      0
+    );
+    const maxScrollTop = Math.max(
+      scroller.scrollHeight - scroller.clientHeight,
+      0
+    );
+    scroller.scrollLeft = Math.min(Math.max(scroller.scrollLeft + vx, 0), maxScrollLeft);
+    scroller.scrollTop = Math.min(Math.max(scroller.scrollTop + vy, 0), maxScrollTop);
+
+    const activity = evaluateBandActivity();
+    setBandActivity(activity);
+
+    const atWallLeft = activity.left && scroller.scrollLeft <= 0;
+    const atWallRight = activity.right && scroller.scrollLeft >= maxScrollLeft;
+    if (atWallLeft) {
+      scheduleEdgeNavigation("previous");
+    } else if (atWallRight) {
+      scheduleEdgeNavigation("next");
+    } else {
+      clearEdgeNavigationState();
+    }
+
+    autoScrollRafIdRef.current = window.requestAnimationFrame(stepAutoScrollFrame);
+  };
+
+  const stepAutoScrollFrame = () => {
+    autoScrollFrameRef.current();
+  };
+
+  autoScrollFrameRef.current = runAutoScrollFrame;
+
+  const startAutoScrollLoop = () => {
+    if (isAutoScrollLoopActiveRef.current) {
+      return;
+    }
+
+    isAutoScrollLoopActiveRef.current = true;
+    autoScrollRafIdRef.current = window.requestAnimationFrame(stepAutoScrollFrame);
+  };
+
+  const scheduleEdgeNavigation = (direction: EdgeDirection) => {
     if (edgeHoverDirectionRef.current !== direction) {
       clearEdgeTimers();
+      edgeNavigationLockedRef.current = false;
       edgeHoverDirectionRef.current = direction;
       setEdgeHoverDirection(direction);
+    } else if (edgeNavigationLockedRef.current) {
+      return;
     }
 
     if (edgeNavigationTimersRef.current[direction] !== null) {
@@ -306,72 +462,79 @@ export function WeekView({
       edgeNavigationLockedRef.current = true;
       setEdgeHoverDirection(direction);
       setDate(nextDate);
-    }, EDGE_NAVIGATION_DELAY);
+    }, WALL_PUSH_FLIP_DELAY_MS);
   };
 
-  useLayoutEffect(() => {
-    const board = boardRef.current;
-    if (!board) {
+  const updateScrollState = () => {
+    const scroller = scrollerRef.current;
+    if (!scroller) {
       return;
     }
 
-    const measureEdgeZones = () => {
-      const mondayHeader = board.querySelector<HTMLElement>(
-        "[data-week-day-index='0']"
-      );
-      const sundayHeader = board.querySelector<HTMLElement>(
-        "[data-week-day-index='6']"
-      );
-      if (!mondayHeader || !sundayHeader) {
-        return;
-      }
-
-      const boardRect = board.getBoundingClientRect();
-      const mondayRect = mondayHeader.getBoundingClientRect();
-      const sundayRect = sundayHeader.getBoundingClientRect();
-      const mealTop = Math.max(mondayRect.bottom - boardRect.top, 0);
-      const mealBottom = Math.max(boardRect.bottom - boardRect.top, mealTop);
-
-      setEdgeZones({
-        previous: {
-          left: mondayRect.left - boardRect.left,
-          right: mondayRect.left - boardRect.left + mondayRect.width * 0.25,
-          top: mealTop,
-          bottom: mealBottom,
-        },
-        next: {
-          left: sundayRect.right - boardRect.left - sundayRect.width * 0.25,
-          right: sundayRect.right - boardRect.left,
-          top: mealTop,
-          bottom: mealBottom,
-        },
-      });
+    const next: WeekScrollState = {
+      canScrollLeft: scroller.scrollLeft > 0,
+      canScrollRight:
+        scroller.scrollLeft < scroller.scrollWidth - scroller.clientWidth - 1,
+      canScrollTop: scroller.scrollTop > 0,
+      canScrollBottom:
+        scroller.scrollTop < scroller.scrollHeight - scroller.clientHeight - 1,
+      isOverflowingX: scroller.scrollWidth > scroller.clientWidth + 1,
+      isOverflowingY: scroller.scrollHeight > scroller.clientHeight + 1,
     };
+    const previous = scrollStateRef.current;
 
-    measureEdgeZones();
-    window.addEventListener("resize", measureEdgeZones);
+    if (
+      previous.canScrollLeft !== next.canScrollLeft ||
+      previous.canScrollRight !== next.canScrollRight ||
+      previous.canScrollTop !== next.canScrollTop ||
+      previous.canScrollBottom !== next.canScrollBottom ||
+      previous.isOverflowingX !== next.isOverflowingX ||
+      previous.isOverflowingY !== next.isOverflowingY
+    ) {
+      scrollStateRef.current = next;
+      setScrollState(next);
+    }
+  };
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) {
+      return;
+    }
+
+    updateScrollState();
+    scroller.addEventListener("scroll", updateScrollState, { passive: true });
+    window.addEventListener("resize", updateScrollState);
     const resizeObserver =
       typeof ResizeObserver === "undefined"
         ? null
-        : new ResizeObserver(measureEdgeZones);
-    resizeObserver?.observe(board);
+        : new ResizeObserver(updateScrollState);
+    resizeObserver?.observe(scroller);
 
     return () => {
-      window.removeEventListener("resize", measureEdgeZones);
+      scroller.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
       resizeObserver?.disconnect();
     };
-  }, [date, rowMealTypes.length]);
+  }, [date]);
 
   useEffect(() => {
     return () => {
       clearEdgeTimers();
+      if (autoScrollRafIdRef.current !== null) {
+        window.cancelAnimationFrame(autoScrollRafIdRef.current);
+        autoScrollRafIdRef.current = null;
+      }
+      isAutoScrollLoopActiveRef.current = false;
     };
   }, []);
 
   const clearDragState = () => {
+    stopAutoScrollLoop();
     clearEdgeNavigationState();
     setDraggedPayload(null);
     setDropTargetKey(null);
+    setDropInsertAfter(null);
     setIsApplyingDrop(false);
   };
 
@@ -397,8 +560,7 @@ export function WeekView({
 
     const dragTypes = Array.from(event.dataTransfer.types ?? []);
     return (
-      dragTypes.includes("application/x-local-recipe-book-meal-plan-drag") ||
-      dragTypes.includes("text/plain")
+      dragTypes.includes(MEAL_PLAN_DRAG_MIME) || dragTypes.includes("text/plain")
     );
   };
 
@@ -422,6 +584,10 @@ export function WeekView({
     setDraggedPayload({
       kind: "meal",
       mealId: meal.id,
+    });
+    showMealDragPreview(event.dataTransfer, {
+      name: meal.name,
+      subTypeName: meal.mealSubTypeDefinition?.name ?? null,
     });
   };
 
@@ -456,35 +622,14 @@ export function WeekView({
     setMealPlanDragPayload(event.dataTransfer, payload);
     setDraggedPayload(payload);
 
-    const preview = document.createElement("div");
-    preview.className = styles.slotDragPreview;
-
-    const heading = document.createElement("div");
-    heading.className = styles.slotDragPreviewTitle;
-    heading.textContent = `Dragging ${slotMeals.length} ${slotType} meals`;
-
-    const names = document.createElement("div");
-    names.className = styles.slotDragPreviewList;
-    names.textContent = slotMeals
-      .slice(0, 3)
-      .map((meal) => meal.name)
-      .join(" • ");
-
-    const suffix =
-      slotMeals.length > 3 ? ` +${slotMeals.length - 3} more` : "";
-    const meta = document.createElement("div");
-    meta.className = styles.slotDragPreviewMeta;
-    meta.textContent = `${slotDay.toLocaleDateString()}${suffix}`;
-
-    preview.append(heading, names, meta);
-    document.body.appendChild(preview);
-
-    if (typeof event.dataTransfer.setDragImage === "function") {
-      event.dataTransfer.setDragImage(preview, 24, 18);
-    }
-
-    requestAnimationFrame(() => {
-      preview.remove();
+    const suffix = slotMeals.length > 3 ? ` +${slotMeals.length - 3} more` : "";
+    showSlotDragPreview(event.dataTransfer, {
+      title: `Dragging ${slotMeals.length} ${slotType} meals`,
+      namesLine: slotMeals
+        .slice(0, 3)
+        .map((meal) => meal.name)
+        .join(" • "),
+      metaLine: `${slotDay.toLocaleDateString()}${suffix}`,
     });
   };
 
@@ -497,6 +642,7 @@ export function WeekView({
       return;
     }
 
+    stopAutoScrollLoop();
     setIsApplyingDrop(true);
 
     try {
@@ -506,31 +652,32 @@ export function WeekView({
     }
   };
 
+  const handleDragTerminated = () => {
+    stopAutoScrollLoop();
+    clearEdgeNavigationState();
+  };
+
   const onBoardDragOverCapture = (event: DragEvent<HTMLDivElement>) => {
     const transferPayload = getMealPlanDragPayload(event.dataTransfer);
     const dragTypes = Array.from(event.dataTransfer.types ?? []);
     const hasRecognizedDragType =
-      dragTypes.includes("application/x-local-recipe-book-meal-plan-drag") ||
-      dragTypes.includes("text/plain");
+      dragTypes.includes(MEAL_PLAN_DRAG_MIME) || dragTypes.includes("text/plain");
     const activePayload =
       transferPayload ?? (hasRecognizedDragType ? draggedPayload : null);
 
-    if (!canHandleDragOver(event, activePayload) || !activePayload) {
-      return;
-    }
+    lastPointerRef.current = { x: event.clientX, y: event.clientY };
 
-    const direction = getEdgeDirection(event);
-    if (!direction) {
-      clearEdgeNavigationState();
+    if (!canHandleDragOver(event, activePayload)) {
       return;
     }
 
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
-    if (draggedPayload === null) {
+    if (activePayload && draggedPayload === null) {
       setDraggedPayload(activePayload);
     }
-    scheduleEdgeNavigation(direction);
+
+    startAutoScrollLoop();
   };
 
   const onBoardDragLeaveCapture = (event: DragEvent<HTMLDivElement>) => {
@@ -539,6 +686,7 @@ export function WeekView({
       return;
     }
 
+    stopAutoScrollLoop();
     clearEdgeNavigationState();
   };
 
@@ -556,52 +704,61 @@ export function WeekView({
           {startLabel} - {endLabel}
         </span>
       </PeriodNavigation>
-      <div className={styles.weekBoardScroller}>
+      <div className={styles.weekBoardScrollerWrap}>
+        <div className={styles.weekBoardScroller} ref={scrollerRef}>
         <div
           className={styles.weekBoard}
           onDragLeaveCapture={onBoardDragLeaveCapture}
           onDragOverCapture={onBoardDragOverCapture}
-          onDragEndCapture={clearEdgeNavigationState}
-          onDropCapture={clearEdgeNavigationState}
+          onDragEndCapture={handleDragTerminated}
+          onDropCapture={handleDragTerminated}
           ref={boardRef}
         >
-          <div className={styles.weekBoardCorner}>Meal</div>
-          {days.map((day, index) => {
-            const todayMatch = isSameDay(day, today);
-            const profileContext = dayProfileContexts[index];
-            const isMuted =
-              highlightedProfileId != null &&
-              profileContext.profile.id !== highlightedProfileId;
+          <div
+            className={`${styles.weekBoardHeader} ${scrollState.canScrollBottom ? styles.weekShadowBottom : ""}`}
+          >
+            <div
+              className={`${styles.weekBoardCorner} ${scrollState.canScrollRight ? styles.weekShadowRight : ""}`}
+            >
+              Meal
+            </div>
+            {days.map((day, index) => {
+              const todayMatch = isSameDay(day, today);
+              const profileContext = dayProfileContexts[index];
+              const isMuted =
+                highlightedProfileId != null &&
+                profileContext.profile.id !== highlightedProfileId;
 
-            return (
-              <div
-                className={`${styles.weekDayHeader} ${todayMatch ? styles.weekDayHeaderToday : ""} ${profileContext.isProfileStart ? styles.weekDayHeaderProfileStart : ""} ${isMuted ? styles.weekProfileMuted : ""}`}
-                data-week-day-index={index}
-                key={`header-${day.toISOString()}`}
-              >
-                <span className={styles.weekColWeekday}>{DAYS[day.getDay()]}</span>
-                <span
-                  className={`${styles.weekColNum} ${todayMatch ? styles.weekColNumToday : ""}`}
+              return (
+                <div
+                  className={`${styles.weekDayHeader} ${todayMatch ? styles.weekDayHeaderToday : ""} ${profileContext.isProfileStart ? styles.weekDayHeaderProfileStart : ""} ${isMuted ? styles.weekProfileMuted : ""}`}
+                  data-week-day-index={index}
+                  key={`header-${day.toISOString()}`}
                 >
-                  {day.getDate()}
-                </span>
-                <span
-                  className={styles.weekProfileChip}
-                  style={{
-                    "--profile-accent": profileContext.accentColor,
-                  } as CSSProperties}
-                  title={profileContext.rangeLabel ?? profileContext.profile.description ?? undefined}
-                >
-                  {profileContext.profile.name}
-                </span>
-                <span
-                  aria-hidden="true"
-                  className={styles.weekDayHeaderAccent}
-                  style={{ backgroundColor: profileContext.accentColor }}
-                />
-              </div>
-            );
-          })}
+                  <span className={styles.weekColWeekday}>{DAYS[day.getDay()]}</span>
+                  <span
+                    className={`${styles.weekColNum} ${todayMatch ? styles.weekColNumToday : ""}`}
+                  >
+                    {day.getDate()}
+                  </span>
+                  <span
+                    className={styles.weekProfileChip}
+                    style={{
+                      "--profile-accent": profileContext.accentColor,
+                    } as CSSProperties}
+                    title={profileContext.rangeLabel ?? profileContext.profile.description ?? undefined}
+                  >
+                    {profileContext.profile.name}
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className={styles.weekDayHeaderAccent}
+                    style={{ backgroundColor: profileContext.accentColor }}
+                  />
+                </div>
+              );
+            })}
+          </div>
 
           {days.length > 0
             ? rowMealTypes.map((type) => {
@@ -609,8 +766,14 @@ export function WeekView({
                   rowMealTypeConfigs.get(type) ?? getTypeConfig(type, mergedMealTypes);
 
                 return (
-                  <Fragment key={type}>
-                    <div className={styles.weekTypeCell}>
+                  <div
+                    className={styles.weekBoardRow}
+                    data-week-board-row={type}
+                    key={type}
+                  >
+                    <div
+                      className={`${styles.weekTypeCell} ${scrollState.canScrollRight ? styles.weekTypeCellShadowRight : ""}`}
+                    >
                       <span
                         className={styles.weekTypeDot}
                         style={{ background: typeConfig.dot }}
@@ -650,11 +813,12 @@ export function WeekView({
                             draggedPayload ? (
                               <div
                                 className={`${styles.weekSlotEmpty} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
-                                onDragLeave={() =>
+                                onDragLeave={() => {
                                   setDropTargetKey((current) =>
                                     current === emptyTargetKey ? null : current
-                                  )
-                                }
+                                  );
+                                  setDropInsertAfter(null);
+                                }}
                                 onDragOver={(event) => {
                                   const activePayload =
                                     draggedPayload ?? getMealPlanDragPayload(event.dataTransfer);
@@ -794,6 +958,14 @@ export function WeekView({
                                       `${meal.type}-${meal.date.toISOString()}-${meal.name}`
                                     }
                                   >
+                                    {dropTargetKey === mealTargetKey &&
+                                    dropInsertAfter !== null ? (
+                                      <div
+                                        aria-hidden="true"
+                                        className={`${styles.slotInsertCaret} ${dropInsertAfter ? styles.slotInsertCaretBottom : styles.slotInsertCaretTop}`}
+                                        data-week-insert-caret={mealTargetKey}
+                                      />
+                                    ) : null}
                                     <button
                                       className={`${styles.weekSlotMealCard} ${hasSubType ? styles.weekSlotMealCardHasSubType : ""} ${hasNotes ? styles.weekSlotMealCardHasNotes : ""} ${isTitleOnly ? styles.weekSlotMealCardTitleOnly : ""} ${draggedMealId === meal.id ? styles.mealCardDragging : ""} ${draggedSlotMealIds?.has(meal.id ?? "") ? styles.slotMealInDraggedGroup : ""} ${dropTargetKey === mealTargetKey ? styles.slotDropTarget : ""}`}
                                       data-meal-id={meal.id}
@@ -801,11 +973,12 @@ export function WeekView({
                                       draggable={!isApplyingDrop && !dragDisabled}
                                       onClick={() => onEdit(meal)}
                                       onDragEnd={scheduleClearDragState}
-                                      onDragLeave={() =>
+                                      onDragLeave={() => {
                                         setDropTargetKey((current) =>
                                           current === mealTargetKey ? null : current
-                                        )
-                                      }
+                                        );
+                                        setDropInsertAfter(null);
+                                      }}
                                       onDragOver={(event) => {
                                         const activePayload =
                                           draggedPayload ?? getMealPlanDragPayload(event.dataTransfer);
@@ -821,10 +994,16 @@ export function WeekView({
                                           return;
                                         }
 
+                                        const insertAfter = isInsertAfterPointer(
+                                          event.clientY,
+                                          event.currentTarget.getBoundingClientRect()
+                                        );
+
                                         event.preventDefault();
                                         event.stopPropagation();
                                         event.dataTransfer.dropEffect = "move";
                                         setDropTargetKey(mealTargetKey);
+                                        setDropInsertAfter(insertAfter);
                                         if (activePayload) {
                                           setDraggedPayload(activePayload);
                                         }
@@ -833,9 +1012,10 @@ export function WeekView({
                                       onDrop={async (event) => {
                                         event.preventDefault();
                                         event.stopPropagation();
-                                        const rect = event.currentTarget.getBoundingClientRect();
-                                        const insertAfter =
-                                          event.clientY > rect.top + rect.height / 2;
+                                        const insertAfter = isInsertAfterPointer(
+                                          event.clientY,
+                                          event.currentTarget.getBoundingClientRect()
+                                        );
                                         const payload = getActiveDropPayload(event);
                                         if (!payload) {
                                           scheduleClearDragState();
@@ -967,56 +1147,54 @@ export function WeekView({
                             </div>
                           )}
                         </div>
-                      );
-                    })}
-                  </Fragment>
-                );
-              })
-            : null}
-          {edgeZones ? (
-            <>
-              {(["previous", "next"] as const)
-                .map((direction) => {
-                const zone = edgeZones[direction];
-                const isActive =
-                  draggedPayload !== null && edgeHoverDirection === direction;
-
-                return (
-                  <div
-                    aria-hidden="true"
-                    className={`${styles.weekEdgeZone} ${isActive ? styles.weekEdgeZoneActive : ""}`}
-                    data-week-edge-zone={direction}
-                    key={direction}
-                    style={{
-                      left: zone.left,
-                      top: zone.top,
-                      width: Math.max(zone.right - zone.left, 0),
-                      height: Math.max(zone.bottom - zone.top, 0),
-                    }}
-                  >
-                    {isActive ? (
-                      direction === "previous" ? (
-                        <ArrowLeft
-                          aria-hidden="true"
-                          className={styles.weekEdgeZoneArrow}
-                          data-week-edge-arrow={direction}
-                          size={24}
-                        />
-                      ) : (
-                        <ArrowRight
-                          aria-hidden="true"
-                          className={styles.weekEdgeZoneArrow}
-                          data-week-edge-arrow={direction}
-                          size={24}
-                        />
-                      )
-                    ) : null}
+                       );
+                     })}
                   </div>
                 );
-              })}
-            </>
-          ) : null}
+              })
+             : null}
         </div>
+        </div>
+        {AUTO_SCROLL_BANDS.map((band) => {
+          const BandIcon = WEEK_SCROLL_BAND_ICON[band];
+          const bandDirection =
+            band === "left" ? "previous" : band === "right" ? "next" : null;
+          const isFlipping =
+            bandDirection !== null &&
+            autoScrollBands[band] &&
+            edgeHoverDirection === bandDirection;
+
+          return (
+            <div
+              aria-hidden="true"
+              className={`${styles.weekScrollBand} ${WEEK_SCROLL_BAND_CLASS[band]} ${autoScrollBands[band] ? styles.weekScrollBandActive : ""} ${isFlipping ? styles.weekScrollBandFlipping : ""}`}
+              data-week-scroll-band={band}
+              key={band}
+            >
+              {autoScrollBands[band] ? (
+                <BandIcon
+                  aria-hidden="true"
+                  className={styles.weekScrollBandArrow}
+                  size={24}
+                  weight={isFlipping ? "fill" : "regular"}
+                />
+              ) : null}
+            </div>
+          );
+        })}
+        {AUTO_SCROLL_BANDS.map((band) => {
+          const isClipped = scrollState[WEEK_SCROLL_CLIP_KEY[band]];
+          const isEngaged = isClipped && autoScrollBands[band];
+
+          return (
+            <div
+              aria-hidden="true"
+              className={`${styles.weekScrollFade} ${WEEK_SCROLL_FADE_CLASS[band]} ${isClipped ? styles.weekScrollFadeVisible : ""} ${isEngaged ? styles.weekScrollFadeIntense : ""}`}
+              data-week-scroll-fade={band}
+              key={`fade-${band}`}
+            />
+          );
+        })}
       </div>
     </div>
   );

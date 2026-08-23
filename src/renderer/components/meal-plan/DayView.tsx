@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from "react";
+import { useState, type CSSProperties, type DragEvent } from "react";
 import { PencilSimple, DotsSixVertical } from "@phosphor-icons/react";
 
 import {
@@ -19,6 +19,7 @@ import {
 import type { MealTypeProfilePayload } from "@shared/types";
 
 import { PeriodNavigation } from "./PeriodNavigation";
+import { isInsertAfterPointer, showSlotDragPreview } from "./dragPreview";
 import styles from "./meal-plan.module.css";
 
 type DayViewProps = {
@@ -162,35 +163,14 @@ export function DayView({
     setMealPlanDragPayload(event.dataTransfer, payload);
     setDraggedPayload(payload);
 
-    const preview = document.createElement("div");
-    preview.className = styles.slotDragPreview;
-
-    const heading = document.createElement("div");
-    heading.className = styles.slotDragPreviewTitle;
-    heading.textContent = `Dragging ${slotMeals.length} ${slotType} meals`;
-
-    const names = document.createElement("div");
-    names.className = styles.slotDragPreviewList;
-    names.textContent = slotMeals
-      .slice(0, 3)
-      .map((meal) => meal.name)
-      .join(" • ");
-
-    const suffix =
-      slotMeals.length > 3 ? ` +${slotMeals.length - 3} more` : "";
-    const meta = document.createElement("div");
-    meta.className = styles.slotDragPreviewMeta;
-    meta.textContent = `${date.toLocaleDateString()}${suffix}`;
-
-    preview.append(heading, names, meta);
-    document.body.appendChild(preview);
-
-    if (typeof event.dataTransfer.setDragImage === "function") {
-      event.dataTransfer.setDragImage(preview, 24, 18);
-    }
-
-    requestAnimationFrame(() => {
-      preview.remove();
+    const suffix = slotMeals.length > 3 ? ` +${slotMeals.length - 3} more` : "";
+    showSlotDragPreview(event.dataTransfer, {
+      title: `Dragging ${slotMeals.length} ${slotType} meals`,
+      namesLine: slotMeals
+        .slice(0, 3)
+        .map((meal) => meal.name)
+        .join(" • "),
+      metaLine: `${date.toLocaleDateString()}${suffix}`,
     });
   };
 
@@ -441,8 +421,10 @@ export function DayView({
                           onDrop={async (event) => {
                             event.preventDefault();
                             event.stopPropagation();
-                            const rect = event.currentTarget.getBoundingClientRect();
-                            const insertAfter = event.clientY > rect.top + rect.height / 2;
+                            const insertAfter = isInsertAfterPointer(
+                              event.clientY,
+                              event.currentTarget.getBoundingClientRect()
+                            );
                             const payload = getMealPlanDragPayload(event.dataTransfer);
                             if (!payload) {
                               scheduleClearDragState();

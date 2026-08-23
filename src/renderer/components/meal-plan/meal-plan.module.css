@@ -1116,47 +1116,151 @@
   min-height: 360px;
 }
 
-.weekBoardScroller {
-  overflow-x: auto;
-  max-width: 100%;
-  overscroll-behavior-x: contain;
-}
-
-.weekBoard {
-  --week-grid-border: color-mix(in srgb, var(--text-muted) 28%, var(--card));
+.weekBoardScrollerWrap {
   position: relative;
-  display: grid;
-  grid-template-columns: 128px repeat(7, minmax(128px, 1fr));
-  min-width: 1040px;
 }
 
-.weekEdgeZone {
+.weekBoardScroller {
+  overflow: auto;
+  max-width: 100%;
+  max-height: calc(100vh - var(--app-titlebar-height, 64px) - 13rem);
+  max-height: calc(100dvh - var(--app-titlebar-height, 64px) - 13rem);
+  overscroll-behavior: contain;
+}
+
+.weekScrollBand {
   position: absolute;
-  z-index: 3;
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid transparent;
   color: color-mix(in srgb, var(--primary) 72%, var(--card));
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
-  transition: background 0.16s, border-color 0.16s, color 0.16s, opacity 0.16s, visibility 0.16s;
+  transition: background 0.16s, color 0.16s, opacity 0.16s, visibility 0.16s;
 }
 
-.weekEdgeZoneActive {
-  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+.weekScrollBandLeft {
+  inset: 0 auto 0 0;
+  width: 72px;
+}
+
+.weekScrollBandRight {
+  inset: 0 0 0 auto;
+  width: 72px;
+}
+
+.weekScrollBandTop {
+  inset: 0 0 auto 0;
+  height: 64px;
+}
+
+.weekScrollBandBottom {
+  inset: auto 0 0 0;
+  height: 64px;
+}
+
+.weekScrollBandActive {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--accent);
   opacity: 1;
   visibility: visible;
 }
 
-.weekEdgeZoneArrow {
+.weekScrollBandFlipping {
+  background: color-mix(in srgb, var(--accent) 26%, transparent);
+  color: var(--accent);
+}
+
+.weekScrollBandArrow {
   filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--card) 60%, transparent));
 }
 
+.weekScrollFade {
+  position: absolute;
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s;
+}
+
+.weekScrollFadeTop {
+  inset: 0 0 auto 0;
+  height: 26px;
+  background: linear-gradient(180deg, var(--card) 4%, transparent);
+}
+
+.weekScrollFadeBottom {
+  inset: auto 0 0 0;
+  height: 26px;
+  background: linear-gradient(0deg, var(--card) 4%, transparent);
+}
+
+.weekScrollFadeLeft {
+  inset: 0 auto 0 0;
+  width: 26px;
+  background: linear-gradient(90deg, var(--card) 4%, transparent);
+}
+
+.weekScrollFadeRight {
+  inset: 0 0 0 auto;
+  width: 26px;
+  background: linear-gradient(270deg, var(--card) 4%, transparent);
+}
+
+.weekScrollFadeVisible {
+  opacity: 0.85;
+}
+
+.weekScrollFadeIntense {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weekScrollBand,
+  .weekScrollFade {
+    transition: none;
+  }
+}
+
+.weekBoard {
+  --week-grid-border: color-mix(in srgb, var(--text-muted) 28%, var(--card));
+  --week-board-cols: 128px repeat(7, minmax(128px, 1fr));
+  position: relative;
+  min-width: 1040px;
+}
+
+.weekBoardHeader,
+.weekBoardRow {
+  display: grid;
+  grid-template-columns: var(--week-board-cols);
+}
+
+/* Z-order ladder: slot content < typeCell labels 20 < header 30 < corner 32 < edge/band overlays 40 */
+.weekBoardHeader {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.weekShadowBottom {
+  box-shadow: 0 6px 14px -10px color-mix(in srgb, var(--text-muted) 65%, transparent);
+}
+
+.weekShadowRight {
+  box-shadow: 6px 0 14px -10px color-mix(in srgb, var(--text-muted) 65%, transparent);
+}
+
+.weekTypeCellShadowRight {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--primary) 22%, transparent),
+    6px 0 14px -10px color-mix(in srgb, var(--text-muted) 65%, transparent);
+}
+
 .weekBoardCorner {
+  position: sticky;
+  left: 0;
+  z-index: 32;
   padding: 0.9rem 0.85rem;
   border-right: 1px solid var(--week-grid-border);
   border-bottom: 1px solid var(--week-grid-border);
@@ -1194,10 +1298,13 @@
 }
 
 .weekDayHeaderProfileStart {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--secondary) 72%, transparent) 0%, var(--card) 68%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--secondary) 72%, var(--card)) 0%, var(--card) 68%);
 }
 
 .weekTypeCell {
+  position: sticky;
+  left: 0;
+  z-index: 20;
   min-width: 0;
   padding: 0.9rem 0.85rem;
   border-right: 1px solid var(--week-grid-border);
@@ -1378,6 +1485,54 @@
   position: relative;
   min-width: 0;
   width: 100%;
+}
+
+.slotInsertCaret {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 12;
+  height: 0;
+  pointer-events: none;
+}
+
+.slotInsertCaret::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  right: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+}
+
+.slotInsertCaretTop {
+  top: -1px;
+}
+
+.slotInsertCaretBottom {
+  bottom: -1px;
+}
+
+.slotInsertCaretTop::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: calc(50% - 4px);
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+  border-top: 5px solid var(--accent);
+}
+
+.slotInsertCaretBottom::after {
+  content: "";
+  position: absolute;
+  bottom: 3px;
+  left: calc(50% - 4px);
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+  border-bottom: 5px solid var(--accent);
 }
 
 .weekCardHasSubType .weekMealActionBtn {
@@ -1654,7 +1809,7 @@
   }
 
   .weekBoard {
-    grid-template-columns: 108px repeat(7, minmax(112px, 1fr));
+    --week-board-cols: 108px repeat(7, minmax(112px, 1fr));
     min-width: 892px;
   }
 
@@ -1705,7 +1860,7 @@
 
 @media (max-width: 768px) {
   .weekBoard {
-    grid-template-columns: 96px repeat(7, minmax(104px, 1fr));
+    --week-board-cols: 96px repeat(7, minmax(104px, 1fr));
     min-width: 824px;
   }
 
@@ -1739,7 +1894,7 @@
 
 @media (max-width: 480px) {
   .weekBoard {
-    grid-template-columns: 88px repeat(7, minmax(96px, 1fr));
+    --week-board-cols: 88px repeat(7, minmax(96px, 1fr));
     min-width: 760px;
   }
 
@@ -3462,6 +3617,12 @@
   font-size: 0.68rem;
   font-weight: 600;
   color: var(--text-muted);
+}
+
+.mealDragPreview {
+  width: auto;
+  max-width: min(260px, calc(100vw - 2rem));
+  padding: 0.42rem 0.6rem;
 }
 
 .dropIntentPopover {
