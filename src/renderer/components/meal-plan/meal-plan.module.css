@@ -1334,6 +1334,8 @@
 }
 
 .weekSlotCell {
+  container-name: week-slot;
+  container-type: inline-size;
   min-width: 0;
   min-height: 90px;
   padding: 0.7rem;
@@ -1747,7 +1749,7 @@
   text-transform: uppercase;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .mealPlanWorkspace,
   .mealPlanWorkspaceRight,
   .mealPlanWorkspaceLeft {
@@ -3458,7 +3460,80 @@
   gap: 0.45rem;
 }
 
+.slotOverflowBtn {
+  display: none;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--cream-dark);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text-muted);
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s, color 0.14s;
+}
+
+.slotOverflowBtn:hover,
+.slotOverflowBtn:focus-visible {
+  border-color: var(--green);
+  background: var(--cream);
+  color: var(--text);
+}
+
+.slotOverflowBtn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.slotActionMenu {
+  position: fixed;
+  z-index: 500;
+  width: max-content;
+  min-width: 176px;
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-elevated);
+  box-shadow: var(--shadow-lg);
+  color: var(--card-foreground);
+}
+
+.slotActionMenuItem {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 0;
+  border-radius: 7px;
+  padding: 0 0.65rem;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.slotActionMenuItem:hover,
+.slotActionMenuItem:focus-visible {
+  background: var(--muted);
+  color: var(--primary);
+}
+
+.slotActionMenuItem:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
 .slotDragHandleBtn {
+  flex: 0 0 36px;
   width: 36px;
   min-width: 36px;
   height: 36px;
@@ -3581,6 +3656,16 @@
 
 .slotActionsRow .slotAddMoreBtn {
   margin-bottom: 0;
+}
+
+@media (max-width: 1200px) {
+  .slotDesktopAction {
+    display: none;
+  }
+
+  .slotActionsRow .slotOverflowBtn {
+    display: inline-flex;
+  }
 }
 
 .slotDragPreview {

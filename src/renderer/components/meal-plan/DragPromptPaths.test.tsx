@@ -139,6 +139,129 @@ describe("meal plan drag prompt paths", () => {
     cleanup();
   });
 
+  const openBreakfastSlotActions = () => {
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /More actions for breakfast meals/i,
+      })
+    );
+  };
+
+  it("opens the multi-meal slot overflow menu and manages the slot", () => {
+    const onOpenSlotManager = vi.fn();
+
+    render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={dayMeals}
+        mealTypeProfiles={[profile]}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+        onEdit={vi.fn()}
+        onOpenSlotManager={onOpenSlotManager}
+        setDate={vi.fn()}
+      />
+    );
+
+    const trigger = screen.getByRole("button", {
+      name: /More actions for breakfast meals/i,
+    });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+    fireEvent.click(trigger);
+
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(screen.getByRole("menuitem", { name: /Manage meals/i }));
+
+    expect(onOpenSlotManager).toHaveBeenCalledWith(expect.any(Date), "breakfast");
+    expect(onOpenSlotManager.mock.calls[0]?.[0]).toMatchObject({
+      getFullYear: expect.any(Function),
+      getMonth: expect.any(Function),
+      getDate: expect.any(Function),
+    });
+    expect((onOpenSlotManager.mock.calls[0]?.[0] as Date).getDate()).toBe(22);
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("adds a meal from the multi-meal slot overflow menu", () => {
+    const onAddMeal = vi.fn();
+
+    render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={dayMeals}
+        mealTypeProfiles={[profile]}
+        onAddMeal={onAddMeal}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+        onEdit={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        setDate={vi.fn()}
+      />
+    );
+
+    openBreakfastSlotActions();
+
+    expect(screen.getAllByRole("menuitem")).toHaveLength(2);
+    fireEvent.click(screen.getByRole("menuitem", { name: /Add meal/i }));
+
+    expect(onAddMeal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        date: expect.any(Date),
+        type: "breakfast",
+      })
+    );
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("dismisses the slot overflow menu with Escape and outside pointer input", () => {
+    render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={dayMeals}
+        mealTypeProfiles={[profile]}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+        onEdit={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        setDate={vi.fn()}
+      />
+    );
+
+    const trigger = screen.getByRole("button", {
+      name: /More actions for breakfast meals/i,
+    });
+    fireEvent.click(trigger);
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+
+    fireEvent.click(trigger);
+    fireEvent.pointerDown(document.body);
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
+  it("starts a whole-slot drag from the overflow menu", () => {
+    const dataTransfer = createDataTransfer();
+
+    render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={dayMeals}
+        mealTypeProfiles={[profile]}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+        onEdit={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        setDate={vi.fn()}
+      />
+    );
+
+    const dragAction = screen.getByRole("button", {
+      name: /Drag breakfast slot/i,
+    });
+
+    fireEvent.dragStart(dragAction, { dataTransfer });
+
+    expect(dataTransfer.types.length).toBeGreaterThan(0);
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+  });
+
   it("DayView forwards meal-to-meal drops via onDropPayload", async () => {
     const onDropPayload = vi.fn().mockResolvedValue(undefined);
     const dataTransfer = createDataTransfer();
@@ -579,11 +702,10 @@ describe("meal plan drag prompt paths", () => {
 
     fireEvent.dragStart(slotDragHandle, { dataTransfer });
 
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /Drag breakfast slot/i })
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Add breakfast meal/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Manage breakfast meals/i })).toBeDisabled();
+      screen.getByRole("button", { name: /More actions for breakfast meals/i })
+    ).toBeDisabled();
   });
 
 });

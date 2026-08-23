@@ -1,11 +1,13 @@
 import {
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type CSSProperties,
   type DragEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowDown,
   ArrowLeft,
@@ -13,6 +15,7 @@ import {
   ArrowUp,
   Copy,
   DotsSixVertical,
+  DotsThreeVertical,
   PencilSimple,
   Plus,
 } from "@phosphor-icons/react";
@@ -74,6 +77,13 @@ type WeekScrollState = {
   canScrollBottom: boolean;
   isOverflowingX: boolean;
   isOverflowingY: boolean;
+};
+
+type SlotActionMenuState = {
+  slotKey: string;
+  day: Date;
+  type: CalendarMealType;
+  anchor: DOMRect;
 };
 
 const initialWeekScrollState: WeekScrollState = {
@@ -156,6 +166,12 @@ export function WeekView({
     useState<WeekScrollState>(initialWeekScrollState);
   const [autoScrollBands, setAutoScrollBands] =
     useState<BandActivity>(noActiveBands);
+  const [slotActionMenu, setSlotActionMenu] =
+    useState<SlotActionMenuState | null>(null);
+  const [slotActionMenuPosition, setSlotActionMenuPosition] = useState<{
+    left: number;
+    top: number;
+  } | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const scrollStateRef = useRef<WeekScrollState>(initialWeekScrollState);
@@ -164,6 +180,8 @@ export function WeekView({
   const isAutoScrollLoopActiveRef = useRef(false);
   const autoScrollFrameRef = useRef<() => void>(() => {});
   const bandActiveRef = useRef<BandActivity>(noActiveBands);
+  const slotActionMenuRef = useRef<HTMLDivElement | null>(null);
+  const slotActionMenuFirstItemRef = useRef<HTMLButtonElement | null>(null);
   const edgeNavigationTimersRef = useRef<Record<EdgeDirection, number | null>>({
     previous: null,
     next: null,
@@ -518,6 +536,69 @@ export function WeekView({
     };
   }, [date]);
 
+  useLayoutEffect(() => {
+    if (!slotActionMenu) {
+      setSlotActionMenuPosition(null);
+      return;
+    }
+
+    const reposition = () => {
+      const menuRect = slotActionMenuRef.current?.getBoundingClientRect();
+      const menuWidth = menuRect?.width && menuRect.width > 0 ? menuRect.width : 176;
+      const menuHeight = menuRect?.height && menuRect.height > 0 ? menuRect.height : 104;
+      const padding = 12;
+      const left = Math.min(
+        Math.max(slotActionMenu.anchor.right - menuWidth, padding),
+        Math.max(padding, window.innerWidth - menuWidth - padding)
+      );
+      const preferredTop = slotActionMenu.anchor.bottom + 6;
+      const top = Math.min(
+        Math.max(preferredTop, padding),
+        Math.max(padding, window.innerHeight - menuHeight - padding)
+      );
+
+      setSlotActionMenuPosition({ left, top });
+    };
+
+    reposition();
+    window.addEventListener("resize", reposition);
+    slotActionMenuFirstItemRef.current?.focus();
+
+    return () => window.removeEventListener("resize", reposition);
+  }, [slotActionMenu]);
+
+  useEffect(() => {
+    if (!slotActionMenu) {
+      return;
+    }
+
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (target instanceof Node && slotActionMenuRef.current?.contains(target)) {
+        return;
+      }
+
+      setSlotActionMenu(null);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSlotActionMenu(null);
+      }
+    };
+
+    window.addEventListener("pointerdown", onPointerDown, true);
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [slotActionMenu]);
+
+  useEffect(() => {
+    setSlotActionMenu(null);
+  }, [date]);
+
   useEffect(() => {
     return () => {
       clearEdgeTimers();
@@ -536,6 +617,7 @@ export function WeekView({
     setDropTargetKey(null);
     setDropInsertAfter(null);
     setIsApplyingDrop(false);
+    setSlotActionMenu(null);
   };
 
   const scheduleClearDragState = () => {
@@ -619,6 +701,7 @@ export function WeekView({
     };
 
     event.dataTransfer.effectAllowed = "move";
+    setSlotActionMenu(null);
     setMealPlanDragPayload(event.dataTransfer, payload);
     setDraggedPayload(payload);
 
@@ -631,6 +714,25 @@ export function WeekView({
         .join(" • "),
       metaLine: `${slotDay.toLocaleDateString()}${suffix}`,
     });
+  };
+
+  const openSlotActionMenu = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    day: Date,
+    type: CalendarMealType
+  ) => {
+    const slotKey = `week-slot-${day.toISOString()}-${type}`;
+    const anchor = event.currentTarget.getBoundingClientRect();
+    setSlotActionMenu((current) =>
+      current?.slotKey === slotKey
+        ? null
+        : {
+            slotKey,
+            day,
+            type,
+            anchor,
+          }
+    );
   };
 
   const applyDropTarget = async (
@@ -1076,7 +1178,7 @@ export function WeekView({
                                 {slotMeals.length >= 2 ? (
                                   <button
                                     aria-label={`Add ${type} meal`}
-                                    className={styles.slotAddIconBtn}
+                                    className={`${styles.slotAddIconBtn} ${styles.slotDesktopAction}`}
                                     disabled={Boolean(draggedPayload) || isApplyingDrop}
                                     onClick={() =>
                                       onAddMeal(
@@ -1093,29 +1195,11 @@ export function WeekView({
                                   >
                                     <Plus aria-hidden="true" size={18} weight="regular" />
                                   </button>
-                                ) : (
-                                  <button
-                                    className={`${styles.slotAddMoreBtn} ${styles.emptySlotButton}`}
-                                    disabled={Boolean(draggedPayload) || isApplyingDrop}
-                                    onClick={() =>
-                                      onAddMeal(
-                                        createEmptyMeal(
-                                          new Date(day),
-                                          type,
-                                          mealTypes.find((definition) => definition.slug === type) ??
-                                            null
-                                        )
-                                      )
-                                    }
-                                    type="button"
-                                  >
-                                    <span className={styles.btnAddSlot}>+ Add</span>
-                                  </button>
-                                )}
+                                ) : null}
                                 {slotMeals.length >= 2 ? (
                                   <button
                                     aria-label={`Manage ${type} meals`}
-                                    className={styles.slotManageIconBtn}
+                                    className={`${styles.slotManageIconBtn} ${styles.slotDesktopAction}`}
                                     disabled={Boolean(draggedPayload) || isApplyingDrop}
                                     onClick={() => onOpenSlotManager(day, type)}
                                     type="button"
@@ -1130,13 +1214,25 @@ export function WeekView({
                                 ) : null}
                                 {slotMeals.length >= 2 ? (
                                   <button
+                                    aria-expanded={slotActionMenu?.slotKey === emptyTargetKey}
+                                    aria-haspopup="menu"
+                                    aria-label={`More actions for ${type} meals`}
+                                    className={styles.slotOverflowBtn}
+                                    disabled={Boolean(draggedPayload) || isApplyingDrop}
+                                    onClick={(event) => openSlotActionMenu(event, day, type)}
+                                    title="More slot actions"
+                                    type="button"
+                                  >
+                                    <DotsThreeVertical aria-hidden="true" size={18} weight="regular" />
+                                  </button>
+                                ) : null}
+                                {slotMeals.length >= 2 ? (
+                                  <button
                                     aria-label={`Drag ${type} slot`}
                                     className={styles.slotDragHandleBtn}
                                     draggable={!isApplyingDrop && !dragDisabled}
                                     onDragEnd={scheduleClearDragState}
-                                    onDragStart={(event) =>
-                                      onDragStartSlot(event, slotMeals, day, type)
-                                    }
+                                    onDragStart={(event) => onDragStartSlot(event, slotMeals, day, type)}
                                     title="Drag entire slot"
                                     type="button"
                                   >
@@ -1195,6 +1291,61 @@ export function WeekView({
             />
           );
         })}
+        {slotActionMenu && slotActionMenuPosition && typeof document !== "undefined"
+          ? createPortal(
+              <div
+                aria-label={`${slotActionMenu.type} meal actions`}
+                className={styles.slotActionMenu}
+                ref={slotActionMenuRef}
+                role="menu"
+                style={{
+                  left: slotActionMenuPosition.left,
+                  top: slotActionMenuPosition.top,
+                }}
+              >
+                <button
+                  className={styles.slotActionMenuItem}
+                  disabled={isApplyingDrop}
+                  onClick={() => {
+                    const menu = slotActionMenu;
+                    const menuTypes = getMealTypeProfileContext(
+                      menu.day,
+                      mealTypeProfiles
+                    ).mealTypes;
+                    onAddMeal(
+                      createEmptyMeal(
+                        new Date(menu.day),
+                        menu.type,
+                        menuTypes.find((definition) => definition.slug === menu.type) ??
+                          null
+                      )
+                    );
+                    setSlotActionMenu(null);
+                  }}
+                  ref={slotActionMenuFirstItemRef}
+                  role="menuitem"
+                  type="button"
+                >
+                  <Plus aria-hidden="true" size={17} weight="regular" />
+                  Add meal
+                </button>
+                <button
+                  className={styles.slotActionMenuItem}
+                  disabled={isApplyingDrop}
+                  onClick={() => {
+                    onOpenSlotManager(slotActionMenu.day, slotActionMenu.type);
+                    setSlotActionMenu(null);
+                  }}
+                  role="menuitem"
+                  type="button"
+                >
+                  <PencilSimple aria-hidden="true" size={17} weight="regular" />
+                  Manage meals
+                </button>
+              </div>,
+              document.body
+            )
+          : null}
       </div>
     </div>
   );
