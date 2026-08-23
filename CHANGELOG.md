@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.3] - 2026-08-23
+
+### Added
+
+- Added one-time pairing codes to make connecting supported PWA and LAN clients easier.
+- Added drag navigation for the meal-plan week view, including sticky panes and automatic week flipping at the board edges.
+
+### Fixed
+
+- Improved mobile meal-plan actions and protected the mobile header from iOS safe-area overlap.
+- Refined the slot manager modal and theme styling for a more consistent experience across supported themes.
+- Corrected home-page greeting alignment and prevented stale assets from being served to LAN clients.
+- Updated the mobile navigation drawer to use the correct theme colors.
+
 ## [1.2.2] - 2026-08-21
 
 ### Added
