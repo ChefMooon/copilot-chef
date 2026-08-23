@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ArrowDown, ArrowUp, DotsSixVertical, Plus } from "@phosphor-icons/react";
 
 import {
@@ -178,6 +178,9 @@ export function SlotManagerModal({
         bodyClassName={styles.slotManagerBody}
         className={styles.slotManagerPanel}
         closeLabel="Close slot manager"
+        closeDisabled={isReordering}
+        headerClassName={styles.slotManagerHeader}
+        headerStyle={{ "--meal-type-color": typeConfig.dot } as CSSProperties}
         onClose={() => {
           if (draggedMealId) {
             setDraggedMealId(null);
@@ -221,7 +224,6 @@ export function SlotManagerModal({
                       onKeyDown={(event) => void handleRowKeyDown(event, meal.id)}
                       role="listitem"
                       tabIndex={0}
-                      style={{ borderLeftColor: typeConfig.dot }}
                     >
                       <button
                         className={styles.slotManagerDragHandle}
@@ -298,6 +300,7 @@ export function SlotManagerModal({
                       </div>
 
                       <button
+                        aria-label={`Edit ${meal.name}`}
                         className={styles.btnGhost}
                         disabled={isReordering}
                         onClick={() => onEdit(meal)}
@@ -306,6 +309,7 @@ export function SlotManagerModal({
                         Edit
                       </button>
                       <button
+                        aria-label={`Remove ${meal.name}`}
                         className={styles.btnDelete}
                         disabled={isReordering}
                         onClick={() => {
@@ -322,7 +326,11 @@ export function SlotManagerModal({
               </div>
             )}
 
-          {error ? <div className={styles.slotManagerError}>{error}</div> : null}
+          {error ? (
+            <div className={styles.slotManagerError} role="alert">
+              {error}
+            </div>
+          ) : null}
       </ModalShell>
 
       {mealPendingDelete ? (

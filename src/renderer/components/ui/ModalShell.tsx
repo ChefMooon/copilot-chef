@@ -1,5 +1,5 @@
 import { X } from "@phosphor-icons/react";
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import styles from "./ModalShell.module.css";
@@ -17,6 +17,8 @@ export type ModalShellProps = {
   footerLeft?: ReactNode;
   footerRight?: ReactNode;
   hideFooter?: boolean;
+  headerClassName?: string;
+  headerStyle?: CSSProperties;
   ariaLabel?: string;
   closeLabel?: string;
   closeDisabled?: boolean;
@@ -37,6 +39,8 @@ export function ModalShell({
   footerLeft,
   footerRight,
   hideFooter = false,
+  headerClassName,
+  headerStyle,
   ariaLabel,
   closeLabel = "Close dialog",
   closeDisabled = false,
@@ -137,7 +141,10 @@ export function ModalShell({
         style={width ? { width } : undefined}
         tabIndex={-1}
       >
-        <header className={styles.header}>
+        <header
+          className={[styles.header, headerClassName].filter(Boolean).join(" ")}
+          style={headerStyle}
+        >
           <div className={styles.heading}>
             {eyebrow ? <p className={styles.eyebrow}>{eyebrow}</p> : null}
             {title ? <h2 id={titleId} className={styles.title}>{title}</h2> : null}
