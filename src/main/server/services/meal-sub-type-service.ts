@@ -7,6 +7,7 @@ import type {
 
 import { bootstrapDatabase } from "../lib/bootstrap";
 import { prisma } from "../lib/prisma";
+import { publishCommittedChange } from "./change-event-bus";
 
 function normalizeHexColor(value: string) {
   const normalized = value.trim().toUpperCase();
@@ -174,6 +175,7 @@ export class MealSubTypeService {
       },
     });
 
+    await publishCommittedChange("mealSubType", "create", definition.id);
     return serializeMealSubType(definition);
   }
 
@@ -213,6 +215,7 @@ export class MealSubTypeService {
       },
     });
 
+    await publishCommittedChange("mealSubType", "update", id);
     return serializeMealSubType(definition);
   }
 
@@ -235,6 +238,7 @@ export class MealSubTypeService {
       )
     );
 
+    await publishCommittedChange("mealSubType", "delete", id);
     return { id };
   }
 
@@ -266,6 +270,7 @@ export class MealSubTypeService {
       )
     );
 
+    await publishCommittedChange("mealSubType", "bulk");
     return this.listDefinitions();
   }
 }

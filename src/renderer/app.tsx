@@ -10,6 +10,7 @@ import { UpdateProvider } from "@/components/providers/update-provider";
 import { AppShell } from "@/components/layout/app-shell";
 import { ConnectionBanner } from "@/components/layout/connection-banner";
 import { useServerConnection } from "@/lib/connection";
+import { useLiveSync } from "@/lib/use-live-sync";
 import {
   ConfigNotReadyError,
   isServerConfigReady,
@@ -26,6 +27,7 @@ type ServerConfig = {
 
 function AppContent({ config }: { config: ServerConfig }) {
   const { status, retry } = useServerConnection(config.url);
+  const syncStatus = useLiveSync(isServerConfigReady(config));
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -43,7 +45,11 @@ function AppContent({ config }: { config: ServerConfig }) {
 
   return (
     <>
-      <ConnectionBanner status={status} onRetry={retry} />
+      <ConnectionBanner
+        status={status}
+        onRetry={retry}
+        syncStatus={syncStatus}
+      />
       <AppShell>
         <Outlet />
       </AppShell>

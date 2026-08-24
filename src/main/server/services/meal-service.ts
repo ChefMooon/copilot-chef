@@ -8,6 +8,11 @@ import {
   saveMealPhotoDataUrl,
 } from "../lib/meal-photo-storage";
 import { prisma } from "../lib/prisma";
+import {
+  emitCommittedChange,
+  publishCommittedChange,
+  reserveCommittedChange,
+} from "./change-event-bus";
 import { MealTypeService } from "./meal-type-service";
 import { getCuisineLabel } from "@shared/api/constants";
 import type {
@@ -647,7 +652,7 @@ export class MealService {
 
     const normalizedMealType = normalizeMealType(slotMealType);
 
-    return prisma.$transaction(async (tx) => {
+    const updatedMeals = await prisma.$transaction(async (tx) => {
       const slotMeals = await tx.meal.findMany({
         where: {
           date: normalizedDate,
@@ -690,8 +695,14 @@ export class MealService {
         include: this.mealInclude,
       });
 
-      return updatedMeals.map(serializeMeal);
+      return {
+        meals: updatedMeals.map(serializeMeal),
+        change: await reserveCommittedChange(tx, "meal", "bulk"),
+      };
     });
+
+    emitCommittedChange(updatedMeals.change);
+    return updatedMeals.meals;
   }
 
   async listUnscheduledMeals() {
@@ -713,7 +724,7 @@ export class MealService {
       throw new Error("At least one meal is required to reorder the meal bank.");
     }
 
-    return prisma.$transaction(async (tx) => {
+    const updatedMeals = await prisma.$transaction(async (tx) => {
       const bankMeals = await tx.meal.findMany({
         where: { date: null },
         orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
@@ -750,8 +761,14 @@ export class MealService {
         include: this.mealInclude,
       });
 
-      return updatedMeals.map(serializeMeal);
+      return {
+        meals: updatedMeals.map(serializeMeal),
+        change: await reserveCommittedChange(tx, "meal", "bulk"),
+      };
     });
+
+    emitCommittedChange(updatedMeals.change);
+    return updatedMeals.meals;
   }
 
   async applySlotBatchAction(input: {
@@ -788,7 +805,7 @@ export class MealService {
       };
     }
 
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
       const sourceMeals = await tx.meal.findMany({
         where: {
           date: sourceDate,
@@ -874,8 +891,13 @@ export class MealService {
         sourceMeals: nextSourceMeals.map(serializeMeal),
         targetMeals: nextTargetMeals.map(serializeMeal),
         movedCount: sourceMeals.length,
+        change: await reserveCommittedChange(tx, "meal", "bulk"),
       };
     });
+
+    const { change, ...actionResult } = result;
+    emitCommittedChange(change);
+    return actionResult;
   }
 
   async getMeal(id: string) {
@@ -1080,6 +1102,7 @@ export class MealService {
       return created;
     });
 
+    await publishCommittedChange("meal", "create", meal.id);
     return serializeMeal(meal);
   }
 
@@ -1185,6 +1208,7 @@ export class MealService {
       }
     }
 
+    await publishCommittedChange("meal", "update", meal.id);
     return serializeMeal(meal);
   }
 
@@ -1200,6 +1224,7 @@ export class MealService {
 
     await prisma.meal.delete({ where: { id } });
     await deleteMealPhotoFile(meal?.photoPath);
+    await publishCommittedChange("meal", "delete", id);
     return { id };
   }
 

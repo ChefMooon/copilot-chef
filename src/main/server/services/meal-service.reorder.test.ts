@@ -18,6 +18,10 @@ const { bootstrapDatabaseMock, prismaMock } = vi.hoisted(() => ({
     recipe: {
       findUnique: vi.fn(),
     },
+    syncState: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      upsert: vi.fn().mockImplementation(async ({ create }: { create: { key: string; value: string } }) => create),
+    },
     $transaction: vi.fn(),
   },
 }));
@@ -106,6 +110,7 @@ describe("MealService.reorderSlotMeals", () => {
     const initialMeals = [createMealRow("meal-1", 10), createMealRow("meal-2", 20)];
     const updatedMeals = [createMealRow("meal-2", 10), createMealRow("meal-1", 20)];
     const tx = {
+      $queryRawUnsafe: vi.fn().mockResolvedValue([{ value: "1" }]),
       meal: {
         findMany: vi
           .fn()
@@ -143,6 +148,7 @@ describe("MealService.reorderSlotMeals", () => {
     const service = new MealService();
     const initialMeals = [createMealRow("meal-1", 10), createMealRow("meal-2", 20)];
     const tx = {
+      $queryRawUnsafe: vi.fn().mockResolvedValue([{ value: "1" }]),
       meal: {
         findMany: vi.fn().mockResolvedValue(initialMeals),
         update: vi.fn(),
@@ -190,6 +196,7 @@ describe("MealService meal bank operations", () => {
   it("reorders meal bank entries and rejects meals outside the bank", async () => {
     const service = new MealService();
     const tx = {
+      $queryRawUnsafe: vi.fn().mockResolvedValue([{ value: "1" }]),
       meal: {
         findMany: vi.fn().mockResolvedValue([createBankMealRow("meal-1", 10)]),
         update: vi.fn(),
@@ -211,6 +218,7 @@ describe("MealService meal bank operations", () => {
     const initialMeals = [createBankMealRow("meal-1", 10), createBankMealRow("meal-2", 20)];
     const updatedMeals = [createBankMealRow("meal-2", 10), createBankMealRow("meal-1", 20)];
     const tx = {
+      $queryRawUnsafe: vi.fn().mockResolvedValue([{ value: "1" }]),
       meal: {
         findMany: vi
           .fn()
@@ -258,6 +266,7 @@ describe("MealService.applySlotBatchAction", () => {
     const targetMeals = [createSlotMealRow("target-1", 10, targetSlot)];
 
     const tx = {
+      $queryRawUnsafe: vi.fn().mockResolvedValue([{ value: "1" }]),
       meal: {
         findMany: vi
           .fn()
@@ -314,6 +323,7 @@ describe("MealService.applySlotBatchAction", () => {
     const targetMeals = [createSlotMealRow("target-1", 10, targetSlot)];
 
     const tx = {
+      $queryRawUnsafe: vi.fn().mockResolvedValue([{ value: "1" }]),
       meal: {
         findMany: vi
           .fn()

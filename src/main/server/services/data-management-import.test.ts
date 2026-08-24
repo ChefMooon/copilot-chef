@@ -10,6 +10,10 @@ const prismaMock = vi.hoisted(() => ({
   mealTypeProfile: { findMany: vi.fn() },
   mealSubTypeDefinition: { findMany: vi.fn() },
   userPreference: { findUnique: vi.fn() },
+  syncState: {
+    findUnique: vi.fn().mockResolvedValue(null),
+    upsert: vi.fn().mockImplementation(async ({ update }: { update: { value: string } }) => update),
+  },
   $transaction: vi.fn(),
 }));
 

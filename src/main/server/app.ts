@@ -19,6 +19,7 @@ import { preferencesRoutes } from "./routes/preferences.js";
 import { statsRoutes } from "./routes/stats.js";
 import { dataManagementRoutes } from "./routes/data-management.js";
 import { pairingRoutes } from "./routes/pairing.js";
+import { syncRoutes } from "./routes/sync.js";
 
 function getRequestId(c: Context): string | undefined {
   return (
@@ -137,6 +138,7 @@ export function createApp(config: ServerConfig) {
   app.route("/api", statsRoutes);
   app.route("/api", dataManagementRoutes);
   app.route("/api", pairingRoutes);
+  app.route("/api", syncRoutes);
 
   return app;
 }

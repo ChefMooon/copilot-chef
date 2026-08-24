@@ -19,6 +19,10 @@ const { bootstrapDatabaseMock, prismaMock } = vi.hoisted(() => ({
       findUnique: vi.fn(),
       update: vi.fn(),
     },
+    syncState: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      upsert: vi.fn().mockImplementation(async ({ update }: { update: { value: string } }) => update),
+    },
     $transaction: vi.fn(),
   },
 }));

@@ -216,6 +216,12 @@ In remote mode:
 - Prefer token rotation when devices are lost or trust changes.
 - Keep LAN disabled when external browser access is not needed.
 
+### Live-sync channel traffic
+
+Connected clients hold one long-lived SSE stream to `GET /api/events` (bearer-authenticated). Steady-state traffic is one keepalive heartbeat frame every ~25 s plus change frames when another client writes. Connections are capped at four per token; the stream endpoint, its reconnect handshakes, and `GET /api/sync/revision` are exempt from the LAN request-rate bucket (60 req/60 s per IP, shared across clients behind one NAT). Exceeding the stream cap returns a distinct 429 response with a short retry hint. Rotating a token terminates existing streams with 401 and clients surface a reconnect state instead of retry-looping.
+
+Installed PWAs and backgrounded mobile tabs suspend their streams; on resume the client reconnects, receives a fresh revision via the `hello` frame, and sweep-refreshes all data caches rather than trusting missed events.
+
 ---
 
 ## 9. Related Documentation

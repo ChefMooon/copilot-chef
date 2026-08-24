@@ -10,6 +10,7 @@ import type {
 
 import { bootstrapDatabase } from "../lib/bootstrap";
 import { prisma } from "../lib/prisma";
+import { publishCommittedChange } from "./change-event-bus";
 
 type MealTypeProfileRecord = {
   id: string;
@@ -528,6 +529,7 @@ export class MealTypeService {
       include: this.profileInclude,
     });
 
+    await publishCommittedChange("mealType", "create", created.id);
     return serializeProfile(created as MealTypeProfileRecord);
   }
 
@@ -592,6 +594,7 @@ export class MealTypeService {
       include: this.profileInclude,
     });
 
+    await publishCommittedChange("mealType", "update", id);
     return serializeProfile(updated as MealTypeProfileRecord);
   }
 
@@ -608,6 +611,7 @@ export class MealTypeService {
     }
 
     await prisma.mealTypeProfile.delete({ where: { id } });
+    await publishCommittedChange("mealType", "delete", id);
     return { id };
   }
 
@@ -654,6 +658,7 @@ export class MealTypeService {
       include: this.profileInclude,
     });
 
+    await publishCommittedChange("mealType", "create", duplicated.id);
     return serializeProfile(duplicated as MealTypeProfileRecord);
   }
 
@@ -694,6 +699,7 @@ export class MealTypeService {
       },
     });
 
+    await publishCommittedChange("mealType", "create", definition.id);
     return serializeDefinition(definition);
   }
 
@@ -748,6 +754,7 @@ export class MealTypeService {
       return next;
     });
 
+    await publishCommittedChange("mealType", "update", profileId);
     return serializeDefinition(updated);
   }
 
@@ -770,6 +777,7 @@ export class MealTypeService {
     }
 
     await prisma.mealTypeDefinition.delete({ where: { id } });
+    await publishCommittedChange("mealType", "delete", profileId);
     return { id };
   }
 
@@ -804,11 +812,8 @@ export class MealTypeService {
       )
     );
 
+    await publishCommittedChange("mealType", "bulk", profileId);
     const profile = await this.getProfile(profileId);
-    if (!profile) {
-      throw new Error(`Meal type profile with id "${profileId}" not found.`);
-    }
-
     return profile.mealTypes;
   }
 }

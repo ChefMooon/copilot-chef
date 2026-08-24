@@ -41,6 +41,7 @@ import {
   upsertPrepList,
 } from "@/lib/prep-lists";
 import { QUICK_FILTER_ICON_REGISTRY } from "@/lib/icon-registry";
+import { LIST_REFETCH_INTERVAL_MS } from "@/lib/query-intervals";
 
 import styles from "@/components/grocery-list/grocery-list.module.css";
 
@@ -265,6 +266,7 @@ export default function PrepListsPage() {
   const listsQuery = useQuery({
     queryKey: listsQueryKey,
     enabled: apiReady,
+    refetchInterval: LIST_REFETCH_INTERVAL_MS,
     queryFn: () =>
       fetchJson<{ data: PrepList[] }>("/api/prep-lists").then((response) => response.data),
   });

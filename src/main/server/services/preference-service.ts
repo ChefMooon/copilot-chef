@@ -2,6 +2,7 @@ import { type Prisma, type UserPreference } from "@prisma/client";
 
 import { bootstrapDatabase } from "../lib/bootstrap";
 import { prisma } from "../lib/prisma";
+import { publishCommittedChange } from "./change-event-bus";
 
 const SINGLETON_ID = "default";
 
@@ -235,6 +236,7 @@ export class PreferenceService {
       },
     });
 
+    await publishCommittedChange("preference", "update", preferences.id);
     return serializePreferences(preferences);
   }
 
@@ -258,6 +260,7 @@ export class PreferenceService {
       data: patch,
     });
 
+    await publishCommittedChange("preference", "update", preferences.id);
     return serializePreferences(preferences);
   }
 
@@ -273,6 +276,7 @@ export class PreferenceService {
       },
     });
 
+    await publishCommittedChange("preference", "bulk");
     return serializePreferences(preferences);
   }
 

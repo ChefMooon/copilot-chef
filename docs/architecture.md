@@ -285,7 +285,19 @@ When disconnected:
 
 - A banner is shown: "Server connection lost. Retrying..."
 - Mutation buttons are disabled; cached UI data remains visible
-- React Query caches are invalidated on reconnection
+- On reconnection the live-sync channel re-establishes and revision reconciliation triggers a cache sweep when needed (see below)
+
+### Live multi-client sync
+
+Multiple connected clients (desktop renderer, mobile browser, installed PWA) stay current without manual refresh:
+
+1. **Change events** — every committed mutation in a domain service emits one typed change event (`{ entity, id?, action, revision }`) through an in-process event bus after its transaction commits.
+2. **Revision watermark** — each event advances a monotonic counter persisted in the `SyncState` Prisma meta table alongside the database files, so it survives restarts. `GET /api/sync/revision` returns the current value behind standard bearer auth.
+3. **SSE push** — `GET /api/events` streams `hello` (current revision), `change`, and keepalive `heartbeat` (~25 s) frames to authenticated clients over the embedded API. Connections are capped at four per token; the stream endpoint and `/api/sync/revision` are exempt from the LAN request-rate bucket, while connection-cap responses use a distinct 429 response.
+4. **Renderer invalidation** — a singleton fetch-based stream consumer in `src/renderer/lib/sync-stream.ts` maps change events onto React Query key prefixes via `ENTITY_TO_QUERY_KEYS` in `src/renderer/lib/query-invalidation.ts` (the single invalidation authority). A served revision that differs from last seen — including a *lower* revision, treated as "unknown" — triggers a full sweep of all data queries.
+5. **Fallbacks** — focus refetch plus a conservative 20 s poll interval on list-level queries act as a safety net beneath event delivery. If the stream fails repeatedly (3 rapid failures), the client polls `/api/sync/revision` on a jittered 20–25 s interval and sweeps on any change, retrying the stream periodically.
+
+Concurrent edits remain last-write-wins; there is no conflict resolution or offline mutation queue.
 
 ---
 

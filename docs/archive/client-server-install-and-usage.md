@@ -185,6 +185,22 @@ Fix:
 - Open the current QR code or connection link from desktop Settings on that device again.
 - After reconnecting, bookmark the normal Browser URL.
 
+### Changes on one device do not appear on another device
+
+Cause:
+- Live sync degraded: the SSE stream (`/api/events`) cannot establish or keeps dropping (restrictive network, aggressive battery manager).
+
+Symptoms:
+- The banner shows "Live sync in compatibility mode (polling)…" or "Live sync reconnecting…".
+- Edits from other devices appear only after up to ~25 s instead of instantly.
+
+Fix:
+- Verify the server is reachable and the token is accepted (`GET /api/sync/revision` should return a number).
+- Unlock the device screen or bring the tab to the foreground; suspended PWAs resume and sweep-refresh automatically.
+- If it persists, restart the app; clients reconnect and full-refresh their caches.
+
+To verify live sync between two devices: edit a recipe on one device while the other sits idle on the recipes list — the change should appear within about one second without any interaction.
+
 ## 13. Useful Commands Reference
 
 ```bash

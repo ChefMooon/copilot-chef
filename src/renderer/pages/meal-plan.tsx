@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
 import {
   keepPreviousData,
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Plus } from "@phosphor-icons/react";
 
@@ -77,6 +77,7 @@ import { useMealTypeProfiles } from "@/lib/use-meal-types";
 import { useMealSubTypeDefinitions } from "@/lib/use-meal-types";
 import { getPlatform } from "@/lib/platform";
 import type { CreateRecipeInput, RecipeConflict, RecipePayload } from "@shared/types";
+import { LIST_REFETCH_INTERVAL_MS } from "@/lib/query-intervals";
 
 type CalView = "day" | "week" | "month";
 
@@ -234,6 +235,7 @@ export default function MealPlanPage() {
     queryKey: mealsQueryKey,
     placeholderData: keepPreviousData,
     enabled: apiReady,
+    refetchInterval: LIST_REFETCH_INTERVAL_MS,
     queryFn: () =>
       fetchJson<{ data: CalendarMeal[] }>(
         `/api/meals?from=${encodeURIComponent(toIsoString(dateRange.from))}&to=${encodeURIComponent(
@@ -245,6 +247,7 @@ export default function MealPlanPage() {
   const unscheduledMealsQuery = useQuery({
     queryKey: ["meals", "unscheduled"] as const,
     enabled: apiReady,
+    refetchInterval: LIST_REFETCH_INTERVAL_MS,
     queryFn: () =>
       listUnscheduledMeals().then((response) => response.map(toBankMeal)),
   });

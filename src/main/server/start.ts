@@ -11,6 +11,7 @@ import { LOOPBACK_HOST, resolveLanRuntimeSettings, type LanRuntimeSettings } fro
 import { resolveDatabaseUrl } from "./lib/prisma";
 import { getSetting } from "../settings/store";
 import { clearPairingCodes } from "./lib/pairing";
+import { shutdownSyncConnections } from "./routes/sync";
 import type { ServerConfig } from "@shared/config/server-config";
 
 // ── State ────────────────────────────────────────────────────
@@ -200,6 +201,7 @@ export async function startServer(): Promise<ServerInfo> {
 
 export async function stopServer(): Promise<void> {
   clearPairingCodes();
+  shutdownSyncConnections();
   if (httpServer) {
     await closeHttpServer(httpServer);
     httpServer = null;

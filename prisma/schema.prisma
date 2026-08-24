@@ -197,6 +197,11 @@ model UserPreference {
   reasoningEffort        String   @default("")
 }
 
+model SyncState {
+  key   String @id
+  value String
+}
+
 model Recipe {
   id           String             @id @default(cuid())
   title        String

@@ -17,6 +17,7 @@ import {
   getDefaultMealTypeProfile,
   getMealTypeDefinitionsForDate,
 } from "@/lib/calendar";
+import { LIST_REFETCH_INTERVAL_MS } from "@/lib/query-intervals";
 
 import styles from "./home-dashboard.module.css";
 
@@ -244,6 +245,7 @@ export function HomeDashboard() {
   const groceryListQuery = useQuery({
     queryKey: ["grocery-list", "current"],
     enabled: apiReady && settings.showGroceryList,
+    refetchInterval: LIST_REFETCH_INTERVAL_MS,
     retry: (failureCount, error) =>
       isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
     queryFn: () =>
@@ -255,6 +257,7 @@ export function HomeDashboard() {
   const heatmapQuery = useQuery({
     queryKey: ["meals", "heatmap", 13],
     enabled: apiReady && settings.showMealActivity,
+    refetchInterval: LIST_REFETCH_INTERVAL_MS,
     retry: (failureCount, error) =>
       isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
     queryFn: () =>
@@ -266,6 +269,7 @@ export function HomeDashboard() {
   const upcomingMealsQuery = useQuery({
     queryKey: ["meals", "upcoming", settings.upcomingDays],
     enabled: apiReady,
+    refetchInterval: LIST_REFETCH_INTERVAL_MS,
     retry: (failureCount, error) =>
       isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
     queryFn: () =>

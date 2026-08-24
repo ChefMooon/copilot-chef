@@ -61,6 +61,7 @@ import { MealTypeService } from "./meal-type-service";
 import { PrepListService } from "./prep-list-service";
 import { PreferenceService } from "./preference-service";
 import { RecipeService } from "./recipe-service";
+import { publishCommittedChange } from "./change-event-bus";
 
 type PhotoReader = typeof readMealPhotoFile;
 type PhotoWriter = typeof saveMealPhotoDataUrl;
@@ -2523,6 +2524,16 @@ export class DataManagementService {
           this.dependencies.deletePhoto(path)
         )
       );
+      for (const entity of [
+        "meal",
+        "recipe",
+        "groceryList",
+        "prepList",
+        "mealType",
+        "preference",
+      ] as const) {
+        await publishCommittedChange(entity, "bulk");
+      }
       return {
         summary: {
           mode: input.mode,

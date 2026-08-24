@@ -10,6 +10,11 @@ import type {
 
 import { bootstrapDatabase } from "../lib/bootstrap";
 import { prisma } from "../lib/prisma";
+import {
+  emitCommittedChange,
+  publishCommittedChange,
+  reserveCommittedChange,
+} from "./change-event-bus";
 import { MealService } from "./meal-service";
 
 type PrepItemRecord = {
@@ -457,6 +462,7 @@ export class PrepListService {
       include: { items: true },
     });
 
+    await publishCommittedChange("prepList", "create", prepList.id);
     return serializePrepList(prepList);
   }
 
@@ -552,6 +558,7 @@ export class PrepListService {
       }
     });
 
+    await publishCommittedChange("prepList", "bulk", id);
     return serializePrepList((await getListOrThrow(id)) as PrepListRecord);
   }
 
@@ -588,12 +595,14 @@ export class PrepListService {
       include: { items: true },
     });
 
+    await publishCommittedChange("prepList", "update", id);
     return serializePrepList(prepList);
   }
 
   async deletePrepList(id: string) {
     await bootstrapDatabase();
     await prisma.prepList.delete({ where: { id } });
+    await publishCommittedChange("prepList", "delete", id);
     return { id };
   }
 
@@ -605,25 +614,29 @@ export class PrepListService {
       _max: { sortOrder: true },
     });
 
-    await prisma.prepItem.create({
-      data: {
-        prepListId,
-        kind: input.kind ?? "ingredient",
-        name: input.name,
-        qty: input.qty,
-        unit: input.unit,
-        ingredientType: input.ingredientType,
-        prepGroup: input.prepGroup,
-        dish: input.dish,
-        notes: input.notes,
-        checked: input.checked ?? false,
-        sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
-        sourceMealIdsJson: serializeStringArray(input.sourceMealIds),
-        sourceRecipeIdsJson: serializeStringArray(input.sourceRecipeIds),
-        sourceLabelsJson: serializeStringArray(input.sourceLabels),
-      },
+    const change = await prisma.$transaction(async (tx) => {
+      await tx.prepItem.create({
+        data: {
+          prepListId,
+          kind: input.kind ?? "ingredient",
+          name: input.name,
+          qty: input.qty,
+          unit: input.unit,
+          ingredientType: input.ingredientType,
+          prepGroup: input.prepGroup,
+          dish: input.dish,
+          notes: input.notes,
+          checked: input.checked ?? false,
+          sortOrder: (maxOrder._max.sortOrder ?? -1) + 1,
+          sourceMealIdsJson: serializeStringArray(input.sourceMealIds),
+          sourceRecipeIdsJson: serializeStringArray(input.sourceRecipeIds),
+          sourceLabelsJson: serializeStringArray(input.sourceLabels),
+        },
+      });
+      return reserveCommittedChange(tx, "prepList", "update", prepListId);
     });
 
+    emitCommittedChange(change);
     return serializePrepList(await getListOrThrow(prepListId));
   }
 
@@ -666,6 +679,7 @@ export class PrepListService {
       },
     });
 
+    await publishCommittedChange("prepList", "update", prepListId);
     return serializePrepList(await getListOrThrow(prepListId));
   }
 
@@ -682,6 +696,7 @@ export class PrepListService {
     }
 
     await prisma.prepItem.delete({ where: { id: itemId } });
+    await publishCommittedChange("prepList", "update", prepListId);
     return serializePrepList(await getListOrThrow(prepListId));
   }
 
@@ -697,15 +712,17 @@ export class PrepListService {
       throw new Error("Some prep items were not found");
     }
 
-    await prisma.$transaction(
-      itemIds.map((itemId, index) =>
-        prisma.prepItem.update({
+    const change = await prisma.$transaction(async (tx) => {
+      for (const [index, itemId] of itemIds.entries()) {
+        await tx.prepItem.update({
           where: { id: itemId },
           data: { sortOrder: index },
-        })
-      )
-    );
+        });
+      }
+      return reserveCommittedChange(tx, "prepList", "update", prepListId);
+    });
 
+    emitCommittedChange(change);
     return serializePrepList(await getListOrThrow(prepListId));
   }
 

@@ -297,6 +297,12 @@ const SCHEMA_STATEMENTS = [
   `,
   `CREATE UNIQUE INDEX IF NOT EXISTS "RecipeLink_parentId_subRecipeId_key" ON "RecipeLink"("parentId", "subRecipeId")`,
   `CREATE INDEX IF NOT EXISTS "RecipeLink_subRecipeId_idx" ON "RecipeLink"("subRecipeId")`,
+  `
+    CREATE TABLE IF NOT EXISTS "SyncState" (
+      "key" TEXT NOT NULL PRIMARY KEY,
+      "value" TEXT NOT NULL
+    )
+  `,
 ] as const;
 
 async function ensureMissingColumns(

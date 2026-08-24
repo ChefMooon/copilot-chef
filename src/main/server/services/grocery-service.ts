@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { bootstrapDatabase } from "../lib/bootstrap";
+import { publishCommittedChange } from "./change-event-bus";
 
 function serializeGroceryList(groceryList: {
   id: string;
@@ -247,6 +248,7 @@ export class GroceryService {
       },
     });
 
+    await publishCommittedChange("groceryList", "create", groceryList.id);
     return serializeGroceryList(groceryList);
   }
 
@@ -277,6 +279,7 @@ export class GroceryService {
       },
     });
 
+    await publishCommittedChange("groceryList", "update", id);
     return serializeGroceryList(groceryList);
   }
 
@@ -287,6 +290,7 @@ export class GroceryService {
       where: { id },
     });
 
+    await publishCommittedChange("groceryList", "delete", id);
     return { id };
   }
 
@@ -314,6 +318,7 @@ export class GroceryService {
       },
     });
 
+    await publishCommittedChange("groceryList", "update", groceryListId);
     return serializeGroceryList(await getListOrThrow(groceryListId));
   }
 
@@ -348,6 +353,7 @@ export class GroceryService {
       },
     });
 
+    await publishCommittedChange("groceryList", "update", groceryListId);
     return serializeGroceryList(await getListOrThrow(groceryListId));
   }
 
@@ -369,6 +375,7 @@ export class GroceryService {
       },
     });
 
+    await publishCommittedChange("groceryList", "update", groceryListId);
     return serializeGroceryList(await getListOrThrow(groceryListId));
   }
 
@@ -402,6 +409,7 @@ export class GroceryService {
       )
     );
 
+    await publishCommittedChange("groceryList", "bulk", groceryListId);
     return serializeGroceryList(await getListOrThrow(groceryListId));
   }
 
@@ -444,6 +452,7 @@ export class GroceryService {
       }
     });
 
+    await publishCommittedChange("groceryList", "bulk", snapshot.id);
     return serializeGroceryList(await getListOrThrow(snapshot.id));
   }
 
@@ -466,6 +475,7 @@ export class GroceryService {
       },
     });
 
+    await publishCommittedChange("groceryList", "update", item.groceryList.id);
     return serializeGroceryList({
       ...item.groceryList,
       items: item.groceryList.items,

@@ -27,6 +27,8 @@ import { NewListModal } from "@/components/grocery-list/NewListModal";
 import { QuickReference } from "@/components/grocery-list/QuickReference";
 import { PageHeader } from "@/components/ui/PageHeader";
 
+import { LIST_REFETCH_INTERVAL_MS } from "@/lib/query-intervals";
+
 export default function GroceryListPage() {
   const config = useServerConfig();
   const apiReady = isServerConfigReady(config);
@@ -42,6 +44,7 @@ export default function GroceryListPage() {
   const listsQuery = useQuery({
     queryKey: ["grocery-lists"],
     enabled: apiReady,
+    refetchInterval: LIST_REFETCH_INTERVAL_MS,
     queryFn: () =>
       fetchJson<{ data: GroceryList[] }>("/api/grocery-lists").then(
         (response) => response.data

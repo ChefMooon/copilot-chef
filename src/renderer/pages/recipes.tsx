@@ -33,6 +33,7 @@ import {
   type RecipeSortByValue,
   type RecipeSortOrderValue,
 } from "@shared/api/constants";
+import { LIST_REFETCH_INTERVAL_MS } from "@/lib/query-intervals";
 
 const recipesKey = recipeKeys.all;
 
@@ -240,6 +241,7 @@ export default function RecipesPage() {
   const recipesQuery = useQuery({
     queryKey: [...recipesKey, recipeFilters],
     enabled: apiReady,
+    refetchInterval: LIST_REFETCH_INTERVAL_MS,
     retry: (failureCount, error) =>
       isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
     queryFn: () => listRecipes(recipeFilters),
@@ -248,6 +250,7 @@ export default function RecipesPage() {
   const allRecipesQuery = useQuery({
     queryKey: [...recipesKey, "all"],
     enabled: apiReady,
+    refetchInterval: LIST_REFETCH_INTERVAL_MS,
     retry: (failureCount, error) =>
       isRateLimitedApiError(error) ? failureCount < 1 : failureCount < 2,
     queryFn: () => listRecipes(),

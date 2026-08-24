@@ -32,6 +32,11 @@ import {
   sanitizeRecipeTitle,
 } from "../lib/recipe-identity";
 import {
+  emitCommittedChange,
+  publishCommittedChange,
+  reserveCommittedChange,
+} from "./change-event-bus";
+import {
   CreateRecipeInputSchema,
   UpdateRecipeInputSchema,
   type CreateRecipeInput,
@@ -1458,6 +1463,7 @@ export class RecipeService {
         });
       });
 
+      await publishCommittedChange("recipe", "create", recipe.id);
       return serializeRecipe(recipe);
     } catch (error) {
       if (error instanceof RecipeConflictError) {
@@ -1611,6 +1617,7 @@ export class RecipeService {
         });
       });
 
+      await publishCommittedChange("recipe", "update", recipe.id);
       return serializeRecipe(recipe);
     } catch (error) {
       if (error instanceof RecipeConflictError) {
@@ -1652,6 +1659,7 @@ export class RecipeService {
     }
 
     await prisma.recipe.delete({ where: { id } });
+    await publishCommittedChange("recipe", "delete", id);
   }
 
   async getRecipe(id: string): Promise<SerializedRecipe | null> {
@@ -2200,24 +2208,32 @@ export class RecipeService {
     });
 
     await this.addToGroceryList(recipeIds, groceryList.id);
+    await publishCommittedChange("groceryList", "create", groceryList.id);
     return groceryList;
   }
 
   async updateRating(id: string, rating: number, cookNotes?: string) {
     await bootstrapDatabase();
-    const recipe = await prisma.recipe.update({
-      where: { id },
-      data: {
-        rating,
-        cookNotes: compactString(cookNotes),
-        lastMadeAt: new Date(),
-      },
-      include: {
-        ...includeRecipeRelations(),
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      const recipe = await tx.recipe.update({
+        where: { id },
+        data: {
+          rating,
+          cookNotes: compactString(cookNotes),
+          lastMadeAt: new Date(),
+        },
+        include: {
+          ...includeRecipeRelations(),
+        },
+      });
+      return {
+        recipe,
+        change: await reserveCommittedChange(tx, "recipe", "update", id),
+      };
     });
 
-    return serializeRecipe(recipe);
+    emitCommittedChange(result.change);
+    return serializeRecipe(result.recipe);
   }
 
   async importRecipes(json: RecipeExportJson): Promise<ImportResult> {
@@ -2259,6 +2275,9 @@ export class RecipeService {
       }
     }
 
+    if (imported.length > 0) {
+      await publishCommittedChange("recipe", "bulk");
+    }
     return { imported, skipped };
   }
 
