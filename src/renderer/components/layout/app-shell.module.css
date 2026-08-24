@@ -289,7 +289,8 @@
 
 @media (max-width: 1024px) {
   .header {
-    padding: 0 1.5rem;
+    padding: var(--app-safe-area-top) max(1.5rem, env(safe-area-inset-right)) 0
+      max(1.5rem, env(safe-area-inset-left));
   }
 
   .logo {
@@ -322,7 +323,8 @@
 
 @media (max-width: 480px) {
   .header {
-    padding: 0 1rem;
+    padding: var(--app-safe-area-top) max(1rem, env(safe-area-inset-right)) 0
+      max(1rem, env(safe-area-inset-left));
   }
 
   .headerMac {

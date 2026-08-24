@@ -4,10 +4,15 @@ import { RouterProvider } from "react-router";
 
 import { router } from "./router";
 import { getPlatform } from "./lib/platform";
+import { applySafeAreaFallback } from "./lib/safe-area";
 import { PreferenceProvider } from "./lib/preferences";
 import { registerServiceWorker } from "./lib/service-worker";
 
 import "./globals.css";
+
+if (getPlatform().runtime === "browser") {
+  applySafeAreaFallback();
+}
 
 const container = document.getElementById("root");
 if (!container) throw new Error("Root element not found");
