@@ -507,12 +507,17 @@ describe("week view drag navigation", () => {
       vi.advanceTimersByTime(200);
     });
     expect(setDate).not.toHaveBeenCalled();
+    const leftBand = container.querySelector("[data-week-scroll-band='left']");
+    expect(leftBand).toHaveClass(styles.weekScrollBandActive);
+    expect(leftBand).toHaveClass(styles.weekScrollBandFlipping);
 
     act(() => {
       vi.advanceTimersByTime(700);
     });
     expect(setDate).toHaveBeenCalledTimes(1);
     expect(setDate).toHaveBeenCalledWith(new Date("2026-04-15T12:00:00"));
+    expect(leftBand).toHaveClass(styles.weekScrollBandActive);
+    expect(leftBand).toHaveClass(styles.weekScrollBandFlipping);
 
     act(() => {
       vi.advanceTimersByTime(1500);
@@ -883,6 +888,43 @@ describe("week view drag navigation", () => {
     dispatchEdgeDragOver(result.board, dataTransfer, 790, 250);
     pump(2);
     expect(pendingCount()).toBeGreaterThan(0);
+  });
+
+  it("hides scroll bands without overflow but keeps the wall-flip indicator", () => {
+    const { pump } = installRafPump();
+    const result = renderOverflowingWeekView();
+
+    stubScrollerMetrics(result.scroller, {
+      scrollWidth: 800,
+      clientWidth: 800,
+      scrollHeight: 500,
+      clientHeight: 500,
+    });
+    fireEvent.scroll(result.scroller);
+
+    const band = (band: string) =>
+      result.container.querySelector(`[data-week-scroll-band='${band}']`);
+
+    const dataTransfer = createDataTransfer();
+    setMealPlanDragPayload(dataTransfer, { kind: "bank-meal", mealId: "bank-8" });
+
+    dispatchEdgeDragOver(result.board, dataTransfer, 400, 30);
+    pump(2);
+    expect(band("top")).not.toHaveClass(styles.weekScrollBandActive);
+    expect(band("bottom")).not.toHaveClass(styles.weekScrollBandActive);
+    expect(band("left")).not.toHaveClass(styles.weekScrollBandActive);
+    expect(band("right")).not.toHaveClass(styles.weekScrollBandActive);
+    expect(result.scroller.scrollTop).toBe(0);
+
+    dispatchEdgeDragOver(result.board, dataTransfer, 790, 495);
+    pump(2);
+    expect(band("bottom")).not.toHaveClass(styles.weekScrollBandActive);
+    expect(band("right")).toHaveClass(styles.weekScrollBandActive);
+    expect(result.scroller.scrollLeft).toBe(0);
+    expect(result.scroller.scrollTop).toBe(0);
+
+    result.unmount();
+    pump(1);
   });
 
   it("renders a single-meal drag ghost through the shared preview helper", () => {

@@ -369,7 +369,7 @@ export function WeekView({
     );
   };
 
-  const evaluateBandActivity = (): BandActivity => {
+  const getPointerBands = (): BandActivity => {
     const scroller = scrollerRef.current;
     const pointer = lastPointerRef.current;
     if (!scroller || !pointer) {
@@ -388,6 +388,16 @@ export function WeekView({
     };
   };
 
+  const getScrollBands = (pointerBands: BandActivity): BandActivity => {
+    const { isOverflowingX, isOverflowingY } = scrollStateRef.current;
+    return {
+      left: pointerBands.left && isOverflowingX,
+      right: pointerBands.right && isOverflowingX,
+      top: pointerBands.top && isOverflowingY,
+      bottom: pointerBands.bottom && isOverflowingY,
+    };
+  };
+
   const runAutoScrollFrame = () => {
     autoScrollRafIdRef.current = null;
     const scroller = scrollerRef.current;
@@ -396,17 +406,19 @@ export function WeekView({
       return;
     }
 
+    const pointerBands = getPointerBands();
+    const scrollBands = getScrollBands(pointerBands);
     const rect = scroller.getBoundingClientRect();
     let vx = 0;
     let vy = 0;
-    if (pointer.x < rect.left + EDGE_SCROLL_BAND_PX) {
+    if (scrollBands.left) {
       vx = computeEdgeSpeed(pointer.x - rect.left, EDGE_SCROLL_BAND_PX, -1);
-    } else if (pointer.x > rect.right - EDGE_SCROLL_BAND_PX) {
+    } else if (scrollBands.right) {
       vx = computeEdgeSpeed(rect.right - pointer.x, EDGE_SCROLL_BAND_PX, 1);
     }
-    if (pointer.y < rect.top + EDGE_SCROLL_BAND_Y_PX) {
+    if (scrollBands.top) {
       vy = computeEdgeSpeed(pointer.y - rect.top, EDGE_SCROLL_BAND_Y_PX, -1);
-    } else if (pointer.y > rect.bottom - EDGE_SCROLL_BAND_Y_PX) {
+    } else if (scrollBands.bottom) {
       vy = computeEdgeSpeed(rect.bottom - pointer.y, EDGE_SCROLL_BAND_Y_PX, 1);
     }
 
@@ -421,11 +433,10 @@ export function WeekView({
     scroller.scrollLeft = Math.min(Math.max(scroller.scrollLeft + vx, 0), maxScrollLeft);
     scroller.scrollTop = Math.min(Math.max(scroller.scrollTop + vy, 0), maxScrollTop);
 
-    const activity = evaluateBandActivity();
-    setBandActivity(activity);
+    setBandActivity(scrollBands);
 
-    const atWallLeft = activity.left && scroller.scrollLeft <= 0;
-    const atWallRight = activity.right && scroller.scrollLeft >= maxScrollLeft;
+    const atWallLeft = pointerBands.left && scroller.scrollLeft <= 0;
+    const atWallRight = pointerBands.right && scroller.scrollLeft >= maxScrollLeft;
     if (atWallLeft) {
       scheduleEdgeNavigation("previous");
     } else if (atWallRight) {
@@ -1275,18 +1286,17 @@ export function WeekView({
           const bandDirection =
             band === "left" ? "previous" : band === "right" ? "next" : null;
           const isFlipping =
-            bandDirection !== null &&
-            autoScrollBands[band] &&
-            edgeHoverDirection === bandDirection;
+            bandDirection !== null && edgeHoverDirection === bandDirection;
+          const isActive = autoScrollBands[band] || isFlipping;
 
           return (
             <div
               aria-hidden="true"
-              className={`${styles.weekScrollBand} ${WEEK_SCROLL_BAND_CLASS[band]} ${autoScrollBands[band] ? styles.weekScrollBandActive : ""} ${isFlipping ? styles.weekScrollBandFlipping : ""}`}
+              className={`${styles.weekScrollBand} ${WEEK_SCROLL_BAND_CLASS[band]} ${isActive ? styles.weekScrollBandActive : ""} ${isFlipping ? styles.weekScrollBandFlipping : ""}`}
               data-week-scroll-band={band}
               key={band}
             >
-              {autoScrollBands[band] ? (
+              {isActive ? (
                 <BandIcon
                   aria-hidden="true"
                   className={styles.weekScrollBandArrow}
