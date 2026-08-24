@@ -212,6 +212,36 @@ describe("meal plan drag prompt paths", () => {
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
   });
 
+  it("keeps a full-slot add button for single-meal slots", () => {
+    const onAddMeal = vi.fn();
+
+    render(
+      <WeekView
+        date={new Date("2026-04-22T12:00:00")}
+        meals={[{ ...dayMeals[0], id: "meal-solo" }]}
+        mealTypeProfiles={[profile]}
+        onAddMeal={onAddMeal}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+        onEdit={vi.fn()}
+        onOpenSlotManager={vi.fn()}
+        setDate={vi.fn()}
+      />
+    );
+
+    const addButton = screen.getByRole("button", { name: /Add breakfast meal/i });
+    expect(addButton).toHaveTextContent("+ Add");
+    expect(addButton).toBeEnabled();
+
+    fireEvent.click(addButton);
+
+    expect(onAddMeal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        date: expect.any(Date),
+        type: "breakfast",
+      })
+    );
+  });
+
   it("dismisses the slot overflow menu with Escape and outside pointer input", () => {
     render(
       <WeekView

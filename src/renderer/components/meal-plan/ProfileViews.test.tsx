@@ -796,7 +796,11 @@ describe("profile-aware meal plan views", () => {
     );
 
     expect(screen.getAllByRole("button", { name: "+ Add" }).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("button", { name: "Add breakfast meal" })).toBeNull();
+
+    const breakfastAddButton = screen.getByRole("button", { name: "Add breakfast meal" });
+    expect(breakfastAddButton.textContent).toContain("+ Add");
+    expect(breakfastAddButton.className).toContain(styles.slotAddMoreBtn);
+    expect(breakfastAddButton.className).not.toContain(styles.slotAddIconBtn);
   });
 
   it("dims the day view when the focused profile is not active on the selected date", () => {

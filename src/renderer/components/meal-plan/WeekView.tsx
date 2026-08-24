@@ -1195,7 +1195,26 @@ export function WeekView({
                                   >
                                     <Plus aria-hidden="true" size={18} weight="regular" />
                                   </button>
-                                ) : null}
+                                ) : (
+                                  <button
+                                    aria-label={`Add ${type} meal`}
+                                    className={`${styles.slotAddMoreBtn} ${styles.emptySlotButton}`}
+                                    disabled={Boolean(draggedPayload) || isApplyingDrop}
+                                    onClick={() =>
+                                      onAddMeal(
+                                        createEmptyMeal(
+                                          new Date(day),
+                                          type,
+                                          mealTypes.find((definition) => definition.slug === type) ??
+                                            null
+                                        )
+                                      )
+                                    }
+                                    type="button"
+                                  >
+                                    <span className={styles.btnAddSlot}>+ Add</span>
+                                  </button>
+                                )}
                                 {slotMeals.length >= 2 ? (
                                   <button
                                     aria-label={`Manage ${type} meals`}
