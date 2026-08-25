@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.4] - 2026-08-25
+
+### Added
+
+- Pairing codes now renew automatically, helping connected PWA and LAN clients stay available longer.
+- Multiple clients can now synchronize recipe-book and meal-plan changes live.
+- The `/connect` screen now has separate host and port fields, a segmented pairing-code input, and a token visibility toggle.
+
+### Changed
+
+- The app now shuts down faster.
+
+### Fixed
+
+- Improved standalone PWA headers on iOS by correcting safe-area handling and clearing the iPad status-bar inset.
+- Meal-plan week drag-scroll bands now appear only when scrolling is available.
+- Restored the `+ Add` action for week slots containing a single meal.
+
 ## [1.2.3] - 2026-08-23
 
 ### Added
