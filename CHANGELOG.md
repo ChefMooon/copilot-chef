@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.5] - 2026-08-25
+
+### Fixed
+
+- API authentication now consistently rejects unauthenticated requests when configured server tokens are present.
+
 ## [1.2.4] - 2026-08-25
 
 ### Added
