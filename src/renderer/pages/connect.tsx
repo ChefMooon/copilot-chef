@@ -3,6 +3,8 @@ import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
+import { SegmentedCodeInput } from "@/components/ui/segmented-code-input";
+import { Eye, EyeSlash } from "@phosphor-icons/react";
 import {
   clearBrowserConnection,
   getBrowserConnectionMetadata,
@@ -31,6 +33,24 @@ class TokenRejectedError extends Error {
 
 function normalizeApiUrl(value: string): string {
   return value.trim().replace(/\/+$/, "");
+}
+
+function composeApiUrl(host: string, port: string): string {
+  return normalizeApiUrl(`http://${host.trim()}:${port.trim() || "3001"}`);
+}
+
+function parseApiUrlParts(url: string): { host: string; port: string } {
+  try {
+    const parsed = new URL(
+      normalizeApiUrl(url).startsWith("http") ? normalizeApiUrl(url) : `http://${normalizeApiUrl(url)}`,
+    );
+    return {
+      host: parsed.hostname,
+      port: parsed.port || "3001",
+    };
+  } catch {
+    return { host: "", port: "3001" };
+  }
 }
 
 async function verifyConnection(apiUrl: string, token: string): Promise<void> {
@@ -63,9 +83,10 @@ export default function ConnectPage() {
   const saved = imported ?? getBrowserConnection();
   const metadata = getBrowserConnectionMetadata();
   const cachedConfig = getCachedConfig();
-  const [apiUrl, setApiUrl] = useState(
-    saved?.apiUrl ?? cachedConfig?.url ?? ""
-  );
+  const initialUrl = saved?.apiUrl ?? cachedConfig?.url ?? "";
+  const [host, setHost] = useState(parseApiUrlParts(initialUrl).host);
+  const [port, setPort] = useState(parseApiUrlParts(initialUrl).port);
+  const [showToken, setShowToken] = useState(false);
   const [token, setToken] = useState(saved?.token ?? cachedConfig?.token ?? "");
   const [pairingCode, setPairingCode] = useState("");
   const [issuedPairingCode, setIssuedPairingCode] = useState<string | null>(null);
@@ -75,12 +96,18 @@ export default function ConnectPage() {
   const [error, setError] = useState<string | null>(metadata.staleReason);
 
   async function handleConnect() {
-    const nextApiUrl = normalizeApiUrl(apiUrl);
+    const nextApiUrl = composeApiUrl(host, port);
     const nextToken = token.trim();
 
-    if (!nextApiUrl || !nextToken) {
+    if (!host.trim() || !nextToken) {
       setState("error");
-      setError("Enter both the API URL and token.");
+      setError("Enter the server address and token.");
+      return;
+    }
+
+    if (!/^\d{1,5}$/.test(port.trim()) || Number(port) < 1 || Number(port) > 65535) {
+      setState("error");
+      setError("Enter a valid port (1-65535).");
       return;
     }
 
@@ -111,11 +138,17 @@ export default function ConnectPage() {
   }
 
   async function handlePair() {
-    const nextApiUrl = normalizeApiUrl(apiUrl);
+    const nextApiUrl = composeApiUrl(host, port);
     const nextPairingCode = pairingCode;
-    if (!nextApiUrl || !nextPairingCode) {
+    if (!host.trim() || !nextPairingCode) {
       setState("error");
-      setError("Enter the API URL and pairing code.");
+      setError("Enter the server address and pairing code.");
+      return;
+    }
+
+    if (!/^\d{1,5}$/.test(port.trim()) || Number(port) < 1 || Number(port) > 65535) {
+      setState("error");
+      setError("Enter a valid port (1-65535).");
       return;
     }
 
@@ -177,7 +210,8 @@ export default function ConnectPage() {
     setHasSavedConnection(false);
     resetConfigCache();
     queryClient.clear();
-    setApiUrl("");
+    setHost("");
+    setPort("3001");
     setToken("");
     setState("idle");
     setError(null);
@@ -188,6 +222,14 @@ export default function ConnectPage() {
       void handleConnect();
     }
   }, []);
+
+  // Auto-submit pairing when the full code has been entered.
+  useEffect(() => {
+    if (pairingCode.length === 4 && state !== "checking") {
+      void handlePair();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pairingCode]);
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col justify-center gap-5 px-6 py-10">
@@ -209,13 +251,43 @@ export default function ConnectPage() {
       <section className="rounded-card border border-cream-dark bg-white p-5 shadow-sm">
         <div className="space-y-4">
           <label className="block">
-            <span className="text-sm font-semibold text-text">API URL</span>
+            <span className="text-sm font-semibold text-text">Server address</span>
             <input
               className="mt-1 w-full rounded-md border border-cream-dark px-3 py-2 text-sm outline-none focus:border-green"
-              onChange={(event) => setApiUrl(event.target.value)}
-              placeholder="http://192.168.1.25:3001"
-              type="url"
-              value={apiUrl}
+              onChange={(event) => setHost(event.target.value)}
+              onPaste={(event) => {
+                const pasted = event.clipboardData.getData("text").trim();
+                const match = /^https?:\/\/([^/:]+):(\d{1,5})/.exec(pasted);
+                if (match) {
+                  event.preventDefault();
+                  setHost(match[1]);
+                  setPort(match[2]);
+                }
+              }}
+              placeholder="192.168.1.25"
+              type="text"
+              value={host}
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-semibold text-text">Port</span>
+            <input
+              className="mt-1 w-full rounded-md border border-cream-dark px-3 py-2 text-sm outline-none focus:border-green"
+              inputMode="numeric"
+              onChange={(event) => setPort(event.target.value.replace(/\D/g, "").slice(0, 5))}
+              onPaste={(event) => {
+                const pasted = event.clipboardData.getData("text").trim();
+                const match = /^https?:\/\/([^/:]+):(\d{1,5})/.exec(pasted);
+                if (match) {
+                  event.preventDefault();
+                  setHost(match[1]);
+                  setPort(match[2]);
+                }
+              }}
+              placeholder="3001"
+              type="text"
+              value={port}
             />
           </label>
 
@@ -224,18 +296,15 @@ export default function ConnectPage() {
               <span className="text-sm font-semibold text-text">
                 Pair installed app
               </span>
-              <input
-                className="mt-1 w-full rounded-md border border-cream-dark px-3 py-2 text-sm uppercase tracking-widest outline-none focus:border-green"
-                inputMode="numeric"
-                maxLength={4}
-                onChange={(event) =>
-                  setPairingCode(event.target.value.replace(/\D/g, "").slice(0, 4))
-                }
-                pattern="[0-9]{4}"
-                placeholder="0000"
-                type="text"
-                value={pairingCode}
-              />
+              <div className="mt-1">
+                <SegmentedCodeInput
+                  id="pairing-code"
+                  label="4-digit pairing code"
+                  length={4}
+                  onChange={setPairingCode}
+                  value={pairingCode}
+                />
+              </div>
             </label>
             <p className="mt-2 text-xs text-text-muted">
               Open the current pairing code on the desktop app or in your connected browser.
@@ -253,12 +322,23 @@ export default function ConnectPage() {
 
           <label className="block">
             <span className="text-sm font-semibold text-text">Token</span>
-            <input
-              className="mt-1 w-full rounded-md border border-cream-dark px-3 py-2 text-sm outline-none focus:border-green"
-              onChange={(event) => setToken(event.target.value)}
-              type="password"
-              value={token}
-            />
+            <div className="relative mt-1">
+              <input
+                className="w-full rounded-md border border-cream-dark px-3 py-2 pr-10 text-sm outline-none focus:border-green"
+                onChange={(event) => setToken(event.target.value)}
+                type={showToken ? "text" : "password"}
+                value={token}
+              />
+              <button
+                aria-label={showToken ? "Hide token" : "Show token"}
+                aria-pressed={showToken}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-text-muted hover:text-text"
+                onClick={() => setShowToken((visible) => !visible)}
+                type="button"
+              >
+                {showToken ? <EyeSlash size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </label>
 
           {error && (
