@@ -55,6 +55,17 @@ describe("applySafeAreaFallback", () => {
     expect(document.documentElement.style.getPropertyValue("--app-safe-area-top")).toBe("");
   });
 
+  it("clears a fallback when standalone mode no longer needs it", () => {
+    mockStandalone(true);
+    applySafeAreaFallback();
+
+    mockStandalone(false);
+    const applied = applySafeAreaFallback();
+
+    expect(applied).toBe(false);
+    expect(document.documentElement.style.getPropertyValue("--app-safe-area-top")).toBe("");
+  });
+
   it("does nothing without a target element", () => {
     mockStandalone(true);
 

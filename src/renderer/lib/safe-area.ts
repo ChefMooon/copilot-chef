@@ -4,7 +4,7 @@ declare global {
   }
 }
 
-export const SAFE_AREA_FALLBACK_TOP_PX = 32;
+export const SAFE_AREA_FALLBACK_TOP_PX = 24;
 
 export function isStandaloneDisplay(win: Window = window): boolean {
   const media = win.matchMedia?.("(display-mode: standalone)");
@@ -50,6 +50,7 @@ export function applySafeAreaFallback(
   const standalone = isStandaloneDisplay();
   const resolvedTopInset = measureSafeAreaTopInset();
   if (!shouldApplySafeAreaFallback(standalone, resolvedTopInset)) {
+    target.style.removeProperty("--app-safe-area-top");
     return false;
   }
 
