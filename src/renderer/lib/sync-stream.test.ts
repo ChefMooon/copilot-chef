@@ -72,7 +72,7 @@ describe("revision observation rules", () => {
       vi.stubGlobal("fetch", fetchMock);
 
       const statuses: string[] = [];
-      const { startSyncStream } = await import("./sync-stream");
+      const { startSyncStream, stopSyncStream } = await import("./sync-stream");
       startSyncStream({
         onStatus: (status) => statuses.push(status),
         onFrame: () => {},
@@ -87,6 +87,30 @@ describe("revision observation rules", () => {
       );
       expect(revisionProbeCalls.length).toBeGreaterThan(0);
       expect(statuses).toContain("polling");
+      stopSyncStream();
+    } finally {
+      vi.unstubAllGlobals();
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not reconnect after the stream is stopped", async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi.fn().mockRejectedValue(new Error("stream blocked"));
+      vi.stubGlobal("fetch", fetchMock);
+
+      const { startSyncStream, stopSyncStream } = await import("./sync-stream");
+      startSyncStream({
+        onStatus: () => {},
+        onFrame: () => {},
+      });
+      await vi.advanceTimersByTimeAsync(0);
+
+      stopSyncStream();
+      await vi.advanceTimersByTimeAsync(120_000);
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
     } finally {
       vi.unstubAllGlobals();
       vi.useRealTimers();

@@ -96,6 +96,10 @@ export function createElectronPlatform(): RendererPlatform {
     saveDataArchive: async (payload: DataArchiveSavePayload) => {
       return (await api.saveDataArchive(payload)) as DataArchiveSaveResult;
     },
+    subscribeShutdown: (listener) => {
+      api.on("app:shutdown", listener);
+      return () => api.off("app:shutdown", listener);
+    },
     getLanStatus: async () => {
       return (await api.invoke("lan:getStatus")) as LanStatus;
     },

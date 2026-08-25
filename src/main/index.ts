@@ -34,7 +34,12 @@ let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 const runtime = new LocalRecipeBookRuntime();
 const shutdownGate = createShutdownGate({
-  requestRuntimeQuit: () => runtime.requestQuit(),
+  requestRuntimeQuit: async () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("app:shutdown");
+    }
+    await runtime.requestQuit();
+  },
   quit: () => app.quit(),
   onError: (error) => {
     console.error("[local-recipe-book] application shutdown failed:", error);

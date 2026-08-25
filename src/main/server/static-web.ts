@@ -131,6 +131,7 @@ export async function stopStaticWebServer(): Promise<void> {
 
   await new Promise<void>((resolvePromise) => {
     staticServer?.close(() => resolvePromise());
+    staticServer?.closeAllConnections();
   });
   staticServer = null;
   staticSettings = null;

@@ -27,6 +27,7 @@ const globalForSync = globalThis as typeof globalThis & {
     pollTimer: ReturnType<typeof setTimeout> | null;
     retryTimer: ReturnType<typeof setTimeout> | null;
     abortController: AbortController | null;
+    stopping: boolean;
   };
 };
 
@@ -43,6 +44,7 @@ const syncState =
     pollTimer: null,
     retryTimer: null,
     abortController: null,
+    stopping: false,
   } as NonNullable<typeof globalForSync.__localRecipeBookSyncStream>);
 
 globalForSync.__localRecipeBookSyncStream = syncState;
@@ -69,6 +71,7 @@ function stopPolling(): void {
 }
 
 function schedulePoll(callbacks: SyncStreamCallbacks): void {
+  if (syncState.stopping) return;
   stopPolling();
   syncState.pollTimer = setTimeout(() => {
     void pollRevisionOnce(callbacks);
@@ -76,6 +79,7 @@ function schedulePoll(callbacks: SyncStreamCallbacks): void {
 }
 
 async function pollRevisionOnce(callbacks: SyncStreamCallbacks): Promise<void> {
+  if (syncState.stopping) return;
   try {
     const response = await fetch(`${getApiBase()}/api/sync/revision`, {
       cache: "no-store",
@@ -192,6 +196,7 @@ async function runStream(callbacks: SyncStreamCallbacks): Promise<void> {
 }
 
 function scheduleReconnect(callbacks: SyncStreamCallbacks): void {
+  if (syncState.stopping) return;
   const delay = Math.min(
     BASE_RETRY_DELAY_MS * 2 ** Math.min(syncState.rapidFailures, 5),
     MAX_RETRY_DELAY_MS
@@ -206,6 +211,7 @@ function scheduleReconnect(callbacks: SyncStreamCallbacks): void {
 async function startInternal(callbacks: SyncStreamCallbacks): Promise<void> {
   try {
     await runStream(callbacks);
+    if (syncState.stopping) return;
     // Stream ended cleanly (server restart/stop): reconnect with backoff.
     syncState.rapidFailures += 1;
     if (syncState.rapidFailures >= MAX_RAPID_FAILURES) {
@@ -214,6 +220,7 @@ async function startInternal(callbacks: SyncStreamCallbacks): Promise<void> {
     }
     scheduleReconnect(callbacks);
   } catch {
+    if (syncState.stopping) return;
     syncState.rapidFailures += 1;
     if (syncState.rapidFailures >= MAX_RAPID_FAILURES) {
       callbacks.onStatus("polling");
@@ -230,16 +237,25 @@ async function startInternal(callbacks: SyncStreamCallbacks): Promise<void> {
 export function startSyncStream(callbacks: SyncStreamCallbacks): () => void {
   if (syncState.started) return () => {};
   syncState.started = true;
+  syncState.stopping = false;
 
   // Browser/PWA only in remote contexts; desktop renderer uses the same API.
   void getPlatform();
 
   void startInternal(callbacks);
 
-  return () => {
-    // Intentionally not stopping on unmount: the stream outlives component
-    // lifecycles so strict-mode double-mounts do not churn connections.
-  };
+  return stopSyncStream;
+}
+
+export function stopSyncStream(): void {
+  syncState.stopping = true;
+  syncState.started = false;
+  stopPolling();
+  if (syncState.retryTimer) {
+    clearTimeout(syncState.retryTimer);
+    syncState.retryTimer = null;
+  }
+  syncState.abortController?.abort();
 }
 
 /** Force a reconnect + full sweep (used on visibility regain while degraded). */

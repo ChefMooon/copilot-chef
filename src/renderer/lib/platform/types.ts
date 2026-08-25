@@ -123,6 +123,7 @@ export type RendererPlatform = {
   saveDataArchive: (
     payload: DataArchiveSavePayload
   ) => Promise<DataArchiveSaveResult>;
+  subscribeShutdown: (listener: () => void) => () => void;
   getLanStatus: () => Promise<LanStatus | null>;
   restartLanServices: () => Promise<unknown>;
   createLanPairingCode: () => Promise<PairingCodeResult | null>;

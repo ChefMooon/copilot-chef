@@ -91,14 +91,21 @@ export class LocalRecipeBookRuntime {
     }
 
     this.status = "stopping";
-    logLifecycle("runtime.stop.begin", { status: this.status });
+    const stopStartedAt = Date.now();
+    logLifecycle("runtime.stop.begin", {
+      status: this.status,
+      startedAt: new Date(stopStartedAt).toISOString(),
+    });
     this.stopPromise = (async () => {
       try {
-        await stopStaticWebServer();
-        await stopServer();
+        await Promise.all([stopStaticWebServer(), stopServer()]);
       } finally {
         this.status = "stopped";
-        logLifecycle("runtime.stop.complete", { status: this.status });
+        const completedAt = Date.now();
+        logLifecycle("runtime.stop.complete", {
+          status: this.status,
+          elapsedMs: completedAt - stopStartedAt,
+        });
         this.stopPromise = null;
       }
     })();
@@ -112,11 +119,19 @@ export class LocalRecipeBookRuntime {
       return this.quitPromise;
     }
 
-    logLifecycle("runtime.quit.begin", { status: this.status });
+    const quitStartedAt = Date.now();
+    logLifecycle("runtime.quit.begin", {
+      status: this.status,
+      startedAt: new Date(quitStartedAt).toISOString(),
+    });
     this.quitPromise = (async () => {
       await this.stop();
     })().finally(() => {
-      logLifecycle("runtime.quit.complete", { status: this.status });
+      const completedAt = Date.now();
+      logLifecycle("runtime.quit.complete", {
+        status: this.status,
+        elapsedMs: completedAt - quitStartedAt,
+      });
       this.quitPromise = null;
     });
 

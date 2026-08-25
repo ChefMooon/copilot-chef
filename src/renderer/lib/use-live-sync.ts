@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { getPlatform } from "./platform";
 
 import {
   invalidateDataManagementQueries,
@@ -8,6 +9,7 @@ import {
 import {
   resyncAfterInterruption,
   startSyncStream,
+  stopSyncStream,
   type SyncFrame,
   type SyncStreamStatus,
 } from "./sync-stream";
@@ -25,6 +27,7 @@ export function useLiveSync(enabled: boolean): SyncStreamStatus {
 
   useEffect(() => {
     if (!enabled) return;
+    const platform = getPlatform();
 
     const updateStatus = (nextStatus: SyncStreamStatus) => {
       statusRef.current = nextStatus;
@@ -42,6 +45,8 @@ export function useLiveSync(enabled: boolean): SyncStreamStatus {
     };
 
     const stop = startSyncStream({ onStatus: updateStatus, onFrame });
+    const unsubscribeShutdown =
+      platform.subscribeShutdown?.(stopSyncStream) ?? (() => {});
     const resync = () => {
       if (statusRef.current === "live") return;
       void invalidateDataManagementQueries(queryClient);
@@ -58,6 +63,7 @@ export function useLiveSync(enabled: boolean): SyncStreamStatus {
     return () => {
       window.removeEventListener("online", resync);
       document.removeEventListener("visibilitychange", handleVisibility);
+      unsubscribeShutdown();
       stop();
     };
   }, [enabled, queryClient]);

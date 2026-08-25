@@ -393,6 +393,7 @@ export function createBrowserPlatform(): RendererPlatform {
       status: "error",
       message: "Data backup and restore is available in the desktop app.",
     }),
+    subscribeShutdown: () => () => {},
     getLanStatus: async () => null,
     restartLanServices: async () => null,
     createLanPairingCode: async () => null,

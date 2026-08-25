@@ -30,6 +30,7 @@ export const IPC_CHANNELS = [
 ] as const;
 
 export const IPC_EVENT_CHANNELS = [
+  "app:shutdown",
   "updates:available",
   "updates:not-available",
   "updates:progress",
@@ -135,6 +136,7 @@ export type UpdateState =
   | { status: "error"; info?: UpdateInfo; progress?: UpdateProgress; error: string };
 
 export type IpcEventMap = {
+  "app:shutdown": () => void;
   "updates:available": (info: UpdateInfo) => void;
   "updates:not-available": (...args: unknown[]) => void;
   "updates:progress": (progress: UpdateProgress) => void;

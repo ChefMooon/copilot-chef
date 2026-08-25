@@ -19,6 +19,15 @@ vi.mock("./server/static-web", () => ({
 
 import { LocalRecipeBookRuntime } from "./runtime";
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve;
+  });
+
+  return { promise, resolve };
+}
+
 describe("LocalRecipeBookRuntime", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -77,6 +86,69 @@ describe("LocalRecipeBookRuntime", () => {
     expect(stopServerMock).toHaveBeenCalledTimes(1);
     expect(stopStaticWebServerMock).toHaveBeenCalledTimes(1);
     expect(runtime.getStatus()).toBe("stopped");
+  });
+
+  it("starts independent shutdown operations concurrently and waits for both", async () => {
+    const runtime = new LocalRecipeBookRuntime();
+    await runtime.start();
+
+    const staticWebStopped = deferred<void>();
+    const serverStopped = deferred<void>();
+    stopStaticWebServerMock.mockReturnValueOnce(staticWebStopped.promise);
+    stopServerMock.mockReturnValueOnce(serverStopped.promise);
+
+    let stopCompleted = false;
+    const stopPromise = runtime.stop().then(() => {
+      stopCompleted = true;
+    });
+
+    expect(stopStaticWebServerMock).toHaveBeenCalledTimes(1);
+    expect(stopServerMock).toHaveBeenCalledTimes(1);
+    expect(stopCompleted).toBe(false);
+
+    serverStopped.resolve();
+    await Promise.resolve();
+    expect(stopCompleted).toBe(false);
+
+    staticWebStopped.resolve();
+    await stopPromise;
+    expect(stopCompleted).toBe(true);
+    expect(runtime.getStatus()).toBe("stopped");
+  });
+
+  it("logs shutdown timestamps and elapsed durations", async () => {
+    vi.useFakeTimers();
+    const consoleInfo = vi.spyOn(console, "info").mockImplementation(() => {});
+    try {
+      const runtime = new LocalRecipeBookRuntime();
+      await runtime.start();
+
+      vi.setSystemTime(new Date("2026-08-24T12:00:00.000Z"));
+      const stopPromise = runtime.stop();
+      vi.setSystemTime(new Date("2026-08-24T12:00:01.250Z"));
+      await stopPromise;
+
+      const stopBegin = consoleInfo.mock.calls.find(
+        ([event]) => event === "[local-recipe-book] runtime.stop.begin"
+      );
+      const stopComplete = consoleInfo.mock.calls.find(
+        ([event]) => event === "[local-recipe-book] runtime.stop.complete"
+      );
+
+      expect(stopBegin?.[1]).toMatchObject({
+        status: "stopping",
+        startedAt: "2026-08-24T12:00:00.000Z",
+      });
+      expect(stopComplete?.[1]).toMatchObject({
+        status: "stopped",
+        elapsedMs: 1250,
+      });
+      expect(stopComplete?.[1]).not.toHaveProperty("startedAt");
+      expect(stopComplete?.[1]).not.toHaveProperty("completedAt");
+    } finally {
+      consoleInfo.mockRestore();
+      vi.useRealTimers();
+    }
   });
 
   it("cleans up a started API server when static web startup fails", async () => {

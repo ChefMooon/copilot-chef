@@ -124,7 +124,11 @@ function tryPort(config: ServerConfig, port: number): Promise<ServerInfo> {
   });
 }
 
-export function closeHttpServer(server: Pick<ServerType, "close">): Promise<void> {
+export function closeHttpServer(
+  server: Pick<ServerType, "close"> & {
+    closeAllConnections?: () => void;
+  }
+): Promise<void> {
   return new Promise<void>((resolvePromise, rejectPromise) => {
     server.close((error) => {
       if (error) {
@@ -133,6 +137,7 @@ export function closeHttpServer(server: Pick<ServerType, "close">): Promise<void
       }
       resolvePromise();
     });
+    server.closeAllConnections?.();
   });
 }
 
