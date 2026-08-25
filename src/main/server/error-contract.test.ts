@@ -75,8 +75,6 @@ describe("server error contract", () => {
   });
 
   it("returns a consistent envelope for unauthorized requests", async () => {
-    process.env.PA_MACHINE_AUTH_ENABLED = "true";
-
     const app = createApp({
       ...baseConfig,
       auth: { tokens: ["secret"] },

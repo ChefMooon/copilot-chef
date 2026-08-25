@@ -108,6 +108,10 @@ export function resolveCallerIdentity(
   const envIdentity = resolveIdentityFromToken(bearerToken);
   if (envIdentity) return envIdentity;
 
+  if (configTokens && configTokens.length > 0) {
+    throw new MachineAuthError(401, "Unauthorized");
+  }
+
   const authEnabled =
     process.env["PA_MACHINE_AUTH_ENABLED"] === "1" ||
     process.env["PA_MACHINE_AUTH_ENABLED"] === "true";
