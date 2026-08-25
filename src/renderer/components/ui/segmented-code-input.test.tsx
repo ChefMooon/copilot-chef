@@ -44,7 +44,7 @@ describe("SegmentedCodeInput", () => {
   it("moves back and clears the previous segment on backspace from an empty segment", () => {
     const onChange = vi.fn();
     let value = "12";
-    const { rerender } = render(
+    render(
       <SegmentedCodeInput
         id="code"
         label="4-digit code"

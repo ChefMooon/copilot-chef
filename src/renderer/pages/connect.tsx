@@ -228,7 +228,6 @@ export default function ConnectPage() {
     if (pairingCode.length === 4 && state !== "checking") {
       void handlePair();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pairingCode]);
 
   return (
