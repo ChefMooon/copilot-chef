@@ -96,6 +96,20 @@ rotated or cleared machine token invalidates all previously paired browser and
 PWA clients. The pairing code itself does not contain the machine token and is
 not placed in a URL.
 
+Desktop Settings can show a countdown and renew the code automatically after
+you explicitly create one. Automatic renewal runs only while the Settings
+Connection tab is active and visible. It pauses when the tab or document is
+hidden, when Settings is closed, or when you stop auto-renewal. Returning to the
+visible Connection tab can create one replacement if auto-renewal is still
+enabled. The Stop auto-renew control can be used to prevent further automatic
+issuance; each displayed code remains subject to the server's five-minute
+expiry and single-use rules.
+
+Pairing-code requests already accepted by the desktop main process cannot be
+cancelled by the renderer. If the page is hidden, navigated away from, or
+closed while a request is in flight, the renderer ignores the eventual result,
+but the server may still consume that unshown code.
+
 ---
 
 ## 5. Settings and Keys

@@ -204,6 +204,15 @@ function normalizeHomeBool(input: unknown, fallback: boolean) {
   return typeof input === "boolean" ? input : fallback;
 }
 
+export function getPairingCodeRemainingSeconds(
+  expiresAt: string,
+  now = Date.now()
+): number | null {
+  const expiry = Date.parse(expiresAt);
+  if (!Number.isFinite(expiry)) return null;
+  return Math.max(0, Math.ceil((expiry - now) / 1000));
+}
+
 const TABS: Array<{ id: TabId; label: string; panelId: string }> = [
   { id: "app-settings",
     label: "App Settings",
@@ -359,6 +368,15 @@ export default function SettingsPage() {
   const [lanQrModalOpen, setLanQrModalOpen] = useState(false);
   const [lanPairingCode, setLanPairingCode] = useState<PairingCodeResult | null>(null);
   const [lanPairingLoading, setLanPairingLoading] = useState(false);
+  const [lanPairingAutoRenew, setLanPairingAutoRenew] = useState(false);
+  const [lanPairingRemainingSeconds, setLanPairingRemainingSeconds] = useState<number | null>(null);
+  const [lanPairingError, setLanPairingError] = useState<string | null>(null);
+  const [documentVisible, setDocumentVisible] = useState(
+    () => typeof document === "undefined" || document.visibilityState === "visible"
+  );
+  const lanPairingTimerRef = useRef<number | null>(null);
+  const lanPairingGenerationRef = useRef(0);
+  const lanPairingRequestRef = useRef(false);
   const [mealBankPlacement, setMealBankPlacement] =
     useState<MealBankPlacement>("right");
   const [recipeDefaultSort, setRecipeDefaultSort] =
@@ -405,6 +423,13 @@ export default function SettingsPage() {
   const [activeTab, setActiveTabState] = useState<TabId>(getInitialTab);
 
   function setActiveTab(id: TabId) {
+    if (id !== "connection") {
+      lanPairingGenerationRef.current += 1;
+      if (lanPairingTimerRef.current !== null) {
+        window.clearInterval(lanPairingTimerRef.current);
+        lanPairingTimerRef.current = null;
+      }
+    }
     setActiveTabState(id);
     try {
       window.localStorage.setItem("settings-active-tab", id);
@@ -659,6 +684,28 @@ export default function SettingsPage() {
     return () => {
       clearBrowserTimer(householdTimerRef);
       clearBrowserTimer(notesTimerRef);
+      if (lanPairingTimerRef.current !== null) {
+        window.clearInterval(lanPairingTimerRef.current);
+      }
+      lanPairingGenerationRef.current += 1;
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setDocumentVisible(document.visibilityState === "visible");
+      if (document.visibilityState !== "visible") {
+        lanPairingGenerationRef.current += 1;
+        if (lanPairingTimerRef.current !== null) {
+          window.clearInterval(lanPairingTimerRef.current);
+          lanPairingTimerRef.current = null;
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
@@ -986,18 +1033,7 @@ export default function SettingsPage() {
   };
 
   const handleCreateLanPairingCode = async () => {
-    setLanPairingLoading(true);
-    try {
-      const result = await platform.createLanPairingCode();
-      setLanPairingCode(result);
-      if (!result) {
-        toast({ title: "Generate a machine token first.", variant: "error" });
-      }
-    } catch {
-      toast({ title: "Could not create pairing code.", variant: "error" });
-    } finally {
-      setLanPairingLoading(false);
-    }
+    await issueLanPairingCode(true);
   };
 
   const handleCopyLanPairingCode = async () => {
@@ -1009,6 +1045,103 @@ export default function SettingsPage() {
       toast({ title: "Could not copy pairing code.", variant: "error" });
     }
   };
+
+  async function issueLanPairingCode(manual = false) {
+    const eligible =
+      platform.capabilities.lanManagement &&
+      activeTab === "connection" &&
+      documentVisible &&
+      lanPairingAutoRenew;
+    if ((!manual && !eligible) || lanPairingRequestRef.current) return;
+
+    const generation = ++lanPairingGenerationRef.current;
+    lanPairingRequestRef.current = true;
+    setLanPairingLoading(true);
+    setLanPairingError(null);
+    if (manual) {
+      setLanPairingAutoRenew(true);
+      setLanPairingCode(null);
+      setLanPairingRemainingSeconds(null);
+    } else {
+      setLanPairingRemainingSeconds(0);
+    }
+
+    try {
+      const result = await platform.createLanPairingCode();
+      if (generation !== lanPairingGenerationRef.current) return;
+      if (!result) {
+        setLanPairingCode(null);
+        setLanPairingRemainingSeconds(null);
+        setLanPairingError("Generate a machine token first.");
+        toast({ title: "Generate a machine token first.", variant: "error" });
+        return;
+      }
+
+      const remainingSeconds = getPairingCodeRemainingSeconds(result.expiresAt);
+      if (remainingSeconds === null || remainingSeconds === 0) {
+        throw new Error("The pairing code had an invalid expiry.");
+      }
+      setLanPairingCode(result);
+      setLanPairingRemainingSeconds(remainingSeconds);
+    } catch (error) {
+      if (generation !== lanPairingGenerationRef.current) return;
+      setLanPairingCode(null);
+      setLanPairingRemainingSeconds(null);
+      setLanPairingError(
+        error instanceof Error && error.message.includes("invalid expiry")
+          ? "Could not create a pairing code with a valid expiry."
+          : "Could not create pairing code."
+      );
+      toast({
+        title: "Could not create pairing code.",
+        variant: "error",
+      });
+    } finally {
+      lanPairingRequestRef.current = false;
+      setLanPairingLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (lanPairingTimerRef.current !== null) {
+      window.clearInterval(lanPairingTimerRef.current);
+      lanPairingTimerRef.current = null;
+    }
+
+    const eligible =
+      platform.capabilities.lanManagement &&
+      activeTab === "connection" &&
+      documentVisible;
+    if (!eligible || !lanPairingCode) return;
+
+    const updateCountdown = () => {
+      const remaining =
+        getPairingCodeRemainingSeconds(lanPairingCode.expiresAt) ?? 0;
+      setLanPairingRemainingSeconds(remaining);
+      if (
+        remaining === 0 &&
+        lanPairingAutoRenew &&
+        !lanPairingRequestRef.current
+      ) {
+        void issueLanPairingCode();
+      }
+    };
+
+    updateCountdown();
+    lanPairingTimerRef.current = window.setInterval(updateCountdown, 1000);
+    return () => {
+      if (lanPairingTimerRef.current !== null) {
+        window.clearInterval(lanPairingTimerRef.current);
+        lanPairingTimerRef.current = null;
+      }
+    };
+  }, [
+    activeTab,
+    documentVisible,
+    lanPairingAutoRenew,
+    lanPairingCode,
+    lanPairingLoading,
+  ]);
 
   const browserConnectionUrl =
     lanStatus?.web.url && lanStatus?.api.url && machineApiKeyDraft
@@ -1566,7 +1699,6 @@ export default function SettingsPage() {
               </div>
             ) : (
               <p className={styles.fieldHint} style={{ marginTop: "1rem" }}>
-                Desktop startup and tray settings are unavailable in browser mode.
                 {lifecycleUnavailableReason ? ` ${lifecycleUnavailableReason}` : ""}
               </p>
             )}
@@ -1939,7 +2071,11 @@ export default function SettingsPage() {
                     type="button"
                     variant="outline"
                   >
-                    {lanPairingLoading ? "Creating..." : "Create PWA pairing code"}
+                    {lanPairingLoading
+                      ? "Creating..."
+                      : lanPairingCode
+                        ? "Replace PWA pairing code"
+                        : "Create PWA pairing code"}
                   </Button>
                 </div>
                 {lanPairingCode ? (
@@ -1955,14 +2091,52 @@ export default function SettingsPage() {
                         type="text"
                         value={lanPairingCode.code}
                       />
-                      <Button onClick={() => void handleCopyLanPairingCode()} type="button" variant="outline">
+                      <Button
+                        disabled={
+                          lanPairingLoading ||
+                          lanPairingRemainingSeconds === null ||
+                          lanPairingRemainingSeconds <= 0
+                        }
+                        onClick={() => void handleCopyLanPairingCode()}
+                        type="button"
+                        variant="outline"
+                      >
                         Copy code
+                      </Button>
+                    </div>
+                    <p aria-live="polite" className={styles.fieldHint} role="status">
+                      {lanPairingLoading
+                        ? "Creating a new pairing code..."
+                        : lanPairingRemainingSeconds === 0
+                          ? "This pairing code has expired."
+                          : lanPairingRemainingSeconds !== null
+                            ? `Expires in ${Math.floor(lanPairingRemainingSeconds / 60)}:${String(lanPairingRemainingSeconds % 60).padStart(2, "0")}`
+                            : "Pairing code status unavailable."}
+                    </p>
+                    <div className={styles.actionsRow}>
+                      <Button
+                        aria-pressed={lanPairingAutoRenew}
+                        onClick={() => {
+                          setLanPairingAutoRenew((enabled) => !enabled);
+                          lanPairingGenerationRef.current += 1;
+                        }}
+                        type="button"
+                        variant="outline"
+                      >
+                        {lanPairingAutoRenew
+                          ? "Stop auto-renew"
+                          : "Resume auto-renew"}
                       </Button>
                     </div>
                     <p className={styles.fieldHint}>
                       Enter this code in the installed app before {new Date(lanPairingCode.expiresAt).toLocaleTimeString()}.
                     </p>
                   </div>
+                ) : null}
+                {lanPairingError ? (
+                  <p aria-live="polite" className={styles.fieldHint} role="alert">
+                    {lanPairingError}
+                  </p>
                 ) : null}
                 {lanQrModalOpen &&
                 browserConnectionUrl &&
