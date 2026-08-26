@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MealBankSidecar } from "./MealBankSidecar";
-import {
-  setMealPlanDragPayload,
-  type BankMeal,
-} from "@/lib/calendar";
+import { setMealPlanDragPayload, type BankMeal } from "@/lib/calendar";
 import type { MealTypeDefinitionPayload } from "@shared/types";
 import styles from "./meal-plan.module.css";
 
@@ -87,7 +90,7 @@ function createDataTransfer() {
     setData: (type: string, value: string) => {
       values.set(type, value);
     },
-    getData: (type: string) => (restricted ? "" : values.get(type) ?? ""),
+    getData: (type: string) => (restricted ? "" : (values.get(type) ?? "")),
     setDragRestriction: (value: boolean) => {
       restricted = value;
     },
@@ -96,7 +99,9 @@ function createDataTransfer() {
   } as DataTransfer & { setDragRestriction: (value: boolean) => void };
 }
 
-function renderMealBank(overrides: Partial<Parameters<typeof MealBankSidecar>[0]> = {}) {
+function renderMealBank(
+  overrides: Partial<Parameters<typeof MealBankSidecar>[0]> = {}
+) {
   const props: Parameters<typeof MealBankSidecar>[0] = {
     activeDate: new Date("2026-05-25T12:00:00.000Z"),
     collapsed: false,
@@ -130,7 +135,9 @@ describe("MealBankSidecar", () => {
     const props = renderMealBank();
 
     expect(screen.getByText("Freezer Chili")).toBeInTheDocument();
-    fireEvent.click(screen.getAllByRole("button", { name: "Dinner" })[0]);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Schedule Freezer Chili as Dinner" })
+    );
 
     expect(props.onSchedule).toHaveBeenCalledWith(bankMeals[0], "dinner");
   });
@@ -176,7 +183,9 @@ describe("MealBankSidecar", () => {
   it("reorders banked meals with explicit controls", () => {
     const props = renderMealBank();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Down" })[0]);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Move Freezer Chili down" })
+    );
 
     expect(props.onReorder).toHaveBeenCalledWith(["bank-2", "bank-1"]);
   });
@@ -184,7 +193,9 @@ describe("MealBankSidecar", () => {
   it("opens the add menu and triggers custom meal action", () => {
     const props = renderMealBank();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add a meal to the Meal Bank" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a meal to the Meal Bank" })
+    );
     fireEvent.click(screen.getByRole("menuitem", { name: "Custom Meal" }));
 
     expect(props.onAddCustomMeal).toHaveBeenCalledTimes(1);
@@ -193,7 +204,9 @@ describe("MealBankSidecar", () => {
   it("opens the add menu and triggers from recipe action", () => {
     const props = renderMealBank();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add a meal to the Meal Bank" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a meal to the Meal Bank" })
+    );
     fireEvent.click(screen.getByRole("menuitem", { name: "From Recipe" }));
 
     expect(props.onAddFromRecipe).toHaveBeenCalledTimes(1);
@@ -202,14 +215,19 @@ describe("MealBankSidecar", () => {
   it("duplicates a meal from the card actions", () => {
     const props = renderMealBank();
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Duplicate" })[0]);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Duplicate Freezer Chili" })
+    );
 
     expect(props.onDuplicate).toHaveBeenCalledWith(bankMeals[0]);
   });
 
   it("accepts scheduled meal drops into the bank", () => {
     const dataTransfer = createDataTransfer();
-    setMealPlanDragPayload(dataTransfer, { kind: "meal", mealId: "scheduled-1" });
+    setMealPlanDragPayload(dataTransfer, {
+      kind: "meal",
+      mealId: "scheduled-1",
+    });
     const props = renderMealBank({ isCalendarMealDragging: true });
 
     fireEvent.drop(screen.getByRole("complementary"), { dataTransfer });
@@ -219,7 +237,10 @@ describe("MealBankSidecar", () => {
 
   it("allows dragover while browsers hide drag data until drop", () => {
     const dataTransfer = createDataTransfer();
-    setMealPlanDragPayload(dataTransfer, { kind: "meal", mealId: "scheduled-1" });
+    setMealPlanDragPayload(dataTransfer, {
+      kind: "meal",
+      mealId: "scheduled-1",
+    });
     renderMealBank({ isCalendarMealDragging: true });
     const dragOverEvent = new Event("dragover", {
       bubbles: true,
@@ -235,8 +256,14 @@ describe("MealBankSidecar", () => {
 
   it("accepts scheduled meal drops on the collapsed tab", () => {
     const dataTransfer = createDataTransfer();
-    setMealPlanDragPayload(dataTransfer, { kind: "meal", mealId: "scheduled-2" });
-    const props = renderMealBank({ collapsed: true, isCalendarMealDragging: true });
+    setMealPlanDragPayload(dataTransfer, {
+      kind: "meal",
+      mealId: "scheduled-2",
+    });
+    const props = renderMealBank({
+      collapsed: true,
+      isCalendarMealDragging: true,
+    });
 
     fireEvent.drop(screen.getByRole("button", { name: /Meal Bank/i }), {
       dataTransfer,
@@ -247,7 +274,10 @@ describe("MealBankSidecar", () => {
 
   it("opens the collapsed drawer after hovering while dragging", () => {
     vi.useFakeTimers();
-    const props = renderMealBank({ collapsed: true, isCalendarMealDragging: true });
+    const props = renderMealBank({
+      collapsed: true,
+      isCalendarMealDragging: true,
+    });
 
     fireEvent.dragOver(screen.getByRole("button", { name: /Meal Bank/i }), {
       dataTransfer: createDataTransfer(),
@@ -261,7 +291,10 @@ describe("MealBankSidecar", () => {
 
   it("ignores invalid drop payloads", () => {
     const dataTransfer = createDataTransfer();
-    setMealPlanDragPayload(dataTransfer, { kind: "bank-meal", mealId: "bank-1" });
+    setMealPlanDragPayload(dataTransfer, {
+      kind: "bank-meal",
+      mealId: "bank-1",
+    });
     const props = renderMealBank({ isCalendarMealDragging: true });
 
     fireEvent.drop(screen.getByRole("complementary"), { dataTransfer });

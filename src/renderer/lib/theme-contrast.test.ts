@@ -23,6 +23,8 @@ function contrastRatio(firstColor: string, secondColor: string) {
 describe("dark theme contrast tokens", () => {
   const background = "#0d1410";
   const card = "#18241d";
+  const tooltipBackground = "#22352a";
+  const tooltipForeground = "#f1f7f1";
   const border = "#607568";
   const header = "#173025";
   const activeNavigation = "#527f60";
@@ -32,8 +34,18 @@ describe("dark theme contrast tokens", () => {
     expect(contrastRatio(border, card)).toBeGreaterThanOrEqual(3);
   });
 
+  it("keeps tooltip text legible on the elevated surface", () => {
+    expect(contrastRatio(tooltipForeground, tooltipBackground)).toBeGreaterThanOrEqual(4.5);
+  });
+
   it("keeps active navigation distinguishable from the title bar", () => {
     expect(contrastRatio(activeNavigation, header)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe("light theme tooltip contrast tokens", () => {
+  it("keeps tooltip text legible on the elevated surface", () => {
+    expect(contrastRatio("#2c2416", "#fffdf8")).toBeGreaterThanOrEqual(4.5);
   });
 });
 

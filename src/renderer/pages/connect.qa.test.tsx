@@ -8,7 +8,9 @@ import ConnectPage from "./connect";
 import {
   expectKeyboardFocusable,
   expectMainLandmark,
+  expectNamedControl,
   expectPrimaryHeading,
+  expectTooltipPolicy,
 } from "@/test/qa/browser-baseline";
 
 const mocks = vi.hoisted(() => ({
@@ -32,7 +34,8 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 vi.mock("react-router", async () => {
-  const actual = await vi.importActual<typeof import("react-router")>("react-router");
+  const actual =
+    await vi.importActual<typeof import("react-router")>("react-router");
   return {
     ...actual,
     useNavigate: () => (path: string) => {
@@ -62,7 +65,11 @@ vi.mock("@/lib/platform", () => ({
 
 vi.mock("@/lib/config", () => ({
   getCachedConfig: () => ({ url: "", token: "", mode: "local" }),
-  loadServerConfig: async () => ({ url: "http://127.0.0.1:3001", token: "t", mode: "local" }),
+  loadServerConfig: async () => ({
+    url: "http://127.0.0.1:3001",
+    token: "t",
+    mode: "local",
+  }),
   resetConfigCache: () => {
     mocks.resetCalls += 1;
   },
@@ -80,13 +87,16 @@ describe("ConnectPage QA baseline", () => {
     mocks.resetCalls = 0;
     mocks.pairingCalls = 0;
 
-    vi.stubGlobal("fetch", vi.fn(async (url: string) => {
-      if (url.endsWith("/api/health")) {
-        return { ok: true, status: 200 } as Response;
-      }
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.endsWith("/api/health")) {
+          return { ok: true, status: 200 } as Response;
+        }
 
-      return { ok: true, status: 200 } as Response;
-    }));
+        return { ok: true, status: 200 } as Response;
+      })
+    );
   });
 
   afterEach(() => {
@@ -113,6 +123,14 @@ describe("ConnectPage QA baseline", () => {
     expectKeyboardFocusable(portInput as HTMLElement);
     expectKeyboardFocusable(tokenInput as HTMLElement);
     expectKeyboardFocusable(connectButton as HTMLElement);
+    expectNamedControl(hostInput as HTMLElement, /server address/i);
+    expectNamedControl(portInput as HTMLElement, /^port$/i);
+    expectNamedControl(tokenInput as HTMLElement, /^token$/i);
+    expectNamedControl(connectButton as HTMLElement, /^connect$/i);
+
+    const tokenToggle = screen.getByRole("button", { name: /show token/i });
+    expectNamedControl(tokenToggle, /show token/i);
+    expectTooltipPolicy(tokenToggle);
   });
 
   it("hydrates host and port from a saved connection URL", () => {
@@ -124,8 +142,12 @@ describe("ConnectPage QA baseline", () => {
       </MemoryRouter>
     );
 
-    expect((screen.getByLabelText(/server address/i) as HTMLInputElement).value).toBe("192.168.1.25");
-    expect((screen.getByLabelText(/^port$/i) as HTMLInputElement).value).toBe("8080");
+    expect(
+      (screen.getByLabelText(/server address/i) as HTMLInputElement).value
+    ).toBe("192.168.1.25");
+    expect((screen.getByLabelText(/^port$/i) as HTMLInputElement).value).toBe(
+      "8080"
+    );
   });
 
   it("blocks connect with a visible message when the host is empty", () => {
@@ -135,10 +157,14 @@ describe("ConnectPage QA baseline", () => {
       </MemoryRouter>
     );
 
-    fireEvent.change(screen.getByLabelText(/^token$/i), { target: { value: "t" } });
+    fireEvent.change(screen.getByLabelText(/^token$/i), {
+      target: { value: "t" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /^connect$/i }));
 
-    expect(screen.getByText(/enter the server address and token/i)).toBeTruthy();
+    expect(
+      screen.getByText(/enter the server address and token/i)
+    ).toBeTruthy();
   });
 
   it("distributes a pasted full URL into host and port fields", () => {
@@ -148,13 +174,17 @@ describe("ConnectPage QA baseline", () => {
       </MemoryRouter>
     );
 
-    const hostInput = screen.getByLabelText(/server address/i) as HTMLInputElement;
+    const hostInput = screen.getByLabelText(
+      /server address/i
+    ) as HTMLInputElement;
     fireEvent.paste(hostInput, {
       clipboardData: { getData: () => "http://192.168.1.25:3001" },
     });
 
     expect(hostInput.value).toBe("192.168.1.25");
-    expect((screen.getByLabelText(/^port$/i) as HTMLInputElement).value).toBe("3001");
+    expect((screen.getByLabelText(/^port$/i) as HTMLInputElement).value).toBe(
+      "3001"
+    );
   });
 
   it("shows validation feedback when required fields are empty", () => {
@@ -166,7 +196,9 @@ describe("ConnectPage QA baseline", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^connect$/i }));
 
-    expect(screen.getByText(/enter the server address and token/i)).toBeTruthy();
+    expect(
+      screen.getByText(/enter the server address and token/i)
+    ).toBeTruthy();
   });
 
   it("connect flow saves browser connection and navigates to home", async () => {

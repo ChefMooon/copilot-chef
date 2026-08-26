@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ToastProvider } from "@/components/providers/toast-provider";
@@ -46,7 +52,7 @@ describe("AddRecipeModal", () => {
 
   it("surfaces duplicate-name conflicts through onConflict", async () => {
     const conflict: RecipeConflict = {
-      error: "A recipe named \"Pasta\" already exists.",
+      error: 'A recipe named "Pasta" already exists.',
       code: "RECIPE_DUPLICATE_TITLE",
       reason: "duplicate_title",
       existing: {
@@ -153,29 +159,36 @@ describe("AddRecipeModal", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText("Weeknight Lemon Pasta")).toHaveFocus();
+      expect(
+        screen.getByPlaceholderText("Weeknight Lemon Pasta")
+      ).toHaveFocus();
     });
   });
 
   it("names instruction reorder controls and preserves disabled boundaries", () => {
     render(
       <ToastProvider>
-        <AddRecipeModal
-          onClose={() => {}}
-          onSave={async () => {}}
-          open
-        />
+        <AddRecipeModal onClose={() => {}} onSave={async () => {}} open />
       </ToastProvider>
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Add Step" }));
 
-    const moveUp = screen.getByRole("button", { name: "Move step 1 up" });
-    const moveDown = screen.getByRole("button", { name: "Move step 1 down" });
+    const moveUp = screen.getByRole("button", {
+      hidden: true,
+      name: "Move step 1 up",
+    });
+    const moveDown = screen.getByRole("button", {
+      hidden: true,
+      name: "Move step 1 down",
+    });
 
     expect(moveUp).toBeDisabled();
     expect(moveDown).toBeDisabled();
     expect(moveUp.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
-    expect(moveDown.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+    expect(moveDown.querySelector("svg")).toHaveAttribute(
+      "aria-hidden",
+      "true"
+    );
   });
 });

@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { ItemRow } from "./ItemRow";
 
 const item = {
@@ -20,21 +21,23 @@ const item = {
 describe("ItemRow icon actions", () => {
   afterEach(() => cleanup());
 
-  it("keeps row actions named and preserves boundary disabled states", () => {
+  it("keeps row actions named and preserves boundary disabled states", async () => {
     render(
-      <ItemRow
-        dropPosition={null}
-        index={0}
-        item={item}
-        onDelete={vi.fn()}
-        onDragEndItem={vi.fn()}
-        onDragHoverItem={vi.fn()}
-        onDragStartItem={vi.fn()}
-        onDropItem={vi.fn()}
-        onMove={vi.fn()}
-        onUpdate={vi.fn()}
-        total={2}
-      />
+      <TooltipProvider delayDuration={0}>
+        <ItemRow
+          dropPosition={null}
+          index={0}
+          item={item}
+          onDelete={vi.fn()}
+          onDragEndItem={vi.fn()}
+          onDragHoverItem={vi.fn()}
+          onDragStartItem={vi.fn()}
+          onDropItem={vi.fn()}
+          onMove={vi.fn()}
+          onUpdate={vi.fn()}
+          total={2}
+        />
+      </TooltipProvider>
     );
 
     expect(screen.getByRole("button", { name: "Move item up" })).toBeDisabled();
@@ -45,5 +48,8 @@ describe("ItemRow icon actions", () => {
       "aria-hidden",
       "true"
     );
+
+    fireEvent.focus(screen.getByRole("button", { name: "Move item down" }));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Move down");
   });
 });

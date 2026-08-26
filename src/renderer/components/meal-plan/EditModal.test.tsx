@@ -1,13 +1,20 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render as testingRender, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { EditableMeal } from "@/lib/calendar";
 import type { RecipePayload } from "@/lib/api";
 import type { MealTypeProfilePayload } from "@shared/types";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { EditModal } from "./EditModal";
+
+function render(ui: Parameters<typeof testingRender>[0]) {
+  return testingRender(
+    <TooltipProvider delayDuration={0}>{ui}</TooltipProvider>
+  );
+}
 
 const recipeForLink: RecipePayload = {
   id: "recipe-link-1",

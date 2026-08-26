@@ -66,10 +66,7 @@ export function DuplicateMealModal({
     const nextWeekStart = new Date(displayedWeekStart);
     nextWeekStart.setDate(nextWeekStart.getDate() + offset);
 
-    if (
-      offset < 0 &&
-      nextWeekStart.getTime() < currentWeekStart.getTime()
-    ) {
+    if (offset < 0 && nextWeekStart.getTime() < currentWeekStart.getTime()) {
       return;
     }
 
@@ -97,10 +94,13 @@ export function DuplicateMealModal({
 
   const displayedWeekEnd = new Date(displayedWeekStart);
   displayedWeekEnd.setDate(displayedWeekEnd.getDate() + 6);
-  const displayedWeekLabel = `${displayedWeekStart.toLocaleDateString("default", {
-    month: "short",
-    day: "numeric",
-  })} - ${displayedWeekEnd.toLocaleDateString("default", {
+  const displayedWeekLabel = `${displayedWeekStart.toLocaleDateString(
+    "default",
+    {
+      month: "short",
+      day: "numeric",
+    }
+  )} - ${displayedWeekEnd.toLocaleDateString("default", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -125,8 +125,8 @@ export function DuplicateMealModal({
       closeDisabled={isDuplicating}
     >
       <p className={styles.duplicateBody}>
-        Choose a day and meal type in this week. The duplicate keeps the same meal
-        details for the selected target.
+        Choose a day and meal type in this week. The duplicate keeps the same
+        meal details for the selected target.
       </p>
 
       {error ? <p className={styles.duplicateError}>{error}</p> : null}
@@ -143,92 +143,94 @@ export function DuplicateMealModal({
       </PeriodNavigation>
 
       <div className={styles.duplicateGrid} role="list">
-        {duplicateTargets.map(
-          ({ date, enabledMealTypes, isSourceDay }) => {
-            const dayLabel = date.toLocaleDateString("default", {
-              weekday: "short",
-            });
-            const dateLabel = date.toLocaleDateString("default", {
-              month: "short",
-              day: "numeric",
-            });
-            const isUnavailable = enabledMealTypes.length === 0;
+        {duplicateTargets.map(({ date, enabledMealTypes, isSourceDay }) => {
+          const dayLabel = date.toLocaleDateString("default", {
+            weekday: "short",
+          });
+          const dateLabel = date.toLocaleDateString("default", {
+            month: "short",
+            day: "numeric",
+          });
+          const isUnavailable = enabledMealTypes.length === 0;
 
-            return (
-              <div
-                className={`${styles.duplicateDayCard} ${isSourceDay || isUnavailable ? styles.duplicateDayCardDisabled : ""}`}
-                data-source-day={isSourceDay ? "true" : "false"}
-                data-target-date={date.toISOString()}
-                key={date.toISOString()}
-                role="listitem"
-              >
-                <div className={styles.duplicateDayTopRow}>
-                  <span className={styles.duplicateDayLabel}>{dayLabel}</span>
-                  {isSourceDay ? (
-                    <span className={styles.duplicateDayBadge}>Source day</span>
-                  ) : null}
-                </div>
-                <span className={styles.duplicateDayDate}>{dateLabel}</span>
-                <div
-                  aria-label={`${dayLabel}, ${dateLabel} meal types`}
-                  className={styles.duplicateTypeOptions}
-                  role="group"
-                >
-                  {enabledMealTypes.length > 0 ? (
-                    enabledMealTypes.map((definition) => {
-                      const typeConfig = getTypeConfig(definition.slug, [definition]);
-                      const isSelectable = definition.enabled && !isSourceDay;
-                      const buttonLabel = `${dayLabel}, ${dateLabel}, Duplicate as ${typeConfig.label}`;
-
-                      return (
-                        <button
-                          aria-label={buttonLabel}
-                          className={`${styles.duplicateDayType} ${!isSelectable ? styles.duplicateDayTypeDisabled : ""}`}
-                          data-autofocus={
-                            firstSelectableTarget?.target ===
-                              duplicateTargets.find((target) => target.date === date) &&
-                            firstSelectableTarget?.definition.id === definition.id
-                              ? "true"
-                              : undefined
-                          }
-                          data-meal-type-definition-id={definition.id}
-                          data-source-day={isSourceDay ? "true" : "false"}
-                          data-target-date={date.toISOString()}
-                          disabled={isDuplicating || !isSelectable}
-                          key={definition.id}
-                          onClick={() => {
-                            onDuplicate({
-                              date,
-                              mealType: definition.slug,
-                              mealTypeDefinitionId: definition.id,
-                            });
-                          }}
-                          title={buttonLabel}
-                          type="button"
-                        >
-                          <span>{typeConfig.label}</span>
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <button
-                      aria-label={`${dayLabel}, ${dateLabel}, No meal types available`}
-                      className={`${styles.duplicateDayType} ${styles.duplicateDayTypeDisabled}`}
-                      data-source-day={isSourceDay ? "true" : "false"}
-                      data-target-date={date.toISOString()}
-                      disabled
-                      type="button"
-                    >
-                      No meal types available
-                    </button>
-                  )}
-                </div>
+          return (
+            <div
+              className={`${styles.duplicateDayCard} ${isSourceDay || isUnavailable ? styles.duplicateDayCardDisabled : ""}`}
+              data-source-day={isSourceDay ? "true" : "false"}
+              data-target-date={date.toISOString()}
+              key={date.toISOString()}
+              role="listitem"
+            >
+              <div className={styles.duplicateDayTopRow}>
+                <span className={styles.duplicateDayLabel}>{dayLabel}</span>
+                {isSourceDay ? (
+                  <span className={styles.duplicateDayBadge}>Source day</span>
+                ) : null}
               </div>
-            );
-          }
-        )}
-      </div>
+              <span className={styles.duplicateDayDate}>{dateLabel}</span>
+              <div
+                aria-label={`${dayLabel}, ${dateLabel} meal types`}
+                className={styles.duplicateTypeOptions}
+                role="group"
+              >
+                {enabledMealTypes.length > 0 ? (
+                  enabledMealTypes.map((definition) => {
+                    const typeConfig = getTypeConfig(definition.slug, [
+                      definition,
+                    ]);
+                    const isSelectable = definition.enabled && !isSourceDay;
+                    const buttonLabel = `${dayLabel}, ${dateLabel}, Duplicate as ${typeConfig.label}`;
 
+                    return (
+                      <button
+                        aria-label={buttonLabel}
+                        aria-disabled={!isSelectable || isDuplicating}
+                        className={`${styles.duplicateDayType} ${!isSelectable ? styles.duplicateDayTypeDisabled : ""}`}
+                        data-autofocus={
+                          firstSelectableTarget?.target ===
+                            duplicateTargets.find(
+                              (target) => target.date === date
+                            ) &&
+                          firstSelectableTarget?.definition.id === definition.id
+                            ? "true"
+                            : undefined
+                        }
+                        data-meal-type-definition-id={definition.id}
+                        data-source-day={isSourceDay ? "true" : "false"}
+                        data-target-date={date.toISOString()}
+                        key={definition.id}
+                        onClick={() => {
+                          if (isDuplicating || !isSelectable) return;
+                          onDuplicate({
+                            date,
+                            mealType: definition.slug,
+                            mealTypeDefinitionId: definition.id,
+                          });
+                        }}
+                        title={buttonLabel}
+                        type="button"
+                      >
+                        <span>{typeConfig.label}</span>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <button
+                    aria-label={`${dayLabel}, ${dateLabel}, No meal types available`}
+                    className={`${styles.duplicateDayType} ${styles.duplicateDayTypeDisabled}`}
+                    data-source-day={isSourceDay ? "true" : "false"}
+                    data-target-date={date.toISOString()}
+                    disabled
+                    type="button"
+                  >
+                    No meal types available
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </ModalShell>
   );
 }

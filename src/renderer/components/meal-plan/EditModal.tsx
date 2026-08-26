@@ -19,6 +19,11 @@ import {
 import { type RecipePayload } from "@/lib/api";
 import { RECIPE_INGREDIENT_UNITS } from "@/lib/ingredient-units";
 import { getPlatform } from "@/lib/platform";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type {
   MealIngredient,
   MealSubTypeDefinitionPayload,
@@ -1152,29 +1157,44 @@ export function EditModal({
                               value={step}
                             />
                             <div className={styles.instructionActions}>
-                              <button
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
                                 aria-label={`Move instruction ${index + 1} up`}
                                 className={styles.btnInstructionOrder}
                                 disabled={index === 0}
                                 onClick={() => moveInstruction(index, "up")}
                                 title="Move up"
                                 type="button"
-                              ><ArrowUp aria-hidden="true" size={16} weight="regular" /></button>
-                              <button
+                                  ><ArrowUp aria-hidden="true" size={16} weight="regular" /></button>
+                                </TooltipTrigger>
+                                <TooltipContent>Move up</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
                                 aria-label={`Move instruction ${index + 1} down`}
                                 className={styles.btnInstructionOrder}
                                 disabled={index === form.instructions.length - 1}
                                 onClick={() => moveInstruction(index, "down")}
                                 title="Move down"
                                 type="button"
-                              ><ArrowDown aria-hidden="true" size={16} weight="regular" /></button>
-                              <button
+                                  ><ArrowDown aria-hidden="true" size={16} weight="regular" /></button>
+                                </TooltipTrigger>
+                                <TooltipContent>Move down</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
                                 aria-label={`Remove instruction ${index + 1}`}
                                 className={styles.btnInstructionRemove}
                                 onClick={() => removeInstruction(index)}
                                 title="Remove step"
                                 type="button"
-                              ><X aria-hidden="true" size={16} weight="regular" /></button>
+                                  ><X aria-hidden="true" size={16} weight="regular" /></button>
+                                </TooltipTrigger>
+                                <TooltipContent>Remove step</TooltipContent>
+                              </Tooltip>
                             </div>
                           </li>
                         ))}

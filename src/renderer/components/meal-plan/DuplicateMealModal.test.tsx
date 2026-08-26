@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render as testingRender, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DuplicateMealModal } from "./DuplicateMealModal";
 import type { EditableMeal } from "@/lib/calendar";
 import type { MealTypeProfilePayload } from "@shared/types";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+function render(ui: Parameters<typeof testingRender>[0]) {
+  return testingRender(<TooltipProvider delayDuration={0}>{ui}</TooltipProvider>);
+}
 
 const monday = new Date(2026, 4, 18);
 
@@ -135,7 +140,7 @@ describe("DuplicateMealModal", () => {
     );
 
     expect(sourceButton).toBeTruthy();
-    expect(sourceButton).toHaveProperty("disabled", true);
+    expect(sourceButton).toHaveAttribute("aria-disabled", "true");
   });
 
   it("sends selected day and default target meal type", () => {
@@ -154,7 +159,9 @@ describe("DuplicateMealModal", () => {
 
     const target = Array.from(
       document.querySelectorAll<HTMLButtonElement>("button[data-target-date]")
-    ).find((button) => button.dataset.sourceDay === "false" && !button.disabled);
+    ).find(
+      (button) => button.dataset.sourceDay === "false" && !button.disabled
+    );
 
     expect(target).toBeTruthy();
 
@@ -208,7 +215,11 @@ describe("DuplicateMealModal", () => {
       <DuplicateMealModal
         isOpen
         meal={meal}
-        mealTypeProfiles={[mealTypeProfiles[0], rangedProfile, unavailableProfile]}
+        mealTypeProfiles={[
+          mealTypeProfiles[0],
+          rangedProfile,
+          unavailableProfile,
+        ]}
         onClose={vi.fn()}
         onDuplicate={vi.fn()}
         referenceDate={monday}
@@ -217,7 +228,7 @@ describe("DuplicateMealModal", () => {
 
     expect(
       screen.queryByRole("button", {
-      name: "Tue, May 19, Duplicate as Locked",
+        name: "Tue, May 19, Duplicate as Locked",
       })
     ).not.toBeInTheDocument();
     const unavailableDay = screen.getByRole("button", {
@@ -242,25 +253,33 @@ describe("DuplicateMealModal", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: "Previous week" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Previous week" }));
-    expect(screen.getByRole("button", { name: "Previous week" })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Previous week" }));
-    expect(screen.queryByRole("button", { name: "Previous week" })).not.toBeInTheDocument();
     expect(
-      Array.from(document.querySelectorAll<HTMLElement>("[data-target-date]")).some(
-        (element) => element.dataset.targetDate?.startsWith("2026-05-11")
-      )
+      screen.getByRole("button", { name: "Previous week" })
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous week" }));
+    expect(
+      screen.getByRole("button", { name: "Previous week" })
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous week" }));
+    expect(
+      screen.queryByRole("button", { name: "Previous week" })
+    ).not.toBeInTheDocument();
+    expect(
+      Array.from(
+        document.querySelectorAll<HTMLElement>("[data-target-date]")
+      ).some((element) => element.dataset.targetDate?.startsWith("2026-05-11"))
     ).toBe(true);
 
     fireEvent.click(screen.getByRole("button", { name: "Next week" }));
-    expect(screen.getByRole("button", { name: "Previous week" })).toBeInTheDocument();
     expect(
-      Array.from(document.querySelectorAll<HTMLElement>("[data-target-date]")).some(
-        (element) => element.dataset.targetDate?.startsWith("2026-05-18")
-      )
+      screen.getByRole("button", { name: "Previous week" })
+    ).toBeInTheDocument();
+    expect(
+      Array.from(
+        document.querySelectorAll<HTMLElement>("[data-target-date]")
+      ).some((element) => element.dataset.targetDate?.startsWith("2026-05-18"))
     ).toBe(true);
   });
 
@@ -301,10 +320,12 @@ describe("DuplicateMealModal", () => {
     );
 
     expect(
-      Array.from(document.querySelectorAll<HTMLButtonElement>("button[data-target-date]")).every(
-        (button) => button.disabled
-      )
+      Array.from(
+        document.querySelectorAll<HTMLButtonElement>("button[data-target-date]")
+      ).every((button) => button.getAttribute("aria-disabled") === "true")
     ).toBe(true);
-    expect(screen.getByRole("button", { name: "Close duplicate meal dialog" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Close duplicate meal dialog" })
+    ).toBeDisabled();
   });
 });

@@ -5,6 +5,7 @@ import { MemoryRouter } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { type RecipePayload } from "@/lib/api";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { RecipeCard } from "./RecipeCard";
 import { RecipeGrid } from "./RecipeGrid";
@@ -117,12 +118,14 @@ describe("RecipeCard optional actions", () => {
 
     render(
       <MemoryRouter>
-        <RecipeCard
-          onDelete={onDelete}
-          onEdit={onEdit}
-          onToggleFavourite={onToggleFavourite}
-          recipe={baseRecipe}
-        />
+        <TooltipProvider delayDuration={0}>
+          <RecipeCard
+            onDelete={onDelete}
+            onEdit={onEdit}
+            onToggleFavourite={onToggleFavourite}
+            recipe={baseRecipe}
+          />
+        </TooltipProvider>
       </MemoryRouter>
     );
 
@@ -145,10 +148,12 @@ describe("RecipeCard optional actions", () => {
   it("uses the selected favourite state and accessible name", () => {
     const { rerender } = render(
       <MemoryRouter>
-        <RecipeCard
-          onToggleFavourite={vi.fn()}
-          recipe={{ ...baseRecipe, favourite: true }}
-        />
+        <TooltipProvider delayDuration={0}>
+          <RecipeCard
+            onToggleFavourite={vi.fn()}
+            recipe={{ ...baseRecipe, favourite: true }}
+          />
+        </TooltipProvider>
       </MemoryRouter>
     );
 
@@ -161,10 +166,12 @@ describe("RecipeCard optional actions", () => {
 
     rerender(
       <MemoryRouter>
-        <RecipeCard
-          onToggleFavourite={vi.fn()}
-          recipe={baseRecipe}
-        />
+        <TooltipProvider delayDuration={0}>
+          <RecipeCard
+            onToggleFavourite={vi.fn()}
+            recipe={baseRecipe}
+          />
+        </TooltipProvider>
       </MemoryRouter>
     );
 
@@ -173,6 +180,33 @@ describe("RecipeCard optional actions", () => {
       "bg-cream",
       "text-text-muted"
     );
+  });
+
+  it("shows supplementary tooltips for the action buttons", async () => {
+    render(
+      <MemoryRouter>
+        <TooltipProvider delayDuration={0}>
+          <RecipeCard
+            onDelete={vi.fn()}
+            onEdit={vi.fn()}
+            onToggleFavourite={vi.fn()}
+            recipe={baseRecipe}
+          />
+        </TooltipProvider>
+      </MemoryRouter>
+    );
+
+    const actions = [
+      ["Add Roast Chicken to favourites", "Add to favourites"],
+      ["Edit Roast Chicken", "Edit recipe"],
+      ["Delete Roast Chicken", "Delete recipe"],
+    ] as const;
+
+    for (const [name, tooltipText] of actions) {
+      fireEvent.focus(screen.getByRole("button", { name }));
+      expect(await screen.findByRole("tooltip")).toHaveTextContent(tooltipText);
+      fireEvent.blur(screen.getByRole("button", { name }));
+    }
   });
 });
 

@@ -1,10 +1,15 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render as testingRender, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { RecipeFilterSidebar } from "./RecipeFilterSidebar";
 import { ServingsScaler } from "./ServingsScaler";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+function render(ui: Parameters<typeof testingRender>[0]) {
+  return testingRender(<TooltipProvider delayDuration={0}>{ui}</TooltipProvider>);
+}
 
 describe("recipe icon controls", () => {
   it("keeps the clear-search control named and functional", () => {

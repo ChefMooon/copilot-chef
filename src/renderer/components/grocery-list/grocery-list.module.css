@@ -329,6 +329,17 @@
   min-width: 0;
 }
 
+.listRowSelect {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .listRowName {
   font-size: 0.82rem;
   font-weight: 700;
@@ -348,6 +359,8 @@
   border: none;
   cursor: pointer;
   font-size: 0.75rem;
+  min-width: 32px;
+  min-height: 32px;
   padding: 2px;
   opacity: 0.5;
   flex-shrink: 0;
@@ -380,11 +393,11 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .editorTitleRow {
-  flex: 1;
+  flex: 1 1 20rem;
   min-width: 0;
 }
 
@@ -398,6 +411,10 @@
   align-items: center;
   gap: 0.5rem;
   line-height: 1.2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .editorNameInput {
@@ -410,6 +427,14 @@
   background: transparent;
   outline: none;
   width: 100%;
+  box-sizing: border-box;
+  display: block;
+  min-height: 1.7rem;
+  padding: 0;
+  line-height: 1.2;
+  overflow: hidden;
+  resize: none;
+  white-space: nowrap;
 }
 
 .editorHeaderMeta {
@@ -417,14 +442,29 @@
   align-items: center;
   gap: 0.45rem;
   margin-top: 0.35rem;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   min-width: 0;
+}
+
+.editorDateBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.9rem;
+  white-space: nowrap;
 }
 
 .editorMetaChip {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  min-width: 0;
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--text-muted);
@@ -433,10 +473,11 @@
   border-radius: 999px;
   padding: 0.22rem 0.6rem;
   line-height: 1.2;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .editorMetaChipLabel {
+  flex-shrink: 0;
   font-size: 0.64rem;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -444,15 +485,24 @@
   color: var(--green);
 }
 
+.editorMetaChip > span:last-child {
+  min-width: 0;
+}
+
 .editorHeaderActions {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  flex-shrink: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .btnShop,
 .btnAddItem {
+  box-sizing: border-box;
+  min-height: 42px;
   font-size: 0.78rem;
   font-weight: 700;
   background: var(--green);
@@ -461,6 +511,10 @@
   border-radius: 8px;
   padding: 0.4rem 0.9rem;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .btnShop:hover,
@@ -469,6 +523,8 @@
 }
 
 .btnTelegramDisabled {
+  box-sizing: border-box;
+  min-height: 42px;
   font-size: 0.75rem;
   font-weight: 700;
   background: var(--cream-dark);
@@ -478,9 +534,16 @@
   padding: 0.4rem 0.85rem;
   cursor: not-allowed;
   opacity: 0.65;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .btnDeleteList {
+  box-sizing: border-box;
+  min-width: 42px;
+  min-height: 42px;
   background: none;
   border: 1.5px solid var(--cream-dark);
   border-radius: 8px;
@@ -488,6 +551,10 @@
   cursor: pointer;
   color: var(--text-muted);
   font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
 }
 
 .btnDeleteList:hover {
@@ -717,6 +784,7 @@
   gap: 0.5rem;
   align-items: center;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .compactSelectField {
@@ -810,17 +878,37 @@
 }
 
 .iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   cursor: pointer;
   color: var(--text-muted);
+  min-width: 32px;
+  min-height: 32px;
   padding: 2px 5px;
   border-radius: 4px;
+  line-height: 1;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .iconBtn:hover:not(:disabled) {
   color: var(--green);
-  background: var(--green-pale);
+  background: color-mix(in srgb, var(--green) 18%, var(--card));
+}
+
+.iconBtn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 24%, transparent);
+}
+
+.iconBtn:active:not(:disabled) {
+  background: color-mix(in srgb, var(--green) 26%, var(--card));
 }
 
 .iconBtn:disabled {
@@ -828,9 +916,13 @@
   cursor: default;
 }
 
-.itemDeleteBtn:hover {
-  color: var(--orange);
-  background: color-mix(in srgb, var(--orange) 12%, var(--card));
+.itemDeleteBtn:hover:not(:disabled) {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--card));
+}
+
+.itemDeleteBtn:active:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 26%, var(--card));
 }
 
 .itemRowExtra {
@@ -1100,8 +1192,32 @@
     flex-direction: column;
   }
 
+  .editorTitleRow {
+    width: 100%;
+  }
+
+  .editorNameInput {
+    min-height: 3.25rem;
+    white-space: pre-wrap;
+  }
+
   .editorHeaderActions {
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .selectStack {
+    width: 100%;
+  }
+
+  .compactSelectField {
+    flex: 1 1 12rem;
+    min-width: 0;
+  }
+
+  .sortSelect,
+  .groupSelect {
+    min-width: 0;
+    width: 100%;
   }
 }

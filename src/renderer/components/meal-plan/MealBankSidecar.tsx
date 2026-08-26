@@ -212,7 +212,8 @@ export function MealBankSidecar({
             <div>
               <h2 className={styles.mealBankTitle}>Meal Bank</h2>
               <p className={styles.mealBankDescription}>
-                Hold meals off-calendar. Drop planned meals here or schedule banked meals onto {targetDateLabel}.
+                Hold meals off-calendar. Drop planned meals here or schedule
+                banked meals onto {targetDateLabel}.
               </p>
             </div>
             <div className={styles.mealBankHeaderActions} ref={addMenuRef}>
@@ -224,7 +225,12 @@ export function MealBankSidecar({
                 onClick={() => setShowAddMenu((open) => !open)}
                 type="button"
               >
-                <Plus aria-hidden="true" className={styles.mealBankAddGlyph} size={18} weight="regular" />
+                <Plus
+                  aria-hidden="true"
+                  className={styles.mealBankAddGlyph}
+                  size={18}
+                  weight="regular"
+                />
               </button>
               {showAddMenu ? (
                 <div className={styles.mealBankAddMenu} role="menu">
@@ -258,10 +264,13 @@ export function MealBankSidecar({
           {isLoading ? (
             <div className={styles.mealBankEmpty}>Loading banked meals...</div>
           ) : error ? (
-            <div className={styles.mealBankEmpty}>Unable to load the Meal Bank.</div>
+            <div className={styles.mealBankEmpty}>
+              Unable to load the Meal Bank.
+            </div>
           ) : meals.length === 0 ? (
             <div className={styles.mealBankEmpty}>
-              Drag a meal here to remove it from the calendar without deleting it.
+              Drag a meal here to remove it from the calendar without deleting
+              it.
             </div>
           ) : (
             <div className={styles.mealBankList}>
@@ -282,14 +291,19 @@ export function MealBankSidecar({
                   >
                     <span className={styles.mealBankMealName}>{meal.name}</span>
                     {meal.cuisine ? (
-                      <span className={styles.mealBankMealMeta}>{meal.cuisine}</span>
+                      <span className={styles.mealBankMealMeta}>
+                        {meal.cuisine}
+                      </span>
                     ) : null}
                     {meal.notes ? (
-                      <span className={styles.mealBankMealNotes}>{meal.notes}</span>
+                      <span className={styles.mealBankMealNotes}>
+                        {meal.notes}
+                      </span>
                     ) : null}
                   </button>
                   <div className={styles.mealBankActions}>
                     <button
+                      aria-label={`Move ${meal.name} up`}
                       className={styles.mealBankIconButton}
                       disabled={index === 0}
                       onClick={() => {
@@ -300,6 +314,7 @@ export function MealBankSidecar({
                       Up
                     </button>
                     <button
+                      aria-label={`Move ${meal.name} down`}
                       className={styles.mealBankIconButton}
                       disabled={index === meals.length - 1}
                       onClick={() => {
@@ -310,6 +325,7 @@ export function MealBankSidecar({
                       Down
                     </button>
                     <button
+                      aria-label={`Edit ${meal.name}`}
                       className={styles.mealBankIconButton}
                       onClick={() => onEdit(meal)}
                       type="button"
@@ -317,6 +333,7 @@ export function MealBankSidecar({
                       Edit
                     </button>
                     <button
+                      aria-label={`Duplicate ${meal.name}`}
                       className={styles.mealBankIconButton}
                       onClick={() => onDuplicate(meal)}
                       type="button"
@@ -324,6 +341,7 @@ export function MealBankSidecar({
                       Duplicate
                     </button>
                     <button
+                      aria-label={`Remove ${meal.name}`}
                       className={styles.mealBankIconButton}
                       onClick={() => onDelete(meal)}
                       type="button"
@@ -334,12 +352,16 @@ export function MealBankSidecar({
                   <div className={styles.mealBankScheduleRow}>
                     {enabledMealTypes.map((mealType) => (
                       <button
+                        aria-label={`Schedule ${meal.name} as ${mealType.name}`}
                         className={styles.mealBankScheduleButton}
                         key={mealType.id}
                         onClick={() => {
                           void onSchedule(meal, mealType.slug);
                         }}
-                        style={{ borderColor: mealType.color, color: mealType.color }}
+                        style={{
+                          borderColor: mealType.color,
+                          color: mealType.color,
+                        }}
                         type="button"
                       >
                         {mealType.name}

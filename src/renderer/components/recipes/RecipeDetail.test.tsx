@@ -6,6 +6,7 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
 import { ToastProvider } from "@/components/providers/toast-provider";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
   type RecipeIterationPayload,
   type RecipeMadeHistoryPayload,
@@ -91,17 +92,19 @@ function renderRecipeDetail({
   return render(
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
-        <MemoryRouter>
-          <RecipeDetail
-            defaultUnitMode="cup"
-            defaultView="basic"
-            isMadeHistoryLoading={isMadeHistoryLoading ?? false}
-            isIterationsLoading={isIterationsLoading ?? false}
-            iterations={iterations ?? []}
-            madeHistory={madeHistory ?? null}
-            recipe={recipe ?? baseRecipe}
-          />
-        </MemoryRouter>
+        <TooltipProvider delayDuration={0}>
+          <MemoryRouter>
+            <RecipeDetail
+              defaultUnitMode="cup"
+              defaultView="basic"
+              isMadeHistoryLoading={isMadeHistoryLoading ?? false}
+              isIterationsLoading={isIterationsLoading ?? false}
+              iterations={iterations ?? []}
+              madeHistory={madeHistory ?? null}
+              recipe={recipe ?? baseRecipe}
+            />
+          </MemoryRouter>
+        </TooltipProvider>
       </ToastProvider>
     </QueryClientProvider>
   );

@@ -17,6 +17,10 @@
   --text-muted: #7a6a58;
   --white: #fffdf8;
   --card-elevated: #fffdf8;
+  --tooltip-background: var(--card-elevated);
+  --tooltip-foreground: var(--card-foreground);
+  --tooltip-border: var(--border);
+  --tooltip-shadow: var(--shadow-lg);
   --header-background: #3b5e45;
   --header-foreground: #fffdf8;
   --header-muted: rgba(255, 253, 248, 0.78);

@@ -1,8 +1,21 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
 import { useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, CookingPot, DotsSixVertical, Star, Trash, X } from "@phosphor-icons/react";
+import {
+  ArrowDown,
+  ArrowUp,
+  CookingPot,
+  DotsSixVertical,
+  Star,
+  Trash,
+  X,
+} from "@phosphor-icons/react";
 import type { MealPayload, PrepListGenerateInput } from "@shared/types";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { fetchJson, isApiError } from "@/lib/api";
 import { isServerConfigReady } from "@/lib/config";
@@ -105,7 +118,12 @@ function endOfMonth(date: Date) {
   return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
 }
 
-function computeRange(mode: GeneratedMode, anchor: string, from: string, to: string) {
+function computeRange(
+  mode: GeneratedMode,
+  anchor: string,
+  from: string,
+  to: string
+) {
   const anchorDate = new Date(toLocalNoonIso(anchor));
 
   if (mode === "day" || mode === "meal-slot") {
@@ -138,7 +156,10 @@ function computeRange(mode: GeneratedMode, anchor: string, from: string, to: str
 }
 
 function arraysEqual(left: string[], right: string[]) {
-  return left.length === right.length && left.every((value, index) => value === right[index]);
+  return (
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
+  );
 }
 
 function isDateLikeSourceLabel(value: string) {
@@ -149,7 +170,9 @@ function formatPrepSourceRange(list: PrepList) {
   if (list.fromDate && list.toDate) {
     const formattedFrom = formatPrepDate(list.fromDate);
     const formattedTo = formatPrepDate(list.toDate);
-    return formattedFrom === formattedTo ? formattedFrom : `${formattedFrom} - ${formattedTo}`;
+    return formattedFrom === formattedTo
+      ? formattedFrom
+      : `${formattedFrom} - ${formattedTo}`;
   }
 
   if (list.fromDate) {
@@ -232,7 +255,9 @@ export default function PrepListsPage() {
   const [upcomingDays, setUpcomingDays] = useState(7);
   const [showModal, setShowModal] = useState(false);
   const [isSubmittingList, setIsSubmittingList] = useState(false);
-  const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(null);
+  const [deleteCandidateId, setDeleteCandidateId] = useState<string | null>(
+    null
+  );
   const [isDeletingList, setIsDeletingList] = useState(false);
   const [draftMode, setDraftMode] = useState<DraftMode>("generated");
   const [newName, setNewName] = useState("");
@@ -252,7 +277,8 @@ export default function PrepListsPage() {
   const [includeSourceLabels, setIncludeSourceLabels] = useState(true);
   const [excludePantryStaples, setExcludePantryStaples] = useState(false);
   const [newItemName, setNewItemName] = useState("");
-  const [newItemKind, setNewItemKind] = useState<PrepItem["kind"]>("ingredient");
+  const [newItemKind, setNewItemKind] =
+    useState<PrepItem["kind"]>("ingredient");
   const [notesDraft, setNotesDraft] = useState("");
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
@@ -260,15 +286,22 @@ export default function PrepListsPage() {
     itemId: string;
     position: "before" | "after";
   } | null>(null);
-  const notesSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingNotesSaveRef = useRef<{ listId: string; notes: string | null } | null>(null);
+  const notesSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
+  const pendingNotesSaveRef = useRef<{
+    listId: string;
+    notes: string | null;
+  } | null>(null);
 
   const listsQuery = useQuery({
     queryKey: listsQueryKey,
     enabled: apiReady,
     refetchInterval: LIST_REFETCH_INTERVAL_MS,
     queryFn: () =>
-      fetchJson<{ data: PrepList[] }>("/api/prep-lists").then((response) => response.data),
+      fetchJson<{ data: PrepList[] }>("/api/prep-lists").then(
+        (response) => response.data
+      ),
   });
 
   const mealOptionsQuery = useQuery({
@@ -285,9 +318,15 @@ export default function PrepListsPage() {
     },
   });
 
-  const lists = useMemo(() => sortPrepLists(listsQuery.data ?? []), [listsQuery.data]);
+  const lists = useMemo(
+    () => sortPrepLists(listsQuery.data ?? []),
+    [listsQuery.data]
+  );
 
-  const nearbyMeals = useMemo(() => mealOptionsQuery.data ?? [], [mealOptionsQuery.data]);
+  const nearbyMeals = useMemo(
+    () => mealOptionsQuery.data ?? [],
+    [mealOptionsQuery.data]
+  );
   const filteredMeals = useMemo(() => {
     const query = mealSearch.trim().toLowerCase();
     return nearbyMeals.filter((meal) => {
@@ -309,7 +348,11 @@ export default function PrepListsPage() {
   const slotPreviewMeals = useMemo(() => {
     const slotDate = computeRange("meal-slot", rangeAnchor, rangeFrom, rangeTo);
     return nearbyMeals.filter(
-      (meal) => meal.date && meal.mealType === mealType && meal.date >= slotDate.fromDate! && meal.date <= slotDate.toDate!
+      (meal) =>
+        meal.date &&
+        meal.mealType === mealType &&
+        meal.date >= slotDate.fromDate! &&
+        meal.date <= slotDate.toDate!
     );
   }, [mealType, nearbyMeals, rangeAnchor, rangeFrom, rangeTo]);
 
@@ -319,7 +362,8 @@ export default function PrepListsPage() {
     }
 
     const range = computeRange(generatedMode, rangeAnchor, rangeFrom, rangeTo);
-    const nextMealIds = generatedMode === "single-meal" && selectedMealId ? [selectedMealId] : [];
+    const nextMealIds =
+      generatedMode === "single-meal" && selectedMealId ? [selectedMealId] : [];
 
     return lists.filter((list) => {
       if (list.sourceMode !== generatedMode) {
@@ -337,7 +381,16 @@ export default function PrepListsPage() {
       }
       return list.fromDate === range.fromDate && list.toDate === range.toDate;
     });
-  }, [draftMode, generatedMode, lists, mealType, rangeAnchor, rangeFrom, rangeTo, selectedMealId]);
+  }, [
+    draftMode,
+    generatedMode,
+    lists,
+    mealType,
+    rangeAnchor,
+    rangeFrom,
+    rangeTo,
+    selectedMealId,
+  ]);
 
   const selectedList = useMemo(() => {
     if (selectedId) {
@@ -359,7 +412,9 @@ export default function PrepListsPage() {
       return sortPrepLists(lists.filter((list) => isToday(list.date)));
     }
     if (activeFilter === "upcoming") {
-      return sortPrepLists(lists.filter((list) => isUpcoming(list.date, upcomingDays)));
+      return sortPrepLists(
+        lists.filter((list) => isUpcoming(list.date, upcomingDays))
+      );
     }
     if (activeFilter === "ongoing") {
       return sortPrepLists(lists.filter((list) => list.date === null));
@@ -388,9 +443,13 @@ export default function PrepListsPage() {
     );
   };
 
-  const setListCache = (listId: string, updater: (current: PrepList) => PrepList) => {
-    queryClient.setQueryData<PrepList | undefined>(["prep-list", listId], (current) =>
-      current ? derivePrepList(updater(current)) : current
+  const setListCache = (
+    listId: string,
+    updater: (current: PrepList) => PrepList
+  ) => {
+    queryClient.setQueryData<PrepList | undefined>(
+      ["prep-list", listId],
+      (current) => (current ? derivePrepList(updater(current)) : current)
     );
   };
 
@@ -406,12 +465,20 @@ export default function PrepListsPage() {
 
   const syncList = (nextList: PrepList, previousId?: string) => {
     if (previousId && previousId !== nextList.id) {
-      setListsCache((current) => removePrepListFromCollection(current, previousId));
-      queryClient.removeQueries({ queryKey: ["prep-list", previousId], exact: true });
+      setListsCache((current) =>
+        removePrepListFromCollection(current, previousId)
+      );
+      queryClient.removeQueries({
+        queryKey: ["prep-list", previousId],
+        exact: true,
+      });
     }
 
     setListsCache((current) => upsertPrepList(current, nextList));
-    queryClient.setQueryData(["prep-list", nextList.id], derivePrepList(nextList, nextList.updatedAt));
+    queryClient.setQueryData(
+      ["prep-list", nextList.id],
+      derivePrepList(nextList, nextList.updatedAt)
+    );
   };
 
   const rollback = (
@@ -422,7 +489,10 @@ export default function PrepListsPage() {
   ) => {
     queryClient.setQueryData(listsQueryKey, previousLists);
     if (clearList) {
-      queryClient.removeQueries({ queryKey: ["prep-list", listId], exact: true });
+      queryClient.removeQueries({
+        queryKey: ["prep-list", listId],
+        exact: true,
+      });
       return;
     }
     queryClient.setQueryData(["prep-list", listId], previousList);
@@ -433,15 +503,21 @@ export default function PrepListsPage() {
     const previousList = queryClient.getQueryData<PrepList>(["prep-list", id]);
 
     setListsCache((current) =>
-      updatePrepListInCollection(current, id, (list) => ({ ...list, ...payload }))
+      updatePrepListInCollection(current, id, (list) => ({
+        ...list,
+        ...payload,
+      }))
     );
     setListCache(id, (list) => ({ ...list, ...payload }));
 
     try {
-      const response = await fetchJson<{ data: PrepList }>(`/api/prep-lists/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      });
+      const response = await fetchJson<{ data: PrepList }>(
+        `/api/prep-lists/${id}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+        }
+      );
       syncList(response.data);
     } catch (error) {
       rollback(previousLists, previousList, id);
@@ -453,8 +529,14 @@ export default function PrepListsPage() {
     try {
       await patchList(listId, { notes });
     } catch (error) {
-      const description = isApiError(error) ? error.message : "Unable to save notes";
-      toast({ title: "Notes save failed", description, variant: "destructive" });
+      const description = isApiError(error)
+        ? error.message
+        : "Unable to save notes";
+      toast({
+        title: "Notes save failed",
+        description,
+        variant: "destructive",
+      });
     }
   };
 
@@ -488,7 +570,10 @@ export default function PrepListsPage() {
       return;
     }
 
-    if (pendingNotesSaveRef.current && pendingNotesSaveRef.current.listId !== listId) {
+    if (
+      pendingNotesSaveRef.current &&
+      pendingNotesSaveRef.current.listId !== listId
+    ) {
       flushPendingListNotes();
     }
 
@@ -520,15 +605,26 @@ export default function PrepListsPage() {
     setShowNotesModal(false);
   };
 
-  const patchItem = async (listId: string, itemId: string, payload: Partial<PrepItem>) => {
+  const patchItem = async (
+    listId: string,
+    itemId: string,
+    payload: Partial<PrepItem>
+  ) => {
     const previousLists = queryClient.getQueryData<PrepList[]>(listsQueryKey);
-    const previousList = queryClient.getQueryData<PrepList>(["prep-list", listId]);
+    const previousList = queryClient.getQueryData<PrepList>([
+      "prep-list",
+      listId,
+    ]);
     const applyItemUpdate = (list: PrepList) => ({
       ...list,
-      items: list.items.map((item) => (item.id === itemId ? { ...item, ...payload } : item)),
+      items: list.items.map((item) =>
+        item.id === itemId ? { ...item, ...payload } : item
+      ),
     });
 
-    setListsCache((current) => updatePrepListInCollection(current, listId, applyItemUpdate));
+    setListsCache((current) =>
+      updatePrepListInCollection(current, listId, applyItemUpdate)
+    );
     setListCache(listId, applyItemUpdate);
 
     try {
@@ -557,10 +653,15 @@ export default function PrepListsPage() {
     }
 
     const previousLists = queryClient.getQueryData<PrepList[]>(listsQueryKey);
-    const previousList = queryClient.getQueryData<PrepList>(["prep-list", selectedList.id]);
+    const previousList = queryClient.getQueryData<PrepList>([
+      "prep-list",
+      selectedList.id,
+    ]);
     const applyReorder = (list: PrepList) => applyItemOrder(list, itemIds);
 
-    setListsCache((current) => updatePrepListInCollection(current, selectedList.id, applyReorder));
+    setListsCache((current) =>
+      updatePrepListInCollection(current, selectedList.id, applyReorder)
+    );
     setListCache(selectedList.id, applyReorder);
 
     try {
@@ -599,8 +700,16 @@ export default function PrepListsPage() {
     return event.clientY < bounds.top + bounds.height / 2 ? "before" : "after";
   };
 
-  const dropPrepItem = async (targetItemId: string, position: "before" | "after") => {
-    if (!selectedList || !isManualSort || !draggedItemId || draggedItemId === targetItemId) {
+  const dropPrepItem = async (
+    targetItemId: string,
+    position: "before" | "after"
+  ) => {
+    if (
+      !selectedList ||
+      !isManualSort ||
+      !draggedItemId ||
+      draggedItemId === targetItemId
+    ) {
       clearDragState();
       return;
     }
@@ -649,7 +758,10 @@ export default function PrepListsPage() {
     const payload: PrepListGenerateInput = {
       name: newName.trim() || undefined,
       sourceMode: generatedMode,
-      mealIds: generatedMode === "single-meal" && selectedMealId ? [selectedMealId] : undefined,
+      mealIds:
+        generatedMode === "single-meal" && selectedMealId
+          ? [selectedMealId]
+          : undefined,
       mealType: generatedMode === "meal-slot" ? mealType : undefined,
       fromDate: range.fromDate,
       toDate: range.toDate,
@@ -662,10 +774,13 @@ export default function PrepListsPage() {
       excludePantryStaples,
     };
 
-    const response = await fetchJson<{ data: PrepList }>("/api/prep-lists/generate", {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
+    const response = await fetchJson<{ data: PrepList }>(
+      "/api/prep-lists/generate",
+      {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }
+    );
     syncList(response.data);
     selectList(response.data.id);
   };
@@ -697,7 +812,9 @@ export default function PrepListsPage() {
       setNewName("");
       toast({ title: "Prep list ready" });
     } catch (error) {
-      const description = isApiError(error) ? error.message : "Unable to save prep list";
+      const description = isApiError(error)
+        ? error.message
+        : "Unable to save prep list";
       toast({ title: "Prep list failed", description, variant: "destructive" });
     } finally {
       setIsSubmittingList(false);
@@ -712,8 +829,13 @@ export default function PrepListsPage() {
     }
 
     try {
-      await fetchJson<{ data: { id: string } }>(`/api/prep-lists/${listId}`, { method: "DELETE" });
-      queryClient.removeQueries({ queryKey: ["prep-list", listId], exact: true });
+      await fetchJson<{ data: { id: string } }>(`/api/prep-lists/${listId}`, {
+        method: "DELETE",
+      });
+      queryClient.removeQueries({
+        queryKey: ["prep-list", listId],
+        exact: true,
+      });
     } catch (error) {
       queryClient.setQueryData(listsQueryKey, previousLists);
       throw error;
@@ -730,7 +852,9 @@ export default function PrepListsPage() {
       await deleteList(deleteCandidate.id);
       setDeleteCandidateId(null);
     } catch (error) {
-      const description = isApiError(error) ? error.message : "Unable to delete prep list";
+      const description = isApiError(error)
+        ? error.message
+        : "Unable to delete prep list";
       toast({ title: "Delete failed", description, variant: "destructive" });
     } finally {
       setIsDeletingList(false);
@@ -742,13 +866,16 @@ export default function PrepListsPage() {
       return;
     }
 
-    const response = await fetchJson<{ data: PrepList }>(`/api/prep-lists/${selectedList.id}/items`, {
-      method: "POST",
-      body: JSON.stringify({
-        name: newItemName.trim(),
-        kind: newItemKind,
-      }),
-    });
+    const response = await fetchJson<{ data: PrepList }>(
+      `/api/prep-lists/${selectedList.id}/items`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          name: newItemName.trim(),
+          kind: newItemKind,
+        }),
+      }
+    );
 
     syncList(response.data);
     setNewItemName("");
@@ -756,9 +883,12 @@ export default function PrepListsPage() {
   };
 
   const deleteItem = async (listId: string, itemId: string) => {
-    const response = await fetchJson<{ data: PrepList }>(`/api/prep-lists/${listId}/items/${itemId}`, {
-      method: "DELETE",
-    });
+    const response = await fetchJson<{ data: PrepList }>(
+      `/api/prep-lists/${listId}/items/${itemId}`,
+      {
+        method: "DELETE",
+      }
+    );
     syncList(response.data);
   };
 
@@ -775,8 +905,14 @@ export default function PrepListsPage() {
       syncList(response.data);
       toast({ title: "Prep list regenerated" });
     } catch (error) {
-      const description = isApiError(error) ? error.message : "Unable to regenerate prep list";
-      toast({ title: "Regeneration failed", description, variant: "destructive" });
+      const description = isApiError(error)
+        ? error.message
+        : "Unable to regenerate prep list";
+      toast({
+        title: "Regeneration failed",
+        description,
+        variant: "destructive",
+      });
     }
   };
 
@@ -797,7 +933,11 @@ export default function PrepListsPage() {
     <>
       <PageHeader
         actions={
-          <button className={styles.btnNewList} onClick={() => setShowModal(true)} type="button">
+          <button
+            className={styles.btnNewList}
+            onClick={() => setShowModal(true)}
+            type="button"
+          >
             + New Prep List
           </button>
         }
@@ -834,7 +974,9 @@ export default function PrepListsPage() {
               className={styles.upcomingInput}
               max={60}
               min={1}
-              onChange={(event) => setUpcomingDays(Number(event.target.value) || 1)}
+              onChange={(event) =>
+                setUpcomingDays(Number(event.target.value) || 1)
+              }
               type="number"
               value={upcomingDays}
             />
@@ -844,24 +986,23 @@ export default function PrepListsPage() {
       <div className={styles.carouselWrap}>
         <div className={styles.carousel}>
           {filteredQuick.length === 0 ? (
-            <div className={styles.quickEmpty}>No prep lists match this filter.</div>
+            <div className={styles.quickEmpty}>
+              No prep lists match this filter.
+            </div>
           ) : null}
           {filteredQuick.map((list) => (
             <div
               className={`${styles.quickCard} ${selectedList?.id === list.id ? styles.quickCardSelected : ""}`}
               key={list.id}
             >
-              <button
-                aria-label={`${list.favourite ? "Remove" : "Add"} ${list.name} ${list.favourite ? "from" : "to"} favourites`}
-                className={`${styles.quickCardFav} ${list.favourite ? styles.quickCardFavActive : ""}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  void patchList(list.id, { favourite: !list.favourite });
-                }}
-                type="button"
-              >
-                <Star aria-hidden="true" size={18} weight={list.favourite ? "bold" : "regular"} />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button aria-label={`${list.favourite ? "Remove" : "Add"} ${list.name} ${list.favourite ? "from" : "to"} favourites`} className={`${styles.quickCardFav} ${list.favourite ? styles.quickCardFavActive : ""}`} onClick={(event) => { event.stopPropagation(); void patchList(list.id, { favourite: !list.favourite }); }} type="button">
+                    <Star aria-hidden="true" size={18} weight={list.favourite ? "bold" : "regular"} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{list.favourite ? "Remove from favourites" : "Add to favourites"}</TooltipContent>
+              </Tooltip>
               <button
                 className={styles.quickCardAction}
                 onClick={() => selectList(list.id)}
@@ -878,7 +1019,9 @@ export default function PrepListsPage() {
                     style={{ width: `${list.completionPercentage}%` }}
                   />
                 </div>
-                <div className={styles.quickCardPct}>{list.completionPercentage}% complete</div>
+                <div className={styles.quickCardPct}>
+                  {list.completionPercentage}% complete
+                </div>
               </button>
             </div>
           ))}
@@ -905,18 +1048,17 @@ export default function PrepListsPage() {
                   {formatPrepDate(list.date)} · {list.sourceMode}
                 </div>
               </div>
-              <button
-                aria-label={`${list.favourite ? "Remove" : "Add"} ${list.name} ${list.favourite ? "from" : "to"} favourites`}
-                className={`${styles.listRowFav} ${list.favourite ? styles.listRowFavOn : ""}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  void patchList(list.id, { favourite: !list.favourite });
-                }}
-                type="button"
-              >
-                <Star aria-hidden="true" size={18} weight={list.favourite ? "bold" : "regular"} />
-              </button>
-              <div className={styles.listRowPct}>{list.completionPercentage}%</div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button aria-label={`${list.favourite ? "Remove" : "Add"} ${list.name} ${list.favourite ? "from" : "to"} favourites`} className={`${styles.listRowFav} ${list.favourite ? styles.listRowFavOn : ""}`} onClick={(event) => { event.stopPropagation(); void patchList(list.id, { favourite: !list.favourite }); }} type="button">
+                    <Star aria-hidden="true" size={18} weight={list.favourite ? "bold" : "regular"} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{list.favourite ? "Remove from favourites" : "Add to favourites"}</TooltipContent>
+              </Tooltip>
+              <div className={styles.listRowPct}>
+                {list.completionPercentage}%
+              </div>
             </div>
           ))}
         </div>
@@ -925,18 +1067,27 @@ export default function PrepListsPage() {
           <div className={styles.editorPanel} key={selectedList.id}>
             <div className={styles.editorHeader}>
               <div className={styles.editorTitleRow}>
-                <input
+                <textarea
                   aria-label="Prep list name"
                   className={styles.editorNameInput}
                   onBlur={(event) => {
-                    if (event.target.value.trim() && event.target.value.trim() !== selectedList.name) {
-                      void patchList(selectedList.id, { name: event.target.value.trim() });
+                    if (
+                      event.target.value.trim() &&
+                      event.target.value.trim() !== selectedList.name
+                    ) {
+                      void patchList(selectedList.id, {
+                        name: event.target.value.trim(),
+                      });
                     }
                   }}
                   defaultValue={selectedList.name}
+                  rows={1}
                 />
                 <div className={styles.editorHeaderMeta}>
-                  <span className={styles.editorMetaChip} title={formatPrepSourceTooltip(selectedList) || undefined}>
+                  <span
+                    className={styles.editorMetaChip}
+                    title={formatPrepSourceTooltip(selectedList) || undefined}
+                  >
                     <span className={styles.editorMetaChipLabel}>Source</span>
                     <span>{formatPrepSourceSummary(selectedList)}</span>
                   </span>
@@ -959,7 +1110,11 @@ export default function PrepListsPage() {
                   Prep
                 </button>
                 {selectedList.sourceMode !== "manual" ? (
-                  <button className={styles.btnGhost} onClick={() => void regenerateSelectedList()} type="button">
+                  <button
+                    className={styles.btnGhost}
+                    onClick={() => void regenerateSelectedList()}
+                    type="button"
+                  >
                     Regenerate
                   </button>
                 ) : null}
@@ -969,7 +1124,11 @@ export default function PrepListsPage() {
                     <select
                       aria-label="Sort prep items"
                       className={`${styles.itemCatSelect} ${styles.sortSelect}`}
-                      onChange={(event) => void patchList(selectedList.id, { sortMode: event.target.value as PrepList["sortMode"] })}
+                      onChange={(event) =>
+                        void patchList(selectedList.id, {
+                          sortMode: event.target.value as PrepList["sortMode"],
+                        })
+                      }
                       value={selectedList.sortMode}
                     >
                       {PREP_SORT_OPTIONS.map((option) => (
@@ -984,7 +1143,11 @@ export default function PrepListsPage() {
                     <select
                       aria-label="Group prep items"
                       className={`${styles.itemCatSelect} ${styles.groupSelect}`}
-                      onChange={(event) => void patchList(selectedList.id, { groupBy: event.target.value as PrepList["groupBy"] })}
+                      onChange={(event) =>
+                        void patchList(selectedList.id, {
+                          groupBy: event.target.value as PrepList["groupBy"],
+                        })
+                      }
                       value={selectedList.groupBy}
                     >
                       {PREP_GROUP_OPTIONS.map((option) => (
@@ -995,9 +1158,14 @@ export default function PrepListsPage() {
                     </select>
                   </label>
                 </div>
-                <button aria-label={`Delete list ${selectedList.name}`} className={styles.btnDeleteList} onClick={() => setDeleteCandidateId(selectedList.id)} type="button">
-                  <Trash aria-hidden="true" size={18} />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button aria-label={`Delete list ${selectedList.name}`} className={styles.btnDeleteList} onClick={() => setDeleteCandidateId(selectedList.id)} type="button">
+                      <Trash aria-hidden="true" size={18} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete list</TooltipContent>
+                </Tooltip>
               </div>
             </div>
 
@@ -1009,14 +1177,19 @@ export default function PrepListsPage() {
                 />
               </div>
               <span className={styles.progressLabel}>
-                {selectedList.checkedCount} of {selectedList.totalItems} complete · {selectedList.completionPercentage}%
+                {selectedList.checkedCount} of {selectedList.totalItems}{" "}
+                complete · {selectedList.completionPercentage}%
               </span>
             </div>
 
             <div className={styles.listNotesSection}>
               <div className={styles.listNotesHeader}>
                 <span className={styles.listNotesLabel}>List Notes</span>
-                <button className={styles.btnGhost} onClick={() => setShowNotesModal(true)} type="button">
+                <button
+                  className={styles.btnGhost}
+                  onClick={() => setShowNotesModal(true)}
+                  type="button"
+                >
                   Expand
                 </button>
               </div>
@@ -1047,7 +1220,10 @@ export default function PrepListsPage() {
                       return;
                     }
                     event.preventDefault();
-                    setDragOverState({ itemId: item.id, position: getDropPosition(event) });
+                    setDragOverState({
+                      itemId: item.id,
+                      position: getDropPosition(event),
+                    });
                   }}
                   onDragStart={(event) => {
                     if (!isManualSort) {
@@ -1068,8 +1244,15 @@ export default function PrepListsPage() {
                   <div className={styles.itemRowMain}>
                     <span
                       className={styles.dragHandle}
-                      style={{ cursor: isManualSort ? "grab" : "not-allowed", opacity: isManualSort ? 1 : 0.4 }}
-                      title={isManualSort ? "Drag to reorder" : "Switch sort mode to Manual to reorder"}
+                      style={{
+                        cursor: isManualSort ? "grab" : "not-allowed",
+                        opacity: isManualSort ? 1 : 0.4,
+                      }}
+                      title={
+                        isManualSort
+                          ? "Drag to reorder"
+                          : "Switch sort mode to Manual to reorder"
+                      }
                     >
                       <DotsSixVertical aria-hidden="true" size={18} />
                     </span>
@@ -1077,7 +1260,11 @@ export default function PrepListsPage() {
                       aria-label={`Mark ${item.name} complete`}
                       checked={item.checked}
                       className={styles.itemCheck}
-                      onChange={(event) => void patchItem(selectedList.id, item.id, { checked: event.target.checked })}
+                      onChange={(event) =>
+                        void patchItem(selectedList.id, item.id, {
+                          checked: event.target.checked,
+                        })
+                      }
                       type="checkbox"
                     />
                     <input
@@ -1087,7 +1274,9 @@ export default function PrepListsPage() {
                       onBlur={(event) => {
                         const nextName = event.target.value.trim();
                         if (nextName && nextName !== item.name) {
-                          void patchItem(selectedList.id, item.id, { name: nextName });
+                          void patchItem(selectedList.id, item.id, {
+                            name: nextName,
+                          });
                         }
                       }}
                     />
@@ -1097,7 +1286,9 @@ export default function PrepListsPage() {
                         className={styles.itemQtyInput}
                         defaultValue={item.qty ?? ""}
                         onBlur={(event) =>
-                          void patchItem(selectedList.id, item.id, { qty: event.target.value || null })
+                          void patchItem(selectedList.id, item.id, {
+                            qty: event.target.value || null,
+                          })
                         }
                         placeholder="qty"
                       />
@@ -1106,35 +1297,38 @@ export default function PrepListsPage() {
                         className={styles.itemUnitSelect}
                         defaultValue={item.unit ?? ""}
                         onBlur={(event) =>
-                          void patchItem(selectedList.id, item.id, { unit: event.target.value || null })
+                          void patchItem(selectedList.id, item.id, {
+                            unit: event.target.value || null,
+                          })
                         }
                         placeholder="unit"
                       />
                     </div>
                     <div className={styles.itemRowActions}>
-                      <button
-                        aria-label={`Move ${item.name} up`}
-                        className={styles.iconBtn}
-                        disabled={!isManualSort || index === 0}
-                        onClick={() => void movePrepItem(item.id, -1)}
-                        title={isManualSort ? "Move up" : "Reorder only in Manual sort"}
-                        type="button"
-                      >
-                        <ArrowUp aria-hidden="true" size={18} />
-                      </button>
-                      <button
-                        aria-label={`Move ${item.name} down`}
-                        className={styles.iconBtn}
-                        disabled={!isManualSort || index === orderedItems.length - 1}
-                        onClick={() => void movePrepItem(item.id, 1)}
-                        title={isManualSort ? "Move down" : "Reorder only in Manual sort"}
-                        type="button"
-                      >
-                        <ArrowDown aria-hidden="true" size={18} />
-                      </button>
-                      <button aria-label={`Remove ${item.name}`} className={`${styles.iconBtn} ${styles.itemDeleteBtn}`} onClick={() => void deleteItem(selectedList.id, item.id)} type="button">
-                        <X aria-hidden="true" size={18} />
-                      </button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button aria-label={`Move ${item.name} up`} aria-disabled={!isManualSort || index === 0} className={styles.iconBtn} disabled={isManualSort && index === 0} onClick={() => { if (isManualSort) void movePrepItem(item.id, -1); }} type="button">
+                            <ArrowUp aria-hidden="true" size={18} />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>{isManualSort ? "Move up" : "Reorder only in Manual sort"}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button aria-label={`Move ${item.name} down`} aria-disabled={!isManualSort || index === orderedItems.length - 1} className={styles.iconBtn} disabled={isManualSort && index === orderedItems.length - 1} onClick={() => { if (isManualSort) void movePrepItem(item.id, 1); }} type="button">
+                            <ArrowDown aria-hidden="true" size={18} />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>{isManualSort ? "Move down" : "Reorder only in Manual sort"}</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button aria-label={`Remove ${item.name}`} className={`${styles.iconBtn} ${styles.itemDeleteBtn}`} onClick={() => void deleteItem(selectedList.id, item.id)} type="button">
+                            <X aria-hidden="true" size={18} />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Remove item</TooltipContent>
+                      </Tooltip>
                     </div>
                   </div>
                   <div className={styles.itemRowExtra}>
@@ -1144,7 +1338,9 @@ export default function PrepListsPage() {
                         aria-label={`Type for ${item.name}`}
                         className={styles.itemCatSelect}
                         onChange={(event) =>
-                          void patchItem(selectedList.id, item.id, { kind: event.target.value as PrepItem["kind"] })
+                          void patchItem(selectedList.id, item.id, {
+                            kind: event.target.value as PrepItem["kind"],
+                          })
                         }
                         value={item.kind}
                       >
@@ -1159,19 +1355,27 @@ export default function PrepListsPage() {
                         className={styles.itemExtraInput}
                         defaultValue={item.dish ?? ""}
                         onBlur={(event) =>
-                          void patchItem(selectedList.id, item.id, { dish: event.target.value || null })
+                          void patchItem(selectedList.id, item.id, {
+                            dish: event.target.value || null,
+                          })
                         }
                         placeholder="Dish"
                       />
                     </div>
                     <div className={styles.itemExtraField}>
-                      <span className={styles.itemExtraLabel}>Ingredient Type</span>
+                      <span className={styles.itemExtraLabel}>
+                        Ingredient Type
+                      </span>
                       <input
                         aria-label={`Ingredient type for ${item.name}`}
                         className={styles.itemExtraInput}
-                        defaultValue={item.ingredientType ?? item.prepGroup ?? ""}
+                        defaultValue={
+                          item.ingredientType ?? item.prepGroup ?? ""
+                        }
                         onBlur={(event) =>
-                          void patchItem(selectedList.id, item.id, { ingredientType: event.target.value || null })
+                          void patchItem(selectedList.id, item.id, {
+                            ingredientType: event.target.value || null,
+                          })
                         }
                         placeholder="Type"
                       />
@@ -1183,7 +1387,9 @@ export default function PrepListsPage() {
                         className={styles.itemExtraInput}
                         defaultValue={item.notes ?? ""}
                         onBlur={(event) =>
-                          void patchItem(selectedList.id, item.id, { notes: event.target.value || null })
+                          void patchItem(selectedList.id, item.id, {
+                            notes: event.target.value || null,
+                          })
                         }
                         placeholder="Notes"
                       />
@@ -1197,7 +1403,9 @@ export default function PrepListsPage() {
               <select
                 aria-label="New prep item kind"
                 className={styles.itemCatSelect}
-                onChange={(event) => setNewItemKind(event.target.value as PrepItem["kind"])}
+                onChange={(event) =>
+                  setNewItemKind(event.target.value as PrepItem["kind"])
+                }
                 value={newItemKind}
               >
                 <option value="ingredient">Ingredient</option>
@@ -1215,15 +1423,25 @@ export default function PrepListsPage() {
                 placeholder="Add a prep item..."
                 value={newItemName}
               />
-              <button className={styles.btnAddItem} onClick={() => void createItem()} type="button">
+              <button
+                className={styles.btnAddItem}
+                onClick={() => void createItem()}
+                type="button"
+              >
                 + Add
               </button>
             </div>
           </div>
         ) : (
           <div className={styles.editorPlaceholder}>
-            <CookingPot aria-hidden="true" className={styles.editorPlaceholderIcon} size={40} />
-            <p className={styles.editorPlaceholderText}>Select a prep list to edit it.</p>
+            <CookingPot
+              aria-hidden="true"
+              className={styles.editorPlaceholderIcon}
+              size={40}
+            />
+            <p className={styles.editorPlaceholderText}>
+              Select a prep list to edit it.
+            </p>
           </div>
         )}
       </div>
@@ -1275,7 +1493,6 @@ export default function PrepListsPage() {
           footerLeft={
             <button
               className={styles.btnGhost}
-              disabled={isSubmittingList}
               onClick={() => setShowModal(false)}
               type="button"
             >
@@ -1299,161 +1516,274 @@ export default function PrepListsPage() {
             </button>
           }
         >
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Mode</label>
-                <div className={styles.inlineActionRow}>
-                  <button className={draftMode === "generated" ? styles.btnShop : styles.btnGhost} onClick={() => setDraftMode("generated")} type="button">
-                    Generate
-                  </button>
-                  <button className={draftMode === "manual" ? styles.btnShop : styles.btnGhost} onClick={() => setDraftMode("manual")} type="button">
-                    Manual
-                  </button>
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Mode</label>
+            <div className={styles.inlineActionRow}>
+              <button
+                className={
+                  draftMode === "generated" ? styles.btnShop : styles.btnGhost
+                }
+                onClick={() => setDraftMode("generated")}
+                type="button"
+              >
+                Generate
+              </button>
+              <button
+                className={
+                  draftMode === "manual" ? styles.btnShop : styles.btnGhost
+                }
+                onClick={() => setDraftMode("manual")}
+                type="button"
+              >
+                Manual
+              </button>
+            </div>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>Name</label>
+            <input
+              aria-label="Prep list name"
+              className={styles.formInput}
+              onChange={(event) => setNewName(event.target.value)}
+              value={newName}
+            />
+          </div>
+
+          {draftMode === "manual" ? (
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Date</label>
+              <label className={styles.formCheckboxRow}>
+                <input
+                  aria-label="Ongoing prep list"
+                  checked={newOngoing}
+                  className={styles.formCheckbox}
+                  onChange={(event) => setNewOngoing(event.target.checked)}
+                  type="checkbox"
+                />
+                Ongoing list (no date)
+              </label>
+              <input
+                aria-label="Prep list date"
+                className={styles.formInput}
+                disabled={newOngoing}
+                onChange={(event) => setNewDate(event.target.value)}
+                type="date"
+                value={newDate}
+              />
+            </div>
+          ) : (
+            <>
+              {duplicateSourceLists.length > 0 ? (
+                <div className={styles.warningCard}>
+                  <div className={styles.warningTitle}>
+                    Duplicate Source Warning
+                  </div>
+                  <div className={styles.warningText}>
+                    A prep list already exists for this source:{" "}
+                    {duplicateSourceLists.map((list) => list.name).join(", ")}.
+                    You can still create another one, or regenerate the existing
+                    list from its editor.
+                  </div>
                 </div>
-              </div>
+              ) : null}
 
               <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Name</label>
-                <input aria-label="Prep list name" className={styles.formInput} onChange={(event) => setNewName(event.target.value)} value={newName} />
+                <label className={styles.formLabel}>Source</label>
+                <select
+                  aria-label="Prep source"
+                  className={styles.formInput}
+                  onChange={(event) =>
+                    setGeneratedMode(event.target.value as GeneratedMode)
+                  }
+                  value={generatedMode}
+                >
+                  <option value="single-meal">Single meal</option>
+                  <option value="meal-slot">Meal slot</option>
+                  <option value="day">Entire day</option>
+                  <option value="week">Entire week</option>
+                  <option value="month">Entire month</option>
+                  <option value="date-range">Date range</option>
+                  <option value="historical">Historical range</option>
+                </select>
               </div>
 
-              {draftMode === "manual" ? (
+              {generatedMode === "day" ||
+              generatedMode === "week" ||
+              generatedMode === "month" ||
+              generatedMode === "meal-slot" ? (
                 <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Date</label>
-                  <label className={styles.formCheckboxRow}>
-                    <input aria-label="Ongoing prep list" checked={newOngoing} className={styles.formCheckbox} onChange={(event) => setNewOngoing(event.target.checked)} type="checkbox" />
-                    Ongoing list (no date)
-                  </label>
-                  <input aria-label="Prep list date" className={styles.formInput} disabled={newOngoing} onChange={(event) => setNewDate(event.target.value)} type="date" value={newDate} />
+                  <label className={styles.formLabel}>Anchor date</label>
+                  <input
+                    aria-label="Anchor date"
+                    className={styles.formInput}
+                    onChange={(event) => setRangeAnchor(event.target.value)}
+                    type="date"
+                    value={rangeAnchor}
+                  />
                 </div>
-              ) : (
-                <>
-                  {duplicateSourceLists.length > 0 ? (
-                    <div className={styles.warningCard}>
-                      <div className={styles.warningTitle}>Duplicate Source Warning</div>
-                      <div className={styles.warningText}>
-                        A prep list already exists for this source: {duplicateSourceLists.map((list) => list.name).join(", ")}.
-                        You can still create another one, or regenerate the existing list from its editor.
-                      </div>
-                    </div>
-                  ) : null}
+              ) : null}
 
+              {generatedMode === "date-range" ||
+              generatedMode === "historical" ? (
+                <div className="grid gap-3 md:grid-cols-2">
                   <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Source</label>
-                    <select aria-label="Prep source" className={styles.formInput} onChange={(event) => setGeneratedMode(event.target.value as GeneratedMode)} value={generatedMode}>
-                      <option value="single-meal">Single meal</option>
-                      <option value="meal-slot">Meal slot</option>
-                      <option value="day">Entire day</option>
-                      <option value="week">Entire week</option>
-                      <option value="month">Entire month</option>
-                      <option value="date-range">Date range</option>
-                      <option value="historical">Historical range</option>
-                    </select>
+                    <label className={styles.formLabel}>From</label>
+                    <input
+                      aria-label="Range start"
+                      className={styles.formInput}
+                      onChange={(event) => setRangeFrom(event.target.value)}
+                      type="date"
+                      value={rangeFrom}
+                    />
                   </div>
-
-                  {(generatedMode === "day" || generatedMode === "week" || generatedMode === "month" || generatedMode === "meal-slot") ? (
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Anchor date</label>
-                      <input aria-label="Anchor date" className={styles.formInput} onChange={(event) => setRangeAnchor(event.target.value)} type="date" value={rangeAnchor} />
-                    </div>
-                  ) : null}
-
-                  {(generatedMode === "date-range" || generatedMode === "historical") ? (
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>From</label>
-                        <input aria-label="Range start" className={styles.formInput} onChange={(event) => setRangeFrom(event.target.value)} type="date" value={rangeFrom} />
-                      </div>
-                      <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>To</label>
-                        <input aria-label="Range end" className={styles.formInput} onChange={(event) => setRangeTo(event.target.value)} type="date" value={rangeTo} />
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {generatedMode === "single-meal" ? (
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Meal</label>
-                      <input
-                        aria-label="Search nearby meals"
-                        className={styles.formInput}
-                        onChange={(event) => setMealSearch(event.target.value)}
-                        placeholder="Search nearby meals"
-                        value={mealSearch}
-                      />
-                      <div className={styles.pickerGrid}>
-                        {filteredMeals.map((meal) => (
-                          <button
-                            className={`${styles.pickerCard} ${selectedMealId === meal.id ? styles.pickerCardSelected : ""}`}
-                            key={meal.id}
-                            onClick={() => setSelectedMealId(meal.id)}
-                            type="button"
-                          >
-                            <div className={styles.pickerTitle}>{meal.name}</div>
-                            <div className={styles.pickerMeta}>
-                              {meal.mealType} · {meal.date ? formatPrepDate(meal.date) : "Unscheduled"}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                      {selectedSingleMeal ? (
-                        <div className={styles.warningCard}>
-                          <div className={styles.warningTitle}>Selected Meal</div>
-                          <div className={styles.warningText}>
-                            {selectedSingleMeal.name} · {selectedSingleMeal.mealType} · {selectedSingleMeal.date ? formatPrepDate(selectedSingleMeal.date) : "Unscheduled"}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {generatedMode === "meal-slot" ? (
-                    <div className={styles.formGroup}>
-                      <label className={styles.formLabel}>Meal slot</label>
-                      <select aria-label="Meal slot" className={styles.formInput} onChange={(event) => setMealType(event.target.value)} value={mealType}>
-                        <option value="BREAKFAST">Breakfast</option>
-                        <option value="LUNCH">Lunch</option>
-                        <option value="DINNER">Dinner</option>
-                        <option value="SNACK">Snack</option>
-                      </select>
-                      <div className={styles.warningCard}>
-                        <div className={styles.warningTitle}>Slot Preview</div>
-                        <div className={styles.warningText}>
-                          {slotPreviewMeals.length > 0
-                            ? slotPreviewMeals.map((meal) => meal.name).join(", ")
-                            : `No meals found in ${mealType} for ${rangeAnchor}`}
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <div className="grid gap-3 md:grid-cols-2">
-                    <label className={styles.formCheckboxRow}>
-                      <input checked={includeIngredients} className={styles.formCheckbox} onChange={(event) => setIncludeIngredients(event.target.checked)} type="checkbox" />
-                      Include ingredients
-                    </label>
-                    <label className={styles.formCheckboxRow}>
-                      <input checked={includeTasks} className={styles.formCheckbox} onChange={(event) => setIncludeTasks(event.target.checked)} type="checkbox" />
-                      Include prep tasks
-                    </label>
-                    <label className={styles.formCheckboxRow}>
-                      <input checked={includeQuantities} className={styles.formCheckbox} onChange={(event) => setIncludeQuantities(event.target.checked)} type="checkbox" />
-                      Include quantities
-                    </label>
-                    <label className={styles.formCheckboxRow}>
-                      <input checked={includeTypes} className={styles.formCheckbox} onChange={(event) => setIncludeTypes(event.target.checked)} type="checkbox" />
-                      Include type labels
-                    </label>
-                    <label className={styles.formCheckboxRow}>
-                      <input checked={includeSourceLabels} className={styles.formCheckbox} onChange={(event) => setIncludeSourceLabels(event.target.checked)} type="checkbox" />
-                      Include source dish labels
-                    </label>
-                    <label className={styles.formCheckboxRow}>
-                      <input checked={excludePantryStaples} className={styles.formCheckbox} onChange={(event) => setExcludePantryStaples(event.target.checked)} type="checkbox" />
-                      Exclude pantry staples
-                    </label>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>To</label>
+                    <input
+                      aria-label="Range end"
+                      className={styles.formInput}
+                      onChange={(event) => setRangeTo(event.target.value)}
+                      type="date"
+                      value={rangeTo}
+                    />
                   </div>
-                </>
-              )}
+                </div>
+              ) : null}
+
+              {generatedMode === "single-meal" ? (
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Meal</label>
+                  <input
+                    aria-label="Search nearby meals"
+                    className={styles.formInput}
+                    onChange={(event) => setMealSearch(event.target.value)}
+                    placeholder="Search nearby meals"
+                    value={mealSearch}
+                  />
+                  <div className={styles.pickerGrid}>
+                    {filteredMeals.map((meal) => (
+                      <button
+                        className={`${styles.pickerCard} ${selectedMealId === meal.id ? styles.pickerCardSelected : ""}`}
+                        key={meal.id}
+                        onClick={() => setSelectedMealId(meal.id)}
+                        type="button"
+                      >
+                        <div className={styles.pickerTitle}>{meal.name}</div>
+                        <div className={styles.pickerMeta}>
+                          {meal.mealType} ·{" "}
+                          {meal.date
+                            ? formatPrepDate(meal.date)
+                            : "Unscheduled"}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  {selectedSingleMeal ? (
+                    <div className={styles.warningCard}>
+                      <div className={styles.warningTitle}>Selected Meal</div>
+                      <div className={styles.warningText}>
+                        {selectedSingleMeal.name} ·{" "}
+                        {selectedSingleMeal.mealType} ·{" "}
+                        {selectedSingleMeal.date
+                          ? formatPrepDate(selectedSingleMeal.date)
+                          : "Unscheduled"}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {generatedMode === "meal-slot" ? (
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Meal slot</label>
+                  <select
+                    aria-label="Meal slot"
+                    className={styles.formInput}
+                    onChange={(event) => setMealType(event.target.value)}
+                    value={mealType}
+                  >
+                    <option value="BREAKFAST">Breakfast</option>
+                    <option value="LUNCH">Lunch</option>
+                    <option value="DINNER">Dinner</option>
+                    <option value="SNACK">Snack</option>
+                  </select>
+                  <div className={styles.warningCard}>
+                    <div className={styles.warningTitle}>Slot Preview</div>
+                    <div className={styles.warningText}>
+                      {slotPreviewMeals.length > 0
+                        ? slotPreviewMeals.map((meal) => meal.name).join(", ")
+                        : `No meals found in ${mealType} for ${rangeAnchor}`}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className={styles.formCheckboxRow}>
+                  <input
+                    checked={includeIngredients}
+                    className={styles.formCheckbox}
+                    onChange={(event) =>
+                      setIncludeIngredients(event.target.checked)
+                    }
+                    type="checkbox"
+                  />
+                  Include ingredients
+                </label>
+                <label className={styles.formCheckboxRow}>
+                  <input
+                    checked={includeTasks}
+                    className={styles.formCheckbox}
+                    onChange={(event) => setIncludeTasks(event.target.checked)}
+                    type="checkbox"
+                  />
+                  Include prep tasks
+                </label>
+                <label className={styles.formCheckboxRow}>
+                  <input
+                    checked={includeQuantities}
+                    className={styles.formCheckbox}
+                    onChange={(event) =>
+                      setIncludeQuantities(event.target.checked)
+                    }
+                    type="checkbox"
+                  />
+                  Include quantities
+                </label>
+                <label className={styles.formCheckboxRow}>
+                  <input
+                    checked={includeTypes}
+                    className={styles.formCheckbox}
+                    onChange={(event) => setIncludeTypes(event.target.checked)}
+                    type="checkbox"
+                  />
+                  Include type labels
+                </label>
+                <label className={styles.formCheckboxRow}>
+                  <input
+                    checked={includeSourceLabels}
+                    className={styles.formCheckbox}
+                    onChange={(event) =>
+                      setIncludeSourceLabels(event.target.checked)
+                    }
+                    type="checkbox"
+                  />
+                  Include source dish labels
+                </label>
+                <label className={styles.formCheckboxRow}>
+                  <input
+                    checked={excludePantryStaples}
+                    className={styles.formCheckbox}
+                    onChange={(event) =>
+                      setExcludePantryStaples(event.target.checked)
+                    }
+                    type="checkbox"
+                  />
+                  Exclude pantry staples
+                </label>
+              </div>
+            </>
+          )}
         </ModalShell>
       ) : null}
 
@@ -1465,24 +1795,28 @@ export default function PrepListsPage() {
           onClose={closeNotesModal}
           title="Prep List Notes"
           footerRight={
-            <button className={styles.btnCreate} onClick={closeNotesModal} type="button">
+            <button
+              className={styles.btnCreate}
+              onClick={closeNotesModal}
+              type="button"
+            >
               Done
             </button>
           }
         >
-              <div className={styles.notesModalMeta}>{selectedList.name}</div>
-              <textarea
-                aria-label="Prep list detailed notes"
-                className={styles.notesModalInput}
-                onChange={(event) => {
-                  const nextValue = event.target.value;
-                  setNotesDraft(nextValue);
-                  scheduleListNotesSave(selectedList.id, nextValue);
-                }}
-                placeholder="Add detailed prep notes for this list..."
-                rows={12}
-                value={notesDraft}
-              />
+          <div className={styles.notesModalMeta}>{selectedList.name}</div>
+          <textarea
+            aria-label="Prep list detailed notes"
+            className={styles.notesModalInput}
+            onChange={(event) => {
+              const nextValue = event.target.value;
+              setNotesDraft(nextValue);
+              scheduleListNotesSave(selectedList.id, nextValue);
+            }}
+            placeholder="Add detailed prep notes for this list..."
+            rows={12}
+            value={notesDraft}
+          />
         </ModalShell>
       ) : null}
     </>

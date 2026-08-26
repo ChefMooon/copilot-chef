@@ -33,18 +33,18 @@ Primary source files:
 
 Defined in src/renderer/globals.css.
 
-| Token | Hex | Role |
-| --- | --- | --- |
-| --green | #3B5E45 | Primary brand color, selected states, default buttons |
-| --green-light | #5A7D63 | Hover state for green controls |
-| --green-pale | #D4E4D8 | Soft highlight backgrounds |
-| --cream | #F5F0E8 | App base background, form surfaces |
-| --cream-dark | #EDE6D6 | Borders, dividers, neutral tracks |
-| --orange | #C5622A | Accent color, eyebrow labels, accent CTA buttons |
-| --orange-light | #E8885A | Orange hover state |
-| --text | #2C2416 | Primary text |
-| --text-muted | #7A6A58 | Secondary text and metadata |
-| --white | #FFFDF8 | Primary card surface |
+| Token          | Hex     | Role                                                  |
+| -------------- | ------- | ----------------------------------------------------- |
+| --green        | #3B5E45 | Primary brand color, selected states, default buttons |
+| --green-light  | #5A7D63 | Hover state for green controls                        |
+| --green-pale   | #D4E4D8 | Soft highlight backgrounds                            |
+| --cream        | #F5F0E8 | App base background, form surfaces                    |
+| --cream-dark   | #EDE6D6 | Borders, dividers, neutral tracks                     |
+| --orange       | #C5622A | Accent color, eyebrow labels, accent CTA buttons      |
+| --orange-light | #E8885A | Orange hover state                                    |
+| --text         | #2C2416 | Primary text                                          |
+| --text-muted   | #7A6A58 | Secondary text and metadata                           |
+| --white        | #FFFDF8 | Primary card surface                                  |
 
 ### Semantic aliases
 
@@ -144,14 +144,14 @@ These are configured in `tailwind.config.ts` as `font-serif` and `font-sans`. CS
 
 ### Type scale and usage
 
-| Usage | Font | Size | Weight | Notes |
-| --- | --- | --- | --- | --- |
-| Page title | Georgia | 2rem (or clamp on Settings) | 700 | Used in all audited pages |
-| Section/card title | Georgia | 1rem to 1.35rem | 700 | Card and module headings |
-| KPI number | Georgia | 2rem to 3rem+ | 700 | Stats and progress emphasis |
-| Eyebrow label | system-ui | 0.72rem to 0.78rem | 700-800 | Uppercase + tracked |
-| Body text | system-ui | 0.88rem to 0.98rem | 500-600 | Descriptions and helper copy |
-| Metadata | system-ui | 0.65rem to 0.78rem | 600-700 | Dates, badges, legends |
+| Usage              | Font      | Size                        | Weight  | Notes                        |
+| ------------------ | --------- | --------------------------- | ------- | ---------------------------- |
+| Page title         | Georgia   | 2rem (or clamp on Settings) | 700     | Used in all audited pages    |
+| Section/card title | Georgia   | 1rem to 1.35rem             | 700     | Card and module headings     |
+| KPI number         | Georgia   | 2rem to 3rem+               | 700     | Stats and progress emphasis  |
+| Eyebrow label      | system-ui | 0.72rem to 0.78rem          | 700-800 | Uppercase + tracked          |
+| Body text          | system-ui | 0.88rem to 0.98rem          | 500-600 | Descriptions and helper copy |
+| Metadata           | system-ui | 0.65rem to 0.78rem          | 600-700 | Dates, badges, legends       |
 
 ### Text styling conventions
 
@@ -325,12 +325,41 @@ The implementation retains a small set of explicit visual exceptions:
 - Every icon-only control must retain an accessible name through its existing
   `aria-label` or an equivalent text label. Native `title` may supplement
   pointer discovery, but is never the only accessible name or a keyboard/touch
-  dependency. A rendered control-tooltip primitive is deferred until its
-  interaction contract is owned.
+  dependency. Validate the computed accessible name rather than raw attributes.
 - Decorative icons must use `aria-hidden="true"` and must not become a second
   accessible name for their parent control.
 - Preserve focus-visible outlines, hit-area dimensions, disabled states, and
   hover/active behavior when replacing an icon implementation.
+
+### Control tooltip and accessibility contract
+
+- Rendered control tooltips use the shared Radix primitive and are reserved for
+  icon-only or unfamiliar controls. Clearly labeled controls do not receive
+  redundant tooltip text.
+- Tooltip surfaces consume the semantic `--tooltip-background`,
+  `--tooltip-foreground`, `--tooltip-border`, and `--tooltip-shadow` variables,
+  which follow the active built-in light or dark theme tokens.
+- Tooltip content is supplementary pointer and keyboard discovery. It must not
+  provide the control's accessible name, become a workflow dependency, or be
+  required for touch use. The control must have a stable computed accessible
+  name independently of both the tooltip and native `title`.
+- Tooltips trigger on pointer hover and keyboard focus, dismiss on blur and
+  Escape, render in a portal, and remain usable inside dialogs and custom
+  themes. A tooltip that explains an unavailable action is associated through
+  `aria-describedby`; a tooltip that repeats an existing accessible name is not.
+- Explanations for unavailable actions must not rely on native `disabled` plus
+  `title`. Keep the trigger focusable with `aria-disabled="true"`, guard the
+  action, and expose the reason programmatically.
+- Compact icon controls provide at least a 32px hit area; standard icon
+  buttons provide at least 40px. Invisible padding or hit-zone expansion may
+  preserve an existing glyph size and layout. Hover-revealed actions must also
+  appear on keyboard focus.
+- Browser QA helpers enforce the minimum hit area and verify that tooltip text
+  supplements, rather than names, controls. Route QA should use computed-name
+  assertions for every named control it exercises.
+- The first Escape dismisses an open tooltip inside a dialog; a subsequent
+  Escape closes the dialog. Modal focus containment and focus restoration remain
+  owned by the modal primitive.
 
 ### Deliberate exceptions
 
@@ -416,17 +445,17 @@ Use `src/renderer/components/ui/button.tsx` variants to avoid one-off button sty
 
 WCAG contrast checks for key production pairs:
 
-| Pair | Contrast | Result |
-| --- | --- | --- |
-| #2C2416 on #F5F0E8 | 13.50:1 | Pass AAA |
-| #2C2416 on #FFFDF8 | 15.07:1 | Pass AAA |
-| #7A6A58 on #F5F0E8 | 4.59:1 | Pass AA for normal text |
-| #3B5E45 on #FFFDF8 | 7.19:1 | Pass AAA |
-| #FFFDF8 on #C5622A | 4.01:1 | Pass AA for large text only |
-| #C5622A on #F5F0E8 | 3.59:1 | Pass AA for large text only |
-| #607568 on #0D1410 | 3.77:1 | Pass for non-text boundaries |
-| #607568 on #18241D | 3.24:1 | Pass for non-text boundaries |
-| #527F60 on #173025 | 3.07:1 | Pass for active navigation state |
+| Pair               | Contrast | Result                           |
+| ------------------ | -------- | -------------------------------- |
+| #2C2416 on #F5F0E8 | 13.50:1  | Pass AAA                         |
+| #2C2416 on #FFFDF8 | 15.07:1  | Pass AAA                         |
+| #7A6A58 on #F5F0E8 | 4.59:1   | Pass AA for normal text          |
+| #3B5E45 on #FFFDF8 | 7.19:1   | Pass AAA                         |
+| #FFFDF8 on #C5622A | 4.01:1   | Pass AA for large text only      |
+| #C5622A on #F5F0E8 | 3.59:1   | Pass AA for large text only      |
+| #607568 on #0D1410 | 3.77:1   | Pass for non-text boundaries     |
+| #607568 on #18241D | 3.24:1   | Pass for non-text boundaries     |
+| #527F60 on #173025 | 3.07:1   | Pass for active navigation state |
 
 Implementation rules:
 
@@ -435,7 +464,7 @@ Implementation rules:
 - Preserve focus-visible outlines on interactive elements.
 - Ensure keyboard navigation for tabs, modals, popovers, and list actions.
 - Treat 3:1 as the minimum for structural boundaries, active states, and other
-	non-text UI indicators; treat 4.5:1 as the minimum for normal-size text.
+  non-text UI indicators; treat 4.5:1 as the minimum for normal-size text.
 - Keep contrast token assertions covered by the focused theme regression test.
 
 ## New page checklist
@@ -449,8 +478,8 @@ Implementation rules:
 
 ## Version history
 
-| Version | Date | Summary |
-| --- | --- | --- |
-| 1.2 | 2026-08-13 | Documented the Phosphor icon migration target, accessibility contract, and deliberate visual exceptions |
-| 1.1 | 2026-08-12 | Added the dark-mode and custom-theme option logic, including `system`/`light`/`dark` resolution and the semantic token profile model |
-| 1.0 | 2026-03-17 | Initial design system grounded in Home, Meal Plan, Grocery List, Stats, and Settings implementation |
+| Version | Date       | Summary                                                                                                                              |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| 1.2     | 2026-08-13 | Documented the Phosphor icon migration target, accessibility contract, and deliberate visual exceptions                              |
+| 1.1     | 2026-08-12 | Added the dark-mode and custom-theme option logic, including `system`/`light`/`dark` resolution and the semantic token profile model |
+| 1.0     | 2026-03-17 | Initial design system grounded in Home, Meal Plan, Grocery List, Stats, and Settings implementation                                  |

@@ -1,0 +1,34 @@
+.content {
+  z-index: 1100;
+  max-width: 20rem;
+  border: 1px solid var(--tooltip-border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  background: var(--tooltip-background);
+  color: var(--tooltip-foreground);
+  font-family: system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+  box-shadow: var(--tooltip-shadow);
+  outline: none;
+  animation: tooltip-in 120ms ease-out;
+}
+
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content {
+    animation: none;
+  }
+}

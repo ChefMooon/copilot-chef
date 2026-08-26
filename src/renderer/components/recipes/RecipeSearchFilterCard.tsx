@@ -5,6 +5,11 @@ import { VisualIcon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   CUISINE_OPTIONS,
   RECIPE_SEARCH_SORT_MODE_VALUES,
   RECIPE_SORT_BY_OPTIONS,
@@ -54,7 +59,10 @@ export function RecipeSearchFilterCard({
 }: RecipeSearchFilterCardProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const hasActiveFilters =
-    search.trim().length > 0 || origin !== "" || cuisine !== "" || favouritesOnly;
+    search.trim().length > 0 ||
+    origin !== "" ||
+    cuisine !== "" ||
+    favouritesOnly;
   const hasAdvancedFilters = origin !== "" || cuisine !== "" || favouritesOnly;
 
   return (
@@ -70,16 +78,21 @@ export function RecipeSearchFilterCard({
               value={search}
             />
             {search.trim().length > 0 ? (
-              <Button
-                aria-label="Clear search"
-                className="absolute right-1 top-1 h-8 w-8"
-                onClick={() => onSearchChange("")}
-                size="icon"
-                type="button"
-                variant="ghost"
-              >
-                <VisualIcon aria-hidden="true" icon={X} size={16} />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    aria-label="Clear search"
+                    className="absolute right-1 top-1 h-8 w-8"
+                    onClick={() => onSearchChange("")}
+                    size="icon"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <VisualIcon aria-hidden="true" icon={X} size={16} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Clear search</TooltipContent>
+              </Tooltip>
             ) : null}
           </div>
         </div>
@@ -108,33 +121,43 @@ export function RecipeSearchFilterCard({
           >
             {sortOrder === "asc" ? "Asc" : "Desc"}
           </Button>
-          <button
-            aria-controls={advancedPanelId}
-            aria-expanded={isAdvancedOpen}
-            aria-label={
-              isAdvancedOpen ? "Hide advanced recipe filters" : "Show advanced recipe filters"
-            }
-            className={`${styles.advancedToggle} ${isAdvancedOpen ? styles.advancedToggleOpen : ""} ${hasAdvancedFilters ? styles.advancedToggleActive : ""}`}
-            onClick={() => setIsAdvancedOpen((open) => !open)}
-            title={isAdvancedOpen ? "Hide advanced recipe filters" : "Show advanced recipe filters"}
-            type="button"
-          >
-            <FunnelSimple
-              aria-hidden="true"
-              className={styles.advancedToggleIcon}
-              size={18}
-              weight="bold"
-            />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                aria-controls={advancedPanelId}
+                aria-expanded={isAdvancedOpen}
+                aria-label={
+                  isAdvancedOpen
+                    ? "Hide advanced recipe filters"
+                    : "Show advanced recipe filters"
+                }
+                className={`${styles.advancedToggle} ${isAdvancedOpen ? styles.advancedToggleOpen : ""} ${hasAdvancedFilters ? styles.advancedToggleActive : ""}`}
+                onClick={() => setIsAdvancedOpen((open) => !open)}
+                type="button"
+              >
+                <FunnelSimple
+                  aria-hidden="true"
+                  className={styles.advancedToggleIcon}
+                  size={18}
+                  weight="bold"
+                />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {isAdvancedOpen
+                ? "Hide advanced recipe filters"
+                : "Show advanced recipe filters"}
+            </TooltipContent>
+          </Tooltip>
           {search.trim().length > 0 ? (
             <select
               aria-label="Search sort mode"
               className={styles.select}
               onChange={(event) => {
                 if (
-                  (RECIPE_SEARCH_SORT_MODE_VALUES as readonly string[]).includes(
-                    event.target.value
-                  )
+                  (
+                    RECIPE_SEARCH_SORT_MODE_VALUES as readonly string[]
+                  ).includes(event.target.value)
                 ) {
                   onSearchSortModeChange(
                     event.target.value as RecipeSearchSortModeValue
@@ -202,8 +225,15 @@ export function RecipeSearchFilterCard({
 
       {hasActiveFilters ? (
         <div className={styles.footerRow}>
-          <span className={styles.activeHint}>Filters are applied to your recipe library.</span>
-          <Button onClick={onClearFilters} size="sm" type="button" variant="ghost">
+          <span className={styles.activeHint}>
+            Filters are applied to your recipe library.
+          </span>
+          <Button
+            onClick={onClearFilters}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
             Clear filters
           </Button>
         </div>

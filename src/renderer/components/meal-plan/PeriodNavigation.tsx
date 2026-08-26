@@ -1,5 +1,10 @@
 import type { CSSProperties, ReactNode } from "react";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import styles from "./meal-plan.module.css";
 
@@ -35,15 +40,14 @@ export function PeriodNavigation({
   return (
     <div className={`${styles.periodNav} ${className}`} style={style}>
       {showPrevious && onPrevious ? (
-        <button
-          aria-label={previousLabel}
-          className={styles.periodNavButton}
-          onClick={onPrevious}
-          type="button"
-          title={previousLabel}
-        >
-          <CaretLeft aria-hidden="true" size={18} weight="regular" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button aria-label={previousLabel} className={styles.periodNavButton} onClick={onPrevious} type="button" title={previousLabel}>
+              <CaretLeft aria-hidden="true" size={18} weight="regular" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{previousLabel}</TooltipContent>
+        </Tooltip>
       ) : null}
       <div className={styles.periodNavLabel}>{children}</div>
       <div className={styles.periodNavActions}>
@@ -59,15 +63,14 @@ export function PeriodNavigation({
             {currentLabel}
           </button>
         ) : null}
-        <button
-          aria-label={nextLabel}
-          className={styles.periodNavButton}
-          onClick={onNext}
-          type="button"
-          title={nextLabel}
-        >
-          <CaretRight aria-hidden="true" size={18} weight="regular" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button aria-label={nextLabel} className={styles.periodNavButton} onClick={onNext} type="button" title={nextLabel}>
+              <CaretRight aria-hidden="true" size={18} weight="regular" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>{nextLabel}</TooltipContent>
+        </Tooltip>
       </div>
       {accentColor ? (
         <span

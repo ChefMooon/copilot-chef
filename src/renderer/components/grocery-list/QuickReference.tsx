@@ -7,6 +7,11 @@ import {
   type QuickFilter,
 } from "@/lib/grocery";
 import { VisualIcon } from "@/components/ui/icon";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { QUICK_FILTER_ICON_REGISTRY } from "@/lib/icon-registry";
 
 import styles from "./grocery-list.module.css";
@@ -79,21 +84,26 @@ export function QuickReference({
                 className={`${styles.quickCard} ${selectedId === list.id ? styles.quickCardSelected : ""}`}
                 key={list.id}
               >
-                <button
-                  aria-label={`${list.favourite ? "Remove" : "Add"} ${list.name} ${list.favourite ? "from" : "to"} favourites`}
-                  className={`${styles.quickCardFav} ${list.favourite ? styles.quickCardFavActive : ""}`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onToggleFav(list.id, !list.favourite);
-                  }}
-                  type="button"
-                >
-                  <VisualIcon
-                    aria-hidden="true"
-                    icon={QUICK_FILTER_ICON_REGISTRY.star}
-                    weight={list.favourite ? "bold" : "regular"}
-                  />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      aria-label={`${list.favourite ? "Remove" : "Add"} ${list.name} ${list.favourite ? "from" : "to"} favourites`}
+                      className={`${styles.quickCardFav} ${list.favourite ? styles.quickCardFavActive : ""}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onToggleFav(list.id, !list.favourite);
+                      }}
+                      type="button"
+                    >
+                      <VisualIcon
+                        aria-hidden="true"
+                        icon={QUICK_FILTER_ICON_REGISTRY.star}
+                        weight={list.favourite ? "bold" : "regular"}
+                      />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>{list.favourite ? "Remove from favourites" : "Add to favourites"}</TooltipContent>
+                </Tooltip>
                 <button
                   className={styles.quickCardAction}
                   onClick={() => onSelectList(list.id)}

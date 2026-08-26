@@ -13,12 +13,12 @@ Runtime scope for this cycle is browser mode only.
 
 ## Severity Rubric
 
-| Severity | Meaning | Ship Guidance |
-|---|---|---|
-| P0 | Critical breakage (cannot complete primary flow, severe a11y blocker, data-loss risk) | Block release |
-| P1 | Major UX or accessibility defect in common path | Fix before release or formally risk-accept |
-| P2 | Moderate issue with workaround or limited impact | Schedule next patch window |
-| P3 | Minor polish issue or low-impact inconsistency | Backlog |
+| Severity | Meaning                                                                               | Ship Guidance                              |
+| -------- | ------------------------------------------------------------------------------------- | ------------------------------------------ |
+| P0       | Critical breakage (cannot complete primary flow, severe a11y blocker, data-loss risk) | Block release                              |
+| P1       | Major UX or accessibility defect in common path                                       | Fix before release or formally risk-accept |
+| P2       | Moderate issue with workaround or limited impact                                      | Schedule next patch window                 |
+| P3       | Minor polish issue or low-impact inconsistency                                        | Backlog                                    |
 
 ## Required Evidence Per Finding
 
@@ -94,9 +94,13 @@ Current automation baseline for this phase:
 
 - Browser page smoke test scaffold
 - Connect-page accessibility/keyboard baseline checks
-- Shared QA helper utilities for reusable assertions
+- Shared QA helper utilities for computed accessible names, minimum hit areas,
+  and tooltip policy
+- Connect-page adoption of the shared named-control and tooltip-policy checks
 
-Future iterations can expand the same helpers to all routes.
+As route QA suites are added or expanded, use the same helpers for every
+interactive control under test. Hit-area assertions should pass `32` for
+compact icon controls and `40` for standard icon buttons.
 
 ### iOS Safe-Area Regression Matrix
 
@@ -115,8 +119,8 @@ When available, use Safari Web Inspector to compare the header bounds and
 viewport values while changing toolbar state:
 
 ```js
-document.querySelector("header")?.getBoundingClientRect()
-window.innerHeight
-window.visualViewport?.height
-getComputedStyle(document.querySelector("header")).paddingTop
+document.querySelector("header")?.getBoundingClientRect();
+window.innerHeight;
+window.visualViewport?.height;
+getComputedStyle(document.querySelector("header")).paddingTop;
 ```

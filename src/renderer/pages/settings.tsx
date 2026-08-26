@@ -1,6 +1,7 @@
 import {
   Suspense,
   useEffect,
+  useId,
   lazy,
   useMemo,
   useRef,
@@ -49,7 +50,11 @@ import {
   resetConfigCache,
 } from "@/lib/config";
 import { useServerConfig } from "@/lib/use-server-config";
-import { getPlatform, type LanStatus, type PairingCodeResult } from "@/lib/platform";
+import {
+  getPlatform,
+  type LanStatus,
+  type PairingCodeResult,
+} from "@/lib/platform";
 import { usePreferences } from "@/lib/preferences";
 import type { AppSettingTheme } from "@shared/config/settings";
 import {
@@ -147,7 +152,8 @@ type TabId =
 
 type HomeUpcomingDetail = "standard" | "detailed";
 type MealBankPlacement = "left" | "right" | "bottom";
-type RecipeDefaultSortValue = (typeof RECIPE_DEFAULT_SORT_OPTIONS)[number]["value"];
+type RecipeDefaultSortValue =
+  (typeof RECIPE_DEFAULT_SORT_OPTIONS)[number]["value"];
 
 type HomeDashboardSettings = {
   upcomingDays: number;
@@ -214,23 +220,14 @@ export function getPairingCodeRemainingSeconds(
 }
 
 const TABS: Array<{ id: TabId; label: string; panelId: string }> = [
-  { id: "app-settings",
-    label: "App Settings",
-    panelId: "panel-app-settings"
-  },
+  { id: "app-settings", label: "App Settings", panelId: "panel-app-settings" },
   {
     id: "dietary-profile",
     label: "Dietary Profile",
     panelId: "panel-dietary-profile",
   },
-  { id: "meal-plans",
-    label: "Meal Plans",
-    panelId: "panel-meal-plans"
-  },
-  { id: "connection",
-    label: "Network",
-    panelId: "panel-connection"
-  },
+  { id: "meal-plans", label: "Meal Plans", panelId: "panel-meal-plans" },
+  { id: "connection", label: "Network", panelId: "panel-connection" },
   {
     id: "data-management",
     label: "Data Management",
@@ -240,10 +237,7 @@ const TABS: Array<{ id: TabId; label: string; panelId: string }> = [
 
 const TAB_IDS = TABS.map((t) => t.id);
 
-export function getNextSettingsTabId(
-  index: number,
-  key: string
-): TabId | null {
+export function getNextSettingsTabId(index: number, key: string): TabId | null {
   let next: number | null = null;
   if (key === "ArrowRight") next = (index + 1) % TABS.length;
   else if (key === "ArrowLeft") next = (index - 1 + TABS.length) % TABS.length;
@@ -266,13 +260,21 @@ function ToggleRow(props: {
   description: string;
   onChange: (checked: boolean) => void;
 }) {
+  const labelId = useId();
+
   return (
     <div className={styles.toggleRow}>
       <div className={styles.toggleCopy}>
-        <div className={styles.toggleLabel}>{props.label}</div>
+        <div className={styles.toggleLabel} id={labelId}>
+          {props.label}
+        </div>
         <div className={styles.toggleDescription}>{props.description}</div>
       </div>
-      <ToggleSwitch checked={props.checked} onChange={props.onChange} />
+      <ToggleSwitch
+        checked={props.checked}
+        labelId={labelId}
+        onChange={props.onChange}
+      />
     </div>
   );
 }
@@ -306,7 +308,11 @@ export default function SettingsPage() {
   const apiReady = isServerConfigReady(config);
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const { supported: updatesSupported, state: updateState, checkForUpdates } = useUpdates();
+  const {
+    supported: updatesSupported,
+    state: updateState,
+    checkForUpdates,
+  } = useUpdates();
   const patchMutation = useMutation({ mutationFn: patchPreferences });
   const resetMutation = useMutation({ mutationFn: resetPreferences });
 
@@ -350,8 +356,9 @@ export default function SettingsPage() {
   const [launchAtLogin, setLaunchAtLogin] = useState(false);
   const [themePreference, setThemePreferenceDraft] =
     useState<AppSettingTheme>("system");
-  const [lifecycleUnavailableReason, setLifecycleUnavailableReason] =
-    useState<string | null>(null);
+  const [lifecycleUnavailableReason, setLifecycleUnavailableReason] = useState<
+    string | null
+  >(null);
   const [diagnostics, setDiagnostics] = useState<{
     version: string;
     serverRunning: boolean;
@@ -366,13 +373,17 @@ export default function SettingsPage() {
   const [lanAdvertisedHostDraft, setLanAdvertisedHostDraft] = useState("");
   const [lanSaving, setLanSaving] = useState(false);
   const [lanQrModalOpen, setLanQrModalOpen] = useState(false);
-  const [lanPairingCode, setLanPairingCode] = useState<PairingCodeResult | null>(null);
+  const [lanPairingCode, setLanPairingCode] =
+    useState<PairingCodeResult | null>(null);
   const [lanPairingLoading, setLanPairingLoading] = useState(false);
   const [lanPairingAutoRenew, setLanPairingAutoRenew] = useState(false);
-  const [lanPairingRemainingSeconds, setLanPairingRemainingSeconds] = useState<number | null>(null);
+  const [lanPairingRemainingSeconds, setLanPairingRemainingSeconds] = useState<
+    number | null
+  >(null);
   const [lanPairingError, setLanPairingError] = useState<string | null>(null);
   const [documentVisible, setDocumentVisible] = useState(
-    () => typeof document === "undefined" || document.visibilityState === "visible"
+    () =>
+      typeof document === "undefined" || document.visibilityState === "visible"
   );
   const lanPairingTimerRef = useRef<number | null>(null);
   const lanPairingGenerationRef = useRef(0);
@@ -528,12 +539,14 @@ export default function SettingsPage() {
           }
           setLaunchAtLogin(lifecycle.launchAtLogin);
           setLifecycleUnavailableReason(
-            lifecycle.supported ? null : lifecycle.reason ?? null
+            lifecycle.supported ? null : (lifecycle.reason ?? null)
           );
         }
       )
       .catch(() => {
-        setLifecycleUnavailableReason("Desktop lifecycle settings are unavailable.");
+        setLifecycleUnavailableReason(
+          "Desktop lifecycle settings are unavailable."
+        );
       });
   }, []);
 
@@ -648,7 +661,11 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!manualUpdateCheckPending) return;
-    if (updateState.status === "available" || updateState.status === "downloading" || updateState.status === "downloaded") {
+    if (
+      updateState.status === "available" ||
+      updateState.status === "downloading" ||
+      updateState.status === "downloaded"
+    ) {
       setManualUpdateCheckPending(false);
       setCheckingForUpdates(false);
     } else if (updateState.status === "not-available") {
@@ -660,7 +677,8 @@ export default function SettingsPage() {
       setCheckingForUpdates(false);
       toast({
         title: "Update check failed",
-        description: updateState.error || "Could not check for updates right now.",
+        description:
+          updateState.error || "Could not check for updates right now.",
         variant: "error",
       });
     }
@@ -959,10 +977,7 @@ export default function SettingsPage() {
       await platform.setSetting("lan_enabled", lanEnabledDraft);
       await platform.setSetting("lan_web_enabled", lanWebEnabledDraft);
       if (nextAdvertisedHost) {
-        await platform.setSetting(
-          "lan_advertised_host",
-          nextAdvertisedHost
-        );
+        await platform.setSetting("lan_advertised_host", nextAdvertisedHost);
       }
       await platform.restartLanServices();
       await refreshLanStatus();
@@ -1209,13 +1224,18 @@ export default function SettingsPage() {
     try {
       const status = await platform.setLaunchAtLogin(checked);
       setLaunchAtLogin(status.launchAtLogin);
-      setLifecycleUnavailableReason(status.supported ? null : status.reason ?? null);
+      setLifecycleUnavailableReason(
+        status.supported ? null : (status.reason ?? null)
+      );
       if (!status.supported) {
         throw new Error(status.reason);
       }
     } catch {
       setLaunchAtLogin(previous);
-      toast({ title: "Could not save launch-at-login preference.", variant: "error" });
+      toast({
+        title: "Could not save launch-at-login preference.",
+        variant: "error",
+      });
     }
   };
 
@@ -1382,10 +1402,12 @@ export default function SettingsPage() {
         className={styles.tabPanel}
       >
         <p className={styles.tabDescription}>
-          Export focused or complete user-data archives and restore them safely on
-          the desktop app.
+          Export focused or complete user-data archives and restore them safely
+          on the desktop app.
         </p>
-        <DataManagementSection onPreferencesRestored={handlePreferencesRestored} />
+        <DataManagementSection
+          onPreferencesRestored={handlePreferencesRestored}
+        />
       </div>
 
       {/* ── Tab 2: Meal Plans ── */}
@@ -1699,7 +1721,9 @@ export default function SettingsPage() {
               </div>
             ) : (
               <p className={styles.fieldHint} style={{ marginTop: "1rem" }}>
-                {lifecycleUnavailableReason ? ` ${lifecycleUnavailableReason}` : ""}
+                {lifecycleUnavailableReason
+                  ? ` ${lifecycleUnavailableReason}`
+                  : ""}
               </p>
             )}
             <div className={styles.toggleList} style={{ marginTop: "1rem" }}>
@@ -1707,13 +1731,16 @@ export default function SettingsPage() {
                 checked={updatesCheckOnStartup}
                 description="Automatically check for app updates on launch (packaged app only)."
                 label="Check for updates at startup"
-                onChange={(checked) => void handleToggleStartupUpdateCheck(checked)}
+                onChange={(checked) =>
+                  void handleToggleStartupUpdateCheck(checked)
+                }
               />
             </div>
             {updatesSupported && (
               <div style={{ marginTop: "1rem" }}>
                 <p className={styles.fieldHint}>
-                  Update status: {updateState.status === "downloading"
+                  Update status:{" "}
+                  {updateState.status === "downloading"
                     ? `Downloading${updateState.progress?.percent != null ? ` ${Math.round(updateState.progress.percent)}%` : "…"}`
                     : updateState.status === "downloaded"
                       ? `Ready to install${updateState.info.version ? ` (v${updateState.info.version})` : ""}`
@@ -1724,24 +1751,24 @@ export default function SettingsPage() {
                           : "No update available"}
                 </p>
                 <div className={styles.actionsRow}>
-                <Button
-                  disabled={checkingForUpdates}
-                  onClick={() => void handleCheckForUpdates()}
-                  type="button"
-                  variant="outline"
-                >
-                  {checkingForUpdates ? "Checking…" : "Check for updates"}
-                </Button>
-                {updateState.status === "downloaded" ? (
                   <Button
-                    onClick={() => {
-                      void platform.installUpdate();
-                    }}
+                    disabled={checkingForUpdates}
+                    onClick={() => void handleCheckForUpdates()}
                     type="button"
+                    variant="outline"
                   >
-                    Install & Restart
+                    {checkingForUpdates ? "Checking…" : "Check for updates"}
                   </Button>
-                ) : null}
+                  {updateState.status === "downloaded" ? (
+                    <Button
+                      onClick={() => {
+                        void platform.installUpdate();
+                      }}
+                      type="button"
+                    >
+                      Install & Restart
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             )}
@@ -1752,25 +1779,52 @@ export default function SettingsPage() {
             <div className={styles.cardHeader}>
               <h2 className={styles.cardTitle}>Runtime status</h2>
               <p className={styles.cardDescription}>
-                Non-sensitive runtime details for troubleshooting. Credentials and tokens are never shown here.
+                Non-sensitive runtime details for troubleshooting. Credentials
+                and tokens are never shown here.
               </p>
             </div>
             <div className={styles.twoColumn}>
               <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel}>App version</label>
-                <input aria-label="App version" className={styles.select} readOnly value={diagnostics?.version ?? "Unavailable"} />
+                <input
+                  aria-label="App version"
+                  className={styles.select}
+                  readOnly
+                  value={diagnostics?.version ?? "Unavailable"}
+                />
               </div>
               <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel}>Runtime mode</label>
-                <input aria-label="Runtime mode" className={styles.select} readOnly value={platform.runtime} />
+                <input
+                  aria-label="Runtime mode"
+                  className={styles.select}
+                  readOnly
+                  value={platform.runtime}
+                />
               </div>
               <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel}>Server status</label>
-                <input aria-label="Server status" className={styles.select} readOnly value={diagnostics?.serverRunning ? "Running" : "Unavailable"} />
+                <input
+                  aria-label="Server status"
+                  className={styles.select}
+                  readOnly
+                  value={diagnostics?.serverRunning ? "Running" : "Unavailable"}
+                />
               </div>
               <div className={styles.fieldGroup}>
                 <label className={styles.fieldLabel}>LAN status</label>
-                <input aria-label="LAN status" className={styles.select} readOnly value={diagnostics?.lanRunning === null ? "Unavailable in browser mode" : diagnostics?.lanRunning ? "Running" : "Stopped"} />
+                <input
+                  aria-label="LAN status"
+                  className={styles.select}
+                  readOnly
+                  value={
+                    diagnostics?.lanRunning === null
+                      ? "Unavailable in browser mode"
+                      : diagnostics?.lanRunning
+                        ? "Running"
+                        : "Stopped"
+                  }
+                />
               </div>
             </div>
           </div>
@@ -1781,7 +1835,8 @@ export default function SettingsPage() {
               <h2 className={styles.cardTitle}>Meal Bank sidecar</h2>
               <p className={styles.cardDescription}>
                 Choose where unscheduled meals appear on the Meal Plan page.
-                This preference is saved per device, including browser and iPad sessions.
+                This preference is saved per device, including browser and iPad
+                sessions.
               </p>
             </div>
             <div className={styles.fieldGroup}>
@@ -1816,7 +1871,8 @@ export default function SettingsPage() {
                 ))}
               </select>
               <p className={styles.fieldHint}>
-                Applied on Recipes when there is no active session sort override.
+                Applied on Recipes when there is no active session sort
+                override.
               </p>
             </div>
           </div>
@@ -1832,7 +1888,8 @@ export default function SettingsPage() {
         className={styles.tabPanel}
       >
         <p className={styles.tabDescription}>
-          Configure the local server, remote connections, and trusted browser access.
+          Configure the local server, remote connections, and trusted browser
+          access.
         </p>
         <CollapsibleSection id="connection" label="Connection">
           <div className={styles.card}>
@@ -2053,13 +2110,13 @@ export default function SettingsPage() {
                     Reset browser access
                   </Button>
                   <Button
-                    disabled={!canShowLanQrCode}
-                    onClick={() => setLanQrModalOpen(true)}
-                    title={
-                      canShowLanQrCode
-                        ? undefined
-                        : "Enable LAN API and browser UI, then generate a machine token first."
+                    aria-describedby={
+                      !canShowLanQrCode ? "lan-qr-code-reason" : undefined
                     }
+                    aria-disabled={!canShowLanQrCode}
+                    onClick={() => {
+                      if (canShowLanQrCode) setLanQrModalOpen(true);
+                    }}
                     type="button"
                     variant="outline"
                   >
@@ -2078,9 +2135,20 @@ export default function SettingsPage() {
                         : "Create PWA pairing code"}
                   </Button>
                 </div>
+                {!canShowLanQrCode ? (
+                  <p className="sr-only" id="lan-qr-code-reason">
+                    Enable LAN API and browser UI, then generate a machine token
+                    first.
+                  </p>
+                ) : null}
                 {lanPairingCode ? (
-                  <div className={styles.fieldGroup} style={{ marginTop: "1rem" }}>
-                    <label className={styles.fieldLabel}>PWA pairing code</label>
+                  <div
+                    className={styles.fieldGroup}
+                    style={{ marginTop: "1rem" }}
+                  >
+                    <label className={styles.fieldLabel}>
+                      PWA pairing code
+                    </label>
                     <div className={styles.actionsRow}>
                       <input
                         aria-label="PWA pairing code"
@@ -2104,7 +2172,11 @@ export default function SettingsPage() {
                         Copy code
                       </Button>
                     </div>
-                    <p aria-live="polite" className={styles.fieldHint} role="status">
+                    <p
+                      aria-live="polite"
+                      className={styles.fieldHint}
+                      role="status"
+                    >
                       {lanPairingLoading
                         ? "Creating a new pairing code..."
                         : lanPairingRemainingSeconds === 0
@@ -2129,12 +2201,17 @@ export default function SettingsPage() {
                       </Button>
                     </div>
                     <p className={styles.fieldHint}>
-                      Enter this code in the installed app before {new Date(lanPairingCode.expiresAt).toLocaleTimeString()}.
+                      Enter this code in the installed app before{" "}
+                      {new Date(lanPairingCode.expiresAt).toLocaleTimeString()}.
                     </p>
                   </div>
                 ) : null}
                 {lanPairingError ? (
-                  <p aria-live="polite" className={styles.fieldHint} role="alert">
+                  <p
+                    aria-live="polite"
+                    className={styles.fieldHint}
+                    role="alert"
+                  >
                     {lanPairingError}
                   </p>
                 ) : null}
@@ -2148,7 +2225,9 @@ export default function SettingsPage() {
                       browserUrl={lanStatus.web.url}
                       connectionUrl={browserConnectionUrl}
                       onClose={() => setLanQrModalOpen(false)}
-                      onCopied={() => toast({ title: "Connection link copied." })}
+                      onCopied={() =>
+                        toast({ title: "Connection link copied." })
+                      }
                     />
                   </Suspense>
                 ) : null}
@@ -2179,7 +2258,6 @@ export default function SettingsPage() {
         hidden={activeTab !== "app-settings"}
         className={styles.tabPanel}
       >
-
         <CollapsibleSection id="home-dashboard" label="Home Dashboard">
           <div className={styles.card}>
             <div className={styles.cardHeader}>

@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render as testingRender, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { QuickReference } from "./QuickReference";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 import type { GroceryList } from "@/lib/grocery";
+
+function render(ui: Parameters<typeof testingRender>[0]) {
+  return testingRender(<TooltipProvider delayDuration={0}>{ui}</TooltipProvider>);
+}
 
 const list: GroceryList = {
   id: "list-1",

@@ -1,7 +1,12 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render as testingRender,
+  screen,
+} from "@testing-library/react";
 
 import { DayView } from "./DayView";
 import { MonthView } from "./MonthView";
@@ -9,6 +14,20 @@ import { WeekView } from "./WeekView";
 import styles from "./meal-plan.module.css";
 import type { EditableMeal } from "@/lib/calendar";
 import type { MealTypeProfilePayload } from "@shared/types";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+function render(ui: Parameters<typeof testingRender>[0]) {
+  const result = testingRender(
+    <TooltipProvider delayDuration={0}>{ui}</TooltipProvider>
+  );
+  return {
+    ...result,
+    rerender: (nextUi: Parameters<typeof testingRender>[0]) =>
+      result.rerender(
+        <TooltipProvider delayDuration={0}>{nextUi}</TooltipProvider>
+      ),
+  };
+}
 
 const defaultProfile: MealTypeProfilePayload = {
   id: "default-profile",
@@ -180,24 +199,27 @@ const sampleMeals: EditableMeal[] = [
   },
 ];
 
-const denseMonthMeals: EditableMeal[] = Array.from({ length: 21 }, (_, index) => ({
-  id: `dense-meal-${index + 1}`,
-  name: `Dense Meal ${index + 1}`,
-  date: new Date("2026-04-22T12:00:00"),
-  type: "breakfast",
-  mealTypeDefinitionId: "filtered-breakfast",
-  mealTypeDefinition: filteredProfile.mealTypes[0],
-  notes: "",
-  ingredients: [],
-  description: "",
-  instructions: [],
-  servings: 1,
-  prepTime: null,
-  cookTime: null,
-  servingsOverride: null,
-  recipeId: null,
-  linkedRecipe: null,
-}));
+const denseMonthMeals: EditableMeal[] = Array.from(
+  { length: 21 },
+  (_, index) => ({
+    id: `dense-meal-${index + 1}`,
+    name: `Dense Meal ${index + 1}`,
+    date: new Date("2026-04-22T12:00:00"),
+    type: "breakfast",
+    mealTypeDefinitionId: "filtered-breakfast",
+    mealTypeDefinition: filteredProfile.mealTypes[0],
+    notes: "",
+    ingredients: [],
+    description: "",
+    instructions: [],
+    servings: 1,
+    prepTime: null,
+    cookTime: null,
+    servingsOverride: null,
+    recipeId: null,
+    linkedRecipe: null,
+  })
+);
 
 const makeRect = ({
   left,
@@ -257,7 +279,9 @@ describe("profile-aware meal plan views", () => {
     fireEvent.click(dayPreviousButton);
     expect(dayPrevious).toHaveBeenCalledWith(new Date("2026-04-17T12:00:00"));
     fireEvent.click(dayNextButton);
-    expect(dayPrevious).toHaveBeenLastCalledWith(new Date("2026-04-19T12:00:00"));
+    expect(dayPrevious).toHaveBeenLastCalledWith(
+      new Date("2026-04-19T12:00:00")
+    );
     unmountDay();
 
     const weekPrevious = vi.fn();
@@ -272,10 +296,16 @@ describe("profile-aware meal plan views", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: "Go to previous week" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Go to next week" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Go to previous week" })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Go to next week" })
+    ).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Go to next week" }));
-    expect(weekPrevious).toHaveBeenLastCalledWith(new Date("2026-04-25T12:00:00"));
+    expect(weekPrevious).toHaveBeenLastCalledWith(
+      new Date("2026-04-25T12:00:00")
+    );
     cleanup();
 
     const monthPrevious = vi.fn();
@@ -289,9 +319,15 @@ describe("profile-aware meal plan views", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: "Go to previous month" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Go to next month" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Go to previous month" }));
+    expect(
+      screen.getByRole("button", { name: "Go to previous month" })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Go to next month" })
+    ).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Go to previous month" })
+    );
     const expectedPreviousMonth = new Date("2026-04-18T12:00:00");
     expectedPreviousMonth.setDate(1);
     expectedPreviousMonth.setMonth(expectedPreviousMonth.getMonth() - 1);
@@ -325,9 +361,9 @@ describe("profile-aware meal plan views", () => {
       .find((element) => element.className.includes(styles.weekProfileChip));
 
     expect(weekendChip).toBeTruthy();
-    expect((weekendChip as HTMLElement).style.getPropertyValue("--profile-accent")).toBe(
-      "#A85774"
-    );
+    expect(
+      (weekendChip as HTMLElement).style.getPropertyValue("--profile-accent")
+    ).toBe("#A85774");
   });
 
   it("renders configured custom meal-type names in the shared week rows", () => {
@@ -364,7 +400,9 @@ describe("profile-aware meal plan views", () => {
     ) as HTMLButtonElement;
 
     expect(dayMealCard).toBeTruthy();
-    expect(dayMealCard.style.getPropertyValue("--meal-type-color")).toBe("#3B5E45");
+    expect(dayMealCard.style.getPropertyValue("--meal-type-color")).toBe(
+      "#3B5E45"
+    );
     expect(dayMealCard.style.borderLeft).toBe("");
 
     cleanup();
@@ -385,7 +423,9 @@ describe("profile-aware meal plan views", () => {
     ) as HTMLButtonElement;
 
     expect(weekMealCard).toBeTruthy();
-    expect(weekMealCard.style.getPropertyValue("--meal-type-color")).toBe("#3B5E45");
+    expect(weekMealCard.style.getPropertyValue("--meal-type-color")).toBe(
+      "#3B5E45"
+    );
     expect(weekMealCard.style.borderLeft).toBe("");
   });
 
@@ -486,7 +526,9 @@ describe("profile-aware meal plan views", () => {
 
     fireEvent.click(dayButton);
 
-    const popover = container.querySelector(`.${styles.monthPopover}`) as HTMLElement;
+    const popover = container.querySelector(
+      `.${styles.monthPopover}`
+    ) as HTMLElement;
 
     expect(popover).toBeTruthy();
     expect(popover.style.left).toBe("68px");
@@ -523,7 +565,9 @@ describe("profile-aware meal plan views", () => {
 
     fireEvent.click(dayButton);
 
-    const popover = container.querySelector(`.${styles.monthPopover}`) as HTMLElement;
+    const popover = container.querySelector(
+      `.${styles.monthPopover}`
+    ) as HTMLElement;
 
     expect(popover).toBeTruthy();
     expect(popover.style.left).toBe("120px");
@@ -604,7 +648,9 @@ describe("profile-aware meal plan views", () => {
     fireEvent.click(mealEditButton as HTMLElement);
 
     expect(onEdit).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("dialog", { name: /Month day meals/i })).toBeTruthy();
+    expect(
+      screen.getByRole("dialog", { name: /Month day meals/i })
+    ).toBeTruthy();
   });
 
   it("keeps month popover open when adding a meal from a slot", () => {
@@ -629,7 +675,9 @@ describe("profile-aware meal plan views", () => {
     fireEvent.click(screen.getByRole("button", { name: /\+ Add Breakfast/i }));
 
     expect(onEdit).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("dialog", { name: /Month day meals/i })).toBeTruthy();
+    expect(
+      screen.getByRole("dialog", { name: /Month day meals/i })
+    ).toBeTruthy();
   });
 
   it("opens day view from month popover with selected date", () => {
@@ -795,12 +843,66 @@ describe("profile-aware meal plan views", () => {
       />
     );
 
-    expect(screen.getAllByRole("button", { name: "+ Add" }).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByRole("button", { name: "+ Add" }).length
+    ).toBeGreaterThan(0);
 
-    const breakfastAddButton = screen.getByRole("button", { name: "Add breakfast meal" });
+    const breakfastAddButton = screen.getByRole("button", {
+      name: "Add breakfast meal",
+    });
     expect(breakfastAddButton.textContent).toContain("+ Add");
     expect(breakfastAddButton.className).toContain(styles.slotAddMoreBtn);
     expect(breakfastAddButton.className).not.toContain(styles.slotAddIconBtn);
+  });
+
+  it("provides tooltips for duplicate and multi-meal slot icon actions", async () => {
+    render(
+      <WeekView
+        date={new Date("2026-04-17T12:00:00")}
+        meals={[
+          {
+            ...disabledTypeMeal,
+            id: "multi-breakfast-1",
+            name: "Avocado Toast",
+            date: new Date("2026-04-13T08:00:00"),
+            type: "breakfast",
+            mealTypeDefinitionId: "default-breakfast",
+            mealTypeDefinition: defaultProfile.mealTypes[0],
+          },
+          {
+            ...disabledTypeMeal,
+            id: "multi-breakfast-2",
+            name: "Berry Oats",
+            date: new Date("2026-04-13T09:00:00"),
+            type: "breakfast",
+            mealTypeDefinitionId: "default-breakfast",
+            mealTypeDefinition: defaultProfile.mealTypes[0],
+          },
+        ]}
+        mealTypeProfiles={[defaultProfile, weekendProfile]}
+        onDuplicateMeal={vi.fn()}
+        onEdit={vi.fn()}
+        onDropPayload={vi.fn().mockResolvedValue(undefined)}
+        onOpenSlotManager={vi.fn()}
+        setDate={vi.fn()}
+      />
+    );
+
+    const assertTooltip = async (buttonName: string, tooltipText: string) => {
+      const button = screen.getByRole("button", { name: buttonName });
+      fireEvent.focus(button);
+      expect(await screen.findByRole("tooltip")).toHaveTextContent(tooltipText);
+      fireEvent.blur(button);
+    };
+
+    await assertTooltip("Duplicate Avocado Toast", "Duplicate meal");
+    await assertTooltip("Add breakfast meal", "Add meal");
+    await assertTooltip("Manage breakfast meals", "Manage meals");
+    await assertTooltip(
+      "More actions for breakfast meals",
+      "More slot actions"
+    );
+    await assertTooltip("Drag breakfast slot", "Drag entire slot");
   });
 
   it("dims the day view when the focused profile is not active on the selected date", () => {
@@ -872,10 +974,16 @@ describe("profile-aware meal plan views", () => {
       />
     );
 
-    expect(screen.getByRole("button", { name: "Go to previous week" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Go to next week" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Go to previous week" })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Go to next week" })
+    ).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Go to previous week" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Go to previous week" })
+    );
     expect(setDate).toHaveBeenCalledWith(new Date("2026-04-15T12:00:00"));
 
     fireEvent.click(screen.getByRole("button", { name: "Go to next week" }));
@@ -901,7 +1009,9 @@ describe("profile-aware meal plan views", () => {
       />
     );
 
-    const previousButton = screen.getByRole("button", { name: "Go to previous week" });
+    const previousButton = screen.getByRole("button", {
+      name: "Go to previous week",
+    });
     expect(previousButton).not.toBeDisabled();
     fireEvent.click(previousButton);
 

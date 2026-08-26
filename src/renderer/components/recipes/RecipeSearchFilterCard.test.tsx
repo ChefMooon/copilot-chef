@@ -3,13 +3,16 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { RecipeSearchFilterCard } from "./RecipeSearchFilterCard";
 
 afterEach(() => {
   cleanup();
 });
 
-function renderCard(overrides: Partial<React.ComponentProps<typeof RecipeSearchFilterCard>> = {}) {
+function renderCard(
+  overrides: Partial<React.ComponentProps<typeof RecipeSearchFilterCard>> = {}
+) {
   const props: React.ComponentProps<typeof RecipeSearchFilterCard> = {
     cuisine: "",
     favouritesOnly: false,
@@ -29,17 +32,26 @@ function renderCard(overrides: Partial<React.ComponentProps<typeof RecipeSearchF
     ...overrides,
   };
 
-  return { ...render(<RecipeSearchFilterCard {...props} />), props };
+  return {
+    ...render(
+      <TooltipProvider delayDuration={0}>
+        <RecipeSearchFilterCard {...props} />
+      </TooltipProvider>
+    ),
+    props,
+  };
 }
 
 describe("RecipeSearchFilterCard", () => {
   it("starts collapsed and exposes an accessible advanced disclosure", () => {
     renderCard();
 
-    const toggle = screen.getByRole("button", { name: "Show advanced recipe filters" });
-    const panel = screen.getByRole("region", { name: "Recipe search and filters" }).querySelector(
-      "#recipe-advanced-filters"
-    );
+    const toggle = screen.getByRole("button", {
+      name: "Show advanced recipe filters",
+    });
+    const panel = screen
+      .getByRole("region", { name: "Recipe search and filters" })
+      .querySelector("#recipe-advanced-filters");
 
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(toggle).toHaveAttribute("aria-controls", "recipe-advanced-filters");
@@ -48,10 +60,9 @@ describe("RecipeSearchFilterCard", () => {
 
     fireEvent.click(toggle);
 
-    expect(screen.getByRole("button", { name: "Hide advanced recipe filters" })).toHaveAttribute(
-      "aria-expanded",
-      "true"
-    );
+    expect(
+      screen.getByRole("button", { name: "Hide advanced recipe filters" })
+    ).toHaveAttribute("aria-expanded", "true");
     expect(panel).toHaveAttribute("aria-hidden", "false");
     expect(screen.getByLabelText("Recipe origin")).toBeEnabled();
   });
@@ -81,9 +92,12 @@ describe("RecipeSearchFilterCard", () => {
       searchSortMode: "relevance",
     });
 
-    fireEvent.change(screen.getByPlaceholderText("Search title, tags, ingredients"), {
-      target: { value: "pizza" },
-    });
+    fireEvent.change(
+      screen.getByPlaceholderText("Search title, tags, ingredients"),
+      {
+        target: { value: "pizza" },
+      }
+    );
     fireEvent.change(screen.getByLabelText("Sort recipes by"), {
       target: { value: "title" },
     });
@@ -91,7 +105,9 @@ describe("RecipeSearchFilterCard", () => {
     fireEvent.change(screen.getByLabelText("Search sort mode"), {
       target: { value: "selected" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Show advanced recipe filters" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Show advanced recipe filters" })
+    );
     fireEvent.change(screen.getByLabelText("Recipe origin"), {
       target: { value: "imported" },
     });
@@ -116,7 +132,24 @@ describe("RecipeSearchFilterCard", () => {
 
     expect(
       screen.getByRole("button", { name: "Show advanced recipe filters" })
-    ).toHaveAttribute("title", "Show advanced recipe filters");
+    ).not.toHaveAttribute("title");
     expect(screen.getByLabelText("Recipe origin")).toBeDisabled();
+  });
+
+  it("provides tooltips for icon-only search controls", async () => {
+    renderCard({ search: "pasta" });
+
+    fireEvent.focus(screen.getByRole("button", { name: "Clear search" }));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Clear search"
+    );
+
+    fireEvent.blur(screen.getByRole("button", { name: "Clear search" }));
+    fireEvent.focus(
+      screen.getByRole("button", { name: "Show advanced recipe filters" })
+    );
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Show advanced recipe filters"
+    );
   });
 });

@@ -42,9 +42,18 @@ import type {
   MealTypeDefinitionPayload,
   MealTypeProfilePayload,
 } from "@shared/types";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { PeriodNavigation } from "./PeriodNavigation";
-import { isInsertAfterPointer, showMealDragPreview, showSlotDragPreview } from "./dragPreview";
+import {
+  isInsertAfterPointer,
+  showMealDragPreview,
+  showSlotDragPreview,
+} from "./dragPreview";
 import styles from "./meal-plan.module.css";
 
 type WeekViewProps = {
@@ -154,16 +163,16 @@ export function WeekView({
   onDropPayload,
 }: WeekViewProps) {
   const weekStart = getMonday(date);
-  const [draggedPayload, setDraggedPayload] = useState<MealPlanDragPayload | null>(
-    null
-  );
+  const [draggedPayload, setDraggedPayload] =
+    useState<MealPlanDragPayload | null>(null);
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
   const [dropInsertAfter, setDropInsertAfter] = useState<boolean | null>(null);
   const [isApplyingDrop, setIsApplyingDrop] = useState(false);
   const [edgeHoverDirection, setEdgeHoverDirection] =
     useState<EdgeDirection | null>(null);
-  const [scrollState, setScrollState] =
-    useState<WeekScrollState>(initialWeekScrollState);
+  const [scrollState, setScrollState] = useState<WeekScrollState>(
+    initialWeekScrollState
+  );
   const [autoScrollBands, setAutoScrollBands] =
     useState<BandActivity>(noActiveBands);
   const [slotActionMenu, setSlotActionMenu] =
@@ -241,7 +250,8 @@ export function WeekView({
   };
 
   const mergedMealTypes = useMemo(
-    () => mergeMealTypeDefinitions(slotsByDay.map(({ mealTypes }) => mealTypes)),
+    () =>
+      mergeMealTypeDefinitions(slotsByDay.map(({ mealTypes }) => mealTypes)),
     [slotsByDay]
   );
   const rowMealTypes = useMemo(() => {
@@ -288,7 +298,9 @@ export function WeekView({
 
     return new Map(
       rowMealTypes.map((type) => {
-        const candidates = Array.from(candidatesByType.get(type)?.values() ?? []);
+        const candidates = Array.from(
+          candidatesByType.get(type)?.values() ?? []
+        );
         const activeDefinition = activeDefinitions.get(type);
         const selected = candidates.sort((left, right) => {
           const leftIsActive = left.definition.id === activeDefinition?.id;
@@ -310,8 +322,14 @@ export function WeekView({
         ] as const;
       })
     );
-  }, [mergedMealTypes, navigationProfileContext.mealTypes, rowMealTypes, slotsByDay]);
-  const draggedMealId = draggedPayload?.kind === "meal" ? draggedPayload.mealId : null;
+  }, [
+    mergedMealTypes,
+    navigationProfileContext.mealTypes,
+    rowMealTypes,
+    slotsByDay,
+  ]);
+  const draggedMealId =
+    draggedPayload?.kind === "meal" ? draggedPayload.mealId : null;
   const draggedSlotMealIds =
     draggedPayload?.kind === "slot" ? new Set(draggedPayload.mealIds) : null;
 
@@ -382,9 +400,11 @@ export function WeekView({
         pointer.x >= rect.left && pointer.x < rect.left + EDGE_SCROLL_BAND_PX,
       right:
         pointer.x <= rect.right && pointer.x > rect.right - EDGE_SCROLL_BAND_PX,
-      top: pointer.y >= rect.top && pointer.y < rect.top + EDGE_SCROLL_BAND_Y_PX,
+      top:
+        pointer.y >= rect.top && pointer.y < rect.top + EDGE_SCROLL_BAND_Y_PX,
       bottom:
-        pointer.y <= rect.bottom && pointer.y > rect.bottom - EDGE_SCROLL_BAND_Y_PX,
+        pointer.y <= rect.bottom &&
+        pointer.y > rect.bottom - EDGE_SCROLL_BAND_Y_PX,
     };
   };
 
@@ -430,13 +450,20 @@ export function WeekView({
       scroller.scrollHeight - scroller.clientHeight,
       0
     );
-    scroller.scrollLeft = Math.min(Math.max(scroller.scrollLeft + vx, 0), maxScrollLeft);
-    scroller.scrollTop = Math.min(Math.max(scroller.scrollTop + vy, 0), maxScrollTop);
+    scroller.scrollLeft = Math.min(
+      Math.max(scroller.scrollLeft + vx, 0),
+      maxScrollLeft
+    );
+    scroller.scrollTop = Math.min(
+      Math.max(scroller.scrollTop + vy, 0),
+      maxScrollTop
+    );
 
     setBandActivity(scrollBands);
 
     const atWallLeft = pointerBands.left && scroller.scrollLeft <= 0;
-    const atWallRight = pointerBands.right && scroller.scrollLeft >= maxScrollLeft;
+    const atWallRight =
+      pointerBands.right && scroller.scrollLeft >= maxScrollLeft;
     if (atWallLeft) {
       scheduleEdgeNavigation("previous");
     } else if (atWallRight) {
@@ -445,7 +472,8 @@ export function WeekView({
       clearEdgeNavigationState();
     }
 
-    autoScrollRafIdRef.current = window.requestAnimationFrame(stepAutoScrollFrame);
+    autoScrollRafIdRef.current =
+      window.requestAnimationFrame(stepAutoScrollFrame);
   };
 
   const stepAutoScrollFrame = () => {
@@ -460,7 +488,8 @@ export function WeekView({
     }
 
     isAutoScrollLoopActiveRef.current = true;
-    autoScrollRafIdRef.current = window.requestAnimationFrame(stepAutoScrollFrame);
+    autoScrollRafIdRef.current =
+      window.requestAnimationFrame(stepAutoScrollFrame);
   };
 
   const scheduleEdgeNavigation = (direction: EdgeDirection) => {
@@ -555,8 +584,10 @@ export function WeekView({
 
     const reposition = () => {
       const menuRect = slotActionMenuRef.current?.getBoundingClientRect();
-      const menuWidth = menuRect?.width && menuRect.width > 0 ? menuRect.width : 176;
-      const menuHeight = menuRect?.height && menuRect.height > 0 ? menuRect.height : 104;
+      const menuWidth =
+        menuRect?.width && menuRect.width > 0 ? menuRect.width : 176;
+      const menuHeight =
+        menuRect?.height && menuRect.height > 0 ? menuRect.height : 104;
       const padding = 12;
       const left = Math.min(
         Math.max(slotActionMenu.anchor.right - menuWidth, padding),
@@ -585,7 +616,10 @@ export function WeekView({
 
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target;
-      if (target instanceof Node && slotActionMenuRef.current?.contains(target)) {
+      if (
+        target instanceof Node &&
+        slotActionMenuRef.current?.contains(target)
+      ) {
         return;
       }
 
@@ -653,7 +687,8 @@ export function WeekView({
 
     const dragTypes = Array.from(event.dataTransfer.types ?? []);
     return (
-      dragTypes.includes(MEAL_PLAN_DRAG_MIME) || dragTypes.includes("text/plain")
+      dragTypes.includes(MEAL_PLAN_DRAG_MIME) ||
+      dragTypes.includes("text/plain")
     );
   };
 
@@ -774,7 +809,8 @@ export function WeekView({
     const transferPayload = getMealPlanDragPayload(event.dataTransfer);
     const dragTypes = Array.from(event.dataTransfer.types ?? []);
     const hasRecognizedDragType =
-      dragTypes.includes(MEAL_PLAN_DRAG_MIME) || dragTypes.includes("text/plain");
+      dragTypes.includes(MEAL_PLAN_DRAG_MIME) ||
+      dragTypes.includes("text/plain");
     const activePayload =
       transferPayload ?? (hasRecognizedDragType ? draggedPayload : null);
 
@@ -795,7 +831,10 @@ export function WeekView({
 
   const onBoardDragLeaveCapture = (event: DragEvent<HTMLDivElement>) => {
     const relatedTarget = event.relatedTarget;
-    if (relatedTarget instanceof Node && boardRef.current?.contains(relatedTarget)) {
+    if (
+      relatedTarget instanceof Node &&
+      boardRef.current?.contains(relatedTarget)
+    ) {
       return;
     }
 
@@ -819,170 +858,252 @@ export function WeekView({
       </PeriodNavigation>
       <div className={styles.weekBoardScrollerWrap}>
         <div className={styles.weekBoardScroller} ref={scrollerRef}>
-        <div
-          className={styles.weekBoard}
-          onDragLeaveCapture={onBoardDragLeaveCapture}
-          onDragOverCapture={onBoardDragOverCapture}
-          onDragEndCapture={handleDragTerminated}
-          onDropCapture={handleDragTerminated}
-          ref={boardRef}
-        >
           <div
-            className={`${styles.weekBoardHeader} ${scrollState.canScrollBottom ? styles.weekShadowBottom : ""}`}
+            className={styles.weekBoard}
+            onDragLeaveCapture={onBoardDragLeaveCapture}
+            onDragOverCapture={onBoardDragOverCapture}
+            onDragEndCapture={handleDragTerminated}
+            onDropCapture={handleDragTerminated}
+            ref={boardRef}
           >
             <div
-              className={`${styles.weekBoardCorner} ${scrollState.canScrollRight ? styles.weekShadowRight : ""}`}
+              className={`${styles.weekBoardHeader} ${scrollState.canScrollBottom ? styles.weekShadowBottom : ""}`}
             >
-              Meal
-            </div>
-            {days.map((day, index) => {
-              const todayMatch = isSameDay(day, today);
-              const profileContext = dayProfileContexts[index];
-              const isMuted =
-                highlightedProfileId != null &&
-                profileContext.profile.id !== highlightedProfileId;
-
-              return (
-                <div
-                  className={`${styles.weekDayHeader} ${todayMatch ? styles.weekDayHeaderToday : ""} ${profileContext.isProfileStart ? styles.weekDayHeaderProfileStart : ""} ${isMuted ? styles.weekProfileMuted : ""}`}
-                  data-week-day-index={index}
-                  key={`header-${day.toISOString()}`}
-                >
-                  <span className={styles.weekColWeekday}>{DAYS[day.getDay()]}</span>
-                  <span
-                    className={`${styles.weekColNum} ${todayMatch ? styles.weekColNumToday : ""}`}
-                  >
-                    {day.getDate()}
-                  </span>
-                  <span
-                    className={styles.weekProfileChip}
-                    style={{
-                      "--profile-accent": profileContext.accentColor,
-                    } as CSSProperties}
-                    title={profileContext.rangeLabel ?? profileContext.profile.description ?? undefined}
-                  >
-                    {profileContext.profile.name}
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    className={styles.weekDayHeaderAccent}
-                    style={{ backgroundColor: profileContext.accentColor }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-
-          {days.length > 0
-            ? rowMealTypes.map((type) => {
-                const typeConfig =
-                  rowMealTypeConfigs.get(type) ?? getTypeConfig(type, mergedMealTypes);
+              <div
+                className={`${styles.weekBoardCorner} ${scrollState.canScrollRight ? styles.weekShadowRight : ""}`}
+              >
+                Meal
+              </div>
+              {days.map((day, index) => {
+                const todayMatch = isSameDay(day, today);
+                const profileContext = dayProfileContexts[index];
+                const isMuted =
+                  highlightedProfileId != null &&
+                  profileContext.profile.id !== highlightedProfileId;
 
                 return (
                   <div
-                    className={styles.weekBoardRow}
-                    data-week-board-row={type}
-                    key={type}
+                    className={`${styles.weekDayHeader} ${todayMatch ? styles.weekDayHeaderToday : ""} ${profileContext.isProfileStart ? styles.weekDayHeaderProfileStart : ""} ${isMuted ? styles.weekProfileMuted : ""}`}
+                    data-week-day-index={index}
+                    key={`header-${day.toISOString()}`}
                   >
-                    <div
-                      className={`${styles.weekTypeCell} ${scrollState.canScrollRight ? styles.weekTypeCellShadowRight : ""}`}
+                    <span className={styles.weekColWeekday}>
+                      {DAYS[day.getDay()]}
+                    </span>
+                    <span
+                      className={`${styles.weekColNum} ${todayMatch ? styles.weekColNumToday : ""}`}
                     >
-                      <span
-                        className={styles.weekTypeDot}
-                        style={{ background: typeConfig.dot }}
-                      />
-                      <span
-                        className={styles.weekTypeLabel}
-                      >
-                        {typeConfig.label}
-                      </span>
-                    </div>
-                    {slotsByDay.map(({ day, mealTypes, slots }, index) => {
-                      const todayMatch = isSameDay(day, today);
-                      const slot = slots.find(
-                        (currentSlot) => currentSlot.type === type
-                      );
-                      const slotMeals = slot?.meals ?? [];
-                      const isUnavailable = !slot;
-                      const emptyTargetKey = `week-slot-${day.toISOString()}-${type}`;
-                      const profileContext = dayProfileContexts[index];
-                      const isMuted =
-                        highlightedProfileId != null &&
-                        profileContext.profile.id !== highlightedProfileId;
+                      {day.getDate()}
+                    </span>
+                    <span
+                      className={styles.weekProfileChip}
+                      style={
+                        {
+                          "--profile-accent": profileContext.accentColor,
+                        } as CSSProperties
+                      }
+                    >
+                      {profileContext.profile.name}
+                      {profileContext.rangeLabel ||
+                      profileContext.profile.description ? (
+                        <span className="sr-only">
+                          {profileContext.rangeLabel ??
+                            profileContext.profile.description}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className={styles.weekDayHeaderAccent}
+                      style={{ backgroundColor: profileContext.accentColor }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
 
-                      return (
-                        <div
-                          className={`${styles.weekSlotCell} ${todayMatch ? styles.weekSlotCellToday : ""} ${isUnavailable ? styles.weekSlotCellUnavailable : ""} ${isMuted ? styles.weekProfileMuted : ""}`}
-                          key={`${day.toISOString()}-${type}`}
-                        >
-                          {isUnavailable ? (
-                            <div className={styles.weekSlotUnavailable}>
-                              <span className={styles.weekSlotUnavailableLabel}>Not in profile</span>
-                              <span className={styles.weekSlotUnavailableProfile}>
-                                {profileContext.profile.name}
-                              </span>
-                            </div>
-                          ) : slotMeals.length === 0 ? (
-                            draggedPayload ? (
+            {days.length > 0
+              ? rowMealTypes.map((type) => {
+                  const typeConfig =
+                    rowMealTypeConfigs.get(type) ??
+                    getTypeConfig(type, mergedMealTypes);
+
+                  return (
+                    <div
+                      className={styles.weekBoardRow}
+                      data-week-board-row={type}
+                      key={type}
+                    >
+                      <div
+                        className={`${styles.weekTypeCell} ${scrollState.canScrollRight ? styles.weekTypeCellShadowRight : ""}`}
+                      >
+                        <span
+                          className={styles.weekTypeDot}
+                          style={{ background: typeConfig.dot }}
+                        />
+                        <span className={styles.weekTypeLabel}>
+                          {typeConfig.label}
+                        </span>
+                      </div>
+                      {slotsByDay.map(({ day, mealTypes, slots }, index) => {
+                        const todayMatch = isSameDay(day, today);
+                        const slot = slots.find(
+                          (currentSlot) => currentSlot.type === type
+                        );
+                        const slotMeals = slot?.meals ?? [];
+                        const isUnavailable = !slot;
+                        const emptyTargetKey = `week-slot-${day.toISOString()}-${type}`;
+                        const profileContext = dayProfileContexts[index];
+                        const isMuted =
+                          highlightedProfileId != null &&
+                          profileContext.profile.id !== highlightedProfileId;
+
+                        return (
+                          <div
+                            className={`${styles.weekSlotCell} ${todayMatch ? styles.weekSlotCellToday : ""} ${isUnavailable ? styles.weekSlotCellUnavailable : ""} ${isMuted ? styles.weekProfileMuted : ""}`}
+                            key={`${day.toISOString()}-${type}`}
+                          >
+                            {isUnavailable ? (
+                              <div className={styles.weekSlotUnavailable}>
+                                <span
+                                  className={styles.weekSlotUnavailableLabel}
+                                >
+                                  Not in profile
+                                </span>
+                                <span
+                                  className={styles.weekSlotUnavailableProfile}
+                                >
+                                  {profileContext.profile.name}
+                                </span>
+                              </div>
+                            ) : slotMeals.length === 0 ? (
+                              draggedPayload ? (
+                                <div
+                                  className={`${styles.weekSlotEmpty} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
+                                  onDragLeave={() => {
+                                    setDropTargetKey((current) =>
+                                      current === emptyTargetKey
+                                        ? null
+                                        : current
+                                    );
+                                    setDropInsertAfter(null);
+                                  }}
+                                  onDragOver={(event) => {
+                                    const activePayload =
+                                      draggedPayload ??
+                                      getMealPlanDragPayload(
+                                        event.dataTransfer
+                                      );
+
+                                    if (
+                                      !canHandleDragOver(event, activePayload)
+                                    ) {
+                                      return;
+                                    }
+
+                                    event.preventDefault();
+                                    event.dataTransfer.dropEffect = "move";
+                                    setDropTargetKey(emptyTargetKey);
+                                    if (activePayload) {
+                                      setDraggedPayload(activePayload);
+                                    }
+                                  }}
+                                  onDrop={async (event) => {
+                                    event.preventDefault();
+                                    const payload = getActiveDropPayload(event);
+                                    if (!payload) {
+                                      return;
+                                    }
+
+                                    await applyDropTarget(
+                                      payload,
+                                      {
+                                        kind: "slot",
+                                        slotDate: day.toISOString(),
+                                        slotType: type,
+                                      },
+                                      { x: event.clientX, y: event.clientY }
+                                    );
+                                  }}
+                                >
+                                  <span className={styles.slotDropHint}>
+                                    Drop here
+                                  </span>
+                                </div>
+                              ) : (
+                                <button
+                                  className={`${styles.weekSlotEmpty} ${styles.emptySlotButton} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
+                                  onClick={() =>
+                                    onAddMeal(
+                                      createEmptyMeal(
+                                        new Date(day),
+                                        type,
+                                        mealTypes.find(
+                                          (definition) =>
+                                            definition.slug === type
+                                        ) ?? null
+                                      )
+                                    )
+                                  }
+                                  onDragOver={(event) => {
+                                    const activePayload =
+                                      getMealPlanDragPayload(
+                                        event.dataTransfer
+                                      );
+                                    if (
+                                      !canHandleDragOver(event, activePayload)
+                                    ) {
+                                      return;
+                                    }
+
+                                    event.preventDefault();
+                                    event.dataTransfer.dropEffect = "move";
+                                    setDropTargetKey(emptyTargetKey);
+                                    if (activePayload) {
+                                      setDraggedPayload(activePayload);
+                                    }
+                                  }}
+                                  onDrop={async (event) => {
+                                    const payload = getActiveDropPayload(event);
+                                    if (!payload) {
+                                      scheduleClearDragState();
+                                      return;
+                                    }
+
+                                    event.preventDefault();
+                                    await applyDropTarget(
+                                      payload,
+                                      {
+                                        kind: "slot",
+                                        slotDate: day.toISOString(),
+                                        slotType: type,
+                                      },
+                                      { x: event.clientX, y: event.clientY }
+                                    );
+                                  }}
+                                  type="button"
+                                >
+                                  <span className={styles.btnAddSlot}>
+                                    + Add
+                                  </span>
+                                </button>
+                              )
+                            ) : (
                               <div
-                                className={`${styles.weekSlotEmpty} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
-                                onDragLeave={() => {
+                                className={`${styles.weekSlotStack} ${slotMeals.length === 1 ? styles.weekSlotStackSingle : ""} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
+                                onDragLeave={() =>
                                   setDropTargetKey((current) =>
                                     current === emptyTargetKey ? null : current
-                                  );
-                                  setDropInsertAfter(null);
-                                }}
-                                onDragOver={(event) => {
-                                  const activePayload =
-                                    draggedPayload ?? getMealPlanDragPayload(event.dataTransfer);
-
-                                  if (!canHandleDragOver(event, activePayload)) {
-                                    return;
-                                  }
-
-                                  event.preventDefault();
-                                  event.dataTransfer.dropEffect = "move";
-                                  setDropTargetKey(emptyTargetKey);
-                                  if (activePayload) {
-                                    setDraggedPayload(activePayload);
-                                  }
-                                }}
-                                onDrop={async (event) => {
-                                  event.preventDefault();
-                                  const payload = getActiveDropPayload(event);
-                                  if (!payload) {
-                                    return;
-                                  }
-
-                                  await applyDropTarget(
-                                    payload,
-                                    {
-                                      kind: "slot",
-                                      slotDate: day.toISOString(),
-                                      slotType: type,
-                                    },
-                                    { x: event.clientX, y: event.clientY }
-                                  );
-                                }}
-                              >
-                                <span className={styles.slotDropHint}>Drop here</span>
-                              </div>
-                            ) : (
-                              <button
-                                className={`${styles.weekSlotEmpty} ${styles.emptySlotButton} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
-                                onClick={() =>
-                                  onAddMeal(
-                                    createEmptyMeal(
-                                      new Date(day),
-                                      type,
-                                      mealTypes.find((definition) => definition.slug === type) ??
-                                        null
-                                    )
                                   )
                                 }
                                 onDragOver={(event) => {
-                                  const activePayload = getMealPlanDragPayload(event.dataTransfer);
-                                  if (!canHandleDragOver(event, activePayload)) {
+                                  const activePayload =
+                                    draggedPayload ??
+                                    getMealPlanDragPayload(event.dataTransfer);
+
+                                  if (
+                                    !canHandleDragOver(event, activePayload)
+                                  ) {
                                     return;
                                   }
 
@@ -994,13 +1115,12 @@ export function WeekView({
                                   }
                                 }}
                                 onDrop={async (event) => {
+                                  event.preventDefault();
                                   const payload = getActiveDropPayload(event);
                                   if (!payload) {
-                                    scheduleClearDragState();
                                     return;
                                   }
 
-                                  event.preventDefault();
                                   await applyDropTarget(
                                     payload,
                                     {
@@ -1011,275 +1131,344 @@ export function WeekView({
                                     { x: event.clientX, y: event.clientY }
                                   );
                                 }}
-                                type="button"
                               >
-                                <span className={styles.btnAddSlot}>+ Add</span>
-                              </button>
-                            )
-                          ) : (
-                            <div
-                              className={`${styles.weekSlotStack} ${slotMeals.length === 1 ? styles.weekSlotStackSingle : ""} ${dropTargetKey === emptyTargetKey ? styles.slotDropTarget : ""}`}
-                              onDragLeave={() =>
-                                setDropTargetKey((current) =>
-                                  current === emptyTargetKey ? null : current
-                                )
-                              }
-                              onDragOver={(event) => {
-                                const activePayload =
-                                  draggedPayload ?? getMealPlanDragPayload(event.dataTransfer);
+                                {slotMeals.map((meal) => {
+                                  const mealTargetKey = `week-meal-${meal.id}`;
+                                  const hasSubType = Boolean(
+                                    meal.mealSubTypeDefinition
+                                  );
+                                  const hasNotes = Boolean(meal.notes);
+                                  const isTitleOnly = !hasSubType && !hasNotes;
 
-                                if (!canHandleDragOver(event, activePayload)) {
-                                  return;
-                                }
-
-                                event.preventDefault();
-                                event.dataTransfer.dropEffect = "move";
-                                setDropTargetKey(emptyTargetKey);
-                                if (activePayload) {
-                                  setDraggedPayload(activePayload);
-                                }
-                              }}
-                              onDrop={async (event) => {
-                                event.preventDefault();
-                                const payload = getActiveDropPayload(event);
-                                if (!payload) {
-                                  return;
-                                }
-
-                                await applyDropTarget(
-                                  payload,
-                                  {
-                                    kind: "slot",
-                                    slotDate: day.toISOString(),
-                                    slotType: type,
-                                  },
-                                  { x: event.clientX, y: event.clientY }
-                                );
-                              }}
-                            >
-                              {slotMeals.map((meal) => {
-                                const mealTargetKey = `week-meal-${meal.id}`;
-                                const hasSubType = Boolean(meal.mealSubTypeDefinition);
-                                const hasNotes = Boolean(meal.notes);
-                                const isTitleOnly = !hasSubType && !hasNotes;
-
-                                return (
-                                  <div
-                                    className={`${styles.weekMealCardShell} ${hasSubType ? styles.weekCardHasSubType : ""} ${hasNotes ? styles.weekCardHasNotes : ""} ${isTitleOnly ? styles.weekCardTitleOnly : ""}`}
-                                    key={
-                                      meal.id ||
-                                      `${meal.type}-${meal.date.toISOString()}-${meal.name}`
-                                    }
-                                  >
-                                    {dropTargetKey === mealTargetKey &&
-                                    dropInsertAfter !== null ? (
-                                      <div
-                                        aria-hidden="true"
-                                        className={`${styles.slotInsertCaret} ${dropInsertAfter ? styles.slotInsertCaretBottom : styles.slotInsertCaretTop}`}
-                                        data-week-insert-caret={mealTargetKey}
-                                      />
-                                    ) : null}
-                                    <button
-                                      className={`${styles.weekSlotMealCard} ${hasSubType ? styles.weekSlotMealCardHasSubType : ""} ${hasNotes ? styles.weekSlotMealCardHasNotes : ""} ${isTitleOnly ? styles.weekSlotMealCardTitleOnly : ""} ${draggedMealId === meal.id ? styles.mealCardDragging : ""} ${draggedSlotMealIds?.has(meal.id ?? "") ? styles.slotMealInDraggedGroup : ""} ${dropTargetKey === mealTargetKey ? styles.slotDropTarget : ""}`}
-                                      data-meal-id={meal.id}
-                                      data-meal-plan-drag-source="calendar-meal"
-                                      draggable={!isApplyingDrop && !dragDisabled}
-                                      onClick={() => onEdit(meal)}
-                                      onDragEnd={scheduleClearDragState}
-                                      onDragLeave={() => {
-                                        setDropTargetKey((current) =>
-                                          current === mealTargetKey ? null : current
-                                        );
-                                        setDropInsertAfter(null);
-                                      }}
-                                      onDragOver={(event) => {
-                                        const activePayload =
-                                          draggedPayload ?? getMealPlanDragPayload(event.dataTransfer);
-
-                                        if (!canHandleDragOver(event, activePayload)) {
-                                          return;
+                                  return (
+                                    <div
+                                      className={`${styles.weekMealCardShell} ${hasSubType ? styles.weekCardHasSubType : ""} ${hasNotes ? styles.weekCardHasNotes : ""} ${isTitleOnly ? styles.weekCardTitleOnly : ""}`}
+                                      key={
+                                        meal.id ||
+                                        `${meal.type}-${meal.date.toISOString()}-${meal.name}`
+                                      }
+                                    >
+                                      {dropTargetKey === mealTargetKey &&
+                                      dropInsertAfter !== null ? (
+                                        <div
+                                          aria-hidden="true"
+                                          className={`${styles.slotInsertCaret} ${dropInsertAfter ? styles.slotInsertCaretBottom : styles.slotInsertCaretTop}`}
+                                          data-week-insert-caret={mealTargetKey}
+                                        />
+                                      ) : null}
+                                      <button
+                                        className={`${styles.weekSlotMealCard} ${hasSubType ? styles.weekSlotMealCardHasSubType : ""} ${hasNotes ? styles.weekSlotMealCardHasNotes : ""} ${isTitleOnly ? styles.weekSlotMealCardTitleOnly : ""} ${draggedMealId === meal.id ? styles.mealCardDragging : ""} ${draggedSlotMealIds?.has(meal.id ?? "") ? styles.slotMealInDraggedGroup : ""} ${dropTargetKey === mealTargetKey ? styles.slotDropTarget : ""}`}
+                                        data-meal-id={meal.id}
+                                        data-meal-plan-drag-source="calendar-meal"
+                                        draggable={
+                                          !isApplyingDrop && !dragDisabled
                                         }
+                                        onClick={() => onEdit(meal)}
+                                        onDragEnd={scheduleClearDragState}
+                                        onDragLeave={() => {
+                                          setDropTargetKey((current) =>
+                                            current === mealTargetKey
+                                              ? null
+                                              : current
+                                          );
+                                          setDropInsertAfter(null);
+                                        }}
+                                        onDragOver={(event) => {
+                                          const activePayload =
+                                            draggedPayload ??
+                                            getMealPlanDragPayload(
+                                              event.dataTransfer
+                                            );
 
-                                        if (
-                                          activePayload?.kind === "meal" &&
-                                          activePayload.mealId === meal.id
-                                        ) {
-                                          return;
+                                          if (
+                                            !canHandleDragOver(
+                                              event,
+                                              activePayload
+                                            )
+                                          ) {
+                                            return;
+                                          }
+
+                                          if (
+                                            activePayload?.kind === "meal" &&
+                                            activePayload.mealId === meal.id
+                                          ) {
+                                            return;
+                                          }
+
+                                          const insertAfter =
+                                            isInsertAfterPointer(
+                                              event.clientY,
+                                              event.currentTarget.getBoundingClientRect()
+                                            );
+
+                                          event.preventDefault();
+                                          event.stopPropagation();
+                                          event.dataTransfer.dropEffect =
+                                            "move";
+                                          setDropTargetKey(mealTargetKey);
+                                          setDropInsertAfter(insertAfter);
+                                          if (activePayload) {
+                                            setDraggedPayload(activePayload);
+                                          }
+                                        }}
+                                        onDragStart={(event) =>
+                                          onDragStartMeal(event, meal)
                                         }
+                                        onDrop={async (event) => {
+                                          event.preventDefault();
+                                          event.stopPropagation();
+                                          const insertAfter =
+                                            isInsertAfterPointer(
+                                              event.clientY,
+                                              event.currentTarget.getBoundingClientRect()
+                                            );
+                                          const payload =
+                                            getActiveDropPayload(event);
+                                          if (!payload) {
+                                            scheduleClearDragState();
+                                            return;
+                                          }
 
-                                        const insertAfter = isInsertAfterPointer(
-                                          event.clientY,
-                                          event.currentTarget.getBoundingClientRect()
-                                        );
-
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                        event.dataTransfer.dropEffect = "move";
-                                        setDropTargetKey(mealTargetKey);
-                                        setDropInsertAfter(insertAfter);
-                                        if (activePayload) {
-                                          setDraggedPayload(activePayload);
-                                        }
-                                      }}
-                                      onDragStart={(event) => onDragStartMeal(event, meal)}
-                                      onDrop={async (event) => {
-                                        event.preventDefault();
-                                        event.stopPropagation();
-                                        const insertAfter = isInsertAfterPointer(
-                                          event.clientY,
-                                          event.currentTarget.getBoundingClientRect()
-                                        );
-                                        const payload = getActiveDropPayload(event);
-                                        if (!payload) {
-                                          scheduleClearDragState();
-                                          return;
-                                        }
-
-                                        await applyDropTarget(
-                                          payload,
+                                          await applyDropTarget(
+                                            payload,
+                                            {
+                                              kind: "meal",
+                                              mealId: meal.id,
+                                              insertAfter,
+                                            },
+                                            {
+                                              x: event.clientX,
+                                              y: event.clientY,
+                                            }
+                                          );
+                                        }}
+                                        style={
                                           {
-                                            kind: "meal",
-                                            mealId: meal.id,
-                                            insertAfter,
-                                          },
-                                          { x: event.clientX, y: event.clientY }
-                                        );
-                                      }}
-                                      style={{
-                                        "--meal-type-color": typeConfig.dot,
-                                      } as CSSProperties}
-                                      type="button"
-                                    >
-                                      <span className={styles.weekChipName}>{meal.name}</span>
-                                      {meal.mealSubTypeDefinition ? (
-                                        <span
-                                          className={styles.weekMealSubType}
-                                          style={{ color: meal.mealSubTypeDefinition.color }}
-                                        >
-                                          {meal.mealSubTypeDefinition.name}
+                                            "--meal-type-color": typeConfig.dot,
+                                          } as CSSProperties
+                                        }
+                                        type="button"
+                                      >
+                                        <span className={styles.weekChipName}>
+                                          {meal.name}
                                         </span>
-                                      ) : null}
-                                      {meal.notes ? (
-                                        <span className={styles.weekMealNotes}>{meal.notes}</span>
-                                      ) : null}
-                                    </button>
+                                        {meal.mealSubTypeDefinition ? (
+                                          <span
+                                            className={styles.weekMealSubType}
+                                            style={{
+                                              color:
+                                                meal.mealSubTypeDefinition
+                                                  .color,
+                                            }}
+                                          >
+                                            {meal.mealSubTypeDefinition.name}
+                                          </span>
+                                        ) : null}
+                                        {meal.notes ? (
+                                          <span
+                                            className={styles.weekMealNotes}
+                                          >
+                                            {meal.notes}
+                                          </span>
+                                        ) : null}
+                                      </button>
 
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <button
+                                            aria-label={`Duplicate ${meal.name}`}
+                                            className={styles.weekMealActionBtn}
+                                            disabled={
+                                              isApplyingDrop || dragDisabled
+                                            }
+                                            onClick={(event) => {
+                                              event.stopPropagation();
+                                              onDuplicateMeal(meal);
+                                            }}
+                                            type="button"
+                                          >
+                                            <Copy
+                                              aria-hidden="true"
+                                              className={
+                                                styles.weekMealActionIcon
+                                              }
+                                              size={18}
+                                              weight="regular"
+                                            />
+                                          </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          Duplicate meal
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </div>
+                                  );
+                                })}
+                                <div className={styles.slotActionsRow}>
+                                  {slotMeals.length >= 2 ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          aria-label={`Add ${type} meal`}
+                                          className={`${styles.slotAddIconBtn} ${styles.slotDesktopAction}`}
+                                          disabled={
+                                            Boolean(draggedPayload) ||
+                                            isApplyingDrop
+                                          }
+                                          onClick={() =>
+                                            onAddMeal(
+                                              createEmptyMeal(
+                                                new Date(day),
+                                                type,
+                                                mealTypes.find(
+                                                  (definition) =>
+                                                    definition.slug === type
+                                                ) ?? null
+                                              )
+                                            )
+                                          }
+                                          type="button"
+                                        >
+                                          <Plus
+                                            aria-hidden="true"
+                                            size={18}
+                                            weight="regular"
+                                          />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Add meal</TooltipContent>
+                                    </Tooltip>
+                                  ) : (
                                     <button
-                                      aria-label={`Duplicate ${meal.name}`}
-                                      className={styles.weekMealActionBtn}
-                                      disabled={isApplyingDrop || dragDisabled}
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        onDuplicateMeal(meal);
-                                      }}
-                                      title="Duplicate meal"
+                                      aria-label={`Add ${type} meal`}
+                                      className={`${styles.slotAddMoreBtn} ${styles.emptySlotButton}`}
+                                      disabled={
+                                        Boolean(draggedPayload) ||
+                                        isApplyingDrop
+                                      }
+                                      onClick={() =>
+                                        onAddMeal(
+                                          createEmptyMeal(
+                                            new Date(day),
+                                            type,
+                                            mealTypes.find(
+                                              (definition) =>
+                                                definition.slug === type
+                                            ) ?? null
+                                          )
+                                        )
+                                      }
                                       type="button"
                                     >
-                                      <Copy
-                                        aria-hidden="true"
-                                        className={styles.weekMealActionIcon}
-                                        size={18}
-                                        weight="regular"
-                                      />
+                                      <span className={styles.btnAddSlot}>
+                                        + Add
+                                      </span>
                                     </button>
-                                  </div>
-                                );
-                              })}
-                              <div className={styles.slotActionsRow}>
-                                {slotMeals.length >= 2 ? (
-                                  <button
-                                    aria-label={`Add ${type} meal`}
-                                    className={`${styles.slotAddIconBtn} ${styles.slotDesktopAction}`}
-                                    disabled={Boolean(draggedPayload) || isApplyingDrop}
-                                    onClick={() =>
-                                      onAddMeal(
-                                        createEmptyMeal(
-                                          new Date(day),
-                                          type,
-                                          mealTypes.find((definition) => definition.slug === type) ??
-                                            null
-                                        )
-                                      )
-                                    }
-                                    title="Add meal"
-                                    type="button"
-                                  >
-                                    <Plus aria-hidden="true" size={18} weight="regular" />
-                                  </button>
-                                ) : (
-                                  <button
-                                    aria-label={`Add ${type} meal`}
-                                    className={`${styles.slotAddMoreBtn} ${styles.emptySlotButton}`}
-                                    disabled={Boolean(draggedPayload) || isApplyingDrop}
-                                    onClick={() =>
-                                      onAddMeal(
-                                        createEmptyMeal(
-                                          new Date(day),
-                                          type,
-                                          mealTypes.find((definition) => definition.slug === type) ??
-                                            null
-                                        )
-                                      )
-                                    }
-                                    type="button"
-                                  >
-                                    <span className={styles.btnAddSlot}>+ Add</span>
-                                  </button>
-                                )}
-                                {slotMeals.length >= 2 ? (
-                                  <button
-                                    aria-label={`Manage ${type} meals`}
-                                    className={`${styles.slotManageIconBtn} ${styles.slotDesktopAction}`}
-                                    disabled={Boolean(draggedPayload) || isApplyingDrop}
-                                    onClick={() => onOpenSlotManager(day, type)}
-                                    type="button"
-                                  >
-                                    <PencilSimple
-                                      aria-hidden="true"
-                                      className={styles.slotManageIcon}
-                                      size={18}
-                                      weight="regular"
-                                    />
-                                  </button>
-                                ) : null}
-                                {slotMeals.length >= 2 ? (
-                                  <button
-                                    aria-expanded={slotActionMenu?.slotKey === emptyTargetKey}
-                                    aria-haspopup="menu"
-                                    aria-label={`More actions for ${type} meals`}
-                                    className={styles.slotOverflowBtn}
-                                    disabled={Boolean(draggedPayload) || isApplyingDrop}
-                                    onClick={(event) => openSlotActionMenu(event, day, type)}
-                                    title="More slot actions"
-                                    type="button"
-                                  >
-                                    <DotsThreeVertical aria-hidden="true" size={18} weight="regular" />
-                                  </button>
-                                ) : null}
-                                {slotMeals.length >= 2 ? (
-                                  <button
-                                    aria-label={`Drag ${type} slot`}
-                                    className={styles.slotDragHandleBtn}
-                                    draggable={!isApplyingDrop && !dragDisabled}
-                                    onDragEnd={scheduleClearDragState}
-                                    onDragStart={(event) => onDragStartSlot(event, slotMeals, day, type)}
-                                    title="Drag entire slot"
-                                    type="button"
-                                  >
-                                    <DotsSixVertical aria-hidden="true" size={18} weight="regular" />
-                                  </button>
-                                ) : null}
+                                  )}
+                                  {slotMeals.length >= 2 ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          aria-label={`Manage ${type} meals`}
+                                          className={`${styles.slotManageIconBtn} ${styles.slotDesktopAction}`}
+                                          disabled={
+                                            Boolean(draggedPayload) ||
+                                            isApplyingDrop
+                                          }
+                                          onClick={() =>
+                                            onOpenSlotManager(day, type)
+                                          }
+                                          type="button"
+                                        >
+                                          <PencilSimple
+                                            aria-hidden="true"
+                                            className={styles.slotManageIcon}
+                                            size={18}
+                                            weight="regular"
+                                          />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        Manage meals
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : null}
+                                  {slotMeals.length >= 2 ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          aria-expanded={
+                                            slotActionMenu?.slotKey ===
+                                            emptyTargetKey
+                                          }
+                                          aria-haspopup="menu"
+                                          aria-label={`More actions for ${type} meals`}
+                                          className={styles.slotOverflowBtn}
+                                          disabled={
+                                            Boolean(draggedPayload) ||
+                                            isApplyingDrop
+                                          }
+                                          onClick={(event) =>
+                                            openSlotActionMenu(event, day, type)
+                                          }
+                                          type="button"
+                                        >
+                                          <DotsThreeVertical
+                                            aria-hidden="true"
+                                            size={18}
+                                            weight="regular"
+                                          />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        More slot actions
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : null}
+                                  {slotMeals.length >= 2 ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          aria-label={`Drag ${type} slot`}
+                                          className={styles.slotDragHandleBtn}
+                                          draggable={
+                                            !isApplyingDrop && !dragDisabled
+                                          }
+                                          onDragEnd={scheduleClearDragState}
+                                          onDragStart={(event) =>
+                                            onDragStartSlot(
+                                              event,
+                                              slotMeals,
+                                              day,
+                                              type
+                                            )
+                                          }
+                                          type="button"
+                                        >
+                                          <DotsSixVertical
+                                            aria-hidden="true"
+                                            size={18}
+                                            weight="regular"
+                                          />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        Drag entire slot
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  ) : null}
+                                </div>
                               </div>
-                            </div>
-                          )}
-                        </div>
-                       );
-                     })}
-                  </div>
-                );
-              })
-             : null}
-        </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })
+              : null}
+          </div>
         </div>
         {AUTO_SCROLL_BANDS.map((band) => {
           const BandIcon = WEEK_SCROLL_BAND_ICON[band];
@@ -1320,7 +1509,9 @@ export function WeekView({
             />
           );
         })}
-        {slotActionMenu && slotActionMenuPosition && typeof document !== "undefined"
+        {slotActionMenu &&
+        slotActionMenuPosition &&
+        typeof document !== "undefined"
           ? createPortal(
               <div
                 aria-label={`${slotActionMenu.type} meal actions`}
@@ -1345,8 +1536,9 @@ export function WeekView({
                       createEmptyMeal(
                         new Date(menu.day),
                         menu.type,
-                        menuTypes.find((definition) => definition.slug === menu.type) ??
-                          null
+                        menuTypes.find(
+                          (definition) => definition.slug === menu.type
+                        ) ?? null
                       )
                     );
                     setSlotActionMenu(null);

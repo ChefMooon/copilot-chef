@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { ArrowDown, ArrowUp, DotsSixVertical, Plus } from "@phosphor-icons/react";
+import {
+  ArrowDown,
+  ArrowUp,
+  DotsSixVertical,
+  Plus,
+} from "@phosphor-icons/react";
 
 import {
   getTypeConfig,
@@ -9,6 +14,11 @@ import {
 import type { MealTypeDefinitionPayload } from "@shared/types";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { DeleteConfirmationModal } from "./DeleteConfirmationModal";
 
@@ -50,7 +60,8 @@ export function SlotManagerModal({
   const [isReordering, setIsReordering] = useState(false);
   const [didMutate, setDidMutate] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mealPendingDelete, setMealPendingDelete] = useState<EditableMeal | null>(null);
+  const [mealPendingDelete, setMealPendingDelete] =
+    useState<EditableMeal | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | undefined>();
   const [liveAnnouncement, setLiveAnnouncement] = useState("");
@@ -60,7 +71,8 @@ export function SlotManagerModal({
   }, [slotMeals]);
 
   const typeConfig = useMemo(
-    () => getTypeConfig(slotType, mealTypeDefinition ? [mealTypeDefinition] : []),
+    () =>
+      getTypeConfig(slotType, mealTypeDefinition ? [mealTypeDefinition] : []),
     [mealTypeDefinition, slotType]
   );
 
@@ -77,10 +89,13 @@ export function SlotManagerModal({
       const firstMeal = nextMeals[0];
       if (firstMeal) {
         setLiveAnnouncement(
-          `${firstMeal.name} is now first in ${typeConfig.label.toLowerCase()} for ${slotDate.toLocaleDateString("default", {
-            month: "short",
-            day: "numeric",
-          })}.`
+          `${firstMeal.name} is now first in ${typeConfig.label.toLowerCase()} for ${slotDate.toLocaleDateString(
+            "default",
+            {
+              month: "short",
+              day: "numeric",
+            }
+          )}.`
         );
       }
     } catch (reorderError) {
@@ -153,7 +168,9 @@ export function SlotManagerModal({
     try {
       await onDelete(mealPendingDelete.id);
       setDidMutate(true);
-      const nextMeals = localMeals.filter((meal) => meal.id !== mealPendingDelete.id);
+      const nextMeals = localMeals.filter(
+        (meal) => meal.id !== mealPendingDelete.id
+      );
       setLocalMeals(nextMeals);
       setMealPendingDelete(null);
 
@@ -204,27 +221,28 @@ export function SlotManagerModal({
           </Button>
         }
       >
+        <div aria-live="polite" className={styles.slotManagerLiveRegion}>
+          {liveAnnouncement}
+        </div>
 
-          <div aria-live="polite" className={styles.slotManagerLiveRegion}>
-            {liveAnnouncement}
-          </div>
+        {localMeals.length === 0 ? (
+          <p className={styles.slotManagerEmpty}>No meals in this slot yet.</p>
+        ) : (
+          <div className={styles.slotManagerList} role="list">
+            {localMeals.map((meal, index) => {
+              const isFirst = index === 0;
+              const isLast = index === localMeals.length - 1;
 
-          {localMeals.length === 0 ? (
-              <p className={styles.slotManagerEmpty}>No meals in this slot yet.</p>
-            ) : (
-              <div className={styles.slotManagerList} role="list">
-                {localMeals.map((meal, index) => {
-                  const isFirst = index === 0;
-                  const isLast = index === localMeals.length - 1;
-
-                  return (
-                    <div
-                      className={`${styles.slotManagerRow} ${draggedMealId === meal.id ? styles.slotManagerRowDragging : ""} ${dropTargetMealId === meal.id ? styles.slotManagerRowDropTarget : ""}`}
-                      key={meal.id}
-                      onKeyDown={(event) => void handleRowKeyDown(event, meal.id)}
-                      role="listitem"
-                      tabIndex={0}
-                    >
+              return (
+                <div
+                  className={`${styles.slotManagerRow} ${draggedMealId === meal.id ? styles.slotManagerRowDragging : ""} ${dropTargetMealId === meal.id ? styles.slotManagerRowDropTarget : ""}`}
+                  key={meal.id}
+                  onKeyDown={(event) => void handleRowKeyDown(event, meal.id)}
+                  role="listitem"
+                  tabIndex={0}
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
                       <button
                         className={styles.slotManagerDragHandle}
                         disabled={isReordering}
@@ -234,7 +252,11 @@ export function SlotManagerModal({
                           setDropTargetMealId(null);
                         }}
                         onDragOver={(event) => {
-                          if (!draggedMealId || draggedMealId === meal.id || isReordering) {
+                          if (
+                            !draggedMealId ||
+                            draggedMealId === meal.id ||
+                            isReordering
+                          ) {
                             return;
                           }
 
@@ -249,9 +271,19 @@ export function SlotManagerModal({
                           const rowElement = event.currentTarget.parentElement;
                           if (rowElement) {
                             const rect = rowElement.getBoundingClientRect();
-                            const offsetX = Math.max(0, event.clientX - rect.left);
-                            const offsetY = Math.max(0, event.clientY - rect.top);
-                            event.dataTransfer.setDragImage(rowElement, offsetX, offsetY);
+                            const offsetX = Math.max(
+                              0,
+                              event.clientX - rect.left
+                            );
+                            const offsetY = Math.max(
+                              0,
+                              event.clientY - rect.top
+                            );
+                            event.dataTransfer.setDragImage(
+                              rowElement,
+                              offsetX,
+                              offsetY
+                            );
                           }
 
                           setDraggedMealId(meal.id);
@@ -264,18 +296,31 @@ export function SlotManagerModal({
                         title="Drag to reorder"
                         type="button"
                       >
-                        <DotsSixVertical aria-hidden="true" size={18} weight="regular" />
+                        <DotsSixVertical
+                          aria-hidden="true"
+                          size={18}
+                          weight="regular"
+                        />
                       </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Drag to reorder</TooltipContent>
+                  </Tooltip>
 
-                      <div className={styles.slotManagerMealCopy}>
-                        <span className={styles.slotManagerMealName}>{meal.name}</span>
-                        {meal.notes ? (
-                          <span className={styles.slotManagerMealMeta}>{meal.notes}</span>
-                        ) : null}
-                      </div>
+                  <div className={styles.slotManagerMealCopy}>
+                    <span className={styles.slotManagerMealName}>
+                      {meal.name}
+                    </span>
+                    {meal.notes ? (
+                      <span className={styles.slotManagerMealMeta}>
+                        {meal.notes}
+                      </span>
+                    ) : null}
+                  </div>
 
-                      <div className={styles.slotManagerArrows}>
-                        {!isFirst ? (
+                  <div className={styles.slotManagerArrows}>
+                    {!isFirst ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
                           <button
                             className={styles.slotManagerArrowBtn}
                             aria-label={`Move ${meal.name} up`}
@@ -283,10 +328,19 @@ export function SlotManagerModal({
                             onClick={() => void moveMealByOffset(meal.id, -1)}
                             type="button"
                           >
-                            <ArrowUp aria-hidden="true" size={18} weight="regular" />
+                            <ArrowUp
+                              aria-hidden="true"
+                              size={18}
+                              weight="regular"
+                            />
                           </button>
-                        ) : null}
-                        {!isLast ? (
+                        </TooltipTrigger>
+                        <TooltipContent>Move up</TooltipContent>
+                      </Tooltip>
+                    ) : null}
+                    {!isLast ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
                           <button
                             className={styles.slotManagerArrowBtn}
                             aria-label={`Move ${meal.name} down`}
@@ -294,43 +348,50 @@ export function SlotManagerModal({
                             onClick={() => void moveMealByOffset(meal.id, 1)}
                             type="button"
                           >
-                            <ArrowDown aria-hidden="true" size={18} weight="regular" />
+                            <ArrowDown
+                              aria-hidden="true"
+                              size={18}
+                              weight="regular"
+                            />
                           </button>
-                        ) : null}
-                      </div>
+                        </TooltipTrigger>
+                        <TooltipContent>Move down</TooltipContent>
+                      </Tooltip>
+                    ) : null}
+                  </div>
 
-                      <button
-                        aria-label={`Edit ${meal.name}`}
-                        className={styles.btnGhost}
-                        disabled={isReordering}
-                        onClick={() => onEdit(meal)}
-                        type="button"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        aria-label={`Remove ${meal.name}`}
-                        className={styles.btnDelete}
-                        disabled={isReordering}
-                        onClick={() => {
-                          setDeleteError(undefined);
-                          setMealPendingDelete(meal);
-                        }}
-                        type="button"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                  <button
+                    aria-label={`Edit ${meal.name}`}
+                    className={styles.btnGhost}
+                    disabled={isReordering}
+                    onClick={() => onEdit(meal)}
+                    type="button"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    aria-label={`Remove ${meal.name}`}
+                    className={styles.btnDelete}
+                    disabled={isReordering}
+                    onClick={() => {
+                      setDeleteError(undefined);
+                      setMealPendingDelete(meal);
+                    }}
+                    type="button"
+                  >
+                    Remove
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
-          {error ? (
-            <div className={styles.slotManagerError} role="alert">
-              {error}
-            </div>
-          ) : null}
+        {error ? (
+          <div className={styles.slotManagerError} role="alert">
+            {error}
+          </div>
+        ) : null}
       </ModalShell>
 
       {mealPendingDelete ? (

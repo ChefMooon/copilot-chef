@@ -7,6 +7,7 @@ import { getPlatform } from "./lib/platform";
 import { applySafeAreaFallback } from "./lib/safe-area";
 import { PreferenceProvider } from "./lib/preferences";
 import { registerServiceWorker } from "./lib/service-worker";
+import { TooltipProvider } from "./components/ui/tooltip";
 
 import "./globals.css";
 
@@ -20,7 +21,9 @@ if (!container) throw new Error("Root element not found");
 createRoot(container).render(
   <StrictMode>
     <PreferenceProvider>
-      <RouterProvider router={router} />
+      <TooltipProvider>
+        <RouterProvider router={router} />
+      </TooltipProvider>
     </PreferenceProvider>
   </StrictMode>
 );

@@ -7,6 +7,11 @@ import {
   type GroceryList,
   formatListDate,
 } from "@/lib/grocery";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { ItemRow } from "./ItemRow";
 import styles from "./grocery-list.module.css";
@@ -185,22 +190,30 @@ export function ListEditor({
               <ShoppingCart aria-hidden="true" size={18} /> Shop
             </button>
             <button
+              aria-describedby="telegram-disabled-reason"
+              aria-disabled="true"
               className={styles.btnTelegramDisabled}
-              disabled
-              title="Coming soon - send to Telegram"
+              onClick={(event) => event.preventDefault()}
               type="button"
             >
               <PaperPlaneTilt aria-hidden="true" size={18} /> Send to Telegram
             </button>
-            <button
-              aria-label={`Delete list ${list.name}`}
-              className={styles.btnDeleteList}
-              onClick={() => setShowDeleteConfirm(true)}
-              title="Delete list"
-              type="button"
-            >
-              <Trash aria-hidden="true" size={18} />
-            </button>
+            <span className="sr-only" id="telegram-disabled-reason">
+              Coming soon - send to Telegram
+            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  aria-label={`Delete list ${list.name}`}
+                  className={styles.btnDeleteList}
+                  onClick={() => setShowDeleteConfirm(true)}
+                  type="button"
+                >
+                  <Trash aria-hidden="true" size={18} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Delete list</TooltipContent>
+            </Tooltip>
           </div>
         </div>
 

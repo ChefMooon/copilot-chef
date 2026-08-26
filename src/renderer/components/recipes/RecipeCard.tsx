@@ -2,6 +2,11 @@ import { Link } from "react-router";
 import { PencilSimple, Star, Trash } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { type RecipePayload } from "@/lib/api";
 import { getCuisineLabel } from "@shared/api/constants";
 
@@ -29,7 +34,12 @@ export function RecipeCard({
   const hasCookTime = recipe.cookTime != null;
   const hasRating = recipe.rating != null;
   const cuisineLabel = getCuisineLabel(recipe.cuisine);
-  const showMeta = Boolean(cuisineLabel) || hasDifficulty || hasPrepTime || hasCookTime || hasRating;
+  const showMeta =
+    Boolean(cuisineLabel) ||
+    hasDifficulty ||
+    hasPrepTime ||
+    hasCookTime ||
+    hasRating;
 
   return (
     <article
@@ -38,55 +48,76 @@ export function RecipeCard({
       <div className="mb-1 flex items-center justify-between gap-2">
         {onToggleSelect ? (
           <input
+            aria-label={`Select ${recipe.title}`}
             checked={Boolean(selected)}
             className="h-4 w-4 flex-shrink-0 rounded border-cream-dark text-green focus:ring-green"
             onChange={() => onToggleSelect(recipe.id)}
             type="checkbox"
           />
         ) : null}
-        <Link className="line-clamp-2 flex-1 text-base font-semibold leading-tight text-text sm:text-lg" to={`/recipes/${recipe.id}`}>
+        <Link
+          className="line-clamp-2 flex-1 text-base font-semibold leading-tight text-text sm:text-lg"
+          to={`/recipes/${recipe.id}`}
+        >
           {recipe.title}
         </Link>
         <div className="flex flex-shrink-0 items-center gap-1.5">
           {onToggleFavourite ? (
-            <Button
-              aria-label={`${recipe.favourite ? "Remove" : "Add"} ${recipe.title} ${recipe.favourite ? "from" : "to"} favourites`}
-              className={`h-4 w-4 min-w-4 rounded-[4px] border p-0 ${recipe.favourite ? "border-orange/30 bg-orange/10 text-orange hover:bg-orange/15 hover:text-orange" : "border-cream-dark bg-cream text-text-muted hover:border-orange/40 hover:bg-orange/5 hover:text-orange"}`}
-              onClick={() => onToggleFavourite(recipe, !recipe.favourite)}
-              size="icon"
-              type="button"
-              variant="ghost"
-            >
-                <Star
-                  aria-hidden="true"
-                  size={14}
-                  weight={recipe.favourite ? "bold" : "regular"}
-                />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  aria-label={`${recipe.favourite ? "Remove" : "Add"} ${recipe.title} ${recipe.favourite ? "from" : "to"} favourites`}
+                  className={`h-4 min-h-8 w-4 min-w-8 rounded-[4px] border p-0 ${recipe.favourite ? "border-orange/30 bg-orange/10 text-orange hover:bg-orange/15 hover:text-orange" : "border-cream-dark bg-cream text-text-muted hover:border-orange/40 hover:bg-orange/5 hover:text-orange"}`}
+                  onClick={() => onToggleFavourite(recipe, !recipe.favourite)}
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                >
+                  <Star
+                    aria-hidden="true"
+                    size={14}
+                    weight={recipe.favourite ? "bold" : "regular"}
+                  />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {recipe.favourite ? "Remove from favourites" : "Add to favourites"}
+              </TooltipContent>
+            </Tooltip>
           ) : null}
           {onEdit ? (
-            <Button
-              aria-label={`Edit ${recipe.title}`}
-              className="h-4 w-4 min-w-4 rounded-[4px] p-0 text-text-muted hover:text-green"
-              onClick={() => onEdit(recipe)}
-              size="icon"
-              type="button"
-              variant="ghost"
-            >
-                <PencilSimple aria-hidden="true" size={12} weight="regular" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  aria-label={`Edit ${recipe.title}`}
+                  className="h-4 min-h-8 w-4 min-w-8 rounded-[4px] p-0 text-text-muted hover:text-green"
+                  onClick={() => onEdit(recipe)}
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                >
+                  <PencilSimple aria-hidden="true" size={12} weight="regular" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit recipe</TooltipContent>
+            </Tooltip>
           ) : null}
           {onDelete ? (
-            <Button
-              aria-label={`Delete ${recipe.title}`}
-              className="h-4 w-4 min-w-4 rounded-[4px] p-0 text-text-muted hover:text-orange"
-              onClick={() => onDelete(recipe)}
-              size="icon"
-              type="button"
-              variant="ghost"
-            >
-                <Trash aria-hidden="true" size={12} weight="bold" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  aria-label={`Delete ${recipe.title}`}
+                  className="h-4 min-h-8 w-4 min-w-8 rounded-[4px] p-0 text-text-muted hover:text-orange"
+                  onClick={() => onDelete(recipe)}
+                  size="icon"
+                  type="button"
+                  variant="ghost"
+                >
+                  <Trash aria-hidden="true" size={12} weight="bold" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete recipe</TooltipContent>
+            </Tooltip>
           ) : null}
         </div>
       </div>

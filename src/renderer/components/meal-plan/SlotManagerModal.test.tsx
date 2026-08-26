@@ -1,10 +1,17 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render as testingRender,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { EditableMeal } from "@/lib/calendar";
 import type { MealTypeDefinitionPayload } from "@shared/types";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { SlotManagerModal } from "./SlotManagerModal";
 
@@ -45,8 +52,14 @@ afterEach(() => {
   cleanup();
 });
 
+function render(ui: Parameters<typeof testingRender>[0]) {
+  return testingRender(
+    <TooltipProvider delayDuration={0}>{ui}</TooltipProvider>
+  );
+}
+
 describe("SlotManagerModal", () => {
-  it("uses the meal type on the header and labels row actions contextually", () => {
+  it("uses the meal type on the header and labels row actions contextually", async () => {
     render(
       <SlotManagerModal
         mealTypeDefinition={mealTypeDefinition}
@@ -56,7 +69,10 @@ describe("SlotManagerModal", () => {
         onEdit={vi.fn()}
         onReorder={vi.fn(async () => undefined)}
         slotDate={new Date(2026, 7, 23)}
-        slotMeals={[createMeal("1", "Rice & Egg"), createMeal("2", "Honey Roasted Carrots")]}
+        slotMeals={[
+          createMeal("1", "Rice & Egg"),
+          createMeal("2", "Honey Roasted Carrots"),
+        ]}
         slotType="DINNER"
       />
     );
@@ -65,10 +81,17 @@ describe("SlotManagerModal", () => {
     const header = dialog.querySelector("header");
 
     expect(header).toHaveStyle({ "--meal-type-color": "#22c55e" });
-    expect(screen.getByRole("button", { name: "Edit Rice & Egg" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Edit Rice & Egg" })
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Remove Honey Roasted Carrots" })
     ).toBeInTheDocument();
+
+    fireEvent.focus(
+      screen.getByRole("button", { name: "Move Rice & Egg down" })
+    );
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Move down");
   });
 
   it("prevents dismissal while a reorder is in flight", async () => {
@@ -90,19 +113,28 @@ describe("SlotManagerModal", () => {
         onEdit={vi.fn()}
         onReorder={onReorder}
         slotDate={new Date(2026, 7, 23)}
-        slotMeals={[createMeal("1", "Rice & Egg"), createMeal("2", "Honey Roasted Carrots")]}
+        slotMeals={[
+          createMeal("1", "Rice & Egg"),
+          createMeal("2", "Honey Roasted Carrots"),
+        ]}
         slotType="DINNER"
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Move Rice & Egg down" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Move Rice & Egg down" })
+    );
 
     expect(onReorder).toHaveBeenCalledWith(["2", "1"]);
-    expect(screen.getByRole("button", { name: "Close slot manager" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Close slot manager" })
+    ).toBeDisabled();
 
     resolveReorder?.();
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Close slot manager" })).toBeEnabled();
+      expect(
+        screen.getByRole("button", { name: "Close slot manager" })
+      ).toBeEnabled();
     });
   });
 
@@ -118,13 +150,20 @@ describe("SlotManagerModal", () => {
           throw new Error("Order could not be saved.");
         })}
         slotDate={new Date(2026, 7, 23)}
-        slotMeals={[createMeal("1", "Rice & Egg"), createMeal("2", "Honey Roasted Carrots")]}
+        slotMeals={[
+          createMeal("1", "Rice & Egg"),
+          createMeal("2", "Honey Roasted Carrots"),
+        ]}
         slotType="DINNER"
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Move Rice & Egg down" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Move Rice & Egg down" })
+    );
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Order could not be saved.");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Order could not be saved."
+    );
   });
 });

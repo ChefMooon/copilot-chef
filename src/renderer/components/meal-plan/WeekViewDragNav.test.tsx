@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render as testingRender, screen } from "@testing-library/react";
 
 import { WeekView } from "./WeekView";
 import { showSlotDragPreview } from "./dragPreview";
@@ -9,6 +9,20 @@ import type { EditableMeal } from "@/lib/calendar";
 import { setMealPlanDragPayload } from "@/lib/calendar";
 import type { MealTypeProfilePayload } from "@shared/types";
 import styles from "./meal-plan.module.css";
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+function render(ui: Parameters<typeof testingRender>[0]) {
+  const result = testingRender(
+    <TooltipProvider delayDuration={0}>{ui}</TooltipProvider>
+  );
+  return {
+    ...result,
+    rerender: (nextUi: Parameters<typeof testingRender>[0]) =>
+      result.rerender(
+        <TooltipProvider delayDuration={0}>{nextUi}</TooltipProvider>
+      ),
+  };
+}
 
 const profile: MealTypeProfilePayload = {
   id: "default-profile",

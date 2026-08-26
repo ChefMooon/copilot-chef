@@ -17,6 +17,11 @@ import {
   type MealPlanDragPayload,
 } from "@/lib/calendar";
 import type { MealTypeProfilePayload } from "@shared/types";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { PeriodNavigation } from "./PeriodNavigation";
 import { isInsertAfterPointer, showSlotDragPreview } from "./dragPreview";
@@ -481,33 +486,37 @@ export function DayView({
                         + Add
                       </button>
                       {slotMeals.length >= 2 ? (
-                        <button
-                          aria-label={`Manage ${type} meals`}
-                          className={styles.slotManageIconBtn}
-                          disabled={Boolean(draggedPayload) || isApplyingDrop}
-                          onClick={() => onOpenSlotManager(date, type)}
-                          type="button"
-                        >
-                          <PencilSimple
-                            aria-hidden="true"
-                            className={styles.slotManageIcon}
-                            size={18}
-                            weight="regular"
-                          />
-                        </button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              aria-label={`Manage ${type} meals`}
+                              className={styles.slotManageIconBtn}
+                              disabled={Boolean(draggedPayload) || isApplyingDrop}
+                              onClick={() => onOpenSlotManager(date, type)}
+                              type="button"
+                            >
+                              <PencilSimple aria-hidden="true" className={styles.slotManageIcon} size={18} weight="regular" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Manage meals</TooltipContent>
+                        </Tooltip>
                       ) : null}
                       {slotMeals.length >= 2 ? (
-                        <button
-                          aria-label={`Drag ${type} slot`}
-                          className={styles.slotDragHandleBtn}
-                          draggable={!isApplyingDrop && !dragDisabled}
-                          onDragEnd={scheduleClearDragState}
-                          onDragStart={(event) => onDragStartSlot(event, slotMeals, type)}
-                          title="Drag entire slot"
-                          type="button"
-                        >
-                          <DotsSixVertical aria-hidden="true" size={18} weight="regular" />
-                        </button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              aria-label={`Drag ${type} slot`}
+                              className={styles.slotDragHandleBtn}
+                              draggable={!isApplyingDrop && !dragDisabled}
+                              onDragEnd={scheduleClearDragState}
+                              onDragStart={(event) => onDragStartSlot(event, slotMeals, type)}
+                              type="button"
+                            >
+                              <DotsSixVertical aria-hidden="true" size={18} weight="regular" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Drag entire slot</TooltipContent>
+                        </Tooltip>
                       ) : null}
                     </div>
                   </div>
