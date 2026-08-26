@@ -205,6 +205,9 @@ export function EditModal({
   const mealTypes = getMealTypeDefinitionsForDate(form.date, mealTypeProfiles);
   const linkedCuisineLabel = getCuisineLabel(linkedRecipe?.cuisine);
   const isPhotoAttachSupported = getPlatform().runtime === "electron";
+  const hasAssociatedMealType = mealTypes.some(
+    (definition) => definition.slug === form.type && definition.enabled
+  );
   const activePhotoSrc =
     form.photoDataUrl === null ? null : (form.photoDataUrl ?? form.photoUrl ?? null);
   const activePhotoLabel =
@@ -459,7 +462,7 @@ export function EditModal({
     <>
       <ModalShell
         ariaLabel="Edit meal"
-        bodyClassName="flex-1 min-h-0"
+        bodyClassName={styles.modalShellBody}
         className={styles.modalPanel}
         closeLabel="Close dialog"
         open={!showDeleteConfirmation && !showRecipeSearchModal}
@@ -568,6 +571,14 @@ export function EditModal({
           </div>
         }
       >
+        {hasAssociatedMealType ? (
+          <div
+            aria-hidden="true"
+            className={styles.mealTypeColorBar}
+            data-testid="meal-type-color-bar"
+            style={{ "--meal-type-color": typeConfig.dot } as React.CSSProperties}
+          />
+        ) : null}
         <div className={styles.modalBody}>
 
               {/* ── Mode B: Recipe-linked header ─────────────────────── */}

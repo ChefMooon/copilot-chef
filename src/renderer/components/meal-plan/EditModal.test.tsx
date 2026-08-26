@@ -188,6 +188,56 @@ describe("EditModal", () => {
     expect(screen.getByLabelText("Sub-type")).toBeInTheDocument();
   });
 
+  it("renders the associated meal type color below the modal header", () => {
+    render(
+      <EditModal
+        meal={editableMeal}
+        mealSubTypes={[]}
+        mealTypeProfiles={mealTypeProfiles}
+        onClose={vi.fn()}
+        onDelete={vi.fn(async () => undefined)}
+        onSave={vi.fn(async () => undefined)}
+      />
+    );
+
+    const modal = screen.getByRole("dialog");
+    const colorBar = screen.getByTestId("meal-type-color-bar");
+    const mealType = screen.getByLabelText("Meal Type");
+
+    expect(colorBar).toBeInTheDocument();
+    expect(colorBar).toHaveAttribute("aria-hidden", "true");
+    expect(colorBar).toHaveStyle({ "--meal-type-color": "#22c55e" });
+    expect(
+      modal.querySelector("header")?.compareDocumentPosition(colorBar as Node)
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect((colorBar as Node).compareDocumentPosition(mealType)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+  });
+
+  it("omits the meal type color bar until a global meal has a type", () => {
+    render(
+      <EditModal
+        meal={newMeal}
+        mealSubTypes={[]}
+        mealTypeProfiles={mealTypeProfiles}
+        onClose={vi.fn()}
+        onDelete={vi.fn(async () => undefined)}
+        onSave={vi.fn(async () => undefined)}
+      />
+    );
+
+    expect(screen.queryByTestId("meal-type-color-bar")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Meal Type"), {
+      target: { value: "DINNER" },
+    });
+
+    expect(screen.getByTestId("meal-type-color-bar")).toHaveStyle({
+      "--meal-type-color": "#22c55e",
+    });
+  });
+
   it("requires a meal type before saving a global add", async () => {
     const onSave = vi.fn(async () => undefined);
 
