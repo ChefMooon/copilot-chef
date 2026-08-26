@@ -119,7 +119,12 @@ export function RecipeSearchFilterCard({
             title={isAdvancedOpen ? "Hide advanced recipe filters" : "Show advanced recipe filters"}
             type="button"
           >
-            <FunnelSimple aria-hidden="true" size={18} weight={isAdvancedOpen ? "fill" : "bold"} />
+            <FunnelSimple
+              aria-hidden="true"
+              className={styles.advancedToggleIcon}
+              size={18}
+              weight="bold"
+            />
           </button>
           {search.trim().length > 0 ? (
             <select

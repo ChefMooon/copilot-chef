@@ -96,8 +96,13 @@
   color: var(--green);
 }
 
-.advancedToggle svg {
+.advancedToggleIcon {
+  transform: scale(1);
   transition: transform 0.2s ease;
+}
+
+.advancedToggleOpen .advancedToggleIcon {
+  transform: scale(1.14);
 }
 
 .advancedPanel {
@@ -189,6 +194,7 @@
 @media (prefers-reduced-motion: reduce) {
   .select,
   .advancedToggle svg,
+  .advancedToggleIcon,
   .advancedPanel {
     transition: none;
   }
