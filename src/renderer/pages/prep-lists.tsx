@@ -535,7 +535,7 @@ export default function PrepListsPage() {
       toast({
         title: "Notes save failed",
         description,
-        variant: "destructive",
+        variant: "error",
       });
     }
   };
@@ -815,7 +815,7 @@ export default function PrepListsPage() {
       const description = isApiError(error)
         ? error.message
         : "Unable to save prep list";
-      toast({ title: "Prep list failed", description, variant: "destructive" });
+      toast({ title: "Prep list failed", description, variant: "error" });
     } finally {
       setIsSubmittingList(false);
     }
@@ -855,7 +855,7 @@ export default function PrepListsPage() {
       const description = isApiError(error)
         ? error.message
         : "Unable to delete prep list";
-      toast({ title: "Delete failed", description, variant: "destructive" });
+      toast({ title: "Delete failed", description, variant: "error" });
     } finally {
       setIsDeletingList(false);
     }
@@ -911,7 +911,7 @@ export default function PrepListsPage() {
       toast({
         title: "Regeneration failed",
         description,
-        variant: "destructive",
+        variant: "error",
       });
     }
   };
