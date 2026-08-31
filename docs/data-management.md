@@ -15,7 +15,7 @@ Electron file dialogs are the only native file boundary:
 - The renderer cannot request arbitrary filesystem reads or writes.
 - The existing HTTP API remains the service boundary. Desktop IPC only carries the file handoff needed by native dialogs.
 
-Browser and LAN clients do not have native file capabilities. The Settings tab stays available as an explicit unsupported state, and the browser platform returns `Data backup and restore is available in the desktop app.` without invoking `window.api` or attempting a file operation.
+Browser and LAN clients do not have native file capabilities. The archive portion of the Settings tab stays available as an explicit unsupported state, while preference reset remains available because it uses the authenticated API and does not require a native file dialog. Neither path invokes `window.api` directly from renderer code.
 
 ## Archive Contract
 
@@ -93,6 +93,10 @@ The current transport uses a JSON body containing a base64 `archive` string. App
 Preview does not mutate the database or filesystem. Identity matching is deterministic: recipes use normalized source URL and title, meals use date/meal type/name/sort order, lists use date/name, items include their parent and stable item fields, meal-type profiles use name, definitions use profile plus slug, sub-types use slug, and preferences use the default record.
 
 When conflicts exist, apply requires explicit decisions. `keep-local`, `skip`, and `import` are available for safe bulk actions; individual records may also use `replace`. Imported IDs are remapped before recipe, meal, grocery, prep, and photo references are written. Unselected records are not silently overwritten, and the result reports imported, skipped, replaced, unresolved, conflict, and asset counts.
+
+### Preference reset
+
+The Settings page exposes one confirmed `Reset preferences` action in Data Management. It resets editable `UserPreference` values through the existing preferences API, refreshes the preferences query, clears pending local preference drafts, and preserves the selected Settings category and search query. It does not delete or mutate recipes, meals, meal plans, archives, app settings, device settings, or network configuration. Browser and LAN sessions can use this action; native archive export/import remains desktop-only.
 
 ### Replace and recovery
 

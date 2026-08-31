@@ -26,6 +26,7 @@ These channels use `ipcMain.handle(...)` in main and `window.api.invoke(...)` in
 | `server:getStatus` | renderer -> main | none | Returns local server runtime status | `src/main/ipc/index.ts` |
 | `lan:getStatus` | renderer -> main | none | Returns LAN diagnostics and machine token metadata | `src/main/ipc/index.ts` |
 | `lan:restart` | renderer -> main | none | Restarts API + static web services (non-remote mode) | `src/main/ipc/index.ts` |
+| `lan:pairing-code` | renderer -> main | none | Creates a short-lived PWA pairing code for a trusted device | `src/main/ipc/index.ts` |
 | `app:getVersion` | renderer -> main | none | Returns app version string | `src/main/ipc/index.ts` |
 | `lifecycle:getStatus` | renderer -> main | none | Returns redacted launch-at-login and launch-minimized status | `src/main/ipc/index.ts` |
 | `lifecycle:setLaunchAtLogin` | renderer -> main | `enabled: boolean` | Applies native launch-at-login configuration and returns status | `src/main/ipc/index.ts` |

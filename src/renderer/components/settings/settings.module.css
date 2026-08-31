@@ -757,7 +757,7 @@
   }
 }
 
-@media (min-width: 768px) {
+@media (min-width: 769px) {
   .subTypeFieldsRow {
     grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr) 120px;
   }
@@ -1591,46 +1591,137 @@
   }
 }
 
-/* ── Settings tab strip ── */
+/* ── Settings master-detail navigation ── */
 
-.tabStrip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-top: 0.25rem;
-  margin-bottom: 0.5rem;
+.settingsLayout {
+  display: grid;
+  grid-template-columns: 13rem minmax(0, 1fr);
+  gap: 1.25rem;
+  min-width: 0;
+  align-items: start;
 }
 
-.tabButton {
-  padding: 0.52rem 1.1rem;
-  border: 1.5px solid rgba(122, 106, 88, 0.2);
-  border-radius: 999px;
+.settingsSidebar {
+  position: sticky;
+  top: 1rem;
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.settingsSearch {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.settingsSearch label {
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.settingsSearchInput {
+  width: 100%;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+}
+
+.settingsCategoryList {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.settingsCategoryButton {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
   font-size: 0.88rem;
   font-weight: 700;
-  white-space: nowrap;
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease,
-    color 0.15s ease;
+  text-align: left;
 }
 
-.tabButton:hover {
-  border-color: rgba(59, 94, 69, 0.28);
+.settingsCategoryButton:hover,
+.settingsCategoryButton:focus-visible {
+  border-color: var(--border);
   color: var(--text);
 }
 
-.tabButton:focus-visible {
+.settingsCategoryButton:focus-visible,
+.settingsSearchInput:focus-visible,
+.settingsSearchResult:focus-visible,
+.settingsSearchReset:focus-visible {
   outline: 2px solid var(--green);
   outline-offset: 2px;
 }
 
-.tabButtonActive {
+.settingsCategoryButtonActive {
   border-color: var(--primary);
   background: var(--secondary);
   color: var(--secondary-foreground);
+}
+
+.settingsSearchResults {
+  display: grid;
+  gap: 0.3rem;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.settingsSearchResult {
+  display: grid;
+  gap: 0.15rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.settingsSearchResult span {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: capitalize;
+}
+
+.settingsSearchEmpty {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.7rem;
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.settingsSearchReset {
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.settingsDetailPane {
+  min-width: 0;
+  min-height: min(72vh, 48rem);
+  max-height: 72vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.25rem;
 }
 
 .tabPanel {
@@ -1649,23 +1740,22 @@
   line-height: 1.5;
 }
 
-@media (max-width: 600px) {
-  .tabStrip {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 0.35rem;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    gap: 0.3rem;
+@media (max-width: 768px) {
+  .settingsLayout {
+    grid-template-columns: 1fr;
   }
 
-  .tabStrip::-webkit-scrollbar {
-    display: none;
+  .settingsSidebar {
+    position: static;
   }
 
-  .tabButton {
-    flex-shrink: 0;
-    font-size: 0.83rem;
-    padding: 0.48rem 0.85rem;
+  .settingsCategoryList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .settingsDetailPane {
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
   }
 }

@@ -19,6 +19,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +56,8 @@ export type DataManagementApi = {
 
 export type DataManagementSectionProps = {
   onPreferencesRestored?: () => void;
+  onResetPreferences?: () => Promise<void>;
+  resettingPreferences?: boolean;
   platform?: DataManagementPlatform;
   api?: DataManagementApi;
 };
@@ -315,8 +318,99 @@ function ImportSummary({
   );
 }
 
+function PreferenceResetSection({
+  onResetPreferences,
+  resettingPreferences,
+}: {
+  onResetPreferences: () => Promise<void>;
+  resettingPreferences: boolean;
+}) {
+  const [status, setStatus] = useState<"idle" | "working" | "success" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  const handleReset = async () => {
+    if (status === "working" || resettingPreferences) return;
+    setStatus("working");
+    setError(null);
+    try {
+      await onResetPreferences();
+      setStatus("success");
+    } catch (resetError) {
+      setStatus("error");
+      setError(getErrorMessage(resetError));
+    }
+  };
+
+  return (
+    <section className={styles.card} aria-labelledby="data-management-reset">
+      <div className={styles.cardHeader}>
+        <h2 className={styles.cardTitle} id="data-management-reset">
+          Reset preferences
+        </h2>
+        <p className={styles.cardDescription}>
+          Restore household and planning preferences to their defaults.
+          Recipes, meals, meal plans, archives, and device settings stay
+          unchanged.
+        </p>
+      </div>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            disabled={resettingPreferences || status === "working"}
+            type="button"
+            variant="danger"
+          >
+            {resettingPreferences || status === "working"
+              ? "Resetting preferences..."
+              : "Reset preferences"}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset preferences?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This restores editable household and planning preferences to
+              their defaults. Your recipes, meals, meal plans, archives, and
+              device settings will not be affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel asChild>
+              <Button type="button" variant="outline">
+                Cancel
+              </Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button
+                disabled={resettingPreferences || status === "working"}
+                onClick={() => void handleReset()}
+                type="button"
+                variant="danger"
+              >
+                Confirm reset
+              </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {status === "success" ? (
+        <p className={styles.dataManagementSuccess} role="status">
+          Preferences reset to their defaults.
+        </p>
+      ) : null}
+      {status === "error" ? (
+        <p className={styles.dataManagementError} role="alert">
+          {error}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 export function DataManagementSection({
   onPreferencesRestored,
+  onResetPreferences,
+  resettingPreferences = false,
   platform: platformOverride,
   api = DEFAULT_API,
 }: DataManagementSectionProps) {
@@ -530,16 +624,24 @@ export function DataManagementSection({
 
   if (!platform.capabilities.dataManagement) {
     return (
-      <div className={styles.dataManagementUnsupported} role="status">
-        <Archive aria-hidden="true" size={24} weight="duotone" />
-        <div>
-          <h2>Data backup and restore requires the desktop app</h2>
-          <p>
-            Browser and LAN sessions cannot open or save local archive files.
-            Use the Electron desktop app for full backup, validation, and
-            restore.
-          </p>
+      <div className={styles.dataManagementStack}>
+        <div className={styles.dataManagementUnsupported} role="status">
+          <Archive aria-hidden="true" size={24} weight="duotone" />
+          <div>
+            <h2>Data backup and restore requires the desktop app</h2>
+            <p>
+              Browser and LAN sessions cannot open or save local archive files.
+              Use the Electron desktop app for full backup, validation, and
+              restore.
+            </p>
+          </div>
         </div>
+        {onResetPreferences ? (
+          <PreferenceResetSection
+            onResetPreferences={onResetPreferences}
+            resettingPreferences={resettingPreferences}
+          />
+        ) : null}
       </div>
     );
   }
@@ -896,6 +998,13 @@ export function DataManagementSection({
           />
         ) : null}
       </section>
+
+        {onResetPreferences ? (
+          <PreferenceResetSection
+            onResetPreferences={onResetPreferences}
+            resettingPreferences={resettingPreferences}
+          />
+        ) : null}
 
       <AlertDialog open={replaceDialogOpen} onOpenChange={setReplaceDialogOpen}>
         <AlertDialogContent>

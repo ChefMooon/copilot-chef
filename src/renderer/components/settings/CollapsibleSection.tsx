@@ -45,6 +45,17 @@ export function CollapsibleSection({
   }, [isOpen, storageKey]);
 
   useEffect(() => {
+    const openSection = (event: Event) => {
+      if ((event as CustomEvent<string>).detail === id) {
+        setIsOpen(true);
+      }
+    };
+
+    window.addEventListener("settings-open-section", openSection);
+    return () => window.removeEventListener("settings-open-section", openSection);
+  }, [id]);
+
+  useEffect(() => {
     const node = contentInnerRef.current;
     if (!node) {
       return;

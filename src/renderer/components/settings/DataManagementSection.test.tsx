@@ -43,7 +43,11 @@ vi.mock("@/lib/query-invalidation", () => ({
 
 import { DataManagementSection } from "./DataManagementSection";
 
-function renderSection(onPreferencesRestored = vi.fn()) {
+function renderSection(
+  onPreferencesRestored = vi.fn(),
+  onResetPreferences?: () => Promise<void>,
+  resettingPreferences = false
+) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -53,7 +57,11 @@ function renderSection(onPreferencesRestored = vi.fn()) {
 
   render(
     <QueryClientProvider client={queryClient}>
-      <DataManagementSection onPreferencesRestored={onPreferencesRestored} />
+      <DataManagementSection
+        onPreferencesRestored={onPreferencesRestored}
+        onResetPreferences={onResetPreferences}
+        resettingPreferences={resettingPreferences}
+      />
     </QueryClientProvider>
   );
 
@@ -133,8 +141,9 @@ describe("DataManagementSection", () => {
 
   it("explains the browser unsupported state without offering native controls", () => {
     platformMock.capabilities.dataManagement = false;
+    const onResetPreferences = vi.fn().mockResolvedValue(undefined);
 
-    renderSection();
+    renderSection(vi.fn(), onResetPreferences);
 
     expect(
       screen.getByRole("heading", {
@@ -144,7 +153,45 @@ describe("DataManagementSection", () => {
     expect(
       screen.queryByRole("button", { name: /choose backup archive/i })
     ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /^reset preferences$/i })
+    ).toBeTruthy();
     expect(platformMock.openDataArchive).not.toHaveBeenCalled();
+  });
+
+  it("confirms preference reset and prevents duplicate pending submissions", async () => {
+    const onResetPreferences = vi.fn().mockResolvedValue(undefined);
+
+    renderSection(vi.fn(), onResetPreferences);
+
+    fireEvent.click(screen.getByRole("button", { name: /^reset preferences$/i }));
+    expect(
+      screen.getByRole("alertdialog", { name: /reset preferences/i })
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+    expect(onResetPreferences).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /^reset preferences$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm reset/i }));
+    await waitFor(() => expect(onResetPreferences).toHaveBeenCalledTimes(1));
+
+    cleanup();
+    renderSection(vi.fn(), onResetPreferences, true);
+    expect(
+      screen.getByRole("button", { name: /resetting preferences/i })
+    ).toBeDisabled();
+  });
+
+  it("shows an inline reset failure", async () => {
+    const onResetPreferences = vi
+      .fn()
+      .mockRejectedValue(new Error("Reset failed"));
+
+    renderSection(vi.fn(), onResetPreferences);
+    fireEvent.click(screen.getByRole("button", { name: /^reset preferences$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm reset/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Reset failed");
   });
 
   it("shows the selected scope inclusion summary", () => {

@@ -44,7 +44,7 @@ These settings are stored in `{userData}/settings.json` through `src/main/settin
 
 ### User Preferences
 
-Preferences are stored in the `UserPreference` Prisma model and served through `/api/preferences`.
+Preferences are stored in the `UserPreference` Prisma model and served through `/api/preferences`. The Settings page is organized into General, Appearance, Dietary Profile, Meal Plans, Network, and Data Management. Preference reset is available in the separated Data Management area and does not remove recipes, meals, meal plans, archives, or device settings.
 
 | Name | Description |
 | --- | --- |
@@ -59,10 +59,10 @@ Preferences are stored in the `UserPreference` Prisma model and served through `
 | `nutritionTags` | Nutrition goals or focus areas |
 | `skillLevel` | Household cooking skill level |
 | `budgetRange` | Grocery budget tier |
-| `autoGenerateGrocery` | Automatically create a grocery list from scheduled meals |
-| `consolidateIngredients` | Merge duplicate ingredients across meals |
-| `defaultPlanLength` | Default plan duration |
-| `groceryGrouping` | Grocery list grouping mode |
+| `autoGenerateGrocery` | Legacy grocery preference; hidden from the Settings UI, retained for persistence and archive compatibility |
+| `consolidateIngredients` | Legacy grocery preference; hidden from the Settings UI, retained for persistence and archive compatibility |
+| `defaultPlanLength` | Legacy planning preference; hidden from the Settings UI, retained for persistence and archive compatibility |
+| `groceryGrouping` | Legacy grocery preference; hidden from the Settings UI, retained for persistence and archive compatibility |
 | `defaultRecipeView` | Default recipe detail view |
 | `defaultUnitMode` | Default ingredient unit mode |
 | `reasoningEffort` | Reserved preference field retained for compatibility |
@@ -97,13 +97,15 @@ All user preferences are managed by `src/main/server/services/preference-service
 - `nutritionTags`: comma-separated nutrition goals
 - `skillLevel`: options `beginner`, `home-cook`, `confident`, `advanced`
 - `budgetRange`: options `budget`, `moderate`, `premium`
-- `autoGenerateGrocery`: default `true`
-- `consolidateIngredients`: default `true`
-- `defaultPlanLength`: options `"3"`, `"7"`, `"14"`
-- `groceryGrouping`: options `category`, `meal`, `alpha`
+- `autoGenerateGrocery`: default `true`; hidden from the Settings UI and retained for compatibility
+- `consolidateIngredients`: default `true`; hidden from the Settings UI and retained for compatibility
+- `defaultPlanLength`: options `"3"`, `"7"`, `"14"`; hidden from the Settings UI and retained for compatibility
+- `groceryGrouping`: options `category`, `meal`, `alpha`; hidden from the Settings UI and retained for compatibility
 - `defaultRecipeView`: options `basic`, `detailed`, `cooking`
 - `defaultUnitMode`: options `cup`, `grams`
 - `reasoningEffort`: currently retained but not used by the local-first workflows
+
+The legacy preferences JSON export API remains available for compatibility clients, but its renderer action is no longer part of the Settings workflow. Use the versioned Data Management archive workflow for user-facing backup and restore.
 
 ### Meal-Type Cutoffs
 
