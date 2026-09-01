@@ -143,6 +143,31 @@ describe("DuplicateMealModal", () => {
     expect(sourceButton).toHaveAttribute("aria-disabled", "true");
   });
 
+  it("marks the current day separately from the source day", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 4, 19, 12));
+
+    try {
+      render(
+        <DuplicateMealModal
+          isOpen
+          meal={meal}
+          mealTypeProfiles={mealTypeProfiles}
+          onClose={vi.fn()}
+          onDuplicate={vi.fn()}
+          referenceDate={monday}
+        />
+      );
+
+      expect(screen.getByText("Current day")).toBeInTheDocument();
+      expect(
+        document.querySelector("[data-current-day='true']")
+      ).toHaveAttribute("data-source-day", "false");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("sends selected day and default target meal type", () => {
     const onDuplicate = vi.fn();
 
@@ -172,6 +197,30 @@ describe("DuplicateMealModal", () => {
       mealType: "BREAKFAST",
       mealTypeDefinitionId: "breakfast",
     });
+  });
+
+  it("applies each meal type definition color to its target control", () => {
+    render(
+      <DuplicateMealModal
+        isOpen
+        meal={meal}
+        mealTypeProfiles={[mealTypeProfiles[0], rangedProfile]}
+        onClose={vi.fn()}
+        onDuplicate={vi.fn()}
+        referenceDate={monday}
+      />
+    );
+
+    expect(
+      screen.getByRole("button", {
+        name: "Tue, May 19, Duplicate as Brunch",
+      })
+    ).toHaveStyle({ "--meal-type-color": "#f97316" });
+    expect(
+      screen.getByRole("button", {
+        name: "Wed, May 20, Duplicate as Supper",
+      })
+    ).toHaveStyle({ "--meal-type-color": "#22c55e" });
   });
 
   it("renders every enabled definition from a date-ranged profile", () => {

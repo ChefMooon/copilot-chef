@@ -60,6 +60,7 @@ type WeekViewProps = {
   date: Date;
   meals: EditableMeal[];
   mealTypeProfiles: MealTypeProfilePayload[];
+  isDuplicateMealOpen?: boolean;
   highlightedProfileId?: string | null;
   dragDisabled?: boolean;
   setDate: (date: Date) => void;
@@ -94,6 +95,71 @@ type SlotActionMenuState = {
   type: CalendarMealType;
   anchor: DOMRect;
 };
+
+type DuplicateMealActionProps = {
+  disabled: boolean;
+  isModalOpen: boolean;
+  meal: EditableMeal;
+  onDuplicate: (meal: EditableMeal) => void;
+};
+
+function DuplicateMealAction({
+  disabled,
+  isModalOpen,
+  meal,
+  onDuplicate,
+}: DuplicateMealActionProps) {
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
+  const [isTooltipSuppressed, setIsTooltipSuppressed] = useState(false);
+
+  useEffect(() => {
+    if (!isModalOpen) {
+      setIsTooltipSuppressed(false);
+    }
+  }, [isModalOpen]);
+
+  const duplicateButton = (
+    <button
+      aria-label={`Duplicate ${meal.name}`}
+      className={styles.weekMealActionBtn}
+      disabled={disabled}
+      onClick={(event) => {
+        event.stopPropagation();
+        setIsTooltipSuppressed(true);
+        setIsTooltipOpen(false);
+        onDuplicate(meal);
+      }}
+      type="button"
+    >
+      <Copy
+        aria-hidden="true"
+        className={styles.weekMealActionIcon}
+        size={18}
+        weight="regular"
+      />
+    </button>
+  );
+
+  if (isModalOpen) {
+    return duplicateButton;
+  }
+
+  return (
+    <Tooltip
+      open={isTooltipOpen && !isTooltipSuppressed}
+      onOpenChange={(open) => {
+        if (!isTooltipSuppressed) {
+          setIsTooltipOpen(open);
+        }
+      }}
+    >
+      <TooltipTrigger asChild>
+        {duplicateButton}
+      </TooltipTrigger>
+      <TooltipContent>Duplicate meal</TooltipContent>
+    </Tooltip>
+  );
+}
 
 const initialWeekScrollState: WeekScrollState = {
   canScrollLeft: false,
@@ -153,6 +219,7 @@ export function WeekView({
   date,
   meals,
   mealTypeProfiles,
+  isDuplicateMealOpen = false,
   highlightedProfileId,
   dragDisabled = false,
   setDate,
@@ -1274,34 +1341,12 @@ export function WeekView({
                                         ) : null}
                                       </button>
 
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <button
-                                            aria-label={`Duplicate ${meal.name}`}
-                                            className={styles.weekMealActionBtn}
-                                            disabled={
-                                              isApplyingDrop || dragDisabled
-                                            }
-                                            onClick={(event) => {
-                                              event.stopPropagation();
-                                              onDuplicateMeal(meal);
-                                            }}
-                                            type="button"
-                                          >
-                                            <Copy
-                                              aria-hidden="true"
-                                              className={
-                                                styles.weekMealActionIcon
-                                              }
-                                              size={18}
-                                              weight="regular"
-                                            />
-                                          </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          Duplicate meal
-                                        </TooltipContent>
-                                      </Tooltip>
+                                      <DuplicateMealAction
+                                        disabled={isApplyingDrop || dragDisabled}
+                                        isModalOpen={isDuplicateMealOpen}
+                                        meal={meal}
+                                        onDuplicate={onDuplicateMeal}
+                                      />
                                     </div>
                                   );
                                 })}

@@ -856,6 +856,8 @@ describe("profile-aware meal plan views", () => {
   });
 
   it("provides tooltips for duplicate and multi-meal slot icon actions", async () => {
+    const onDuplicateMeal = vi.fn();
+
     render(
       <WeekView
         date={new Date("2026-04-17T12:00:00")}
@@ -880,7 +882,7 @@ describe("profile-aware meal plan views", () => {
           },
         ]}
         mealTypeProfiles={[defaultProfile, weekendProfile]}
-        onDuplicateMeal={vi.fn()}
+        onDuplicateMeal={onDuplicateMeal}
         onEdit={vi.fn()}
         onDropPayload={vi.fn().mockResolvedValue(undefined)}
         onOpenSlotManager={vi.fn()}
@@ -896,6 +898,21 @@ describe("profile-aware meal plan views", () => {
     };
 
     await assertTooltip("Duplicate Avocado Toast", "Duplicate meal");
+    const duplicateButton = screen.getByRole("button", {
+      name: "Duplicate Avocado Toast",
+    });
+    fireEvent.focus(duplicateButton);
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(
+      "Duplicate meal"
+    );
+    fireEvent.click(duplicateButton);
+    expect(onDuplicateMeal).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Avocado Toast" })
+    );
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    fireEvent.focus(duplicateButton);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+
     await assertTooltip("Add breakfast meal", "Add meal");
     await assertTooltip("Manage breakfast meals", "Manage meals");
     await assertTooltip(

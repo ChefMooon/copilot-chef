@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import {
   getMealTypeDefinitionsForDate,
@@ -152,10 +152,12 @@ export function DuplicateMealModal({
             day: "numeric",
           });
           const isUnavailable = enabledMealTypes.length === 0;
+          const isCurrentDay = isSameDay(date, new Date());
 
           return (
             <div
               className={`${styles.duplicateDayCard} ${isSourceDay || isUnavailable ? styles.duplicateDayCardDisabled : ""}`}
+              data-current-day={isCurrentDay ? "true" : "false"}
               data-source-day={isSourceDay ? "true" : "false"}
               data-target-date={date.toISOString()}
               key={date.toISOString()}
@@ -163,9 +165,16 @@ export function DuplicateMealModal({
             >
               <div className={styles.duplicateDayTopRow}>
                 <span className={styles.duplicateDayLabel}>{dayLabel}</span>
-                {isSourceDay ? (
-                  <span className={styles.duplicateDayBadge}>Source day</span>
-                ) : null}
+                <span className={styles.duplicateDayBadges}>
+                  {isSourceDay ? (
+                    <span className={styles.duplicateDayBadge}>Source day</span>
+                  ) : null}
+                  {isCurrentDay ? (
+                    <span className={styles.duplicateCurrentDayBadge}>
+                      Current day
+                    </span>
+                  ) : null}
+                </span>
               </div>
               <span className={styles.duplicateDayDate}>{dateLabel}</span>
               <div
@@ -207,9 +216,16 @@ export function DuplicateMealModal({
                             mealTypeDefinitionId: definition.id,
                           });
                         }}
+                        style={{
+                          "--meal-type-color": typeConfig.dot,
+                        } as CSSProperties}
                         title={buttonLabel}
                         type="button"
                       >
+                        <span
+                          aria-hidden="true"
+                          className={styles.duplicateDayTypeMarker}
+                        />
                         <span>{typeConfig.label}</span>
                       </button>
                     );

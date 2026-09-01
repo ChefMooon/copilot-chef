@@ -2987,7 +2987,7 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: rgba(44, 36, 22, 0.58);
+  background: var(--overlay);
   backdrop-filter: blur(3px);
   animation: fadeIn 0.16s ease;
 }
@@ -2996,13 +2996,13 @@
   width: min(760px, 100%);
   max-height: min(92vh, 760px);
   background: var(--card);
-  border: 1px solid rgba(202, 187, 160, 0.95);
+  border: 1px solid var(--border);
   border-radius: 20px;
-  box-shadow: 0 22px 60px rgba(44, 36, 22, 0.24);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-  padding: 1.15rem;
+  gap: 0.7rem;
+  padding: 0.9rem;
 }
 
 .duplicateHeader {
@@ -3058,7 +3058,7 @@
 .duplicateGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
+  gap: 0.55rem;
   overflow: auto;
   padding-right: 0.1rem;
 }
@@ -3067,9 +3067,9 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.35rem;
-  min-height: 112px;
-  padding: 0.8rem 0.85rem;
+  gap: 0.25rem;
+  min-height: 0;
+  padding: 0.6rem 0.7rem;
   border: 1px solid var(--cream-dark);
   border-radius: 14px;
   background: var(--white);
@@ -3104,6 +3104,14 @@
   width: 100%;
 }
 
+.duplicateDayBadges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
 .duplicateDayLabel {
   font-size: 0.72rem;
   font-weight: 800;
@@ -3124,6 +3132,18 @@
   white-space: nowrap;
 }
 
+.duplicateCurrentDayBadge {
+  border-radius: 999px;
+  background: var(--green-pale);
+  color: var(--green);
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.4rem;
+  white-space: nowrap;
+}
+
 .duplicateDayDate {
   font-family: var(--font-lora), Georgia, serif;
   font-size: 1rem;
@@ -3132,24 +3152,53 @@
 }
 
 .duplicateDayType {
+  appearance: none;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.35rem;
   width: 100%;
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  padding: 0.22rem 0.5rem;
+  min-height: 1.8rem;
+  border: 1px solid color-mix(in srgb, var(--meal-type-color, var(--primary)) 48%, var(--border));
+  border-radius: 9px;
+  padding: 0.3rem 0.55rem;
+  color: color-mix(in srgb, var(--meal-type-color, var(--primary)) 76%, var(--text));
+  background: color-mix(in srgb, var(--meal-type-color, var(--primary)) 9%, var(--card));
+  cursor: pointer;
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   line-height: 1.2;
   text-transform: uppercase;
+  text-align: left;
+  transition: transform 0.14s, border-color 0.14s, background 0.14s, box-shadow 0.14s;
+}
+
+.duplicateDayType:hover:not(:disabled),
+.duplicateDayType[aria-disabled="false"]:hover {
+  border-color: var(--meal-type-color, var(--primary));
+  background: color-mix(in srgb, var(--meal-type-color, var(--primary)) 18%, var(--card));
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
+
+.duplicateDayType:focus-visible {
+  border-color: var(--meal-type-color, var(--primary));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--meal-type-color, var(--primary)) 24%, transparent);
+  outline: none;
+}
+
+.duplicateDayTypeMarker {
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--meal-type-color, var(--primary));
 }
 
 .duplicateTypeOptions {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.25rem;
   width: 100%;
   margin-top: auto;
 }
@@ -3157,8 +3206,13 @@
 .duplicateDayTypeDisabled {
   border-color: var(--border);
   color: var(--text-muted);
+  background: var(--muted);
   cursor: not-allowed;
   opacity: 0.68;
+}
+
+.duplicateDayTypeDisabled .duplicateDayTypeMarker {
+  background: var(--text-muted);
 }
 
 .duplicateDayTypeStatus {

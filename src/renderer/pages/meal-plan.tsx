@@ -2120,6 +2120,7 @@ export default function MealPlanPage() {
             <WeekView
               date={date}
               dragDisabled={false}
+              isDuplicateMealOpen={duplicateMeal !== null}
               meals={meals}
               mealTypeProfiles={mealTypeProfiles}
               highlightedProfileId={highlightedProfileId}
