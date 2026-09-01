@@ -256,7 +256,7 @@
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
-  padding: 2rem 2rem 4rem;
+  padding: 2rem 2rem calc(4rem + env(safe-area-inset-bottom, 0px));
   background: var(--background);
 }
 
@@ -283,7 +283,7 @@
   }
 
   .page {
-    padding: 1.25rem 1rem 3rem;
+    padding: 1.25rem 1rem calc(3rem + env(safe-area-inset-bottom, 0px));
   }
 }
 

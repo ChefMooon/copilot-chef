@@ -115,6 +115,37 @@ installed standalone PWA:
 - Meal Plan week-board scrolling remains usable as browser chrome changes height
 - Wide browser and Electron layouts retain the existing 64px header behavior
 
+### Mobile Final-Content Reachability
+
+For `/recipes`, verify that the final recipe card can be fully scrolled above
+the bottom browser or home-indicator region:
+
+- Use enough recipes to render multiple rows at `375x667` and `390x844`.
+- Test an installed iPhone PWA in portrait with the browser chrome states that
+  are available for the device.
+- At the maximum scroll position, confirm the final card bottom is visible and
+  not covered even though the shell scroll container has reached its limit.
+- Repeat in landscape or on an Android browser/PWA when available.
+- Repeat a desktop browser and Electron-sized layout to confirm the existing
+  page spacing and scroll behavior remain unchanged.
+
+When available, use Safari Web Inspector or the browser console to compare the
+shell scroll geometry with the final card bounds:
+
+```js
+const scroller = document.querySelector('[class*="contentScroller"]');
+const lastCard = document.querySelector("article:last-of-type");
+
+({
+  scrollHeight: scroller?.scrollHeight,
+  clientHeight: scroller?.clientHeight,
+  scrollTop: scroller?.scrollTop,
+  lastCardBottom: lastCard?.getBoundingClientRect().bottom,
+  viewportHeight: window.innerHeight,
+  visualViewportHeight: window.visualViewport?.height,
+});
+```
+
 When available, use Safari Web Inspector to compare the header bounds and
 viewport values while changing toolbar state:
 
