@@ -13,6 +13,7 @@ import {
 import StatsPage from "./stats";
 import RecipesPage from "./recipes";
 import { HomeDashboard } from "@/components/home/home-dashboard";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const {
   useQueryMock,
@@ -190,26 +191,22 @@ describe("throttling UI regression coverage", () => {
     const recipesRefetch = vi.fn();
     const allRecipesRefetch = vi.fn();
 
-    useQueryMock
-      .mockReturnValueOnce(
-        queryState({
-          isError: true,
-          error: { status: 429 },
-          refetch: recipesRefetch,
-        })
-      )
-      .mockReturnValueOnce(
-        queryState({
-          isError: true,
-          error: { status: 429 },
-          refetch: allRecipesRefetch,
-        })
-      );
+    useQueryMock.mockImplementation(({ queryKey }: { queryKey: unknown[] }) => {
+      const isAllRecipesQuery = queryKey.includes("all");
+
+      return queryState({
+        isError: true,
+        error: { status: 429 },
+        refetch: isAllRecipesQuery ? allRecipesRefetch : recipesRefetch,
+      });
+    });
 
     render(
-      <MemoryRouter>
-        <RecipesPage />
-      </MemoryRouter>
+      <TooltipProvider delayDuration={0}>
+        <MemoryRouter>
+          <RecipesPage />
+        </MemoryRouter>
+      </TooltipProvider>
     );
 
     expect(
