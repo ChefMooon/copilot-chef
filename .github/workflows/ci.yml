@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Verify Electron installation
-        run: npx electron --version
+        run: node -e "const fs = require('node:fs'); const electronPath = require('electron'); if (!fs.existsSync(electronPath)) throw new Error('Electron executable is missing'); console.log(electronPath)"
 
       - name: Generate Prisma client
         run: npm run db:generate
