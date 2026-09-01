@@ -1065,7 +1065,7 @@ export default function PrepListsPage() {
 
         {selectedList ? (
           <div className={styles.editorPanel} key={selectedList.id}>
-            <div className={styles.editorHeader}>
+            <div className={`${styles.editorHeader} ${styles.prepEditorHeader}`}>
               <div className={styles.editorTitleRow}>
                 <textarea
                   aria-label="Prep list name"

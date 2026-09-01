@@ -522,24 +522,6 @@
   background: var(--green-light);
 }
 
-.btnTelegramDisabled {
-  box-sizing: border-box;
-  min-height: 42px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  background: var(--cream-dark);
-  color: var(--text-muted);
-  border: 1.5px solid var(--cream-dark);
-  border-radius: 8px;
-  padding: 0.4rem 0.85rem;
-  cursor: not-allowed;
-  opacity: 0.65;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  white-space: nowrap;
-}
-
 .btnDeleteList {
   box-sizing: border-box;
   min-width: 42px;
@@ -1179,40 +1161,98 @@
 }
 
 @media (max-width: 768px) {
-  .editorItems {
-    max-height: 320px;
-  }
-
-  .itemCatSelect,
-  .itemQtyRow {
-    display: none;
-  }
-
-  .editorHeader {
+  .prepEditorHeader {
     flex-direction: column;
+    align-items: flex-start;
   }
 
-  .editorTitleRow {
+  .prepEditorHeader .editorTitleRow {
+    flex: 0 1 auto;
     width: 100%;
+    overflow: visible;
   }
 
-  .editorNameInput {
+  .prepEditorHeader .editorNameInput {
     min-height: 3.25rem;
     white-space: pre-wrap;
   }
 
-  .editorHeaderActions {
+  .prepEditorHeader .editorHeaderActions {
     width: 100%;
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+  }
+
+  .editorHeader {
+    padding: 0.75rem 1rem 0.6rem;
+    gap: 0.6rem;
+    height: auto;
+    min-height: 0;
     justify-content: flex-start;
+    align-content: flex-start;
+  }
+
+  .editorHeaderMeta {
+    margin-top: 0.25rem;
+  }
+
+  .editorItems {
+    max-height: 320px;
+  }
+
+  .editorItems .itemCatSelect,
+  .editorItems .itemQtyRow {
+    display: none;
+  }
+
+  .editorHeader {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .editorTitleRow {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    width: auto;
+    overflow: hidden;
+  }
+
+  .editorNameInput {
+    min-height: 1.7rem;
+    white-space: nowrap;
+  }
+
+  .editorHeaderActions {
+    width: auto;
+    gap: 0.35rem;
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+  }
+
+  .btnShopLabel {
+    display: none;
+  }
+
+  .editorHeaderActions > :last-child {
+    order: 2;
   }
 
   .selectStack {
+    order: 3;
     width: 100%;
+    gap: 0.35rem;
   }
 
   .compactSelectField {
-    flex: 1 1 12rem;
+    flex: 1 1 0;
     min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.2rem;
   }
 
   .sortSelect,

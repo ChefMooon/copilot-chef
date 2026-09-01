@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CalendarBlank, PaperPlaneTilt, ShoppingCart, Trash, X } from "@phosphor-icons/react";
+import { CalendarBlank, ShoppingCart, Trash, X } from "@phosphor-icons/react";
 
 import {
   listProgress,
@@ -186,21 +186,20 @@ export function ListEditor({
             </div>
           </div>
           <div className={styles.editorHeaderActions}>
-            <button className={styles.btnShop} onClick={onShop} type="button">
-              <ShoppingCart aria-hidden="true" size={18} /> Shop
-            </button>
-            <button
-              aria-describedby="telegram-disabled-reason"
-              aria-disabled="true"
-              className={styles.btnTelegramDisabled}
-              onClick={(event) => event.preventDefault()}
-              type="button"
-            >
-              <PaperPlaneTilt aria-hidden="true" size={18} /> Send to Telegram
-            </button>
-            <span className="sr-only" id="telegram-disabled-reason">
-              Coming soon - send to Telegram
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  aria-label="Shop this list"
+                  className={styles.btnShop}
+                  onClick={onShop}
+                  type="button"
+                >
+                  <ShoppingCart aria-hidden="true" size={18} />
+                  <span className={styles.btnShopLabel}>Shop</span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Shop this list</TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
