@@ -12,6 +12,16 @@ import {
   publishCommittedChange,
   type ChangeEvent,
 } from "./change-event-bus";
+import { DataManagementService } from "./data-management-service";
+import { MealService } from "./meal-service";
+import { PrepListService } from "./prep-list-service";
+import {
+  GroceryService,
+  MealSubTypeService,
+  MealTypeService,
+  PreferenceService,
+  RecipeService,
+} from "../core-index";
 
 describe("ChangeEventBus", () => {
   let events: ChangeEvent[];
@@ -28,17 +38,6 @@ describe("ChangeEventBus", () => {
   });
 
   it("shares exactly one bus instance across all service construction paths", async () => {
-    const { MealService } = await import("./meal-service");
-    const { PrepListService } = await import("./prep-list-service");
-    const { DataManagementService } = await import("./data-management-service");
-    const {
-      RecipeService,
-      GroceryService,
-      PreferenceService,
-      MealTypeService,
-      MealSubTypeService,
-    } = await import("../core-index");
-
     // Legacy fallback constructions (no injected dependencies).
     const mealService = new MealService();
     const prepListService = new PrepListService();
