@@ -10,9 +10,16 @@ import styles from "./app-shell.module.css";
 const platformMocks = vi.hoisted(() => ({
   runtime: "browser" as "browser" | "electron",
 }));
+const preloadMocks = vi.hoisted(() => ({
+  preloadMealPlanRoute: vi.fn(() => Promise.resolve()),
+}));
 
 vi.mock("@/lib/platform", () => ({
   getPlatform: () => ({ runtime: platformMocks.runtime }),
+}));
+
+vi.mock("@/lib/meal-plan-route", () => ({
+  preloadMealPlanRoute: preloadMocks.preloadMealPlanRoute,
 }));
 
 const setViewportWidth = (width: number) => {
@@ -27,6 +34,7 @@ const setViewportWidth = (width: number) => {
 describe("AppShell", () => {
   beforeEach(() => {
     platformMocks.runtime = "browser";
+    vi.clearAllMocks();
 
     setViewportWidth(1280);
 
@@ -111,6 +119,93 @@ describe("AppShell", () => {
     fireEvent.click(within(menu as HTMLElement).getByRole("link", { name: "Meal Plan" }));
 
     expect(menu?.classList.contains(styles.mobileMenuOpen)).toBe(false);
+  });
+
+  it("preloads Meal Plan immediately on focus without awaiting navigation", () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <AppShell>
+          <div>content</div>
+        </AppShell>
+      </MemoryRouter>
+    );
+
+    const mealPlanLinks = screen.getAllByRole("link", { name: "Meal Plan" });
+    fireEvent.focus(mealPlanLinks[0]);
+    fireEvent.click(mealPlanLinks[0]);
+
+    expect(preloadMocks.preloadMealPlanRoute).toHaveBeenCalledTimes(1);
+  });
+
+  it("delays mouse intent, ignores touch events, and cancels only pending work", () => {
+    vi.useFakeTimers();
+
+    try {
+      render(
+        <MemoryRouter initialEntries={["/"]}>
+          <AppShell>
+            <div>content</div>
+          </AppShell>
+        </MemoryRouter>
+      );
+
+      const mealPlanLink = screen.getAllByRole("link", { name: "Meal Plan" })[0];
+      fireEvent.pointerEnter(mealPlanLink, { pointerType: "touch" });
+      expect(preloadMocks.preloadMealPlanRoute).not.toHaveBeenCalled();
+
+      fireEvent.pointerEnter(mealPlanLink, { pointerType: "mouse" });
+      vi.advanceTimersByTime(124);
+      expect(preloadMocks.preloadMealPlanRoute).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1);
+      expect(preloadMocks.preloadMealPlanRoute).toHaveBeenCalledTimes(1);
+
+      fireEvent.pointerLeave(mealPlanLink);
+      expect(preloadMocks.preloadMealPlanRoute).toHaveBeenCalledTimes(1);
+
+      fireEvent.pointerEnter(mealPlanLink, { pointerType: "pen" });
+      fireEvent.pointerLeave(mealPlanLink);
+      vi.advanceTimersByTime(125);
+      expect(preloadMocks.preloadMealPlanRoute).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not treat compatibility mouse movement after touch as intent", () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <AppShell>
+          <div>content</div>
+        </AppShell>
+      </MemoryRouter>
+    );
+
+    const mealPlanLink = screen.getAllByRole("link", { name: "Meal Plan" })[0];
+    fireEvent.pointerDown(mealPlanLink, { pointerType: "touch" });
+    fireEvent.pointerEnter(mealPlanLink, { pointerType: "mouse" });
+
+    expect(preloadMocks.preloadMealPlanRoute).not.toHaveBeenCalled();
+  });
+
+  it("contains a rejected preload without blocking the click", async () => {
+    preloadMocks.preloadMealPlanRoute.mockRejectedValueOnce(
+      new Error("chunk unavailable")
+    );
+
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <AppShell>
+          <div>content</div>
+        </AppShell>
+      </MemoryRouter>
+    );
+
+    const mealPlanLink = screen.getAllByRole("link", { name: "Meal Plan" })[0];
+    fireEvent.focus(mealPlanLink);
+    fireEvent.click(mealPlanLink);
+    await Promise.resolve();
+
+    expect(preloadMocks.preloadMealPlanRoute).toHaveBeenCalledTimes(1);
   });
 
   it("keeps custom window controls in narrow desktop electron layout with hamburger", () => {

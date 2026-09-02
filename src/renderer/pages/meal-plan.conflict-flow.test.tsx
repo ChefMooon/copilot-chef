@@ -391,12 +391,20 @@ describe("MealPlanPage conflict actions", () => {
     vi.restoreAllMocks();
   });
 
+  it("does not mount interaction-only content on initial render", async () => {
+    renderMealPlanPage();
+
+    expect(await screen.findByRole("button", { name: "Open Edit" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save As Recipe" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Trigger Conflict" })).not.toBeInTheDocument();
+  });
+
   it("links existing recipe from conflict dialog and patches the meal", async () => {
     renderMealPlanPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Open Edit" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save As Recipe" }));
-    fireEvent.click(screen.getByRole("button", { name: "Trigger Conflict" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Save As Recipe" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Trigger Conflict" }));
 
     expect(await screen.findByText("Recipe already exists")).toBeInTheDocument();
 
@@ -448,8 +456,8 @@ describe("MealPlanPage conflict actions", () => {
     renderMealPlanPage();
 
     fireEvent.click(await screen.findByRole("button", { name: "Open Edit" }));
-    fireEvent.click(screen.getByRole("button", { name: "Save As Recipe" }));
-    fireEvent.click(screen.getByRole("button", { name: "Trigger Conflict" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Save As Recipe" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Trigger Conflict" }));
 
     expect(await screen.findByText("Recipe already exists")).toBeInTheDocument();
 

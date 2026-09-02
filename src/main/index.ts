@@ -150,6 +150,10 @@ function createWindow(): BrowserWindow {
     win.loadFile(join(__dirname, "../renderer/index.html"));
   }
 
+  if (is.dev && process.env["ELECTRON_OPEN_DEVTOOLS"] === "1") {
+    win.webContents.openDevTools({ mode: "detach" });
+  }
+
   return win;
 }
 

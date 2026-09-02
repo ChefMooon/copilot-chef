@@ -1,11 +1,87 @@
 import { Link, useLocation } from "react-router";
-import { type PropsWithChildren, useEffect, useState } from "react";
+import {
+  type PointerEvent,
+  type PropsWithChildren,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Gear, List, Minus, Square, SquaresFour, X } from "@phosphor-icons/react";
 
 import { getPlatform } from "@/lib/platform";
 import { cn } from "@/lib/utils";
+import { preloadMealPlanRoute } from "@/lib/meal-plan-route";
 
 import styles from "./app-shell.module.css";
+
+const MEAL_PLAN_POINTER_DELAY_MS = 125;
+
+type MealPlanLinkProps = {
+  className: string;
+  children: ReactNode;
+};
+
+function MealPlanLink({ className, children }: MealPlanLinkProps) {
+  const preloadTimer = useRef<number | undefined>();
+  const touchPointerAt = useRef<number | undefined>();
+
+  useEffect(() => {
+    return () => {
+      if (preloadTimer.current !== undefined) {
+        window.clearTimeout(preloadTimer.current);
+      }
+    };
+  }, []);
+
+  const preload = () => {
+    void preloadMealPlanRoute().catch(() => undefined);
+  };
+
+  const handleFocus = () => {
+    preload();
+  };
+
+  const handlePointerDown = (event: PointerEvent<HTMLAnchorElement>) => {
+    if (event.pointerType === "touch") {
+      touchPointerAt.current = performance.now();
+    }
+  };
+
+  const handlePointerEnter = (
+    event: PointerEvent<HTMLAnchorElement>
+  ) => {
+    if (
+      event.pointerType === "touch" ||
+      (touchPointerAt.current !== undefined &&
+        performance.now() - touchPointerAt.current < 500)
+    ) {
+      return;
+    }
+
+    preloadTimer.current = window.setTimeout(preload, MEAL_PLAN_POINTER_DELAY_MS);
+  };
+
+  const handlePointerLeave = () => {
+    if (preloadTimer.current !== undefined) {
+      window.clearTimeout(preloadTimer.current);
+      preloadTimer.current = undefined;
+    }
+  };
+
+  return (
+    <Link
+      className={className}
+      onFocus={handleFocus}
+      onPointerDown={handlePointerDown}
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
+      to="/meal-plan"
+    >
+      {children}
+    </Link>
+  );
+}
 
 const navigationItems = [
   { label: "Home", href: "/" },
@@ -94,18 +170,22 @@ export function AppShell({ children }: PropsWithChildren) {
           </Link>
 
           <nav className={cn(styles.navDesktop, styles.noDrag)}>
-            {navigationItems.map((item) => (
-              <Link
-                className={cn(
-                  styles.navLink,
-                  pathname === item.href && styles.navLinkActive
-                )}
-                to={item.href}
-                key={item.href}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navigationItems.map((item) => {
+              const className = cn(
+                styles.navLink,
+                pathname === item.href && styles.navLinkActive
+              );
+
+              return item.href === "/meal-plan" ? (
+                <MealPlanLink className={className} key={item.href}>
+                  {item.label}
+                </MealPlanLink>
+              ) : (
+                <Link className={className} to={item.href} key={item.href}>
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           <div className={cn(styles.navRight, styles.noDrag)}>
@@ -198,18 +278,22 @@ export function AppShell({ children }: PropsWithChildren) {
         </header>
 
         <div className={cn(styles.mobileMenu, menuOpen && styles.mobileMenuOpen)}>
-          {navigationItems.map((item) => (
-            <Link
-              className={cn(
-                styles.mobileNavLink,
-                pathname === item.href && styles.mobileNavLinkActive
-              )}
-              to={item.href}
-              key={item.href}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {navigationItems.map((item) => {
+            const className = cn(
+              styles.mobileNavLink,
+              pathname === item.href && styles.mobileNavLinkActive
+            );
+
+            return item.href === "/meal-plan" ? (
+              <MealPlanLink className={className} key={item.href}>
+                {item.label}
+              </MealPlanLink>
+            ) : (
+              <Link className={className} to={item.href} key={item.href}>
+                {item.label}
+              </Link>
+            );
+          })}
           <Link
             className={cn(
               styles.mobileNavLink,

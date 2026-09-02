@@ -4,9 +4,10 @@ import { createBrowserRouter, createHashRouter } from "react-router";
 import { AuthenticatedAppLayout, PublicBrowserLayout } from "./app";
 import { RouteErrorBoundary } from "./components/layout/route-error-boundary";
 import { getPlatform } from "./lib/platform";
+import { importMealPlanRoute } from "./lib/meal-plan-route";
 
 const HomePage = lazy(() => import("./pages/home"));
-const MealPlanPage = lazy(() => import("./pages/meal-plan"));
+const MealPlanPage = lazy(importMealPlanRoute);
 const GroceryListPage = lazy(() => import("./pages/grocery-list"));
 const ShoppingPage = lazy(() => import("./pages/grocery-list/shop"));
 const PrepListsPage = lazy(() => import("./pages/prep-lists"));

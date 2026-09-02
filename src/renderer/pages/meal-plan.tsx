@@ -4,26 +4,27 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Component,
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type LazyExoticComponent,
+  type ReactNode,
+} from "react";
 import { useNavigate } from "react-router";
 import { Plus } from "@phosphor-icons/react";
 
-import { DayView } from "@/components/meal-plan/DayView";
-import { DuplicateMealModal } from "@/components/meal-plan/DuplicateMealModal";
-import { DeleteConfirmationModal } from "@/components/meal-plan/DeleteConfirmationModal";
 import { DropIntentPopover } from "@/components/meal-plan/DropIntentPopover";
-import { EditModal } from "@/components/meal-plan/EditModal";
-import { MenuPrintExportModal } from "@/components/meal-plan/MenuPrintExportModal";
 import {
   MealBankSidecar,
   type MealBankPlacement,
 } from "@/components/meal-plan/MealBankSidecar";
-import { MonthView } from "@/components/meal-plan/MonthView";
-import { RecipeSearchModal } from "@/components/meal-plan/RecipeSearchModal";
-import { SlotManagerModal } from "@/components/meal-plan/SlotManagerModal";
 import { TrashDropZone } from "@/components/meal-plan/TrashDropZone";
 import { WeekView } from "@/components/meal-plan/WeekView";
-import { AddRecipeModal } from "@/components/recipes/AddRecipeModal";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -76,10 +77,21 @@ import { mealToRecipePayload } from "@/lib/meal-to-recipe";
 import { useMealTypeProfiles } from "@/lib/use-meal-types";
 import { useMealSubTypeDefinitions } from "@/lib/use-meal-types";
 import { getPlatform } from "@/lib/platform";
+import {
+  importMealPlanDayView,
+  importMealPlanDeleteConfirmationModal,
+  importMealPlanEditModal,
+  importMealPlanMonthView,
+  importMealPlanRecipeSearchModal,
+  getMealPlanAlternatePreloadOrder,
+  resolveInitialMealPlanView,
+  scheduleMealPlanPreload,
+  type MealPlanView,
+} from "@/lib/meal-plan-deferred";
 import type { CreateRecipeInput, RecipeConflict, RecipePayload } from "@shared/types";
 import { LIST_REFETCH_INTERVAL_MS } from "@/lib/query-intervals";
 
-type CalView = "day" | "week" | "month";
+type CalView = MealPlanView;
 
 type SlotManagerState = {
   date: Date;
@@ -98,6 +110,77 @@ type PendingDropIntent = {
 const MEAL_BANK_TYPE = "bank";
 const MEAL_BANK_PLACEMENT_KEY = "meal_bank_sidecar_placement";
 const MEAL_BANK_COLLAPSED_KEY = "meal_bank_collapsed";
+
+type DeferredComponentMap = {
+  DayView: LazyExoticComponent<typeof import("@/components/meal-plan/DayView").DayView>;
+  MonthView: LazyExoticComponent<typeof import("@/components/meal-plan/MonthView").MonthView>;
+  DeleteConfirmationModal: LazyExoticComponent<typeof import("@/components/meal-plan/DeleteConfirmationModal").DeleteConfirmationModal>;
+  EditModal: LazyExoticComponent<typeof import("@/components/meal-plan/EditModal").EditModal>;
+  DuplicateMealModal: LazyExoticComponent<typeof import("@/components/meal-plan/DuplicateMealModal").DuplicateMealModal>;
+  MenuPrintExportModal: LazyExoticComponent<typeof import("@/components/meal-plan/MenuPrintExportModal").MenuPrintExportModal>;
+  SlotManagerModal: LazyExoticComponent<typeof import("@/components/meal-plan/SlotManagerModal").SlotManagerModal>;
+  RecipeSearchModal: LazyExoticComponent<typeof import("@/components/meal-plan/RecipeSearchModal").RecipeSearchModal>;
+  AddRecipeModal: LazyExoticComponent<typeof import("@/components/recipes/AddRecipeModal").AddRecipeModal>;
+};
+
+function createDeferredComponents(): DeferredComponentMap {
+  return {
+    DayView: lazy(() => importMealPlanDayView().then((module) => ({ default: module.DayView }))),
+    MonthView: lazy(() => importMealPlanMonthView().then((module) => ({ default: module.MonthView }))),
+    DeleteConfirmationModal: lazy(() => importMealPlanDeleteConfirmationModal().then((module) => ({ default: module.DeleteConfirmationModal }))),
+    EditModal: lazy(() => importMealPlanEditModal().then((module) => ({ default: module.EditModal }))),
+    DuplicateMealModal: lazy(() => import("@/components/meal-plan/DuplicateMealModal").then((module) => ({ default: module.DuplicateMealModal }))),
+    MenuPrintExportModal: lazy(() => import("@/components/meal-plan/MenuPrintExportModal").then((module) => ({ default: module.MenuPrintExportModal }))),
+    SlotManagerModal: lazy(() => import("@/components/meal-plan/SlotManagerModal").then((module) => ({ default: module.SlotManagerModal }))),
+    RecipeSearchModal: lazy(() => importMealPlanRecipeSearchModal().then((module) => ({ default: module.RecipeSearchModal }))),
+    AddRecipeModal: lazy(() => import("@/components/recipes/AddRecipeModal").then((module) => ({ default: module.AddRecipeModal }))),
+  };
+}
+
+type DeferredContentBoundaryProps = {
+  children: ReactNode;
+  onDismiss: () => void;
+  onRetry: () => void;
+};
+
+type DeferredContentBoundaryState = {
+  error: Error | null;
+};
+
+class DeferredContentErrorBoundary extends Component<
+  DeferredContentBoundaryProps,
+  DeferredContentBoundaryState
+> {
+  state: DeferredContentBoundaryState = { error: null };
+
+  static getDerivedStateFromError(error: Error): DeferredContentBoundaryState {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div role="alert" className="rounded-lg border border-border bg-card p-4 text-sm">
+          <p>Unable to load this Meal Plan feature.</p>
+          <div className="mt-3 flex gap-2">
+            <button onClick={this.props.onRetry} type="button">
+              Retry
+            </button>
+            <button onClick={this.props.onDismiss} type="button">
+              Dismiss
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+function DeferredContentFallback() {
+  return <div className="p-4 text-sm text-text-muted">Loading...</div>;
+}
 
 type DeletedMealSnapshot = Pick<
   EditableMeal,
@@ -149,19 +232,31 @@ export default function MealPlanPage() {
   const platform = useMemo(() => getPlatform(), []);
   const config = useServerConfig();
   const apiReady = isServerConfigReady(config);
-  const [view, setView] = useState<CalView>("week");
+  const [view, setView] = useState<CalView>(resolveInitialMealPlanView);
   const [highlightedProfileId, setHighlightedProfileId] = useState<
     string | null
   >(null);
+  const [deferredRevision, setDeferredRevision] = useState(0);
+  const mealPlanPreloadScheduledRef = useRef(false);
+  const deferredComponents = useMemo(
+    createDeferredComponents,
+    [deferredRevision]
+  );
+  const retryDeferredContent = () => {
+    setDeferredRevision((current) => current + 1);
+  };
+  const {
+    AddRecipeModal,
+    DayView,
+    DeleteConfirmationModal,
+    DuplicateMealModal,
+    EditModal,
+    MenuPrintExportModal,
+    MonthView,
+    RecipeSearchModal,
+    SlotManagerModal,
+  } = deferredComponents;
 
-  useEffect(() => {
-    try {
-      const storedView = localStorage.getItem("cal_view") as CalView | null;
-      if (storedView) setView(storedView);
-    } catch {
-      // ignore persistence failures
-    }
-  }, []);
   const [date, setDate] = useState(() => new Date());
   const [editMeal, setEditMeal] = useState<EditableMeal | null>(null);
   const [editMealContext, setEditMealContext] = useState<
@@ -236,20 +331,23 @@ export default function MealPlanPage() {
     placeholderData: keepPreviousData,
     enabled: apiReady,
     refetchInterval: LIST_REFETCH_INTERVAL_MS,
-    queryFn: () =>
-      fetchJson<{ data: CalendarMeal[] }>(
-        `/api/meals?from=${encodeURIComponent(toIsoString(dateRange.from))}&to=${encodeURIComponent(
-          toIsoString(dateRange.to)
-        )}`
-      ).then((response) => response.data.map(toEditableMeal)),
+    queryFn: async () => {
+      const path = `/api/meals?from=${encodeURIComponent(toIsoString(dateRange.from))}&to=${encodeURIComponent(
+        toIsoString(dateRange.to)
+      )}`;
+      const response = await fetchJson<{ data: CalendarMeal[] }>(path);
+      return response.data.map(toEditableMeal);
+    },
   });
 
   const unscheduledMealsQuery = useQuery({
     queryKey: ["meals", "unscheduled"] as const,
     enabled: apiReady,
     refetchInterval: LIST_REFETCH_INTERVAL_MS,
-    queryFn: () =>
-      listUnscheduledMeals().then((response) => response.map(toBankMeal)),
+    queryFn: async () => {
+      const response = await listUnscheduledMeals();
+      return response.map(toBankMeal);
+    },
   });
 
   const meals = mealsQuery.data ?? [];
@@ -264,6 +362,66 @@ export default function MealPlanPage() {
     date,
     mealTypeProfiles
   );
+  const mealPlanReadyForPreload =
+    apiReady &&
+    !mealsQuery.isLoading &&
+    mealsQuery.data !== undefined &&
+    !unscheduledMealsQuery.isLoading &&
+    unscheduledMealsQuery.data !== undefined &&
+    !mealTypeProfilesQuery.isLoading &&
+    mealTypeProfilesQuery.data !== undefined &&
+    !mealSubTypesQuery.isLoading &&
+    mealSubTypesQuery.data !== undefined;
+
+  useEffect(() => {
+    if (
+      !mealPlanReadyForPreload ||
+      mealPlanPreloadScheduledRef.current
+    ) {
+      return;
+    }
+
+    mealPlanPreloadScheduledRef.current = true;
+    let cancelled = false;
+    let cancelSecondaryPreload = () => {};
+    const alternateViews = getMealPlanAlternatePreloadOrder(view);
+    const initialAlternateView = view === "week" ? null : alternateViews[0];
+    const remainingAlternateViews = initialAlternateView
+      ? alternateViews.slice(1)
+      : alternateViews;
+    const alternateImporters = {
+      day: importMealPlanDayView,
+      month: importMealPlanMonthView,
+    } as const;
+    const cancelInitialPreload = scheduleMealPlanPreload(() => {
+      const initialImports = [
+        ...(initialAlternateView
+          ? [alternateImporters[initialAlternateView]()]
+          : []),
+        importMealPlanEditModal(),
+        importMealPlanDeleteConfirmationModal(),
+        importMealPlanRecipeSearchModal(),
+      ];
+
+      void Promise.allSettled(initialImports).then(() => {
+        if (cancelled || remainingAlternateViews.length === 0) {
+          return;
+        }
+
+        cancelSecondaryPreload = scheduleMealPlanPreload(async () => {
+          for (const alternateView of remainingAlternateViews) {
+            await alternateImporters[alternateView]().catch(() => undefined);
+          }
+        });
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelInitialPreload();
+      cancelSecondaryPreload();
+    };
+  }, [mealPlanReadyForPreload, view]);
 
   useEffect(() => {
     let cancelled = false;
@@ -2103,18 +2261,26 @@ export default function MealPlanPage() {
         ) : null}
         <div className={styles.calCard}>
           {!mealsQuery.isLoading && view === "day" ? (
-            <DayView
-              date={date}
-              dragDisabled={false}
-              meals={meals}
-              mealTypeProfiles={mealTypeProfiles}
-              highlightedProfileId={highlightedProfileId}
-              onEdit={(meal) => openEditMeal(meal)}
-              onAddMeal={(meal) => openEditMeal(meal, "calendar-slot")}
-              onOpenSlotManager={openSlotManager}
-              onDropPayload={onDropPayload}
-              setDate={setDate}
-            />
+            <DeferredContentErrorBoundary
+              key={`day-${deferredRevision}`}
+              onDismiss={() => switchView("week")}
+              onRetry={retryDeferredContent}
+            >
+              <Suspense fallback={<DeferredContentFallback />}>
+                <DayView
+                  date={date}
+                  dragDisabled={false}
+                  meals={meals}
+                  mealTypeProfiles={mealTypeProfiles}
+                  highlightedProfileId={highlightedProfileId}
+                  onEdit={(meal) => openEditMeal(meal)}
+                  onAddMeal={(meal) => openEditMeal(meal, "calendar-slot")}
+                  onOpenSlotManager={openSlotManager}
+                  onDropPayload={onDropPayload}
+                  setDate={setDate}
+                />
+              </Suspense>
+            </DeferredContentErrorBoundary>
           ) : null}
           {view === "week" ? (
             <WeekView
@@ -2133,17 +2299,25 @@ export default function MealPlanPage() {
             />
           ) : null}
           {!mealsQuery.isLoading && view === "month" ? (
-            <MonthView
-              date={date}
-              meals={meals}
-              mealTypeProfiles={mealTypeProfiles}
-              highlightedProfileId={highlightedProfileId}
-              onEdit={(meal) => openEditMeal(meal)}
-              onAddMeal={(meal) => openEditMeal(meal, "calendar-slot")}
-              onRequestDayView={() => switchView("day")}
-              onRequestWeekView={() => switchView("week")}
-              setDate={setDate}
-            />
+            <DeferredContentErrorBoundary
+              key={`month-${deferredRevision}`}
+              onDismiss={() => switchView("week")}
+              onRetry={retryDeferredContent}
+            >
+              <Suspense fallback={<DeferredContentFallback />}>
+                <MonthView
+                  date={date}
+                  meals={meals}
+                  mealTypeProfiles={mealTypeProfiles}
+                  highlightedProfileId={highlightedProfileId}
+                  onEdit={(meal) => openEditMeal(meal)}
+                  onAddMeal={(meal) => openEditMeal(meal, "calendar-slot")}
+                  onRequestDayView={() => switchView("day")}
+                  onRequestWeekView={() => switchView("week")}
+                  setDate={setDate}
+                />
+              </Suspense>
+            </DeferredContentErrorBoundary>
           ) : null}
         </div>
         {mealBankPlacement !== "left" ? (
@@ -2216,11 +2390,19 @@ export default function MealPlanPage() {
       <TrashDropZone visible={isDraggingMeal} onDropMeal={onTrashDropMeal} />
 
       {isMenuExportOpen ? (
-        <MenuPrintExportModal
-          initialFrom={dateRange.from}
-          initialTo={dateRange.to}
-          onClose={() => setIsMenuExportOpen(false)}
-        />
+        <DeferredContentErrorBoundary
+          key={`menu-export-${deferredRevision}`}
+          onDismiss={() => setIsMenuExportOpen(false)}
+          onRetry={retryDeferredContent}
+        >
+          <Suspense fallback={<DeferredContentFallback />}>
+            <MenuPrintExportModal
+              initialFrom={dateRange.from}
+              initialTo={dateRange.to}
+              onClose={() => setIsMenuExportOpen(false)}
+            />
+          </Suspense>
+        </DeferredContentErrorBoundary>
       ) : null}
 
       <div className={styles.legendStack}>
@@ -2284,129 +2466,179 @@ export default function MealPlanPage() {
       </div>
 
       {editMeal ? (
-        <EditModal
-          addContext={editMealContext}
-          key={`${editMeal.id || "new"}-${editMealContext}`}
-          meal={editMeal}
-          mealSubTypes={mealSubTypes}
-          mealTypeProfiles={mealTypeProfiles}
-          onClose={() => setEditMeal(null)}
-          onDelete={onDeleteMeal}
-          onSave={onSaveMeal}
-          onSaveAsRecipe={handleSaveAsRecipe}
-          onUnlinkRecipe={handleUnlinkRecipe}
-                  onViewLinkedRecipe={handleViewLinkedRecipe}
-        />
+        <DeferredContentErrorBoundary
+          key={`edit-${deferredRevision}`}
+          onDismiss={() => setEditMeal(null)}
+          onRetry={retryDeferredContent}
+        >
+          <Suspense fallback={<DeferredContentFallback />}>
+            <EditModal
+              addContext={editMealContext}
+              key={`${editMeal.id || "new"}-${editMealContext}`}
+              meal={editMeal}
+              mealSubTypes={mealSubTypes}
+              mealTypeProfiles={mealTypeProfiles}
+              onClose={() => setEditMeal(null)}
+              onDelete={onDeleteMeal}
+              onSave={onSaveMeal}
+              onSaveAsRecipe={handleSaveAsRecipe}
+              onUnlinkRecipe={handleUnlinkRecipe}
+              onViewLinkedRecipe={handleViewLinkedRecipe}
+            />
+          </Suspense>
+        </DeferredContentErrorBoundary>
       ) : null}
 
       {bankEditProxy ? (
-        <EditModal
-          meal={bankEditProxy}
-          mealSubTypes={mealSubTypes}
-          mealTypeProfiles={mealTypeProfiles}
-          onClose={() => setBankEditMeal(null)}
-          onDelete={async (mealId) => {
-            await deleteMealById(mealId);
-            setBankEditMeal(null);
-          }}
-          onSave={saveBankMeal}
-          onSaveAsRecipe={handleSaveAsRecipe}
-          onUnlinkRecipe={handleUnlinkRecipe}
-          onViewLinkedRecipe={handleViewLinkedRecipe}
-        />
+        <DeferredContentErrorBoundary
+          key={`bank-edit-${deferredRevision}`}
+          onDismiss={() => setBankEditMeal(null)}
+          onRetry={retryDeferredContent}
+        >
+          <Suspense fallback={<DeferredContentFallback />}>
+            <EditModal
+              meal={bankEditProxy}
+              mealSubTypes={mealSubTypes}
+              mealTypeProfiles={mealTypeProfiles}
+              onClose={() => setBankEditMeal(null)}
+              onDelete={async (mealId) => {
+                await deleteMealById(mealId);
+                setBankEditMeal(null);
+              }}
+              onSave={saveBankMeal}
+              onSaveAsRecipe={handleSaveAsRecipe}
+              onUnlinkRecipe={handleUnlinkRecipe}
+              onViewLinkedRecipe={handleViewLinkedRecipe}
+            />
+          </Suspense>
+        </DeferredContentErrorBoundary>
       ) : null}
 
       {duplicateMeal ? (
-        <DuplicateMealModal
-          error={duplicateMealError}
-          isDuplicating={isDuplicatingMeal}
-          isOpen
-          meal={duplicateMeal}
-          mealTypeProfiles={mealTypeProfiles}
-          onClose={() => {
-            if (isDuplicatingMeal) {
-              return;
-            }
+        <DeferredContentErrorBoundary
+          key={`duplicate-${deferredRevision}`}
+          onDismiss={() => setDuplicateMeal(null)}
+          onRetry={retryDeferredContent}
+        >
+          <Suspense fallback={<DeferredContentFallback />}>
+            <DuplicateMealModal
+              error={duplicateMealError}
+              isDuplicating={isDuplicatingMeal}
+              isOpen
+              meal={duplicateMeal}
+              mealTypeProfiles={mealTypeProfiles}
+              onClose={() => {
+                if (isDuplicatingMeal) {
+                  return;
+                }
 
-            setDuplicateMealError(null);
-            setDuplicateMeal(null);
-          }}
-          onDuplicate={(target) => {
-            void handleDuplicateMeal(target);
-          }}
-          referenceDate={date}
-        />
+                setDuplicateMealError(null);
+                setDuplicateMeal(null);
+              }}
+              onDuplicate={(target) => {
+                void handleDuplicateMeal(target);
+              }}
+              referenceDate={date}
+            />
+          </Suspense>
+        </DeferredContentErrorBoundary>
       ) : null}
 
       {slotManagerState ? (
-        <SlotManagerModal
-          mealTypeDefinition={slotManagerMealTypeDefinition}
-          onAddMeal={() => {
-            const slot = slotManagerState;
-            closeSlotManager(false);
-            openEditMeal(
-              createEmptyMeal(
-                new Date(slot.date),
-                slot.type,
-                findMealTypeDefinition(slot.type, slot.date)
-              ),
-              "calendar-slot"
-            );
-          }}
-          onClose={closeSlotManager}
-          onDelete={onDeleteMeal}
-          onEdit={(meal) => {
-            closeSlotManager(false);
-            setEditMeal(meal);
-          }}
-          onReorder={async (orderedIds) => {
-            await reorderMealsInSlot(
-              slotManagerState.date,
-              slotManagerState.type,
-              orderedIds,
-              `Reordered ${getTypeConfig(slotManagerState.type, mealTypeDefinitions).label.toLowerCase()} slot`
-            );
-          }}
-          slotDate={slotManagerState.date}
-          slotMeals={slotManagerMeals}
-          slotType={slotManagerState.type}
-        />
+        <DeferredContentErrorBoundary
+          key={`slot-manager-${deferredRevision}`}
+          onDismiss={() => setSlotManagerState(null)}
+          onRetry={retryDeferredContent}
+        >
+          <Suspense fallback={<DeferredContentFallback />}>
+            <SlotManagerModal
+              mealTypeDefinition={slotManagerMealTypeDefinition}
+              onAddMeal={() => {
+                const slot = slotManagerState;
+                closeSlotManager(false);
+                openEditMeal(
+                  createEmptyMeal(
+                    new Date(slot.date),
+                    slot.type,
+                    findMealTypeDefinition(slot.type, slot.date)
+                  ),
+                  "calendar-slot"
+                );
+              }}
+              onClose={closeSlotManager}
+              onDelete={onDeleteMeal}
+              onEdit={(meal) => {
+                closeSlotManager(false);
+                setEditMeal(meal);
+              }}
+              onReorder={async (orderedIds) => {
+                await reorderMealsInSlot(
+                  slotManagerState.date,
+                  slotManagerState.type,
+                  orderedIds,
+                  `Reordered ${getTypeConfig(slotManagerState.type, mealTypeDefinitions).label.toLowerCase()} slot`
+                );
+              }}
+              slotDate={slotManagerState.date}
+              slotMeals={slotManagerMeals}
+              slotType={slotManagerState.type}
+            />
+          </Suspense>
+        </DeferredContentErrorBoundary>
       ) : null}
 
       {saveAsRecipeMeal ? (
-        <AddRecipeModal
-          open
-          focusTitleRequestKey={recipeTitleFocusRequestKey}
-          initialRecipe={mealToRecipePayload(saveAsRecipeMeal)}
-          isSaving={createRecipeMutation.isPending}
-          onClose={closeSaveAsRecipeFlow}
-          onConflict={handleSaveRecipeConflict}
-          onSave={handleSaveRecipeFromMeal}
-        />
+        <DeferredContentErrorBoundary
+          key={`add-recipe-${deferredRevision}`}
+          onDismiss={closeSaveAsRecipeFlow}
+          onRetry={retryDeferredContent}
+        >
+          <Suspense fallback={<DeferredContentFallback />}>
+            <AddRecipeModal
+              open
+              focusTitleRequestKey={recipeTitleFocusRequestKey}
+              initialRecipe={mealToRecipePayload(saveAsRecipeMeal)}
+              isSaving={createRecipeMutation.isPending}
+              onClose={closeSaveAsRecipeFlow}
+              onConflict={handleSaveRecipeConflict}
+              onSave={handleSaveRecipeFromMeal}
+            />
+          </Suspense>
+        </DeferredContentErrorBoundary>
       ) : null}
 
-      <RecipeSearchModal
-        currentMealName=""
-        errorMessage={bankRecipeSearchError}
-        onClose={() => {
-          setIsBankRecipeSearchOpen(false);
-          setBankRecipeSearchError(null);
-        }}
-        onSelectRecipe={async (recipe, servings, personalNote) => {
-          setBankRecipeSearchError(null);
-          try {
-            await addBankMealFromRecipe(recipe, servings, personalNote);
-            setIsBankRecipeSearchOpen(false);
-          } catch (error) {
-            setBankRecipeSearchError(
-              error instanceof Error
-                ? error.message
-                : "Unable to add this recipe to the Meal Bank right now."
-            );
-          }
-        }}
-        open={isBankRecipeSearchOpen}
-      />
+      {isBankRecipeSearchOpen ? (
+        <DeferredContentErrorBoundary
+          key={`recipe-search-${deferredRevision}`}
+          onDismiss={() => setIsBankRecipeSearchOpen(false)}
+          onRetry={retryDeferredContent}
+        >
+          <Suspense fallback={<DeferredContentFallback />}>
+            <RecipeSearchModal
+              currentMealName=""
+              errorMessage={bankRecipeSearchError}
+              onClose={() => {
+                setIsBankRecipeSearchOpen(false);
+                setBankRecipeSearchError(null);
+              }}
+              onSelectRecipe={async (recipe, servings, personalNote) => {
+                setBankRecipeSearchError(null);
+                try {
+                  await addBankMealFromRecipe(recipe, servings, personalNote);
+                  setIsBankRecipeSearchOpen(false);
+                } catch (error) {
+                  setBankRecipeSearchError(
+                    error instanceof Error
+                      ? error.message
+                      : "Unable to add this recipe to the Meal Bank right now."
+                  );
+                }
+              }}
+              open
+            />
+          </Suspense>
+        </DeferredContentErrorBoundary>
+      ) : null}
 
       <AlertDialog
         open={Boolean(saveAsRecipeConflict)}
@@ -2466,21 +2698,29 @@ export default function MealPlanPage() {
       </AlertDialog>
 
       {trashPendingMeal ? (
-        <DeleteConfirmationModal
-          mealName={trashPendingMeal.name}
-          isOpen
-          isLoading={isTrashDeleting}
-          error={trashDeleteError}
-          onConfirm={onConfirmTrashDelete}
-          onCancel={() => {
-            if (isTrashDeleting) {
-              return;
-            }
+        <DeferredContentErrorBoundary
+          key={`delete-${deferredRevision}`}
+          onDismiss={() => setTrashPendingMeal(null)}
+          onRetry={retryDeferredContent}
+        >
+          <Suspense fallback={<DeferredContentFallback />}>
+            <DeleteConfirmationModal
+              mealName={trashPendingMeal.name}
+              isOpen
+              isLoading={isTrashDeleting}
+              error={trashDeleteError}
+              onConfirm={onConfirmTrashDelete}
+              onCancel={() => {
+                if (isTrashDeleting) {
+                  return;
+                }
 
-            setTrashDeleteError(undefined);
-            setTrashPendingMeal(null);
-          }}
-        />
+                setTrashDeleteError(undefined);
+                setTrashPendingMeal(null);
+              }}
+            />
+          </Suspense>
+        </DeferredContentErrorBoundary>
       ) : null}
 
 
