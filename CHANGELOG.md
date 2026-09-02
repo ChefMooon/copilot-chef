@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.6] - 2026-09-01
+
+### Added
+
+- Settings are now organized into clearer categories, making preferences easier to find.
+- Renderer controls now include accessible tooltips to improve navigation and understanding.
+
+### Changed
+
+- Improved cold-start loading performance for the meal plan.
+
+### Fixed
+
+- Meal-plan duplicate interactions are more reliable and resist accidental repeated actions.
+- Mobile layouts now preserve usable bottom scroll space and keep prep and grocery-list headers visible.
+- Meal-plan edit styling is more consistent, including meal-type controls.
+- Recipe advanced filters now preserve their expanded state.
+
 ## [1.2.5] - 2026-08-25
 
 ### Fixed
