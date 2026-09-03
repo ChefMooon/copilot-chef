@@ -1,6 +1,6 @@
 # Local Recipe Book
 
-Local Recipe Book is a local-first meal-planning Electron app with an embedded Hono API server and SQLite storage.
+Local Recipe Book is a local-first meal-planning Electron app with an embedded Hono API server and SQLite storage. The renderer can also run as a standalone browser client for trusted LAN devices.
 
 ## Features
 
@@ -47,20 +47,27 @@ npm run db:seed
 npm run dev
 ```
 
-## Commands
+## Development Commands
 
 ```bash
 npm run build
 npm run build:web
 npm run dev:web
 npm run build:win
+npm run build:linux
+npm run build:unpack
 npm run lint
 npm run format
 npm run test
+npm run analyze:bundle
 npm run db:push
 npm run db:generate
 npm run db:seed
 ```
+
+`npm run dev:web` starts the browser renderer without Electron. Connect it to a running API from the connection page. `npm run build:web` creates the standalone browser build in `out/web/`.
+
+For database schema changes, run `npm run db:push` and then `npm run db:generate`. On Windows, stop the Electron process first if Prisma reports that its query engine is locked.
 
 ## Configuration
 
@@ -68,22 +75,22 @@ App settings are stored in `{userData}/settings.json`.
 
 Key settings:
 
-| Key | Default | Purpose |
-|---|---|---|
-| `server_mode` | `"local"` | Use the embedded server or a remote server |
-| `server_port` | `3001` | Local API port |
-| `remote_server_url` | — | Remote API URL when `server_mode = "remote"` |
-| `remote_api_key` | — | Remote API bearer token |
-| `app_close_to_tray` | `true` | Hide to tray on close |
-| `app_remember_window_state` | `false` | Restore the last desktop window position, size, and maximized state |
-| `lan_enabled` | `false` | Enables LAN API binding |
-| `lan_web_enabled` | mirrors `lan_enabled` | Enables the static browser UI server |
-| `lan_web_port` | `4173` | Port for the static browser UI |
-| `lan_api_port` | inherits `server_port` | API port when LAN is active |
-| `lan_advertised_host` | auto-detected | Optional advertised LAN host override |
-| `lan_allowed_origins` | `[]` | Extra approved CORS origins |
-| `machine_api_key` | generated on demand | Persistent bearer token for browser/LAN clients |
-| `machine_api_key_updated_at` | — | ISO timestamp of the last token change |
+| Key                          | Default                | Purpose                                                             |
+| ---------------------------- | ---------------------- | ------------------------------------------------------------------- |
+| `server_mode`                | `"local"`              | Use the embedded server or a remote server                          |
+| `server_port`                | `3001`                 | Local API port                                                      |
+| `remote_server_url`          | —                      | Remote API URL when `server_mode = "remote"`                        |
+| `remote_api_key`             | —                      | Remote API bearer token                                             |
+| `app_close_to_tray`          | `true`                 | Hide to tray on close                                               |
+| `app_remember_window_state`  | `false`                | Restore the last desktop window position, size, and maximized state |
+| `lan_enabled`                | `false`                | Enables LAN API binding                                             |
+| `lan_web_enabled`            | mirrors `lan_enabled`  | Enables the static browser UI server                                |
+| `lan_web_port`               | `4173`                 | Port for the static browser UI                                      |
+| `lan_api_port`               | inherits `server_port` | API port when LAN is active                                         |
+| `lan_advertised_host`        | auto-detected          | Optional advertised LAN host override                               |
+| `lan_allowed_origins`        | `[]`                   | Extra approved CORS origins                                         |
+| `machine_api_key`            | generated on demand    | Persistent bearer token for browser/LAN clients                     |
+| `machine_api_key_updated_at` | —                      | ISO timestamp of the last token change                              |
 
 To use a remote server, go to **Settings → Connection**, enable remote mode, and enter the server URL and token.
 
@@ -92,6 +99,8 @@ To use a remote server, go to **Settings → Connection**, enable remote mode, a
 The SQLite database is created at `{userData}/data/local-recipe-book.db` on first launch after `npm run db:push`.
 
 Seed data includes sample meals, preferences, grocery lists, and recipes.
+
+Data archives use the `.lrb` format and are exported, validated, previewed, and imported through the app. See [Data Management](docs/data-management.md) for archive scopes, limits, merge behavior, and recovery details.
 
 ## Testing
 
@@ -105,7 +114,10 @@ Uses [Vitest](https://vitest.dev).
 
 - [Architecture](docs/architecture.md) — runtime model, auth, updates, SQLite
 - [Developer Guide](docs/developer-guide.md) — setup, feature workflow, testing, releases
+- [Configuration](docs/local-recipe-book-config.md) — settings, environment variables, and preference contracts
+- [Data Management](docs/data-management.md) — `.lrb` archives, validation, import, export, and recovery
 - [LAN and Browser Access](docs/lan-browser-access.md) — token flow and trusted-device access
-- [Architecture Improvement Plan](docs/plans/local-recipe-book-architecture-improvement-plan.md) — proposed boundary and reliability improvements for review
+- [IPC Channels](docs/ipc-channels.md) — Electron request-response and push channel contracts
+- [Testing](docs/TEST.md) — automated test coverage and known gaps
+- [Release Guide](docs/release-guide.md) — packaging and release workflow
 - [Documentation Structure](docs/STRUCTURE.md) — current source-of-truth docs and archive policy
-
