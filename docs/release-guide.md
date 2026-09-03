@@ -58,9 +58,9 @@ git push origin v1.0.0
 6. Reruns `npm run test`.
 7. Packages and publishes the Windows installer with `electron-builder --win --publish always`.
 
-The workflow uses the repository `GITHUB_TOKEN` to publish the release assets defined by the Electron Builder config in `package.json`.
+The workflow uses the repository `GITHUB_TOKEN` to publish the release assets defined by the Electron Builder config in `package.json`. A normal Windows release has one installer `.exe` plus two required updater assets: the matching `.blockmap` and `latest.yml` (three assets total). The blockmap and `latest.yml` are metadata for the same installer, not additional installer artifacts or duplicate releases.
 
-After the workflow creates the GitHub Release draft, update its body with the validated `CHANGELOG.md` entry for the matching version. Preserve any generated release text and avoid duplicating the changelog block. Verify the workflow's matching SHA/ref, successful completion, exact draft tag/title, changelog text, and installer artifacts before publishing or treating the release as complete.
+After the workflow creates the GitHub Release draft, update its body with the validated `CHANGELOG.md` entry for the matching version. Preserve any generated release text and avoid duplicating the changelog block. Verify the workflow's matching SHA/ref, successful completion, exact draft tag/title, changelog text, one installer `.exe`, its matching `.blockmap`, and `latest.yml` before publishing or treating the release as complete. Multiple matching installers, duplicate asset names, or multiple releases for one tag are ambiguous and must stop the release process.
 
 The breaking Local Recipe Book identity uses package slug `local-recipe-book` and Electron app ID `com.local-recipe-book.app`. Existing installs do not retain update continuity after the app ID change. Before upgrading, export an `all` `.lrb` archive, install the new build as a new application identity, and re-import the archive into its fresh database. The archive restores supported content and allowlisted preferences, not raw settings, tokens, secrets, or device configuration.
 
@@ -69,7 +69,7 @@ The breaking Local Recipe Book identity uses package slug `local-recipe-book` an
 ## Verify the Release
 
 1. Open GitHub Releases and confirm the `v1.0.0` release exists.
-2. Confirm the Windows installer artifacts were uploaded.
+2. Confirm exactly one Windows installer `.exe`, its matching `.blockmap`, and `latest.yml` were uploaded; the latter two are updater metadata for the same installer.
 3. Download and install the build on Windows.
 4. Launch the app and confirm startup, local server boot, and settings persistence.
 5. Confirm the browser web bundle is included — open the static URL on a LAN device or check that browser assets are present in the packaged output.
