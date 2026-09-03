@@ -32,6 +32,11 @@ export type {
   IpcEventChannel,
   IpcEventMap,
   IpcInvokeMap,
+  UpdateCheckOrigin,
+  UpdateCheckResult,
+  UpdateInfo,
+  UpdateProgress,
+  UpdateState,
 } from "./ipc";
 // Constants
 export {
@@ -105,4 +110,3 @@ export type {
   PrepListSortMode,
   PrepListSourceMode,
 } from "./types";
-

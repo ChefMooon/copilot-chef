@@ -46,9 +46,10 @@ These channels use `ipcMain.handle(...)` in main and `window.api.invoke(...)` in
 | `menu:exportPdf` | renderer -> main | `{ htmlContent, suggestedFileName }` | Generates a PDF and opens save dialog | `src/main/ipc/index.ts` |
 | `data-management:openArchive` | renderer -> main | none | Opens a native archive picker and returns selected archive bytes/path | `src/main/ipc/index.ts` |
 | `data-management:saveArchive` | renderer -> main | `{ data, suggestedFileName }` | Opens a native archive save dialog and writes selected archive bytes | `src/main/ipc/index.ts` |
-| `updates:check` | renderer -> main | none | Checks for app updates | `src/main/updates/service.ts` |
+| `updates:check` | renderer -> main | `origin?: "startup" \| "manual"` | Checks for app updates without downloading; startup checks honor the deferred version | `src/main/updates/service.ts` |
 | `updates:is-supported` | renderer -> main | none | Reports whether packaged desktop updates are available in the current runtime | `src/main/ipc/index.ts` |
 | `updates:get-state` | renderer -> main | none | Returns the latest updater state for late renderer subscribers | `src/main/updates/service.ts` |
+| `updates:download` | renderer -> main | none | Explicitly downloads the discovered update; repeated calls while downloading are idempotent | `src/main/updates/service.ts` |
 | `updates:install` | renderer -> main | none | Installs downloaded update and restarts app | `src/main/updates/service.ts` |
 
 ---
@@ -61,7 +62,7 @@ These channels use `webContents.send(...)` in main and `window.api.on(...)` in r
 |---|---|---|---|---|---|
 | `updates:available` | main -> renderer | `UpdateInfo` | Signals update availability | `src/main/updates/service.ts` | Subscribed |
 | `updates:not-available` | main -> renderer | none | Signals no update available | `src/main/updates/service.ts` | Subscribed |
-| `updates:progress` | main -> renderer | `ProgressInfo` | Emits automatic download progress | `src/main/updates/service.ts` | Subscribed by app update provider |
+| `updates:progress` | main -> renderer | `ProgressInfo` | Emits progress for an explicitly requested download | `src/main/updates/service.ts` | Subscribed by app update provider |
 | `updates:downloaded` | main -> renderer | `UpdateInfo` | Signals update is downloaded and ready for explicit installation | `src/main/updates/service.ts` | Subscribed by app update provider |
 | `updates:error` | main -> renderer | `string` | Emits update errors | `src/main/updates/service.ts` | Subscribed |
 
@@ -76,3 +77,7 @@ These channels use `webContents.send(...)` in main and `window.api.on(...)` in r
 5. Document every new channel here in the same PR as code changes.
 
 Data-management IPC is desktop-only file handoff, not a general filesystem API. Browser mode must use the platform capability flag and never call these channels. Archive validation, preview, and mutation remain owned by the authenticated server routes; the IPC handlers only open/save the bytes needed by the native dialogs and return canceled or user-facing error results.
+
+Update discovery never downloads automatically (`autoDownload` is disabled), and quitting never installs an update (`autoInstallOnAppQuit` is disabled). The renderer must call `updates:download` after an `updates:available` event (or an `available` state replay). Installation is never triggered by quitting the app: only `updates:install` calls `quitAndInstall()`.
+
+Startup checks use `origin: "startup"` and suppress notification for the exact persisted `updates_deferred_version`. A manual check always surfaces the available version and clears that deferral. A newer version is never suppressed by an older deferred version. Update states are `idle`, `checking`, `not-available`, `available`, `deferred`, `downloading`, `downloaded`, or `error`; errors may retain update metadata for retry/download actions.

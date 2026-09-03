@@ -20,6 +20,7 @@ export const AppSettingKeySchema = z.enum([
   "machine_api_key",
   "machine_api_key_updated_at",
   "updates_check_on_startup",
+  "updates_deferred_version",
   "ui_theme",
   "ui_custom_theme_profile",
 ]);
@@ -52,12 +53,19 @@ export const AppSettingDefaults = {
   machine_api_key: "",
   machine_api_key_updated_at: "",
   updates_check_on_startup: true,
+  updates_deferred_version: null as string | null,
   ui_theme: "system" as const,
   ui_custom_theme_profile: null as CustomThemeProfileV1 | null,
 } as const;
 
 export type AppSettingKey = keyof typeof AppSettingDefaults;
-export type AppSettingValue = (typeof AppSettingDefaults)[AppSettingKey];
+export type AppSettingValue =
+  | string
+  | number
+  | boolean
+  | string[]
+  | CustomThemeProfileV1
+  | null;
 export type AppSettingTheme = "light" | "dark" | "system";
 
 const APP_SETTING_TYPES = {
@@ -78,6 +86,7 @@ const APP_SETTING_TYPES = {
   machine_api_key: "string",
   machine_api_key_updated_at: "string",
   updates_check_on_startup: "boolean",
+  updates_deferred_version: "deferred-version",
   ui_theme: "theme",
   ui_custom_theme_profile: "custom-theme-profile",
 } as const;
@@ -119,6 +128,11 @@ export function normalizeStoredAppSetting<Key extends AppSettingKey>(
         return value;
       }
       return defaultValue;
+    }
+    case "deferred-version": {
+      if (value === null) return null;
+      if (typeof value === "string" && value.trim()) return value.trim();
+      return null;
     }
     case "string[]": {
       if (Array.isArray(value)) {

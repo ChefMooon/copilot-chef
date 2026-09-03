@@ -1,6 +1,7 @@
 import { app } from "electron";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
+import { normalizeStoredAppSetting } from "../../shared/config/settings";
 
 const SETTINGS_FILE = "settings.json";
 
@@ -41,6 +42,9 @@ export function getSetting(key: string): unknown {
   if (Object.keys(settings).length === 0) {
     loadSettings();
   }
+  if (key === "updates_deferred_version") {
+    return normalizeStoredAppSetting("updates_deferred_version", settings[key]);
+  }
   return settings[key];
 }
 
@@ -48,7 +52,10 @@ export function setSetting(key: string, value: unknown): void {
   if (Object.keys(settings).length === 0) {
     loadSettings();
   }
-  settings[key] = value;
+  settings[key] =
+    key === "updates_deferred_version"
+      ? normalizeStoredAppSetting("updates_deferred_version", value)
+      : value;
   saveSettings();
 }
 
@@ -62,5 +69,11 @@ export function getAllSettings(): Record<string, unknown> {
   if (Object.keys(settings).length === 0) {
     loadSettings();
   }
-  return { ...settings };
+  return {
+    ...settings,
+    updates_deferred_version: normalizeStoredAppSetting(
+      "updates_deferred_version",
+      settings.updates_deferred_version
+    ),
+  };
 }

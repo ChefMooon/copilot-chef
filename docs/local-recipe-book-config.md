@@ -33,6 +33,7 @@ These settings are stored in `{userData}/settings.json` through `src/main/settin
 | `app_launch_minimized` | `false` | Desktop-only startup visibility preference. When enabled, the app starts hidden in the tray. Browser mode does not apply this setting. |
 | `app_remember_window_state` | `false` | Desktop-only preference to restore the main window's last valid position, size, and maximized state. Browser mode does not apply it. |
 | `updates_check_on_startup` | `true` | Checks for available app updates when the desktop app starts |
+| `updates_deferred_version` | `null` | Version-specific update deferral; manual checks override and clear it |
 | `ui_theme` | `"system"` | Selects the application theme: `light`, `dark`, or `system` |
 | `lan_web_enabled` | mirrors `lan_enabled` | Enables the browser web process independently |
 | `lan_web_port` | `4173` | Port used by the browser UI process |

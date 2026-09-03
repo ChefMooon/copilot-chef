@@ -75,7 +75,8 @@ export function createElectronPlatform(): RendererPlatform {
       };
     },
     getUpdatesSupported: () => api.invoke("updates:is-supported"),
-    checkForUpdates: () => api.invoke("updates:check"),
+    checkForUpdates: () => api.invoke("updates:check", "manual"),
+    downloadUpdate: () => api.invoke("updates:download"),
     getUpdateState: () => api.invoke("updates:get-state"),
     installUpdate: () => api.invoke("updates:install"),
     getLifecycleStatus: async () => {

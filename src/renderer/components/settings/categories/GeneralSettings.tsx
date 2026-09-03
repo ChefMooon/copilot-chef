@@ -1,9 +1,14 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 
 import { CollapsibleSection } from "../CollapsibleSection";
 import styles from "../settings.module.css";
 import { ToggleSwitch } from "../ToggleSwitch";
 import { Button } from "@/components/ui/button";
+import { ModalShell } from "@/components/ui/ModalShell";
+import {
+  clampUpdateProgress,
+  normalizeReleaseNotes,
+} from "@/components/providers/update-provider";
 import type { UpdateState } from "@/lib/platform";
 import type { PlatformCapabilities, RuntimeMode } from "@/lib/platform/types";
 import { CategorySettingsPanel } from "./CategorySettingsPanel";
@@ -29,9 +34,14 @@ export type GeneralSettingsProps = {
   rememberWindowState: boolean;
   runtime: RuntimeMode;
   updateState: UpdateState;
+  deferredVersion: string | null;
+  changelogUrl: string;
   updatesCheckOnStartup: boolean;
   updatesSupported: boolean;
   onCheckForUpdates: () => void;
+  onDownloadUpdate: () => void;
+  onDeferUpdate: () => void;
+  onRetryUpdate: () => void;
   onCloseToTrayChange: (checked: boolean) => void;
   onInstallUpdate: () => void;
   onLaunchAtLoginChange: (checked: boolean) => void;
@@ -80,18 +90,28 @@ export function GeneralSettings({
   lifecycleUnavailableReason,
   onCheckForUpdates,
   onCloseToTrayChange,
+  onDownloadUpdate,
+  onDeferUpdate,
   onInstallUpdate,
   onLaunchAtLoginChange,
   onLaunchMinimizedChange,
   onRememberWindowStateChange,
   onResetWindowLayout,
+  onRetryUpdate,
   onUpdatesCheckOnStartupChange,
   rememberWindowState,
   runtime,
   updateState,
+  deferredVersion,
+  changelogUrl,
   updatesCheckOnStartup,
   updatesSupported,
 }: GeneralSettingsProps) {
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const updateInfo = "info" in updateState ? updateState.info : undefined;
+  const progress = "progress" in updateState
+    ? clampUpdateProgress(updateState.progress?.percent)
+    : null;
   return (
     <CategorySettingsPanel
       active={active}
@@ -163,15 +183,46 @@ export function GeneralSettings({
               <p className={styles.fieldHint}>
                 Update status:{" "}
                 {updateState.status === "downloading"
-                  ? `Downloading${updateState.progress?.percent != null ? ` ${Math.round(updateState.progress.percent)}%` : "…"}`
+                  ? progress === null
+                    ? "Downloading…"
+                    : `Downloading ${Math.round(progress)}%`
                   : updateState.status === "downloaded"
-                    ? `Ready to install${updateState.info.version ? ` (v${updateState.info.version})` : ""}`
+                    ? `Ready to install${updateInfo?.version ? ` (v${updateInfo.version})` : ""}`
                     : updateState.status === "available"
-                      ? "Available; downloading in the background"
-                      : updateState.status === "error"
-                        ? "Update check failed"
-                        : "No update available"}
+                      ? `Available${updateInfo?.version ? ` (v${updateInfo.version})` : ""}`
+                      : updateState.status === "deferred"
+                        ? `Deferred${updateInfo?.version ? ` (v${updateInfo.version})` : ""}`
+                        : updateState.status === "error"
+                          ? "Update check failed"
+                          : updateState.status === "not-available"
+                            ? "No update available"
+                            : "Not checked"}
               </p>
+              {updateState.status === "downloading" ? (
+                <div
+                  aria-label={progress === null ? "Update download in progress" : `Update download ${Math.round(progress)}%`}
+                  aria-valuemax={progress === null ? undefined : 100}
+                  aria-valuemin={progress === null ? undefined : 0}
+                  aria-valuenow={progress === null ? undefined : progress}
+                  role="progressbar"
+                  style={{
+                    background: "var(--cream-dark)",
+                    borderRadius: "999px",
+                    height: "0.45rem",
+                    margin: "0.75rem 0",
+                    overflow: "hidden",
+                  }}
+                >
+                  <span
+                    style={{
+                      background: "var(--green)",
+                      display: "block",
+                      height: "100%",
+                      width: progress === null ? "35%" : `${progress}%`,
+                    }}
+                  />
+                </div>
+              ) : null}
               <div className={styles.actionsRow}>
                 <Button
                   disabled={checkingForUpdates}
@@ -181,16 +232,73 @@ export function GeneralSettings({
                 >
                   {checkingForUpdates ? "Checking…" : "Check for updates"}
                 </Button>
+                {updateInfo && (
+                  <Button
+                    onClick={() => setDetailsOpen(true)}
+                    type="button"
+                    variant="outline"
+                  >
+                    View release notes
+                  </Button>
+                )}
+                {updateState.status === "available" ? (
+                  <>
+                    <Button onClick={onDownloadUpdate} type="button">
+                      Download update
+                    </Button>
+                    <Button onClick={onDeferUpdate} type="button" variant="ghost">
+                      Defer
+                    </Button>
+                  </>
+                ) : null}
+                {updateState.status === "deferred" ? (
+                  <Button onClick={onCheckForUpdates} type="button" variant="outline">
+                    Check again
+                  </Button>
+                ) : null}
+                {updateState.status === "error" ? (
+                  <Button onClick={onRetryUpdate} type="button">
+                    Retry
+                  </Button>
+                ) : null}
                 {updateState.status === "downloaded" ? (
                   <Button onClick={onInstallUpdate} type="button">
                     Install & Restart
                   </Button>
                 ) : null}
               </div>
+              {deferredVersion ? (
+                <p className={styles.fieldHint}>
+                  Version {deferredVersion} is deferred. Use “Check for updates” to review it manually.
+                </p>
+              ) : null}
+              <p className={styles.fieldHint}>
+                Read the full history in the{" "}
+                <a href={changelogUrl} rel="noopener noreferrer" target="_blank">
+                  Local Recipe Book changelog
+                </a>
+                .
+              </p>
             </div>
           )}
         </div>
       </CollapsibleSection>
+      <ModalShell
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        title={updateInfo?.version ? `What's new in ${updateInfo.version}` : "Update details"}
+        subtitle="Review these release notes before downloading or installing the update."
+        width="min(720px, calc(100vw - 2rem))"
+        footerRight={
+          <Button onClick={() => setDetailsOpen(false)} type="button">
+            Done
+          </Button>
+        }
+      >
+        <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
+          {normalizeReleaseNotes(updateInfo?.releaseNotes)}
+        </div>
+      </ModalShell>
       <CollapsibleSection id="diagnostics" label="Diagnostics">
         <div className={styles.card}>
           <div className={styles.cardHeader}>

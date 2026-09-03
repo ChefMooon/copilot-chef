@@ -9,6 +9,7 @@ describe("shared IPC contract", () => {
     expect(IPC_CHANNELS).toContain("data-management:openArchive");
     expect(IPC_CHANNELS).toContain("data-management:saveArchive");
     expect(IPC_CHANNELS).toContain("updates:check");
+    expect(IPC_CHANNELS).toContain("updates:download");
 
     const channel: IpcChannel = "window:minimize";
     const payload: IpcInvokeMap[typeof channel] = undefined;

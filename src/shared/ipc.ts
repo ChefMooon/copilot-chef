@@ -24,6 +24,7 @@ export const IPC_CHANNELS = [
   "data-management:openArchive",
   "data-management:saveArchive",
   "updates:check",
+  "updates:download",
   "updates:is-supported",
   "updates:get-state",
   "updates:install",
@@ -111,7 +112,8 @@ export type IpcInvokeMap = {
   "data-management:saveArchive": (
     payload: DataArchiveSavePayload
   ) => Promise<DataArchiveSaveResult>;
-  "updates:check": () => Promise<unknown>;
+  "updates:check": (origin?: UpdateCheckOrigin) => Promise<UpdateCheckResult | null>;
+  "updates:download": () => Promise<UpdateState>;
   "updates:is-supported": () => Promise<boolean>;
   "updates:get-state": () => Promise<UpdateState>;
   "updates:install": () => Promise<unknown>;
@@ -120,7 +122,13 @@ export type IpcInvokeMap = {
 export type UpdateInfo = {
   version?: string;
   releaseDate?: string;
-  releaseNotes?: string | null;
+  releaseNotes?: string | Array<{ version?: string; note?: string }> | null;
+};
+
+export type UpdateCheckOrigin = "startup" | "manual";
+
+export type UpdateCheckResult = {
+  updateInfo?: UpdateInfo;
 };
 
 export type UpdateProgress = {
@@ -132,6 +140,7 @@ export type UpdateProgress = {
 
 export type UpdateState =
   | { status: "idle" | "checking" | "not-available"; info?: undefined; progress?: undefined; error?: undefined }
+  | { status: "deferred"; info: UpdateInfo; progress?: undefined; error?: undefined }
   | { status: "available" | "downloading" | "downloaded"; info: UpdateInfo; progress?: UpdateProgress; error?: undefined }
   | { status: "error"; info?: UpdateInfo; progress?: UpdateProgress; error: string };
 

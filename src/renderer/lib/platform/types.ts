@@ -28,6 +28,7 @@ import type {
   DataArchiveSavePayload,
   DataArchiveSaveResult,
   UpdateInfo,
+  UpdateCheckResult,
   UpdateProgress,
   UpdateState,
 } from "../../../shared/ipc";
@@ -37,6 +38,7 @@ export type {
   DataArchiveSavePayload,
   DataArchiveSaveResult,
   UpdateInfo,
+  UpdateCheckResult,
   UpdateProgress,
   UpdateState,
 } from "../../../shared/ipc";
@@ -113,7 +115,8 @@ export type RendererPlatform = {
   getAllSettings: () => Promise<Record<string, unknown>>;
   subscribeUpdates: (handlers: UpdateEventHandlers) => () => void;
   getUpdatesSupported: () => Promise<boolean>;
-  checkForUpdates: () => Promise<unknown>;
+  checkForUpdates: () => Promise<UpdateCheckResult | null>;
+  downloadUpdate: () => Promise<UpdateState>;
   getUpdateState: () => Promise<UpdateState>;
   installUpdate: () => Promise<unknown>;
   getLifecycleStatus: () => Promise<LifecycleStatus>;

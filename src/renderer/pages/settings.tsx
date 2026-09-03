@@ -187,6 +187,11 @@ export default function SettingsPage() {
     supported: updatesSupported,
     state: updateState,
     checkForUpdates,
+    downloadUpdate,
+    deferUpdate,
+    deferredVersion,
+    changelogUrl,
+    installUpdate,
   } = useUpdates();
   const preferencesQuery = useQuery({
     queryKey: preferenceQueryKey,
@@ -1169,6 +1174,18 @@ export default function SettingsPage() {
     }
   };
 
+  const handleRetryUpdate = async () => {
+    if (updateState.status === "error" && updateState.info) {
+      try {
+        await downloadUpdate();
+      } catch {
+        toast({ title: "Could not download update.", variant: "error" });
+      }
+      return;
+    }
+    await handleCheckForUpdates();
+  };
+
   if (!preferences) {
     return (
       <div className={styles.page}>
@@ -1265,12 +1282,26 @@ export default function SettingsPage() {
             description="Configure desktop behavior, update checks, and runtime diagnostics for this device."
             capabilities={platform.capabilities}
             checkingForUpdates={checkingForUpdates}
+            deferredVersion={deferredVersion}
+            changelogUrl={changelogUrl}
             closeToTray={closeToTray}
             diagnostics={diagnostics}
             launchAtLogin={launchAtLogin}
             launchMinimized={launchMinimized}
             lifecycleUnavailableReason={lifecycleUnavailableReason}
             onCheckForUpdates={() => void handleCheckForUpdates()}
+            onDownloadUpdate={() => {
+              void downloadUpdate().catch(() =>
+                toast({ title: "Could not download update.", variant: "error" })
+              );
+            }}
+            onDeferUpdate={() => {
+              void deferUpdate().then(() => {
+                toast({ title: "Update deferred." });
+              }).catch(() => {
+                toast({ title: "Could not defer update.", variant: "error" });
+              });
+            }}
             onCloseToTrayChange={(checked) =>
               void handleDesktopToggle(
                 "app_close_to_tray",
@@ -1280,7 +1311,9 @@ export default function SettingsPage() {
               )
             }
             onInstallUpdate={() => {
-              void platform.installUpdate();
+              void installUpdate().catch(() =>
+                toast({ title: "Could not install update.", variant: "error" })
+              );
             }}
             onLaunchAtLoginChange={(checked) =>
               void handleLaunchAtLogin(checked)
@@ -1302,6 +1335,7 @@ export default function SettingsPage() {
               )
             }
             onResetWindowLayout={() => void handleResetWindowLayout()}
+            onRetryUpdate={() => void handleRetryUpdate()}
             onUpdatesCheckOnStartupChange={(checked) =>
               void handleToggleStartupUpdateCheck(checked)
             }
