@@ -25,6 +25,7 @@ import { useToast } from "@/components/providers/toast-provider";
 import { Button } from "@/components/ui/button";
 import { RouteErrorState } from "@/components/ui/route-error-state";
 import { getPlatform } from "@/lib/platform";
+import { downloadJson } from "@/lib/download";
 import {
   RECIPE_SEARCH_SORT_MODE_VALUES,
   RECIPE_SORT_BY_VALUES,
@@ -119,20 +120,6 @@ function parseSortSessionState(value: unknown): {
     sortOrder: candidate.sortOrder as RecipeSortOrderValue,
     searchSortMode: candidate.searchSortMode as RecipeSearchSortModeValue,
   };
-}
-
-function downloadJson(data: unknown, fileName: string) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], {
-    type: "application/json",
-  });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = fileName;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
 }
 
 export default function RecipesPage() {

@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ModalShell } from "@/components/ui/ModalShell";
 import { exportMenu, fetchJson } from "@/lib/api";
+import { downloadBlob } from "@/lib/download";
 import { getPlatform, type MenuPdfExportResult } from "@/lib/platform";
 import {
   buildMenuDocument,
@@ -77,17 +78,6 @@ function toRangeIso(value: string, endOfDay = false) {
       endOfDay ? 59 : 0
     )
   ).toISOString();
-}
-
-function triggerDownload(blob: Blob, fileName: string) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
 }
 
 function toSlug(value: string) {
@@ -427,7 +417,7 @@ export function MenuPrintExportModal({
         includeEmptyDays,
         title,
       });
-      triggerDownload(result.blob, result.fileName);
+      downloadBlob(result.blob, result.fileName);
     } catch (downloadError) {
       setError(
         downloadError instanceof Error

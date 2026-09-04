@@ -473,24 +473,11 @@ export async function resetPreferences() {
 }
 
 export async function exportUserData() {
-  const url = `${getApiBase()}/api/preferences/export`;
-  const response = await fetch(url, {
-    method: "GET",
-    cache: "no-store",
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
-  }
-
-  const blob = await response.blob();
-  const disposition = response.headers.get("content-disposition") ?? "";
-  const fileNameMatch = disposition.match(/filename="?([^"]+)"?/i);
+  const response = await fetchBinary("/api/preferences/export");
 
   return {
-    blob,
-    fileName: fileNameMatch?.[1] ?? "local-recipe-book-export.json",
+    blob: response.blob,
+    fileName: response.fileName ?? "local-recipe-book-export.json",
   };
 }
 
@@ -519,24 +506,12 @@ export async function exportMenu(options: MenuExportOptions) {
     params.set("title", options.title.trim());
   }
 
-  const response = await fetch(`${getApiBase()}/api/menu-export?${params.toString()}`, {
-    method: "GET",
-    cache: "no-store",
-    headers: getAuthHeaders(),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
-  }
-
-  const blob = await response.blob();
-  const disposition = response.headers.get("content-disposition") ?? "";
-  const fileNameMatch = disposition.match(/filename="?([^"]+)"?/i);
+  const response = await fetchBinary(`/api/menu-export?${params.toString()}`);
 
   return {
-    blob,
+    blob: response.blob,
     fileName:
-      fileNameMatch?.[1] ??
+      response.fileName ??
       `meal-plan-menu.${options.format === "markdown" ? "md" : options.format}`,
   };
 }

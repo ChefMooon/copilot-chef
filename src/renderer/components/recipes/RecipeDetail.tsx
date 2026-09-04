@@ -18,6 +18,7 @@ import {
 import { AddRecipeModal } from "@/components/recipes/AddRecipeModal";
 import { DerivedRecipesModal } from "@/components/recipes/DerivedRecipesModal";
 import { RecipeMadeHistoryModal } from "@/components/recipes/RecipeMadeHistoryModal";
+import { RecipeDetailExportModal } from "@/components/recipes/RecipeDetailExportModal";
 import { Button } from "@/components/ui/button";
 import { VisualIcon } from "@/components/ui/icon";
 
@@ -89,6 +90,7 @@ export function RecipeDetail({
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [showDerivedRecipesModal, setShowDerivedRecipesModal] = useState(false);
   const [showMadeHistoryModal, setShowMadeHistoryModal] = useState(false);
+  const [showRecipeExportModal, setShowRecipeExportModal] = useState(false);
   const [duplicateDraft, setDuplicateDraft] = useState<RecipePayload | null>(null);
   const [hasConsumedInitialEdit, setHasConsumedInitialEdit] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
@@ -446,10 +448,10 @@ export function RecipeDetail({
         ))}
         <button
           className="rounded-[10px] border border-cream-dark bg-cream px-3 py-1.5 text-[0.82rem] font-bold text-text-muted transition-colors hover:border-green-light hover:text-green"
-          onClick={() => window.print()}
+          onClick={() => setShowRecipeExportModal(true)}
           type="button"
         >
-          Print
+          Print / Export
         </button>
       </div>
 
@@ -504,6 +506,16 @@ export function RecipeDetail({
         open={showMadeHistoryModal}
         recipeTitle={recipe.title}
       />
+
+      {showRecipeExportModal ? (
+        <RecipeDetailExportModal
+          iterations={iterations}
+          onClose={() => setShowRecipeExportModal(false)}
+          recipe={recipe}
+          servings={servings}
+          unitMode={unitMode}
+        />
+      ) : null}
 
       <section className="recipe-print-section rounded-[18px] border border-[rgba(59,94,69,0.1)] bg-white p-5 shadow-card md:p-6">
         <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.12em] text-text-muted">

@@ -104,6 +104,28 @@ npm run dev:web
 
 Starts a Vite dev server for the browser renderer only (no Electron). Useful for rapid browser UI iteration. Connect to a running local API via the connection page.
 
+### Recipe presentation exports
+
+The Recipe Detail `Print / Export` workflow creates a presentation document for
+one recipe in the `basic-recipe` layout. It supports Print, PDF, HTML,
+Markdown, and CSV output, with PDF selected by default. Print remains available
+as the browser print-preview action. The Advanced section controls grouped optional
+content and metadata; its defaults are restored each time the workflow opens
+and are not persisted.
+
+Presentation exports use the currently visible serving count and unit mode.
+Instructions are the raw ordered recipe steps, and selected sections with no
+usable data are omitted. Source URLs become links only when their scheme is
+`http:` or `https:`. CSV uses the stable columns
+`section,type,key,value,group,quantity,unit,notes,order`; metadata, ingredient,
+and instruction rows populate only their defined columns.
+
+This workflow is separate from the typed recipe JSON compatibility export and
+import used for backups, and from the data-management `.lrb` archive used for
+broader application data. Those existing contracts remain unchanged. Browser
+Print opens a standalone document and downloads HTML when a popup is blocked;
+Electron PDF uses the existing `menu:exportPdf` save capability.
+
 ### Data-management build checks
 
 ```bash
