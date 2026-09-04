@@ -104,8 +104,52 @@ function buildPdfFileName(document: MenuDocument) {
   return `${toSlug(document.title)}-${document.from}-to-${document.to}.pdf`;
 }
 
-function buildHtmlFileName(document: MenuDocument) {
-  return `${toSlug(document.title)}-${document.from}-to-${document.to}.html`;
+function addBrowserPrintControls(printWindow: Window, document: MenuDocument) {
+  const printDocument = printWindow.document;
+  const style = printDocument.createElement("style");
+  style.textContent = `
+    .menu-print-controls {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin: 0 auto 16px;
+      max-width: 980px;
+    }
+    .menu-print-controls button {
+      border: 1px solid #3b5e45;
+      border-radius: 6px;
+      padding: 8px 12px;
+      background: #3b5e45;
+      color: #fffdf8;
+      font: 600 14px Arial, sans-serif;
+    }
+    .menu-print-controls button:last-child {
+      background: #fffdf8;
+      color: #2c2416;
+    }
+    @media print {
+      .menu-print-controls { display: none; }
+    }
+  `;
+  printDocument.head.appendChild(style);
+
+  const controls = printDocument.createElement("div");
+  controls.className = "menu-print-controls";
+  controls.setAttribute("role", "toolbar");
+
+  const printButton = printDocument.createElement("button");
+  printButton.type = "button";
+  printButton.textContent = "Print";
+  printButton.addEventListener("click", () => printWindow.print());
+
+  const closeButton = printDocument.createElement("button");
+  closeButton.type = "button";
+  closeButton.textContent = "Close";
+  closeButton.addEventListener("click", () => printWindow.close());
+
+  controls.append(printButton, closeButton);
+  printDocument.body.prepend(controls);
+  printDocument.title = document.title;
 }
 
 function MenuPreview({ document }: { document: MenuDocument }) {
@@ -320,22 +364,16 @@ export function MenuPrintExportModal({
       return;
     }
     if (platform.runtime === "browser") {
-      const printWindow = window.open("", "_blank");
-      const htmlContent = formatMenuAsHtml(menuDocument);
+      const printWindow = window.open("", "local-recipe-book-menu-print");
 
       if (!printWindow) {
-        triggerDownload(
-          new Blob([htmlContent], { type: "text/html;charset=utf-8" }),
-          buildHtmlFileName(menuDocument)
-        );
-        setError(
-          "The browser blocked the print view, so an HTML print file was downloaded instead."
-        );
+        setError("The browser blocked the print preview. Please allow popups and try again.");
         return;
       }
 
-      printWindow.document.write(htmlContent);
+      printWindow.document.write(formatMenuAsHtml(menuDocument));
       printWindow.document.close();
+      addBrowserPrintControls(printWindow, menuDocument);
       printWindow.focus();
       printWindow.print();
       return;

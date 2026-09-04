@@ -99,14 +99,29 @@ describe("MenuPrintExportModal", () => {
     expect(window.print).toHaveBeenCalled();
   });
 
-  it("opens a standalone print view in browser mode", async () => {
+  it("prints in the current browser document", async () => {
     const printWindow = {
       document: {
         write: vi.fn(),
         close: vi.fn(),
+        createElement: vi.fn((tagName: string) => ({
+          tagName,
+          addEventListener: vi.fn(),
+          append: vi.fn(),
+          prepend: vi.fn(),
+          setAttribute: vi.fn(),
+          style: {},
+          textContent: "",
+          type: "",
+          className: "",
+        })),
+        head: { appendChild: vi.fn() },
+        body: { prepend: vi.fn() },
+        title: "",
       },
       focus: vi.fn(),
       print: vi.fn(),
+      close: vi.fn(),
     } as unknown as Window;
     vi.mocked(window.open).mockReturnValue(printWindow);
     window.api = undefined;
@@ -115,12 +130,25 @@ describe("MenuPrintExportModal", () => {
     await waitForMenuPreview();
     fireEvent.click(await screen.findByRole("button", { name: /^print$/i }));
 
-    expect(window.open).toHaveBeenCalledWith("", "_blank");
+    expect(window.open).toHaveBeenCalledWith("", "local-recipe-book-menu-print");
     expect(printWindow.document.write).toHaveBeenCalledWith(
       expect.stringContaining("Pasta Night")
     );
-    expect(printWindow.print).toHaveBeenCalled();
+    expect(printWindow.focus).toHaveBeenCalled();
+    expect(printWindow.print).toHaveBeenCalledTimes(1);
     expect(window.print).not.toHaveBeenCalled();
+  });
+
+  it("shows an error when the browser blocks the print preview", async () => {
+    window.api = undefined;
+    renderModal();
+
+    await waitForMenuPreview();
+    fireEvent.click(await screen.findByRole("button", { name: /^print$/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /blocked the print preview/i
+    );
   });
 
   it("shows Preview between Print and Download actions", async () => {
@@ -239,9 +267,9 @@ describe("MenuPrintExportModal", () => {
 
     fireEvent.click(downloadButton);
 
-    expect(window.open).toHaveBeenCalledWith("", "_blank");
-    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
+    expect(window.open).toHaveBeenCalledWith("", "local-recipe-book-menu-print");
     expect(window.print).not.toHaveBeenCalled();
+    expect(HTMLAnchorElement.prototype.click).not.toHaveBeenCalled();
     expect(apiMocks.exportMenu).not.toHaveBeenCalled();
   });
 
