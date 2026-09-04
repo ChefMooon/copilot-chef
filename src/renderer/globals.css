@@ -259,6 +259,31 @@ button {
   font-family: var(--font-lora), Georgia, serif;
 }
 
+.menu-export-date-range {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.menu-export-fullscreen-header {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.menu-export-fullscreen-actions {
+  min-width: 0;
+}
+
+@media (min-width: 420px) {
+  .menu-export-date-range {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .menu-export-fullscreen-actions {
+    width: 100%;
+  }
+}
+
 .menu-print-header {
   margin-bottom: 1rem;
 }
@@ -379,6 +404,8 @@ button {
 
   body {
     min-height: auto;
+    height: auto;
+    overflow: visible !important;
     background: #ffffff;
     color: #000000;
     font-family: Georgia, "Times New Roman", serif;
@@ -470,6 +497,10 @@ button {
 
   body.menu-export-printing .menu-export-modal {
     display: none !important;
+  }
+
+  body.menu-export-printing .menu-export-print-surface {
+    min-height: auto !important;
   }
 
   .menu-print-root {

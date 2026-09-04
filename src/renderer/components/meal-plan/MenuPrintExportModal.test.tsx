@@ -70,6 +70,7 @@ describe("MenuPrintExportModal", () => {
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:menu");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    vi.spyOn(window, "open").mockReturnValue(null);
     window.api = {
       invoke: vi.fn().mockResolvedValue({ status: "saved", filePath: "C:/Users/justi/Documents/menu.pdf" }),
       on: vi.fn(),
@@ -98,6 +99,30 @@ describe("MenuPrintExportModal", () => {
     expect(window.print).toHaveBeenCalled();
   });
 
+  it("opens a standalone print view in browser mode", async () => {
+    const printWindow = {
+      document: {
+        write: vi.fn(),
+        close: vi.fn(),
+      },
+      focus: vi.fn(),
+      print: vi.fn(),
+    } as unknown as Window;
+    vi.mocked(window.open).mockReturnValue(printWindow);
+    window.api = undefined;
+    renderModal();
+
+    await waitForMenuPreview();
+    fireEvent.click(await screen.findByRole("button", { name: /^print$/i }));
+
+    expect(window.open).toHaveBeenCalledWith("", "_blank");
+    expect(printWindow.document.write).toHaveBeenCalledWith(
+      expect.stringContaining("Pasta Night")
+    );
+    expect(printWindow.print).toHaveBeenCalled();
+    expect(window.print).not.toHaveBeenCalled();
+  });
+
   it("shows Preview between Print and Download actions", async () => {
     renderModal();
 
@@ -109,7 +134,7 @@ describe("MenuPrintExportModal", () => {
       button.textContent?.replace(/\s+/g, " ").trim()
     );
 
-    expect(labels).toEqual(["Print", "Preview", "Download"]);
+    expect(labels).toEqual(["Print", "Preview", "Download PDF"]);
   });
 
   it("renders a separate print-only menu surface", async () => {
@@ -164,6 +189,24 @@ describe("MenuPrintExportModal", () => {
     });
   });
 
+  it("exposes the selected layout and suspends the outer dialog in fullscreen preview", async () => {
+    renderModal();
+
+    await waitForMenuPreview();
+    const classicGrid = screen.getByRole("button", { name: /classic grid/i });
+    expect(classicGrid).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /card style/i })).toHaveAttribute(
+      "aria-pressed",
+      "false"
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /^preview$/i }));
+
+    const outerOverlay = document.querySelector(".menu-export-modal");
+    expect(outerOverlay).toHaveAttribute("aria-hidden", "true");
+    expect(outerOverlay).toHaveAttribute("inert");
+  });
+
   it("uses the system save flow when PDF is selected", async () => {
     renderModal();
 
@@ -180,6 +223,24 @@ describe("MenuPrintExportModal", () => {
         })
       );
     });
+    expect(window.print).not.toHaveBeenCalled();
+    expect(apiMocks.exportMenu).not.toHaveBeenCalled();
+  });
+
+  it("uses browser print as the PDF fallback when native PDF export is unavailable", async () => {
+    window.api = undefined;
+    renderModal();
+    await waitForMenuPreview();
+
+    const downloadButton = await screen.findByRole("button", {
+      name: /print \/ save pdf/i,
+    });
+    expect(screen.getByRole("option", { name: /print \/ save pdf/i })).toBeTruthy();
+
+    fireEvent.click(downloadButton);
+
+    expect(window.open).toHaveBeenCalledWith("", "_blank");
+    expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled();
     expect(window.print).not.toHaveBeenCalled();
     expect(apiMocks.exportMenu).not.toHaveBeenCalled();
   });

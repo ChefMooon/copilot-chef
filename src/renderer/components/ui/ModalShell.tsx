@@ -22,6 +22,7 @@ export type ModalShellProps = {
   ariaLabel?: string;
   closeLabel?: string;
   closeDisabled?: boolean;
+  suspended?: boolean;
   closeOnOverlayClick?: boolean;
   className?: string;
   overlayClassName?: string;
@@ -44,6 +45,7 @@ export function ModalShell({
   ariaLabel,
   closeLabel = "Close dialog",
   closeDisabled = false,
+  suspended = false,
   closeOnOverlayClick = true,
   className,
   overlayClassName,
@@ -51,8 +53,11 @@ export function ModalShell({
   width,
 }: ModalShellProps) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const suspendedRef = useRef(suspended);
   const titleId = useId();
   const descriptionId = useId();
+
+  suspendedRef.current = suspended;
 
   useEffect(() => {
     if (!open) return;
@@ -81,6 +86,7 @@ export function ModalShell({
     initialTarget.focus();
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (suspendedRef.current) return;
       if (event.key === "Escape") {
         if (!closeDisabled) onClose();
         return;
@@ -120,6 +126,8 @@ export function ModalShell({
   return createPortal(
     <div
       className={[styles.overlay, overlayClassName].filter(Boolean).join(" ")}
+      aria-hidden={suspended || undefined}
+      inert={suspended ? true : undefined}
       onMouseDown={(event) => {
         if (
           closeOnOverlayClick &&

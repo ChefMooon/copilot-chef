@@ -104,6 +104,10 @@ function buildPdfFileName(document: MenuDocument) {
   return `${toSlug(document.title)}-${document.from}-to-${document.to}.pdf`;
 }
 
+function buildHtmlFileName(document: MenuDocument) {
+  return `${toSlug(document.title)}-${document.from}-to-${document.to}.html`;
+}
+
 function MenuPreview({ document }: { document: MenuDocument }) {
   return (
     <div className={`menu-print-root menu-print-${document.layout}`}>
@@ -154,6 +158,7 @@ export function MenuPrintExportModal({
   onClose,
 }: MenuPrintExportModalProps) {
   const config = useServerConfig();
+  const platform = getPlatform();
   const apiReady = isServerConfigReady(config);
   const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const [from, setFrom] = useState(() => toDateInputValue(initialFrom));
@@ -201,6 +206,33 @@ export function MenuPrintExportModal({
     globalThis.document.body.classList.add("menu-export-printing");
     return () => {
       globalThis.document.body.classList.remove("menu-export-printing");
+    };
+  }, [portalRoot]);
+
+  useEffect(() => {
+    if (!portalRoot) return;
+
+    const body = globalThis.document.body;
+    let printStarted = false;
+    const previousOverflow = body.style.overflow;
+    const previousHeight = body.style.height;
+    const beforePrint = () => {
+      printStarted = true;
+      body.style.overflow = "visible";
+      body.style.height = "auto";
+    };
+    const afterPrint = () => {
+      body.style.overflow = previousOverflow;
+      body.style.height = previousHeight;
+      printStarted = false;
+    };
+
+    window.addEventListener("beforeprint", beforePrint);
+    window.addEventListener("afterprint", afterPrint);
+    return () => {
+      window.removeEventListener("beforeprint", beforePrint);
+      window.removeEventListener("afterprint", afterPrint);
+      if (printStarted) afterPrint();
     };
   }, [portalRoot]);
 
@@ -287,10 +319,37 @@ export function MenuPrintExportModal({
       setError("Unable to load menu preview for printing.");
       return;
     }
+    if (platform.runtime === "browser") {
+      const printWindow = window.open("", "_blank");
+      const htmlContent = formatMenuAsHtml(menuDocument);
+
+      if (!printWindow) {
+        triggerDownload(
+          new Blob([htmlContent], { type: "text/html;charset=utf-8" }),
+          buildHtmlFileName(menuDocument)
+        );
+        setError(
+          "The browser blocked the print view, so an HTML print file was downloaded instead."
+        );
+        return;
+      }
+
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      return;
+    }
+
     window.print();
   };
 
   const handlePdfExport = async () => {
+    if (!platform.capabilities.pdfExport) {
+      handlePrint();
+      return;
+    }
+
     setIsExporting(true);
     setError(null);
     try {
@@ -342,12 +401,16 @@ export function MenuPrintExportModal({
     }
   };
 
+  const pdfActionLabel = platform.capabilities.pdfExport
+    ? "Download PDF"
+    : "Print / Save PDF";
+
   return (
     <>
       <ModalShell
         ariaLabel="Print or export menu"
         bodyClassName="min-h-0 flex-1 overflow-hidden p-0"
-        className="menu-export-panel max-h-[92vh] w-full max-w-6xl"
+        className="menu-export-panel w-full max-w-6xl"
         closeDisabled={isExporting}
         closeLabel="Close menu export dialog"
         footerRight={
@@ -362,6 +425,7 @@ export function MenuPrintExportModal({
         }
         onClose={handleClose}
         open={Boolean(portalRoot)}
+        suspended={isFullscreenPreview}
         width="min(1100px, calc(100vw - 2rem))"
         eyebrow="Menu Export"
         title="Print or export a menu"
@@ -378,11 +442,11 @@ export function MenuPrintExportModal({
                 value={title}
               />
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="menu-export-date-range grid gap-3">
               <label className="grid gap-1 text-sm font-bold text-text">
                 From
                 <input
-                  className="rounded-btn border border-cream-dark px-3 py-2 font-normal"
+                  className="w-full min-w-0 rounded-btn border border-cream-dark px-3 py-2 font-normal"
                   onChange={(event) => setFrom(event.target.value)}
                   type="date"
                   value={from}
@@ -391,7 +455,7 @@ export function MenuPrintExportModal({
               <label className="grid gap-1 text-sm font-bold text-text">
                 To
                 <input
-                  className="rounded-btn border border-cream-dark px-3 py-2 font-normal"
+                  className="w-full min-w-0 rounded-btn border border-cream-dark px-3 py-2 font-normal"
                   onChange={(event) => setTo(event.target.value)}
                   type="date"
                   value={to}
@@ -403,6 +467,7 @@ export function MenuPrintExportModal({
               <p className="text-sm font-bold text-text">Layout</p>
               {LAYOUT_OPTIONS.map((option) => (
                 <button
+                  aria-pressed={layout === option.value}
                   className={`rounded-card border px-3 py-2 text-left transition-colors ${layout === option.value ? "border-green bg-green-pale" : "border-cream-dark bg-white hover:border-green-light"}`}
                   key={option.value}
                   onClick={() => setLayout(option.value)}
@@ -429,7 +494,9 @@ export function MenuPrintExportModal({
               >
                 {FORMAT_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {option.value === "pdf" && !platform.capabilities.pdfExport
+                      ? "Print / Save PDF"
+                      : option.label}
                   </option>
                 ))}
               </select>
@@ -446,7 +513,10 @@ export function MenuPrintExportModal({
             </label>
 
             {error ? (
-              <p className="rounded-card border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              <p
+                className="rounded-card border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+                role="alert"
+              >
                 {error}
               </p>
             ) : null}
@@ -474,18 +544,24 @@ export function MenuPrintExportModal({
                 type="button"
               >
                 <Download aria-hidden="true" size={16} />{" "}
-                {isExporting ? "Exporting..." : "Download"}
+                {isExporting ? "Exporting..." : format === "pdf" ? pdfActionLabel : "Download"}
               </Button>
             </div>
           </div>
 
           <div className="min-h-0 overflow-y-auto bg-cream px-4 py-4 sm:px-6">
             {mealsQuery.isLoading ? (
-              <div className="print-hidden rounded-card border border-cream-dark bg-white p-6 text-sm text-text-muted">
+              <div
+                className="print-hidden rounded-card border border-cream-dark bg-white p-6 text-sm text-text-muted"
+                role="status"
+              >
                 Loading menu preview...
               </div>
             ) : mealsQuery.isError ? (
-              <div className="print-hidden rounded-card border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+              <div
+                className="print-hidden rounded-card border border-red-200 bg-red-50 p-6 text-sm text-red-700"
+                role="alert"
+              >
                 Unable to load menu preview.
               </div>
             ) : (
@@ -514,8 +590,8 @@ export function MenuPrintExportModal({
                 role="dialog"
                 tabIndex={-1}
               >
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-cream-dark bg-white px-4 py-3 sm:px-6">
-                  <h3 className="font-serif text-xl font-semibold text-text">
+                <div className="menu-export-fullscreen-header flex flex-wrap items-center justify-between gap-3 border-b border-cream-dark bg-white px-4 py-3 sm:px-6">
+                  <h3 className="min-w-0 flex-1 font-serif text-xl font-semibold text-text">
                     Previewing {title || "Meal Plan Menu"}
                   </h3>
                   <div className="menu-export-fullscreen-actions flex flex-wrap items-center gap-2">
@@ -533,7 +609,7 @@ export function MenuPrintExportModal({
                       type="button"
                     >
                       <Download aria-hidden="true" size={16} />{" "}
-                      {isExporting ? "Exporting..." : "Download"}
+                      {isExporting ? "Exporting..." : format === "pdf" ? pdfActionLabel : "Download"}
                     </Button>
                     <Button
                       disabled={isExporting}
@@ -548,11 +624,17 @@ export function MenuPrintExportModal({
 
                 <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
                   {mealsQuery.isLoading ? (
-                    <div className="rounded-card border border-cream-dark bg-white p-6 text-sm text-text-muted">
+                    <div
+                      className="rounded-card border border-cream-dark bg-white p-6 text-sm text-text-muted"
+                      role="status"
+                    >
                       Loading menu preview...
                     </div>
                   ) : mealsQuery.isError ? (
-                    <div className="rounded-card border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+                    <div
+                      className="rounded-card border border-red-200 bg-red-50 p-6 text-sm text-red-700"
+                      role="alert"
+                    >
                       Unable to load menu preview.
                     </div>
                   ) : (

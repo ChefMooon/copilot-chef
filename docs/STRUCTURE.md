@@ -18,6 +18,7 @@
 | Test coverage status                  | `TEST.md`                                                  | Current automated test snapshot, coverage map, and gaps                                        |
 | Architecture improvement plan         | `plans/local-recipe-book-architecture-improvement-plan.md` | Proposed, review-only plan for locking and improving the current architecture                  |
 | Final release readiness plan          | `plans/final-release-readiness-plan.md`                    | Database, backup, packaged-build, and operator checks required before the initial beta release |
+| Recipe export shared architecture     | `plans/recipe-export-shared-architecture.md`              | Shared renderer/server export infrastructure and domain boundaries for future recipe formats   |
 | Customizable themes frontend plan     | `plans/customizable-themes-frontend-plan.md`               | Future implementation plan for applying and editing the existing custom theme profile contract |
 | Release process                       | `release-guide.md`                                         | Packaging and release workflow guidance                                                        |
 
