@@ -111,6 +111,18 @@ function renderRecipeDetail({
 }
 
 describe("RecipeDetail duplicate draft flow", () => {
+  it("wraps the hero actions below the content on narrow screens", () => {
+    const rendered = renderRecipeDetail();
+
+    const backLink = screen.getByRole("link", { name: "Back to Recipes" });
+    const actionGroup = backLink.parentElement;
+
+    expect(actionGroup).toHaveClass("w-full", "md:w-auto", "md:shrink-0");
+    expect(actionGroup?.parentElement).toHaveClass("flex-wrap");
+
+    rendered.unmount();
+  });
+
   it("does not create a recipe when duplicate modal is closed without saving", async () => {
     createRecipeMock.mockReset();
     updateRecipeMock.mockReset();
